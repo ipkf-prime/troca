@@ -1,0 +1,24 @@
+<?php
+
+namespace IPKF\Auth;
+
+use IPKF\Http\Request;
+
+class AuthMiddleware
+{
+    public function handle(Request $request, callable $next)
+    {
+        $auth = new Auth();
+
+        if (!$auth->check()) {
+
+            http_response_code(401);
+
+            echo "Unauthorized";
+
+            return;
+        }
+
+        return $next($request);
+    }
+}

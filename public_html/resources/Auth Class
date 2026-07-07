@@ -1,0 +1,35 @@
+<?php
+
+namespace IPKF\Auth;
+
+use IPKF\Core\Session;
+
+class Auth
+{
+    protected Session $session;
+
+    public function __construct()
+    {
+        $this->session = new Session();
+    }
+
+    public function login(array $user): void
+    {
+        $this->session->set('auth_user', $user);
+    }
+
+    public function user(): ?array
+    {
+        return $this->session->get('auth_user');
+    }
+
+    public function check(): bool
+    {
+        return $this->session->has('auth_user');
+    }
+
+    public function logout(): void
+    {
+        $this->session->forget('auth_user');
+    }
+}

@@ -1,0 +1,29 @@
+<?php
+
+namespace IPKF\View;
+
+class View
+{
+    protected static array $data = [];
+
+    public static function share(string $key, mixed $value): void
+    {
+        self::$data[$key] = $value;
+    }
+
+    public static function render(string $view, array $data = []): void
+    {
+        $path = BASE_PATH . "/resources/views/" . $view . ".php";
+
+        if (!file_exists($path)) {
+            echo "View not found: $view";
+            return;
+        }
+
+        $data = array_merge(self::$data, $data);
+
+        extract($data);
+
+        require $path;
+    }
+}

@@ -1,0 +1,20 @@
+<?php
+
+use IPKF\View\View;
+use IPKF\View\Component;
+
+if (!function_exists('view')) {
+
+    function view(string $view, array $data = []): void
+    {
+        View::render($view, $data);
+    }
+}
+
+if (!function_exists('component')) {
+
+    function component(string $name, array $data = []): void
+    {
+        Component::render($name, $data);
+    }
+}

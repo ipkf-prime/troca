@@ -1,0 +1,20 @@
+<?php
+
+namespace IPKF\View;
+
+class Component
+{
+    public static function render(string $name, array $data = []): void
+    {
+        $path = BASE_PATH . "/resources/views/components/" . $name . ".php";
+
+        if (!file_exists($path)) {
+            echo "Component not found: $name";
+            return;
+        }
+
+        extract($data);
+
+        require $path;
+    }
+}

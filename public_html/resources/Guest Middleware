@@ -1,0 +1,22 @@
+<?php
+
+namespace IPKF\Auth;
+
+use IPKF\Http\Request;
+
+class GuestMiddleware
+{
+    public function handle(Request $request, callable $next)
+    {
+        $auth = new Auth();
+
+        if ($auth->check()) {
+
+            header("Location: /dashboard");
+
+            exit;
+        }
+
+        return $next($request);
+    }
+}

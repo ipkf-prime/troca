@@ -1,0 +1,11 @@
+<?php
+
+namespace IPKF\View;
+
+class Layout
+{
+    public static function extend(string $layout, array $data = []): void
+    {
+        View::render("layouts/" . $layout, $data);
+    }
+}

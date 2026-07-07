@@ -1,0 +1,16 @@
+{
+  "name": "ipkf/core",
+  "description": "IPKF Core Framework - Troca ERP Base",
+  "type": "project",
+  "license": "proprietary",
+  "require": {
+    "php": ">=8.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "IPKF\\": "system/",
+      "App\\": "app/"
+    }
+  },
+  "minimum-stability": "stable"
+}
