@@ -2,17 +2,20 @@
 
 namespace IPKF\Support;
 
+use Throwable;
+
 class ErrorHandler
 {
     public static function register(): void
     {
+        ini_set('display_errors', Env::isDebug() ? '1' : '0');
+        error_reporting(E_ALL);
+
         set_error_handler(function ($severity, $message, $file, $line) {
             throw new \ErrorException($message, 0, $severity, $file, $line);
         });
 
-        set_exception_handler(function ($e) {
-            echo "FATAL ERROR: " . $e->getMessage();
-        });
+        set_exception_handler([self::class, 'handleException']);
     }
 
     public static function handleError($level, $message, $file, $line): void
@@ -29,13 +32,17 @@ class ErrorHandler
     {
         http_response_code(500);
 
-        echo "<h2>$type</h2>";
-        echo "<p><b>Message:</b> $message</p>";
-        echo "<p><b>File:</b> $file</p>";
-        echo "<p><b>Line:</b> $line</p>";
+        if (Env::isDebug()) {
+            echo "<h2>{$type}</h2>";
+            echo "<p><b>Message:</b> " . htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . "</p>";
+            echo "<p><b>File:</b> " . htmlspecialchars($file, ENT_QUOTES, 'UTF-8') . "</p>";
+            echo "<p><b>Line:</b> {$line}</p>";
 
-        if ($trace) {
-            echo "<pre>$trace</pre>";
+            if ($trace) {
+                echo "<pre>" . htmlspecialchars($trace, ENT_QUOTES, 'UTF-8') . "</pre>";
+            }
+        } else {
+            echo "Internal Server Error";
         }
 
         self::log($type, $message, $file, $line, $trace);

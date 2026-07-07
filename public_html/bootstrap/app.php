@@ -2,16 +2,18 @@
 
 require_once BASE_PATH . '/vendor/autoload.php';
 
-//use IPKF\Support\ErrorHandler;
-
-//ErrorHandler::register();
-
-echo "BOOTSTRAP START\n";
-
 use IPKF\Core\Application;
+use IPKF\Routing\RouteLoader;
+use IPKF\Support\Config;
+use IPKF\Support\Env;
+use IPKF\Support\ErrorHandler;
+
+Env::load(BASE_PATH . '/.env');
+ErrorHandler::register();
+Config::load();
 
 $app = new Application();
 
+(new RouteLoader())->load($app);
+
 return $app;
-
-

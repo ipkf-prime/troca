@@ -2,18 +2,11 @@
 
 namespace IPKF\Core;
 
-use IPKF\Security\Firewall;
-use IPKF\Foundation\Maintenance;
-use IPKF\Foundation\License;
 use IPKF\Events\EventBus;
 
 class Kernel
 {
-    protected array $bootstrappers = [
-        Maintenance::class,
-        License::class,
-        Firewall::class,
-    ];
+    protected array $bootstrappers = [];
 
     public function handle($request): bool
     {

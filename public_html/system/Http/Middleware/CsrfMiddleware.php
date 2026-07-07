@@ -1,15 +1,14 @@
 <?php
 
-namespace App\Http\Middleware;
+namespace IPKF\Http\Middleware;
 
-use IPKF\Contracts\MiddlewareInterface;
 use IPKF\Http\Request;
 use IPKF\Http\Response;
 use IPKF\Security\Csrf;
 
-class CsrfMiddleware implements MiddlewareInterface
+class CsrfMiddleware
 {
-    public function handle(Request $request, Response $response, callable $next)
+    public function handle(Request $request, Response $response, callable $next): Response
     {
         if (in_array($request->method(), ['POST', 'PUT', 'DELETE'])) {
 
@@ -18,12 +17,7 @@ class CsrfMiddleware implements MiddlewareInterface
             $csrf = new Csrf();
 
             if (!$csrf->check($token)) {
-
-                http_response_code(419);
-
-                $response->send("CSRF Token Mismatch");
-
-                return;
+                return $response->status(419)->send("CSRF Token Mismatch");
             }
         }
 

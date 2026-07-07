@@ -1,6 +1,6 @@
 <?php
 
-namespace IPKF\Services;
+namespace App\Services;
 
 class BaseService
 {

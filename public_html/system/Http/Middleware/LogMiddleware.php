@@ -1,14 +1,13 @@
 <?php
 
-namespace App\Http\Middleware;
+namespace IPKF\Http\Middleware;
 
-use IPKF\Contracts\MiddlewareInterface;
 use IPKF\Http\Request;
 use IPKF\Http\Response;
 
-class LogMiddleware implements MiddlewareInterface
+class LogMiddleware
 {
-    public function handle(Request $request, Response $response, callable $next)
+    public function handle(Request $request, Response $response, callable $next): Response
     {
         file_put_contents(
             BASE_PATH . '/storage/logs/request.log',

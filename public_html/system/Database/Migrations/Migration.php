@@ -2,7 +2,7 @@
 
 namespace IPKF\Database\Migrations;
 
-use IPKF\Core\Database;
+use IPKF\Database\Database;
 use PDO;
 
 abstract class Migration

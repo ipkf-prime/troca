@@ -2,7 +2,7 @@
 
 namespace IPKF\Database\Seeds;
 
-use IPKF\Core\Database;
+use IPKF\Database\Database;
 
 abstract class Seeder
 {

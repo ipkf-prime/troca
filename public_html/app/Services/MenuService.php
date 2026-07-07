@@ -1,8 +1,8 @@
 <?php
 
-namespace IPKF\Services;
+namespace App\Services;
 
-use IPKF\Core\Database;
+use IPKF\Database\Database;
 use PDO;
 
 class MenuService

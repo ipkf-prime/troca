@@ -4,6 +4,11 @@ namespace IPKF\Http;
 
 class Request
 {
+    public static function capture(): self
+    {
+        return new self();
+    }
+
     public function method(): string
     {
         return $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -13,7 +18,7 @@ class Request
     {
         $uri = $_SERVER['REQUEST_URI'] ?? '/';
 
-        return parse_url($uri, PHP_URL_PATH);
+        return parse_url($uri, PHP_URL_PATH) ?: '/';
     }
 
     public function all(): array

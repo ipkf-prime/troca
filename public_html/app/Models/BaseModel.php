@@ -1,8 +1,8 @@
 <?php
 
-namespace IPKF\Models;
+namespace App\Models;
 
-use IPKF\Core\Model;
+use IPKF\Database\Model;
 
 class BaseModel extends Model
 {

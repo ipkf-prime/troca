@@ -1,16 +1,18 @@
 <?php
 
-namespace IPKF\Controllers;
+namespace App\Controllers;
 
-use IPKF\Core\Request;
-use IPKF\Core\Response;
+use IPKF\Http\Request;
+use IPKF\Http\Response;
 
 class TestController
 {
-    public function index(Request $request, Response $response): void
+    public function index(Request $request, Response $response): Response
     {
-        echo "<h1>IPKF CORE IS RUNNING</h1>";
-        echo "<p>Domain: " . $request->host() . "</p>";
-        echo "<p>URI: " . $request->uri() . "</p>";
+        return $response->send(
+            "<h1>IPKF CORE IS RUNNING</h1>" .
+            "<p>Domain: " . htmlspecialchars($request->host(), ENT_QUOTES, 'UTF-8') . "</p>" .
+            "<p>URI: " . htmlspecialchars($request->uri(), ENT_QUOTES, 'UTF-8') . "</p>"
+        );
     }
 }

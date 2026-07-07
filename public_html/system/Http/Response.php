@@ -4,27 +4,59 @@ namespace IPKF\Http;
 
 class Response
 {
-    public function send(string $content): void
+    protected string $content = '';
+
+    protected int $statusCode = 200;
+
+    protected array $headers = [];
+
+    public function send(string $content = ''): self
     {
-        echo $content;
+        $this->content = $content;
+
+        return $this;
     }
 
-    public function json(array $data): void
+    public function json(array $data): self
     {
-        header('Content-Type: application/json');
+        $this->header('Content-Type', 'application/json');
+        $this->content = json_encode($data) ?: '{}';
 
-        echo json_encode($data);
+        return $this;
     }
 
-    public function redirect(string $url): void
+    public function redirect(string $url): self
     {
-        header("Location: $url");
+        $this->status(302);
+        $this->header('Location', $url);
 
-        exit;
+        return $this;
     }
 
-    public function status(int $code): void
+    public function status(int $code): self
     {
-        http_response_code($code);
+        $this->statusCode = $code;
+
+        return $this;
+    }
+
+    public function header(string $name, string $value): self
+    {
+        $this->headers[$name] = $value;
+
+        return $this;
+    }
+
+    public function emit(): void
+    {
+        if (!headers_sent()) {
+            http_response_code($this->statusCode);
+
+            foreach ($this->headers as $name => $value) {
+                header($name . ': ' . $value);
+            }
+        }
+
+        echo $this->content;
     }
 }

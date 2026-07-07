@@ -2,6 +2,7 @@
 
 namespace IPKF\Routing;
 
+use IPKF\Core\Container;
 use IPKF\Http\Request;
 use IPKF\Http\Response;
 use IPKF\Http\Pipeline;
@@ -10,28 +11,40 @@ class Router
 {
     protected array $routes = [];
 
-    protected array $routeMiddleware = [];
-
     protected ControllerResolver $resolver;
 
-    public function __construct($container = null)
+    protected array $pendingMiddleware = [];
+
+    public function __construct(Container $container)
     {
         $this->resolver = new ControllerResolver($container);
     }
 
-    public function get(string $uri, callable|array $action): void
+    public function get(string $uri, callable|array $action): self
     {
-        $this->routes['GET'][$this->normalize($uri)] = $action;
+        return $this->add('GET', $uri, $action);
     }
 
-    public function post(string $uri, callable|array $action): void
+    public function post(string $uri, callable|array $action): self
     {
-        $this->routes['POST'][$this->normalize($uri)] = $action;
+        return $this->add('POST', $uri, $action);
+    }
+
+    protected function add(string $method, string $uri, callable|array $action): self
+    {
+        $this->routes[$method][$this->normalize($uri)] = [
+            'action' => $action,
+            'middleware' => $this->pendingMiddleware,
+        ];
+
+        $this->pendingMiddleware = [];
+
+        return $this;
     }
 
     public function middleware(array $middlewares): self
     {
-        $this->routeMiddleware = $middlewares;
+        $this->pendingMiddleware = $middlewares;
         return $this;
     }
 
@@ -42,29 +55,27 @@ class Router
         return $uri === '//' ? '/' : $uri;
     }
 
-    public function dispatch(Request $request, Response $response): void
+    public function dispatch(Request $request, Response $response): Response
     {
         $method = strtoupper($request->method());
         $uri    = $this->normalize($request->uri());
 
-        $action = $this->routes[$method][$uri] ?? null;
+        $route = $this->routes[$method][$uri] ?? null;
 
-        if ($action === null) {
-            http_response_code(404);
-            echo "404 - Route not found : {$uri}";
-            return;
+        if ($route === null) {
+            return $response->status(404)->send("404 - Route not found: {$uri}");
         }
 
+        $action = $route['action'];
         $controller = $this->resolver->resolve($action);
 
-        $pipeline = new Pipeline();
+        return (new Pipeline())
+            ->through($route['middleware'])
+            ->send($request, $response)
+            ->then(function (Request $request, Response $response) use ($controller): Response {
+                $result = $controller($request, $response);
 
-        $pipeline
-            ->through($this->routeMiddleware)
-            ->then(function () use ($controller, $request, $response) {
-
-                $controller($request, $response);
-
+                return $result instanceof Response ? $result : $response;
             });
     }
 }
