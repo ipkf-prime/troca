@@ -17,6 +17,7 @@ try {
     $manager->migrations([
         new \IPKF\Database\Migrations\CreateRuntimeChecksTable(),
         new \IPKF\Database\Migrations\CreateAuthRbacSchemaTables(),
+        new \IPKF\Database\Migrations\EnsureUtf8mb4AuthRbacTables(),
     ]);
 
     $manager->migrate();

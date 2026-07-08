@@ -153,6 +153,10 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'database_config_loaded' => \IPKF\Support\Config::has('database.connections.mysql'),
         'database_connection_available' => $databaseConnectionAvailable,
         'database_connection_message' => $databaseConnectionMessage,
+        'database_charset_configured' => \IPKF\Support\Config::get('database.connections.mysql.charset', 'utf8mb4'),
+        'database_connection_charset' => \IPKF\Database\Database::connectionCharset(),
+        'utf8mb4_ready' => \IPKF\Support\Config::get('database.connections.mysql.charset', 'utf8mb4') === 'utf8mb4'
+            && \IPKF\Database\Database::connectionCharset() === 'utf8mb4',
         'migration_system_available' => class_exists(\IPKF\Database\Migrations\MigrationRunner::class)
             && class_exists(\IPKF\Database\Migrations\CreateRuntimeChecksTable::class),
         'seeder_system_available' => class_exists(\IPKF\Database\Seeds\SeederRunner::class)

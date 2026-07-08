@@ -117,6 +117,10 @@ Parameterized permission middleware is limited by the current router shape, so `
 - Admin panel UI is not implemented yet.
 - Password reset and invitation flows are not implemented yet.
 
+## UTF-8 Data
+
+The database connection must use `utf8mb4` for Persian RBAC seed data. The auth/RBAC seeder is idempotent and repairs canonical seeded records such as `roles.code=super_admin` with the Persian title `مدیر کل سامانه`.
+
 ## Next Phase
 
 The next phase can be MFA verification or Admin Panel Shell, depending on release priority.
