@@ -95,6 +95,46 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         && \IPKF\Database\Database::columnExists('organizations', 'depth')
         && \IPKF\Database\Database::columnExists('organizations', 'path');
 
+    $adminUserExists = false;
+    $superAdminRoleExists = false;
+    $superAdminAssignmentExists = false;
+
+    if ($databaseConnectionAvailable) {
+        try {
+            $db = \IPKF\Database\Database::connect();
+
+            if ($usersTableExists) {
+                $adminEmail = \IPKF\Support\Env::get('ADMIN_EMAIL', '');
+                $statement = $db->prepare("SELECT COUNT(*) FROM users WHERE email = ? AND status = 'active'");
+                $statement->execute([$adminEmail]);
+                $adminUserExists = $adminEmail !== '' && (int) $statement->fetchColumn() > 0;
+            }
+
+            if ($rolesTableExists) {
+                $statement = $db->prepare("SELECT id FROM roles WHERE code = 'super_admin' AND is_active = 1 LIMIT 1");
+                $statement->execute();
+                $superAdminRoleId = $statement->fetchColumn();
+                $superAdminRoleExists = $superAdminRoleId !== false;
+
+                if ($superAdminRoleExists && $userRoleAssignmentsTableExists) {
+                    $statement = $db->prepare("
+                        SELECT COUNT(*)
+                        FROM user_role_assignments
+                        WHERE role_id = ?
+                          AND scope_type = 'global'
+                          AND is_active = 1
+                    ");
+                    $statement->execute([(int) $superAdminRoleId]);
+                    $superAdminAssignmentExists = (int) $statement->fetchColumn() > 0;
+                }
+            }
+        } catch (\Throwable $exception) {
+            $adminUserExists = false;
+            $superAdminRoleExists = false;
+            $superAdminAssignmentExists = false;
+        }
+    }
+
     return $response->json([
         'php_version' => PHP_VERSION,
         'base_path' => BASE_PATH,
@@ -130,6 +170,12 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'user_role_assignments_table_exists' => $userRoleAssignmentsTableExists,
         'mfa_schema_available' => $mfaSchemaAvailable,
         'organizations_hierarchy_ready' => $organizationsHierarchyReady,
+        'auth_session_available' => class_exists(\App\Services\AuthService::class)
+            && class_exists(\IPKF\Support\Session::class),
+        'admin_user_exists' => $adminUserExists,
+        'super_admin_role_exists' => $superAdminRoleExists,
+        'super_admin_assignment_exists' => $superAdminAssignmentExists,
+        'auth_routes_available' => true,
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),
@@ -147,4 +193,109 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
 
 $router->get('/test', function ($req, $res) {
     return $res->send("Test Route OK");
+});
+
+$router->post('/auth/login', function ($request, $response) {
+    $login = trim((string) $request->input('login', ''));
+    $password = (string) $request->input('password', '');
+
+    if ($login === '' || $password === '') {
+        return $response->status(401)->json([
+            'status' => 'error',
+            'authenticated' => false,
+            'message' => 'Invalid credentials.',
+        ]);
+    }
+
+    $user = (new \App\Services\AuthService())->attempt($login, $password);
+
+    if ($user === null) {
+        return $response->status(401)->json([
+            'status' => 'error',
+            'authenticated' => false,
+            'message' => 'Invalid credentials.',
+        ]);
+    }
+
+    return $response->json([
+        'status' => 'ok',
+        'authenticated' => true,
+        'user' => [
+            'id' => $user['id'],
+            'name' => $user['name'],
+            'email' => $user['email'],
+        ],
+    ]);
+});
+
+$router->post('/auth/logout', function ($request, $response) {
+    (new \App\Services\AuthService())->logout();
+
+    return $response->json([
+        'status' => 'ok',
+        'authenticated' => false,
+    ]);
+});
+
+$router->get('/auth/status', function ($request, $response) {
+    return $response->json([
+        'authenticated' => (new \App\Services\AuthService())->authenticated(),
+    ]);
+});
+
+$router->get('/me', function ($request, $response) {
+    $auth = new \App\Services\AuthService();
+    $user = $auth->currentUser();
+    $userId = $auth->currentUserId();
+
+    if ($user === null || $userId === null) {
+        return $response->status(401)->json([
+            'status' => 'error',
+            'authenticated' => false,
+            'message' => 'Unauthenticated.',
+        ]);
+    }
+
+    $authorization = new \App\Services\AuthorizationService();
+
+    return $response->json([
+        'status' => 'ok',
+        'authenticated' => true,
+        'user' => $user,
+        'roles' => array_map(
+            fn (array $role): array => [
+                'id' => (int) $role['id'],
+                'code' => $role['code'],
+                'title' => $role['title'],
+            ],
+            $authorization->rolesForUser($userId)
+        ),
+    ]);
+});
+
+$router->get('/admin-check', function ($request, $response) {
+    $auth = new \App\Services\AuthService();
+    $userId = $auth->currentUserId();
+
+    if ($userId === null) {
+        return $response->status(401)->json([
+            'status' => 'error',
+            'authenticated' => false,
+            'message' => 'Unauthenticated.',
+        ]);
+    }
+
+    $permission = 'system.diagnostics.view';
+
+    if (!(new \App\Services\AuthorizationService())->hasPermission($userId, $permission)) {
+        return $response->status(403)->json([
+            'status' => 'error',
+            'message' => 'Forbidden.',
+        ]);
+    }
+
+    return $response->json([
+        'status' => 'ok',
+        'permission' => $permission,
+    ]);
 });

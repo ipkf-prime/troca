@@ -76,3 +76,9 @@ Verification logic is intentionally deferred.
 - MFA logic will be added later.
 - Admin panel UI will be added later.
 - `v0.5` admin panel shell.
+
+## v0.4.1 Auth Session
+
+Auth session foundation begins in `0.4.1-auth-session-dev`.
+
+It builds on this schema with admin seeding, password hashing, JSON login/logout routes, current user lookup, session state, and basic permission checks. It does not add MFA verification or an admin panel UI.

@@ -74,8 +74,25 @@ Scope:
 - MFA schema is prepared without verification logic.
 - No login UI, admin panel, admin user, or business modules are added.
 
+## Active Milestone
+
+IPKF v0.4.1 Auth Session starts the first JSON-first session authentication foundation.
+
+Working version: `0.4.1-auth-session-dev`
+
+Scope:
+
+- Admin user seeding from safe `.env` values.
+- Secure password hashing with PHP `PASSWORD_DEFAULT`.
+- Session login/logout and current user lookup.
+- Basic permission checks through roles and permissions.
+- Auth diagnostics without exposing secrets.
+- No login UI, full MFA, admin panel, or business modules are added.
+
 ## Future Milestones
 
+- MFA
+- Admin Panel Shell
 - Core documentation
 - Auth
 - RBAC
