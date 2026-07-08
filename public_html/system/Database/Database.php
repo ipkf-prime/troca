@@ -79,4 +79,23 @@ class Database
             return false;
         }
     }
+
+    public static function columnExists(string $table, string $column): bool
+    {
+        try {
+            $statement = self::connect()->prepare("
+                SELECT COUNT(*)
+                FROM information_schema.columns
+                WHERE table_schema = DATABASE()
+                  AND table_name = ?
+                  AND column_name = ?
+            ");
+
+            $statement->execute([$table, $column]);
+
+            return (int) $statement->fetchColumn() > 0;
+        } catch (RuntimeException|PDOException) {
+            return false;
+        }
+    }
 }

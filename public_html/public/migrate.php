@@ -16,12 +16,13 @@ try {
     $manager = new \IPKF\Database\DatabaseManager();
     $manager->migrations([
         new \IPKF\Database\Migrations\CreateRuntimeChecksTable(),
+        new \IPKF\Database\Migrations\CreateAuthRbacSchemaTables(),
     ]);
 
     $manager->migrate();
 
     header('Content-Type: text/plain; charset=UTF-8');
-    echo "MIGRATION DONE: ipkf_runtime_checks";
+    echo "MIGRATION DONE: ipkf_runtime_checks, auth_rbac_schema";
 } catch (Throwable $exception) {
     http_response_code(500);
     echo "MIGRATION FAILED";

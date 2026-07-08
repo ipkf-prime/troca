@@ -48,7 +48,7 @@ Stable version: `0.3.0-installer`
 
 Deployment branch: `installer-v0.3`
 
-## Active Milestone
+## Stable Baseline
 
 IPKF v0.3.1 public site baseline adds a controlled public root mode while the main application is still under development.
 
@@ -56,6 +56,23 @@ Site mode behavior:
 
 - `SITE_MODE=coming_soon` displays the public Persian construction page at `GET /`.
 - `SITE_MODE=app` keeps the framework or future application home behavior.
+
+## Stable Baseline
+
+IPKF v0.4.0 Auth/RBAC Schema Foundation adds normalized database structure for identity, user accounts, roles, permissions, scoped access, organization hierarchy, and MFA readiness.
+
+Stable version: `0.4.0-auth-rbac-schema`
+
+Deployment branch: `auth-rbac-schema-v0.4`
+
+Scope:
+
+- Person identity is separated from user login accounts.
+- RBAC uses roles, permissions, and role-permission assignments.
+- User access is scoped through `user_role_assignments`.
+- Organizations are hierarchy-ready without destructive data changes.
+- MFA schema is prepared without verification logic.
+- No login UI, admin panel, admin user, or business modules are added.
 
 ## Future Milestones
 
