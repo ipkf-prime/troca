@@ -28,7 +28,13 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'app_debug' => $debug,
         'storage_writable' => is_writable(BASE_PATH . '/storage'),
         'routes_loaded_count' => $router->count(),
-        'autoloader_loaded' => class_exists(\Composer\Autoload\ClassLoader::class),
+        'autoload' => [
+            'vendor_autoload_exists' => is_readable(BASE_PATH . '/vendor/autoload.php'),
+            'custom_loader_exists' => is_readable(BASE_PATH . '/vendor/ipkf_loader.php'),
+            'application_class_loaded' => class_exists(\IPKF\Core\Application::class),
+            'router_class_loaded' => class_exists(\IPKF\Routing\Router::class),
+            'request_class_loaded' => class_exists(\IPKF\Http\Request::class),
+        ],
         'timestamp' => date(DATE_ATOM),
     ]);
 });
