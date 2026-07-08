@@ -48,6 +48,11 @@ class Router
         return $this;
     }
 
+    public function count(): int
+    {
+        return array_sum(array_map('count', $this->routes));
+    }
+
     protected function normalize(string $uri): string
     {
         $uri = '/' . trim($uri, '/');
