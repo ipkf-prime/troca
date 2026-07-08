@@ -57,11 +57,13 @@ Site mode behavior:
 - `SITE_MODE=coming_soon` displays the public Persian construction page at `GET /`.
 - `SITE_MODE=app` keeps the framework or future application home behavior.
 
-## Active Milestone
+## Stable Baseline
 
 IPKF v0.4.0 Auth/RBAC Schema Foundation adds normalized database structure for identity, user accounts, roles, permissions, scoped access, organization hierarchy, and MFA readiness.
 
-Working version: `0.4.0-auth-rbac-schema-dev`
+Stable version: `0.4.0-auth-rbac-schema`
+
+Deployment branch: `auth-rbac-schema-v0.4`
 
 Scope:
 

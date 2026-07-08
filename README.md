@@ -6,7 +6,7 @@ business modules.
 
 ## Version
 
-Current version: `0.4.0-auth-rbac-schema-dev`
+Current version: `0.4.0-auth-rbac-schema`
 
 ## Requirements
 

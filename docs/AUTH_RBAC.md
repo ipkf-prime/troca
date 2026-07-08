@@ -1,10 +1,10 @@
 # IPKF Auth/RBAC Schema Foundation
 
-Current working version: `0.4.0-auth-rbac-schema-dev`
+Current version: `0.4.0-auth-rbac-schema`
 
 ## Purpose
 
-This milestone adds the database schema and lightweight application structure needed before authentication sessions, MFA verification, or admin panels are implemented.
+This schema-only phase adds the database schema and lightweight application structure needed before authentication sessions, MFA verification, or admin panels are implemented.
 
 No login UI, logout flow, admin user, admin panel, Bot, CRM, ERP, Automation, or Marketplace module is included in this milestone.
 
@@ -14,8 +14,8 @@ The previous national system used broad tables that mixed identity, login, acces
 
 - `Ashkhas` maps into `persons` for identity/contact data and `users` for login account state.
 - `AshkhasDastresi` maps into `user_role_assignments` for scoped access grants.
-- `SathUser` maps into `roles`, with normalized `role_areas` and `role_kinds`.
-- Legacy organization scope maps into a hierarchy-ready `organizations` table with `parent_id`, `depth`, `path`, and access inheritance support.
+- `SathUser` maps into `roles`, with normalized `role_areas`, `role_kinds`, and `permissions`.
+- `organizations` maps into organization hierarchy and scoped access with `parent_id`, `depth`, `path`, and access inheritance support.
 
 Legacy codes are retained only where useful for migration (`legacy_code`) and are not used as primary keys.
 
@@ -72,6 +72,7 @@ Verification logic is intentionally deferred.
 
 ## Future Phases
 
-- `v0.4.1` auth session
-- `v0.4.2` MFA
-- `v0.5` admin panel shell
+- Login/session will be added in `v0.4.1`.
+- MFA logic will be added later.
+- Admin panel UI will be added later.
+- `v0.5` admin panel shell.
