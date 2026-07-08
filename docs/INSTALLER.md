@@ -6,9 +6,9 @@ The IPKF installer skeleton provides safe read-only runtime checks before future
 
 ## Status
 
-Current version: `0.3.0-installer-dev`
+Current version: `0.3.0-installer`
 
-This is a development skeleton only.
+This is a skeleton only. It performs read-only environment checks and does not perform installation writes yet.
 
 ## Access Rules
 
@@ -35,7 +35,7 @@ Production:
 - `APP_DEBUG=false`
 - `IPKF_INSTALLED=true`
 
-The installer must not expose secrets, database passwords, maintenance keys, tokens, or production-only values.
+The installer must not expose secrets, database passwords, maintenance keys, tokens, or production-only values. It does not write `.env` and does not create users or admins in this release.
 
 ## Current Checks
 
@@ -57,11 +57,10 @@ The installer JSON reports:
 
 Future phases may include:
 
-- Environment file validation
-- Database connection setup
-- Migration execution flow
-- Seeder execution flow
-- Installation lock/state persistence
-- Admin setup, only when explicitly requested in a later milestone
+- Web UI
+- Environment setup
+- Database setup
+- Admin creation
+- Installation lock
 
 Auth, RBAC, Bot, CRM, ERP, Automation, and Marketplace setup are not part of this skeleton.

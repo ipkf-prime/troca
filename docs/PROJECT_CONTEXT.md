@@ -31,9 +31,9 @@ Stable version: `0.2.0-foundation`
 
 Deployment branch: `foundation-v0.2`
 
-## Active Milestone
+## Stable Baseline
 
-IPKF v0.3.0 Installer Skeleton introduces a read-only JSON installer entry point and framework-level installer check classes.
+IPKF v0.3.0 Installer is the current stable installer baseline. It introduces a read-only JSON installer entry point and framework-level installer check classes.
 
 Focus areas:
 
@@ -44,10 +44,13 @@ Focus areas:
 - No writes to `.env`
 - No admin users or business tables
 
+Stable version: `0.3.0-installer`
+
+Deployment branch: `installer-v0.3`
+
 ## Future Milestones
 
 - Core documentation
-- Installer
 - Auth
 - RBAC
 - Bot Engine
