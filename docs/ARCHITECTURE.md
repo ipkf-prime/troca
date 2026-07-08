@@ -2,7 +2,7 @@
 
 ## Purpose
 
-IPKF is a PHP framework foundation for building layered IPKF applications. The Genesis Core milestone establishes the request lifecycle, routing, middleware pipeline, response handling, environment loading, and operational diagnostics needed before business modules are added.
+IPKF is a PHP framework foundation for building layered IPKF applications. The `0.2.0-foundation` milestone establishes the request lifecycle, routing, middleware pipeline, response handling, environment loading, configuration loading, database foundation, migration and seeder conventions, and operational diagnostics needed before business modules are added.
 
 ## Directory Structure
 

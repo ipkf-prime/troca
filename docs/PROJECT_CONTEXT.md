@@ -1,6 +1,6 @@
 # IPKF Project Context
 
-## Current Milestone
+## Stable Baseline
 
 IPKF v0.1.0 Genesis Core has passed runtime tests on the development hosting environment.
 
@@ -13,11 +13,9 @@ Verified routes:
 
 The Genesis runtime is deployed through GitHub and cPanel Git deployment on the `core-v0.1-genesis` branch.
 
-## Next Milestones
+## Current Milestone
 
-## Active Milestone
-
-IPKF v0.2.0 Foundation prepares framework infrastructure before business modules are added.
+IPKF v0.2.0 Foundation is the current stable foundation baseline.
 
 Focus areas:
 
@@ -28,6 +26,10 @@ Focus areas:
 - Maintenance-key protection for development migration and seeder entry points
 - Service, repository, and model layering
 - Diagnostics coverage for foundation status
+
+Stable version: `0.2.0-foundation`
+
+Deployment branch: `foundation-v0.2`
 
 ## Future Milestones
 

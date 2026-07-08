@@ -1,5 +1,7 @@
 # IPKF v0.2.0 Foundation
 
+Stable version: `0.2.0-foundation`
+
 ## Goal
 
 The v0.2.0 Foundation milestone stabilizes framework infrastructure before Auth, RBAC, Bot Engine, CRM, Automation, ERP, and Marketplace work begins.
@@ -37,6 +39,36 @@ No business features are included in this milestone.
 - PDO connections are created through `IPKF\Database\Database`.
 - Missing or failed database connections throw safe framework-level errors.
 - Diagnostics report database availability without exposing secrets.
+
+## Deployment Flow
+
+The development deployment flow is:
+
+1. Commit changes on a feature branch.
+2. Push the branch to GitHub.
+3. In cPanel Git Version Control, select the branch.
+4. Run Update from Remote.
+5. Run Deploy HEAD Commit.
+
+For this project, cPanel deploys `public_html/` to the application path. The domain document root must point to the deployed `/public` directory.
+
+The development domain uses:
+
+- Repository path: `/home/troca/repositories/troca`
+- Application path: `/home/troca/dev.troca.ir`
+- Document root: `/home/troca/dev.troca.ir/public`
+
+## Environments
+
+Development:
+
+- `APP_ENV=development`
+- `APP_DEBUG=true`
+
+Production:
+
+- `APP_ENV=production`
+- `APP_DEBUG=false`
 
 ## Migration And Seeder Convention
 

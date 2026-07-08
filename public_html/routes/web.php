@@ -10,7 +10,7 @@ $router->get('/health', function ($request, $response) {
     return $response->json([
         'status' => 'ok',
         'framework' => 'IPKF',
-        'version' => '0.1.0-genesis',
+        'version' => '0.2.0-foundation',
     ]);
 });
 

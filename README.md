@@ -1,12 +1,12 @@
 # IPKF Framework
 
 IPKF Framework is a lightweight PHP framework foundation for the IPKF product line.
-The current baseline is focused on the Genesis Core runtime and does not include
+The current baseline is focused on the Foundation runtime and does not include
 business modules.
 
 ## Version
 
-Current version: `0.1.0-genesis`
+Current version: `0.2.0-foundation`
 
 ## Requirements
 
@@ -20,7 +20,7 @@ Current version: `0.1.0-genesis`
 2. Set environment values for the target machine.
 3. Ensure `storage/` is writable by the web server.
 4. Configure the web server document root to the `public/` directory.
-5. Deploy from the `core-v0.1-genesis` branch for the Genesis baseline.
+5. Deploy from the `foundation-v0.2` branch for the Foundation baseline.
 
 On cPanel Git deployment, this repository deploys `public_html/` to the configured application path. The active dev domain uses:
 
@@ -30,12 +30,14 @@ On cPanel Git deployment, this repository deploys `public_html/` to the configur
 
 ## Development Route Tests
 
-The Genesis Core baseline has been verified with:
+The Foundation baseline has been verified with:
 
 - `GET /` returns `IPKF Framework Genesis OK`
 - `GET /unknown` returns a clean 404 response
 - `GET /health` returns JSON health status
 - `GET /_diagnostics` returns JSON diagnostics when `APP_DEBUG=true`
+- `GET /migrate.php?key=DEV_MAINTENANCE_KEY` runs dev migrations when `APP_DEBUG=true`
+- `GET /seed.php?key=DEV_MAINTENANCE_KEY` runs dev seeders when `APP_DEBUG=true`
 
 ## Architecture Guardrails
 
