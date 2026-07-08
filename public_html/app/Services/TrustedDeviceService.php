@@ -16,6 +16,11 @@ class TrustedDeviceService extends BaseService
         return $this->devices->listForUser($userId);
     }
 
+    public function hasActiveTrustedDevice(int $userId): bool
+    {
+        return $this->devices->activeCountForUser($userId) > 0;
+    }
+
     public function revoke(int $userId, int $deviceId): bool
     {
         return $this->devices->revoke($userId, $deviceId);

@@ -88,7 +88,7 @@ When the user has an enabled MFA method:
 - `POST /auth/login` validates the password.
 - The session receives pending MFA keys instead of `auth_user_id`.
 - The response includes `mfa_required=true`.
-- `POST /mfa/challenge/verify` completes the login after a valid MFA code.
+- `POST /mfa/challenge/verify` or `POST /mfa/verify` completes the login after a valid MFA code.
 
 Pending MFA session keys:
 
@@ -96,7 +96,7 @@ Pending MFA session keys:
 - `auth_pending_at`
 - `auth_pending_methods`
 
-`AUTH_SESSION_NAME` still controls the single shared session cookie. CSRF, pending MFA, and authenticated session state must all use the same cookie. Postman must keep cookies between `/csrf-token`, `/auth/login`, `/mfa/challenge/verify`, `/me`, and `/auth/logout`.
+`AUTH_SESSION_NAME` still controls the single shared session cookie. CSRF, pending MFA, and authenticated session state must all use the same cookie. Postman must keep cookies between `/csrf-token`, `/auth/login`, `/mfa/verify`, `/mfa/status`, `/me`, and `/auth/logout`.
 
 ## MFA Runtime Routes
 
@@ -104,11 +104,23 @@ Pending MFA session keys:
 - `POST /mfa/totp/setup`
 - `POST /mfa/totp/confirm`
 - `POST /mfa/challenge/verify`
+- `POST /mfa/verify`
 - `POST /mfa/recovery-codes/regenerate`
 - `GET /mfa/trusted-devices`
 - `POST /mfa/trusted-devices/revoke`
 
 All MFA POST routes require a valid CSRF token.
+
+`GET /mfa/status` returns safe authenticated MFA state after login and after MFA verification. It never exposes TOTP secrets, recovery code values, recovery code hashes, session IDs, CSRF tokens, password hashes, or raw trusted device tokens.
+
+## MFA Postman Flow
+
+1. `GET /csrf-token`
+2. `POST /auth/login` with `X-CSRF-TOKEN`
+3. If the response has `mfa_required=true`, send `POST /mfa/verify` with `X-CSRF-TOKEN` and a valid code.
+4. `GET /mfa/status`
+5. `GET /me`
+6. `POST /auth/logout` with `X-CSRF-TOKEN`
 
 ## Session Keys
 

@@ -17,6 +17,20 @@ class TrustedDeviceRepository extends BaseRepository
         return $statement->fetchAll();
     }
 
+    public function activeCountForUser(int $userId): int
+    {
+        $statement = $this->connection()->prepare("
+            SELECT COUNT(*)
+            FROM trusted_devices
+            WHERE user_id = ?
+              AND revoked_at IS NULL
+              AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+        ");
+        $statement->execute([$userId]);
+
+        return (int) $statement->fetchColumn();
+    }
+
     public function revoke(int $userId, int $deviceId): bool
     {
         $statement = $this->connection()->prepare("

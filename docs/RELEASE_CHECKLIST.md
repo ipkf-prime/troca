@@ -47,5 +47,7 @@ Version: `0.2.0-foundation`
 - Login without enabled MFA remains unchanged.
 - Login with enabled MFA sets pending MFA session state and does not set `auth_user_id`.
 - MFA challenge verification completes authentication.
+- `/mfa/status` returns authenticated MFA state after MFA verification.
+- `/mfa/verify` remains available as a compatible challenge verification route.
 - No TOTP secret, recovery code hash, password hash, session id, CSRF token, cookie value, maintenance key, or database secret is exposed in diagnostics.
 - No duplicate MFA tables are introduced.

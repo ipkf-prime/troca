@@ -53,12 +53,14 @@ class AuthService extends BaseService
         Session::regenerate();
         Session::put('auth_user_id', $userId);
         Session::put('auth_login_at', date(DATE_ATOM));
+        Session::put('auth_mfa_verified', false);
     }
 
     public function logout(): void
     {
         Session::forget('auth_user_id');
         Session::forget('auth_login_at');
+        Session::forget('auth_mfa_verified');
         Session::forget('active_role_assignment_id');
         Session::forget('auth_pending_user_id');
         Session::forget('auth_pending_at');
@@ -68,6 +70,7 @@ class AuthService extends BaseService
     public function completeMfaLogin(int $userId): ?array
     {
         $this->login($userId);
+        Session::put('auth_mfa_verified', true);
 
         return $this->currentUser();
     }

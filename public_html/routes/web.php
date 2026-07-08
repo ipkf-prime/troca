@@ -278,21 +278,22 @@ $router->get('/mfa/status', function ($request, $response) {
     }
 
     $mfa = new \App\Services\MfaService();
+    $methods = array_values(array_unique(array_map(
+        fn (array $method): string => (string) $method['method'],
+        $mfa->methodsForUser($userId)
+    )));
+    $recoveryCodesAvailable = (new \App\Repositories\MfaRepository())->unusedRecoveryCodeCount($userId) > 0;
 
     return $response->json([
         'status' => 'ok',
+        'authenticated' => true,
+        'mfa_enabled' => $mfa->enabled() && $methods !== [],
+        'mfa_verified' => (bool) \IPKF\Support\Session::get('auth_mfa_verified', false),
+        'methods' => $methods,
+        'trusted_device' => (new \App\Services\TrustedDeviceService())->hasActiveTrustedDevice($userId),
+        'recovery_codes_available' => $recoveryCodesAvailable,
         'enabled' => $mfa->enabled(),
         'enforcement' => $mfa->enforcement(),
-        'methods' => array_map(
-            fn (array $method): array => [
-                'id' => (int) $method['id'],
-                'method' => $method['method'],
-                'label' => $method['label'],
-                'is_primary' => (bool) $method['is_primary'],
-                'verified_at' => $method['verified_at'],
-            ],
-            $mfa->methodsForUser($userId)
-        ),
     ]);
 });
 
@@ -349,6 +350,30 @@ $router->post('/mfa/totp/confirm', function ($request, $response) {
 });
 
 $router->post('/mfa/challenge/verify', function ($request, $response) {
+    $method = trim((string) $request->input('method', 'totp'));
+    $code = trim((string) $request->input('code', ''));
+    $mfa = new \App\Services\MfaService();
+    $userId = $mfa->verifyPendingChallenge($method, $code);
+
+    if ($userId === null) {
+        return $response->status(401)->json([
+            'status' => 'error',
+            'authenticated' => false,
+            'message' => 'Invalid MFA challenge.',
+        ]);
+    }
+
+    $user = (new \App\Services\AuthService())->completeMfaLogin($userId);
+
+    return $response->json([
+        'status' => 'ok',
+        'authenticated' => true,
+        'mfa_verified' => true,
+        'user' => $user,
+    ]);
+});
+
+$router->post('/mfa/verify', function ($request, $response) {
     $method = trim((string) $request->input('method', 'totp'));
     $code = trim((string) $request->input('code', ''));
     $mfa = new \App\Services\MfaService();

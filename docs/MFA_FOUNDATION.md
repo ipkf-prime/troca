@@ -37,6 +37,7 @@ MFA routes are JSON-first:
 - `POST /mfa/totp/setup`
 - `POST /mfa/totp/confirm`
 - `POST /mfa/challenge/verify`
+- `POST /mfa/verify`
 - `POST /mfa/recovery-codes/regenerate`
 - `GET /mfa/trusted-devices`
 - `POST /mfa/trusted-devices/revoke`
@@ -59,7 +60,7 @@ When a user has an enabled MFA method:
   - `auth_pending_at`
   - `auth_pending_methods`
 - `POST /auth/login` returns `mfa_required=true`
-- full authentication is completed by `POST /mfa/challenge/verify`
+- full authentication is completed by `POST /mfa/challenge/verify` or the compatible alias `POST /mfa/verify`
 
 CSRF and Auth continue to share the same `AUTH_SESSION_NAME` session cookie.
 
@@ -70,6 +71,19 @@ CSRF and Auth continue to share the same `AUTH_SESSION_NAME` session cookie.
 `POST /mfa/totp/confirm` verifies a 6-digit TOTP code and enables the method.
 
 This phase does not add a QR-code UI.
+
+## MFA Status
+
+`GET /mfa/status` requires an authenticated user and returns safe MFA state:
+
+- `authenticated`
+- `mfa_enabled`
+- `mfa_verified`
+- `methods`
+- `trusted_device`
+- `recovery_codes_available`
+
+It does not expose TOTP secrets, recovery code values, recovery code hashes, session IDs, CSRF tokens, password hashes, or raw trusted device tokens.
 
 ## Recovery Codes
 
@@ -124,8 +138,9 @@ Diagnostics must not expose:
 7. `POST /auth/logout` with `X-CSRF-TOKEN`
 8. `POST /auth/login` again.
 9. Confirm login returns `mfa_required=true` and does not authenticate fully.
-10. `POST /mfa/challenge/verify` with a valid TOTP code.
-11. Confirm `GET /auth/status` returns `authenticated=true`.
+10. `POST /mfa/verify` with a valid TOTP code.
+11. `GET /mfa/status`.
+12. Confirm `GET /auth/status` returns `authenticated=true`.
 
 ## Current Limitations
 
