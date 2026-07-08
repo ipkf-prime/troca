@@ -1,0 +1,15 @@
+.env
+/public_html/.env
+
+/storage/logs/*
+/storage/cache/*
+/storage/sessions/*
+/storage/uploads/*
+/public_html/storage/logs/*
+/public_html/storage/cache/*
+/public_html/storage/sessions/*
+/public_html/storage/uploads/*
+
+error_log
+*/error_log
+*.zip
