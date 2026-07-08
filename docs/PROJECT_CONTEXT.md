@@ -74,7 +74,7 @@ Scope:
 - MFA schema is prepared without verification logic.
 - No login UI, admin panel, admin user, or business modules are added.
 
-## Active Milestone
+## Stable Baseline
 
 IPKF v0.4.1 Auth Session starts the first JSON-first session authentication foundation.
 
@@ -91,9 +91,27 @@ Scope:
 - Auth diagnostics without exposing secrets.
 - No login UI, full MFA, admin panel, or business modules are added.
 
+## Active Milestone
+
+IPKF v0.4.2 MFA Foundation starts the first JSON-first MFA runtime layer.
+
+Working version: `0.4.2-mfa-foundation-dev`
+
+Deployment branch: `mfa-foundation-v0.4.2`
+
+Scope:
+
+- MFA runtime services and repositories.
+- TOTP setup and confirmation endpoints.
+- Pending MFA login challenge flow.
+- Recovery code regeneration and verification foundation.
+- Trusted device list/revoke foundation.
+- Safe MFA diagnostics.
+- No login UI, admin panel UI, Bot, CRM, ERP, Automation, or Marketplace modules are added.
+
 ## Future Milestones
 
-- MFA
+- MFA stabilization
 - Admin Panel Shell
 - Core documentation
 - Auth

@@ -180,6 +180,11 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'role_permissions_table_exists' => $rolePermissionsTableExists,
         'user_role_assignments_table_exists' => $userRoleAssignmentsTableExists,
         'mfa_schema_available' => $mfaSchemaAvailable,
+        'mfa_runtime_available' => class_exists(\App\Services\MfaService::class),
+        'mfa_totp_available' => class_exists(\App\Services\TotpService::class),
+        'mfa_recovery_codes_available' => class_exists(\App\Services\RecoveryCodeService::class),
+        'mfa_trusted_devices_available' => class_exists(\App\Services\TrustedDeviceService::class),
+        'mfa_routes_available' => true,
         'organizations_hierarchy_ready' => $organizationsHierarchyReady,
         'auth_session_available' => class_exists(\App\Services\AuthService::class)
             && class_exists(\IPKF\Support\Session::class),
@@ -231,6 +236,15 @@ $router->post('/auth/login', function ($request, $response) {
         ]);
     }
 
+    if (($user['mfa_required'] ?? false) === true) {
+        return $response->json([
+            'status' => 'ok',
+            'authenticated' => false,
+            'mfa_required' => true,
+            'methods' => $user['methods'] ?? [],
+        ]);
+    }
+
     return $response->json([
         'status' => 'ok',
         'authenticated' => true,
@@ -248,6 +262,170 @@ $router->post('/auth/logout', function ($request, $response) {
     return $response->json([
         'status' => 'ok',
         'authenticated' => false,
+    ]);
+});
+
+$router->get('/mfa/status', function ($request, $response) {
+    $auth = new \App\Services\AuthService();
+    $userId = $auth->currentUserId();
+
+    if ($userId === null) {
+        return $response->status(401)->json([
+            'status' => 'error',
+            'authenticated' => false,
+            'message' => 'Unauthenticated.',
+        ]);
+    }
+
+    $mfa = new \App\Services\MfaService();
+
+    return $response->json([
+        'status' => 'ok',
+        'enabled' => $mfa->enabled(),
+        'enforcement' => $mfa->enforcement(),
+        'methods' => array_map(
+            fn (array $method): array => [
+                'id' => (int) $method['id'],
+                'method' => $method['method'],
+                'label' => $method['label'],
+                'is_primary' => (bool) $method['is_primary'],
+                'verified_at' => $method['verified_at'],
+            ],
+            $mfa->methodsForUser($userId)
+        ),
+    ]);
+});
+
+$router->post('/mfa/totp/setup', function ($request, $response) {
+    $auth = new \App\Services\AuthService();
+    $user = $auth->currentUser();
+    $userId = $auth->currentUserId();
+
+    if ($user === null || $userId === null) {
+        return $response->status(401)->json([
+            'status' => 'error',
+            'authenticated' => false,
+            'message' => 'Unauthenticated.',
+        ]);
+    }
+
+    $account = (string) ($user['email'] ?? $user['name'] ?? ('user-' . $userId));
+    $setup = (new \App\Services\MfaService())->setupTotp($userId, $account);
+
+    return $response->json([
+        'status' => 'ok',
+        'method' => 'totp',
+        'method_id' => $setup['method_id'],
+        'otpauth_uri' => $setup['otpauth_uri'],
+    ]);
+});
+
+$router->post('/mfa/totp/confirm', function ($request, $response) {
+    $auth = new \App\Services\AuthService();
+    $userId = $auth->currentUserId();
+
+    if ($userId === null) {
+        return $response->status(401)->json([
+            'status' => 'error',
+            'authenticated' => false,
+            'message' => 'Unauthenticated.',
+        ]);
+    }
+
+    $code = trim((string) $request->input('code', ''));
+
+    if (!(new \App\Services\MfaService())->confirmTotp($userId, $code)) {
+        return $response->status(422)->json([
+            'status' => 'error',
+            'confirmed' => false,
+            'message' => 'Invalid MFA code.',
+        ]);
+    }
+
+    return $response->json([
+        'status' => 'ok',
+        'confirmed' => true,
+    ]);
+});
+
+$router->post('/mfa/challenge/verify', function ($request, $response) {
+    $method = trim((string) $request->input('method', 'totp'));
+    $code = trim((string) $request->input('code', ''));
+    $mfa = new \App\Services\MfaService();
+    $userId = $mfa->verifyPendingChallenge($method, $code);
+
+    if ($userId === null) {
+        return $response->status(401)->json([
+            'status' => 'error',
+            'authenticated' => false,
+            'message' => 'Invalid MFA challenge.',
+        ]);
+    }
+
+    $user = (new \App\Services\AuthService())->completeMfaLogin($userId);
+
+    return $response->json([
+        'status' => 'ok',
+        'authenticated' => true,
+        'mfa_verified' => true,
+        'user' => $user,
+    ]);
+});
+
+$router->post('/mfa/recovery-codes/regenerate', function ($request, $response) {
+    $auth = new \App\Services\AuthService();
+    $userId = $auth->currentUserId();
+
+    if ($userId === null) {
+        return $response->status(401)->json([
+            'status' => 'error',
+            'authenticated' => false,
+            'message' => 'Unauthenticated.',
+        ]);
+    }
+
+    return $response->json([
+        'status' => 'ok',
+        'recovery_codes' => (new \App\Services\RecoveryCodeService())->regenerate($userId),
+    ]);
+});
+
+$router->get('/mfa/trusted-devices', function ($request, $response) {
+    $auth = new \App\Services\AuthService();
+    $userId = $auth->currentUserId();
+
+    if ($userId === null) {
+        return $response->status(401)->json([
+            'status' => 'error',
+            'authenticated' => false,
+            'message' => 'Unauthenticated.',
+        ]);
+    }
+
+    return $response->json([
+        'status' => 'ok',
+        'trusted_devices' => (new \App\Services\TrustedDeviceService())->listForUser($userId),
+    ]);
+});
+
+$router->post('/mfa/trusted-devices/revoke', function ($request, $response) {
+    $auth = new \App\Services\AuthService();
+    $userId = $auth->currentUserId();
+
+    if ($userId === null) {
+        return $response->status(401)->json([
+            'status' => 'error',
+            'authenticated' => false,
+            'message' => 'Unauthenticated.',
+        ]);
+    }
+
+    $deviceId = (int) $request->input('device_id', 0);
+
+    return $response->json([
+        'status' => 'ok',
+        'revoked' => $deviceId > 0
+            && (new \App\Services\TrustedDeviceService())->revoke($userId, $deviceId),
     ]);
 });
 

@@ -1,6 +1,6 @@
 # IPKF Auth Session Foundation
 
-Current version: `0.4.1-auth-session`
+Current version: `0.4.2-mfa-foundation-dev`
 
 ## Purpose
 
@@ -16,7 +16,7 @@ It includes:
 - basic permission checks
 - safe auth diagnostics
 
-It does not include login UI, admin panel UI, MFA verification logic, Bot, CRM, ERP, Automation, or Marketplace modules.
+It does not include login UI, admin panel UI, Bot, CRM, ERP, Automation, or Marketplace modules.
 
 ## Admin Seeding
 
@@ -77,6 +77,39 @@ API responses never expose `password_hash`, MFA secrets, database secrets, sessi
 
 POST auth routes keep CSRF enabled. Tokens are accepted from `X-CSRF-TOKEN` or `_token`.
 
+## MFA-Aware Login Flow
+
+MFA runtime starts in `0.4.2-mfa-foundation-dev`.
+
+When the user has no enabled MFA method, login behavior is unchanged.
+
+When the user has an enabled MFA method:
+
+- `POST /auth/login` validates the password.
+- The session receives pending MFA keys instead of `auth_user_id`.
+- The response includes `mfa_required=true`.
+- `POST /mfa/challenge/verify` completes the login after a valid MFA code.
+
+Pending MFA session keys:
+
+- `auth_pending_user_id`
+- `auth_pending_at`
+- `auth_pending_methods`
+
+`AUTH_SESSION_NAME` still controls the single shared session cookie. CSRF, pending MFA, and authenticated session state must all use the same cookie. Postman must keep cookies between `/csrf-token`, `/auth/login`, `/mfa/challenge/verify`, `/me`, and `/auth/logout`.
+
+## MFA Runtime Routes
+
+- `GET /mfa/status`
+- `POST /mfa/totp/setup`
+- `POST /mfa/totp/confirm`
+- `POST /mfa/challenge/verify`
+- `POST /mfa/recovery-codes/regenerate`
+- `GET /mfa/trusted-devices`
+- `POST /mfa/trusted-devices/revoke`
+
+All MFA POST routes require a valid CSRF token.
+
 ## Session Keys
 
 The auth session uses:
@@ -113,10 +146,10 @@ Parameterized permission middleware is limited by the current router shape, so `
 
 ## Current Limitations
 
-- MFA is not implemented yet.
 - Login UI is not implemented yet.
 - Admin panel UI is not implemented yet.
 - Password reset and invitation flows are not implemented yet.
+- MFA UI and trusted-device login prompts are not implemented yet.
 
 ## UTF-8 Data
 
@@ -134,4 +167,4 @@ The database connection must use `utf8mb4` for Persian RBAC seed data. The auth/
 
 ## Next Phase
 
-The next phase can be MFA verification or Admin Panel Shell, depending on release priority.
+The next phase can stabilize MFA or start Admin Panel Shell, depending on release priority.

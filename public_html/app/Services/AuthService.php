@@ -32,6 +32,17 @@ class AuthService extends BaseService
         }
 
         $this->users->updateLoginSuccess((int) $user['id']);
+
+        $mfa = new MfaService();
+
+        if ($mfa->requiresChallenge((int) $user['id'])) {
+            return [
+                'authenticated' => false,
+                'mfa_required' => true,
+                'methods' => $mfa->startPending((int) $user['id']),
+            ];
+        }
+
         $this->login((int) $user['id']);
 
         return $this->currentUser();
@@ -49,6 +60,16 @@ class AuthService extends BaseService
         Session::forget('auth_user_id');
         Session::forget('auth_login_at');
         Session::forget('active_role_assignment_id');
+        Session::forget('auth_pending_user_id');
+        Session::forget('auth_pending_at');
+        Session::forget('auth_pending_methods');
+    }
+
+    public function completeMfaLogin(int $userId): ?array
+    {
+        $this->login($userId);
+
+        return $this->currentUser();
     }
 
     public function currentUserId(): ?int
