@@ -13,7 +13,7 @@ Verified routes:
 
 The Genesis runtime is deployed through GitHub and cPanel Git deployment on the `core-v0.1-genesis` branch.
 
-## Current Milestone
+## Stable Baseline
 
 IPKF v0.2.0 Foundation is the current stable foundation baseline.
 
@@ -30,6 +30,19 @@ Focus areas:
 Stable version: `0.2.0-foundation`
 
 Deployment branch: `foundation-v0.2`
+
+## Active Milestone
+
+IPKF v0.3.0 Installer Skeleton introduces a read-only JSON installer entry point and framework-level installer check classes.
+
+Focus areas:
+
+- Installer access rules
+- Safe environment and requirement checks
+- Safe database readiness checks
+- Diagnostics visibility for installer availability
+- No writes to `.env`
+- No admin users or business tables
 
 ## Future Milestones
 

@@ -6,7 +6,7 @@ business modules.
 
 ## Version
 
-Current version: `0.2.0-foundation`
+Current version: `0.3.0-installer-dev`
 
 ## Requirements
 
@@ -20,7 +20,7 @@ Current version: `0.2.0-foundation`
 2. Set environment values for the target machine.
 3. Ensure `storage/` is writable by the web server.
 4. Configure the web server document root to the `public/` directory.
-5. Deploy from the `foundation-v0.2` branch for the Foundation baseline.
+5. Deploy from the active feature branch for development work. The current installer skeleton branch is `installer-v0.3`.
 
 On cPanel Git deployment, this repository deploys `public_html/` to the configured application path. The active dev domain uses:
 
