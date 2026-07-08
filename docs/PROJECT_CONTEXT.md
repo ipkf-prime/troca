@@ -78,7 +78,9 @@ Scope:
 
 IPKF v0.4.1 Auth Session starts the first JSON-first session authentication foundation.
 
-Working version: `0.4.1-auth-session-dev`
+Stable version: `0.4.1-auth-session`
+
+Deployment branch: `auth-session-v0.4.1`
 
 Scope:
 

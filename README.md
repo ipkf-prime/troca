@@ -6,7 +6,7 @@ business modules.
 
 ## Version
 
-Current version: `0.4.1-auth-session-dev`
+Current version: `0.4.1-auth-session`
 
 ## Requirements
 

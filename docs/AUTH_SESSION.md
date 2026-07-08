@@ -1,6 +1,6 @@
 # IPKF Auth Session Foundation
 
-Current working version: `0.4.1-auth-session-dev`
+Current version: `0.4.1-auth-session`
 
 ## Purpose
 
@@ -73,6 +73,7 @@ API responses never expose `password_hash`, MFA secrets, database secrets, sessi
 4. Send `GET /me` with the same cookie.
 5. Send `GET /admin-check` with the same cookie.
 6. Send `POST /auth/logout` with header `X-CSRF-TOKEN: <token>` and the same cookie.
+7. Send `GET /auth/status` and confirm `authenticated=false`.
 
 POST auth routes keep CSRF enabled. Tokens are accepted from `X-CSRF-TOKEN` or `_token`.
 
@@ -120,6 +121,16 @@ Parameterized permission middleware is limited by the current router shape, so `
 ## UTF-8 Data
 
 The database connection must use `utf8mb4` for Persian RBAC seed data. The auth/RBAC seeder is idempotent and repairs canonical seeded records such as `roles.code=super_admin` with the Persian title `مدیر کل سامانه`.
+
+## Verified Runtime Flow
+
+- `GET /csrf-token` works.
+- `POST /auth/login` works with `X-CSRF-TOKEN`.
+- `GET /auth/status` returns `authenticated=true` after login.
+- `GET /me` returns the current user and roles.
+- `GET /admin-check` returns `status=ok` for `super_admin`.
+- `POST /auth/logout` works with `X-CSRF-TOKEN`.
+- `GET /auth/status` returns `authenticated=false` after logout.
 
 ## Next Phase
 
