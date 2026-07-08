@@ -10,7 +10,7 @@ $router->get('/health', function ($request, $response) {
     return $response->json([
         'status' => 'ok',
         'framework' => 'IPKF',
-        'version' => '0.2.0-foundation',
+        'version' => \IPKF\Support\Version::CURRENT,
     ]);
 });
 
@@ -79,6 +79,8 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'runtime_check_table_exists' => $runtimeCheckTableExists,
         'runtime_check_found' => $runtimeCheckFound,
         'runtime_check_value' => $runtimeCheckValue,
+        'installer_available' => class_exists(\IPKF\Installer\Installer::class),
+        'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),
         'routes_loaded_count' => $router->count(),
         'autoload' => [

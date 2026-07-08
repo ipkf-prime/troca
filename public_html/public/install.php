@@ -1,6 +1,16 @@
 <?php
 
-http_response_code(501);
-header('Content-Type: text/plain; charset=UTF-8');
+define('BASE_PATH', dirname(__DIR__));
 
-echo 'Installer is not available in the foundation baseline.';
+require BASE_PATH . '/bootstrap/app.php';
+
+$installer = new \IPKF\Installer\Installer();
+
+if (!$installer->state()->canAccess()) {
+    http_response_code(404);
+    echo "404 - Route not found: /install.php";
+    exit;
+}
+
+header('Content-Type: application/json');
+echo json_encode($installer->payload()) ?: '{}';
