@@ -106,6 +106,7 @@ Pending MFA session keys:
 - `POST /mfa/challenge/verify`
 - `POST /mfa/verify`
 - `POST /mfa/recovery-codes/regenerate`
+- `POST /mfa/recovery/verify`
 - `GET /mfa/trusted-devices`
 - `POST /mfa/trusted-devices/revoke`
 
@@ -121,6 +122,15 @@ All MFA POST routes require a valid CSRF token.
 4. `GET /mfa/status`
 5. `GET /me`
 6. `POST /auth/logout` with `X-CSRF-TOKEN`
+
+TOTP confirmation may return recovery codes once. Store them safely during testing because IPKF stores only hashed recovery codes.
+
+Recovery code fallback flow:
+
+1. `POST /auth/login` and receive `mfa_required=true`.
+2. `POST /mfa/recovery/verify` with `X-CSRF-TOKEN` and one unused recovery code.
+3. Confirm `authenticated=true`.
+4. Confirm the same recovery code cannot be reused.
 
 ## Session Keys
 

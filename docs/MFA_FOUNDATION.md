@@ -39,6 +39,7 @@ MFA routes are JSON-first:
 - `POST /mfa/challenge/verify`
 - `POST /mfa/verify`
 - `POST /mfa/recovery-codes/regenerate`
+- `POST /mfa/recovery/verify`
 - `GET /mfa/trusted-devices`
 - `POST /mfa/trusted-devices/revoke`
 
@@ -70,6 +71,8 @@ CSRF and Auth continue to share the same `AUTH_SESSION_NAME` session cookie.
 
 `POST /mfa/totp/confirm` verifies a 6-digit TOTP code and enables the method.
 
+When TOTP is confirmed, IPKF generates recovery codes if the user does not already have active unused recovery codes. The plain recovery codes are returned once in the confirmation response and only hashed codes are stored.
+
 This phase does not add a QR-code UI.
 
 ## MFA Status
@@ -89,7 +92,26 @@ It does not expose TOTP secrets, recovery code values, recovery code hashes, ses
 
 `POST /mfa/recovery-codes/regenerate` replaces existing recovery codes for the authenticated user and returns the plain codes once.
 
+The request must include a valid current TOTP code:
+
+```json
+{
+  "code": "123456"
+}
+```
+
 Only hashed recovery codes are stored.
+
+`POST /mfa/recovery/verify` validates a pending MFA login with a recovery code:
+
+```json
+{
+  "recovery_code": "XXXX-XXXX-XXXX-XXXX",
+  "remember_device": false
+}
+```
+
+The used code is consumed and cannot be reused.
 
 ## Trusted Devices
 
@@ -140,7 +162,11 @@ Diagnostics must not expose:
 9. Confirm login returns `mfa_required=true` and does not authenticate fully.
 10. `POST /mfa/verify` with a valid TOTP code.
 11. `GET /mfa/status`.
-12. Confirm `GET /auth/status` returns `authenticated=true`.
+12. Confirm `recovery_codes_available=true`.
+13. Confirm `GET /auth/status` returns `authenticated=true`.
+14. Regenerate recovery codes with `POST /mfa/recovery-codes/regenerate` and a valid TOTP code.
+15. Logout, login again, and use `POST /mfa/recovery/verify` with one recovery code.
+16. Confirm the same recovery code cannot be reused.
 
 ## Current Limitations
 

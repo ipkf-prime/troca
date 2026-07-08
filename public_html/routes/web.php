@@ -282,7 +282,7 @@ $router->get('/mfa/status', function ($request, $response) {
         fn (array $method): string => (string) $method['method'],
         $mfa->methodsForUser($userId)
     )));
-    $recoveryCodesAvailable = (new \App\Repositories\MfaRepository())->unusedRecoveryCodeCount($userId) > 0;
+    $recoveryCodesAvailable = $mfa->recoveryCodesAvailable($userId);
 
     return $response->json([
         'status' => 'ok',
@@ -335,7 +335,9 @@ $router->post('/mfa/totp/confirm', function ($request, $response) {
 
     $code = trim((string) $request->input('code', ''));
 
-    if (!(new \App\Services\MfaService())->confirmTotp($userId, $code)) {
+    $mfa = new \App\Services\MfaService();
+
+    if (!$mfa->confirmTotp($userId, $code)) {
         return $response->status(422)->json([
             'status' => 'error',
             'confirmed' => false,
@@ -346,6 +348,7 @@ $router->post('/mfa/totp/confirm', function ($request, $response) {
     return $response->json([
         'status' => 'ok',
         'confirmed' => true,
+        'recovery_codes' => $mfa->ensureRecoveryCodes($userId),
     ]);
 });
 
@@ -409,9 +412,44 @@ $router->post('/mfa/recovery-codes/regenerate', function ($request, $response) {
         ]);
     }
 
+    $code = trim((string) $request->input('code', ''));
+    $codes = (new \App\Services\MfaService())->regenerateRecoveryCodes($userId, $code);
+
+    if ($codes === null) {
+        return $response->status(403)->json([
+            'status' => 'error',
+            'message' => 'Valid MFA code is required.',
+        ]);
+    }
+
     return $response->json([
         'status' => 'ok',
-        'recovery_codes' => (new \App\Services\RecoveryCodeService())->regenerate($userId),
+        'recovery_codes' => $codes,
+    ]);
+});
+
+$router->post('/mfa/recovery/verify', function ($request, $response) {
+    $code = trim((string) $request->input('recovery_code', ''));
+    $mfa = new \App\Services\MfaService();
+    $userId = $mfa->verifyPendingChallenge('recovery_code', $code);
+
+    if ($userId === null) {
+        return $response->status(401)->json([
+            'status' => 'error',
+            'authenticated' => false,
+            'message' => 'Invalid recovery code.',
+        ]);
+    }
+
+    $user = (new \App\Services\AuthService())->completeMfaLogin($userId);
+
+    return $response->json([
+        'status' => 'ok',
+        'authenticated' => true,
+        'mfa_verified' => true,
+        'recovery_code_consumed' => true,
+        'trusted_device' => false,
+        'user' => $user,
     ]);
 });
 

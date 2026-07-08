@@ -105,6 +105,30 @@ class MfaService extends BaseService
         return true;
     }
 
+    public function recoveryCodesAvailable(int $userId): bool
+    {
+        return (new RecoveryCodeService())->availableCount($userId) > 0;
+    }
+
+    public function ensureRecoveryCodes(int $userId): array
+    {
+        return (new RecoveryCodeService())->ensureForUser($userId);
+    }
+
+    public function regenerateRecoveryCodes(int $userId, string $totpCode): ?array
+    {
+        if (!$this->verifyCurrentTotp($userId, $totpCode)) {
+            return null;
+        }
+
+        return (new RecoveryCodeService())->regenerate($userId);
+    }
+
+    public function verifyCurrentTotp(int $userId, string $code): bool
+    {
+        return $this->confirmTotpChallenge($userId, $code);
+    }
+
     public function verifyPendingChallenge(string $method, string $code): ?int
     {
         $userId = $this->pendingUserId();

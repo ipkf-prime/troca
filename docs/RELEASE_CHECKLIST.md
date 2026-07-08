@@ -49,5 +49,9 @@ Version: `0.2.0-foundation`
 - MFA challenge verification completes authentication.
 - `/mfa/status` returns authenticated MFA state after MFA verification.
 - `/mfa/verify` remains available as a compatible challenge verification route.
+- TOTP confirmation generates recovery codes when none are active.
+- `/mfa/recovery-codes/regenerate` requires a valid current TOTP code.
+- `/mfa/recovery/verify` consumes one unused recovery code and completes pending MFA login.
+- Used recovery codes cannot be reused.
 - No TOTP secret, recovery code hash, password hash, session id, CSRF token, cookie value, maintenance key, or database secret is exposed in diagnostics.
 - No duplicate MFA tables are introduced.
