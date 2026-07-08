@@ -2,6 +2,10 @@
 
 namespace IPKF\Database\Seeds;
 
+use App\Repositories\RoleRepository;
+use App\Repositories\UserRepository;
+use IPKF\Support\Env;
+
 class AuthRbacSeeder extends Seeder
 {
     public function run(): void
@@ -11,6 +15,7 @@ class AuthRbacSeeder extends Seeder
         $this->seedRoles();
         $this->seedPermissions();
         $this->assignSuperAdminPermissions();
+        $this->seedAdminUser();
     }
 
     private function seedRoleAreas(): void
@@ -186,5 +191,30 @@ class AuthRbacSeeder extends Seeder
         $id = $statement->fetchColumn();
 
         return $id === false ? null : (int) $id;
+    }
+
+    private function seedAdminUser(): void
+    {
+        $email = trim((string) Env::get('ADMIN_EMAIL', ''));
+        $password = (string) Env::get('ADMIN_PASSWORD', '');
+
+        if ($email === '' || $password === '' || $password === 'change-me-securely') {
+            return;
+        }
+
+        $users = new UserRepository();
+        $roles = new RoleRepository();
+        $admin = $users->createOrUpdateAdminFromEnv([
+            'name' => Env::get('ADMIN_NAME', 'Super Admin'),
+            'email' => $email,
+            'mobile' => Env::get('ADMIN_MOBILE', ''),
+            'password' => $password,
+        ]);
+
+        $role = $roles->findByCode('super_admin');
+
+        if ($admin !== null && $role !== null) {
+            $roles->assignRoleToUser((int) $admin['id'], (int) $role['id'], 'global', null, true);
+        }
     }
 }

@@ -19,8 +19,8 @@ class Response
 
     public function json(array $data): self
     {
-        $this->header('Content-Type', 'application/json');
-        $this->content = json_encode($data) ?: '{}';
+        $this->header('Content-Type', 'application/json; charset=UTF-8');
+        $this->content = json_encode($data, JSON_UNESCAPED_UNICODE) ?: '{}';
 
         return $this;
     }

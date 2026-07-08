@@ -12,12 +12,15 @@ class CsrfMiddleware
     {
         if (in_array($request->method(), ['POST', 'PUT', 'DELETE'])) {
 
-            $token = $_POST['_token'] ?? '';
+            $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? $request->input('_token', '');
 
             $csrf = new Csrf();
 
             if (!$csrf->check($token)) {
-                return $response->status(419)->send("CSRF Token Mismatch");
+                return $response->status(419)->json([
+                    'status' => 'error',
+                    'message' => 'CSRF Token Mismatch',
+                ]);
             }
         }
 

@@ -2,37 +2,37 @@
 
 namespace IPKF\Http;
 
+use IPKF\Support\Session as SupportSession;
+
 class Session
 {
     public function __construct()
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        SupportSession::start();
     }
 
     public function set(string $key, mixed $value): void
     {
-        $_SESSION[$key] = $value;
+        SupportSession::put($key, $value);
     }
 
     public function get(string $key, $default = null)
     {
-        return $_SESSION[$key] ?? $default;
+        return SupportSession::get($key, $default);
     }
 
     public function has(string $key): bool
     {
-        return isset($_SESSION[$key]);
+        return SupportSession::has($key);
     }
 
     public function forget(string $key): void
     {
-        unset($_SESSION[$key]);
+        SupportSession::forget($key);
     }
 
     public function destroy(): void
     {
-        session_destroy();
+        SupportSession::destroy();
     }
 }

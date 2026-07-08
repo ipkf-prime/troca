@@ -4,5 +4,5 @@ namespace IPKF\Support;
 
 class Version
 {
-    public const CURRENT = '0.4.0-auth-rbac-schema';
+    public const CURRENT = '0.4.1-auth-session';
 }
