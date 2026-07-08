@@ -39,13 +39,16 @@ class AuthService extends BaseService
 
     public function login(int $userId): void
     {
+        Session::regenerate();
         Session::put('auth_user_id', $userId);
         Session::put('auth_login_at', date(DATE_ATOM));
     }
 
     public function logout(): void
     {
-        Session::destroy();
+        Session::forget('auth_user_id');
+        Session::forget('auth_login_at');
+        Session::forget('active_role_assignment_id');
     }
 
     public function currentUserId(): ?int

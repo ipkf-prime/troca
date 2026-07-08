@@ -89,6 +89,10 @@ The session name and lifetime are configurable through:
 - `AUTH_SESSION_NAME`
 - `AUTH_SESSION_LIFETIME`
 
+`AUTH_SESSION_NAME` controls the session cookie name. CSRF and Auth must share this same session, so `/csrf-token`, `/auth/login`, `/auth/status`, `/me`, `/admin-check`, and `/auth/logout` all use the same cookie.
+
+Postman and browser tests must keep cookies between requests. If the cookie from `GET /csrf-token` is not sent to `POST /auth/login`, CSRF validation will fail. If the cookie from login is not sent to `GET /auth/status` or `GET /me`, the user will appear unauthenticated.
+
 ## Authorization
 
 `AuthorizationService` reads roles and permissions through repositories.

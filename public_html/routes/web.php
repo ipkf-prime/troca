@@ -180,6 +180,8 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'auth_session_available' => class_exists(\App\Services\AuthService::class)
             && class_exists(\IPKF\Support\Session::class),
         'csrf_available' => class_exists(\IPKF\Security\Csrf::class),
+        'session_name_configured' => \IPKF\Support\Session::name(),
+        'session_cookie_name' => \IPKF\Support\Session::name(),
         'admin_user_exists' => $adminUserExists,
         'super_admin_role_exists' => $superAdminRoleExists,
         'super_admin_assignment_exists' => $superAdminAssignmentExists,

@@ -4,13 +4,18 @@ namespace IPKF\Support;
 
 class Session
 {
+    public static function name(): string
+    {
+        return (string) Env::get('AUTH_SESSION_NAME', 'ipkf_session');
+    }
+
     public static function start(): void
     {
         if (session_status() === PHP_SESSION_ACTIVE) {
             return;
         }
 
-        $name = (string) Env::get('AUTH_SESSION_NAME', 'ipkf_session');
+        $name = self::name();
 
         if ($name !== '') {
             session_name($name);
@@ -43,6 +48,18 @@ class Session
     {
         self::start();
         unset($_SESSION[$key]);
+    }
+
+    public static function has(string $key): bool
+    {
+        self::start();
+        return isset($_SESSION[$key]);
+    }
+
+    public static function regenerate(): void
+    {
+        self::start();
+        session_regenerate_id(true);
     }
 
     public static function destroy(): void
