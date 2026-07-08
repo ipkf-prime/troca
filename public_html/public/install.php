@@ -1,28 +1,6 @@
 <?php
 
-require __DIR__ . '/../vendor/autoload.php';
+http_response_code(501);
+header('Content-Type: text/plain; charset=UTF-8');
 
-use IPKF\Installer\InstallerController;
-
-$controller = new InstallerController();
-
-$step = $_GET['step'] ?? 1;
-
-switch ($step) {
-
-    case 1:
-        $controller->step1();
-        break;
-
-    case 2:
-        $controller->saveDatabase();
-        break;
-
-    case 3:
-        $controller->createAdmin();
-        break;
-
-    case 4:
-        $controller->finish();
-        break;
-}
+echo 'Installer is not available in the foundation baseline.';

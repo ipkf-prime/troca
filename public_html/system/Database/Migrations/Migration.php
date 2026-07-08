@@ -9,9 +9,9 @@ abstract class Migration
 {
     protected PDO $db;
 
-    public function __construct()
+    public function __construct(?PDO $db = null)
     {
-        $this->db = Database::connect();
+        $this->db = $db ?? Database::connect();
     }
 
     abstract public function up(): void;

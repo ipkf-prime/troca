@@ -1,15 +1,21 @@
 <?php
 
+use IPKF\Support\Env;
+
 return [
+
+    'default' => Env::get('DB_CONNECTION', 'mysql'),
 
     'connections' => [
 
         'mysql' => [
-            'host' => $_ENV['DB_HOST'] ?? 'localhost',
-            'database' => $_ENV['DB_NAME'] ?? '',
-            'username' => $_ENV['DB_USER'] ?? 'root',
-            'password' => $_ENV['DB_PASS'] ?? '',
-            'port' => $_ENV['DB_PORT'] ?? 3306,
+            'driver' => 'mysql',
+            'host' => Env::get('DB_HOST', 'localhost'),
+            'database' => Env::get('DB_NAME', ''),
+            'username' => Env::get('DB_USER', ''),
+            'password' => Env::get('DB_PASS', ''),
+            'port' => (int) Env::get('DB_PORT', 3306),
+            'charset' => 'utf8mb4',
         ]
 
     ]

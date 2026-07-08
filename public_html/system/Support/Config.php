@@ -6,6 +6,8 @@ class Config
 {
     protected static array $config = [];
 
+    protected static bool $loaded = false;
+
     public static function load(): void
     {
         $files = glob(BASE_PATH . '/config/*.php');
@@ -16,6 +18,8 @@ class Config
 
             self::$config[$name] = require $file;
         }
+
+        self::$loaded = true;
     }
 
     public static function get(string $key, $default = null)
@@ -34,5 +38,20 @@ class Config
         }
 
         return $value;
+    }
+
+    public static function has(string $key): bool
+    {
+        return self::get($key, null) !== null;
+    }
+
+    public static function all(): array
+    {
+        return self::$config;
+    }
+
+    public static function loaded(): bool
+    {
+        return self::$loaded;
     }
 }
