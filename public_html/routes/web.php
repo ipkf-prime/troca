@@ -38,6 +38,30 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         ? \IPKF\Database\Database::tableExists('ipkf_runtime_checks')
         : false;
 
+    $runtimeCheckFound = false;
+    $runtimeCheckValue = null;
+
+    if ($runtimeCheckTableExists) {
+        try {
+            $statement = \IPKF\Database\Database::connect()->prepare("
+                SELECT check_value
+                FROM ipkf_runtime_checks
+                WHERE check_key = ?
+                LIMIT 1
+            ");
+            $statement->execute(['foundation_v0_2']);
+            $value = $statement->fetchColumn();
+
+            if ($value !== false) {
+                $runtimeCheckFound = true;
+                $runtimeCheckValue = $value;
+            }
+        } catch (\Throwable $exception) {
+            $runtimeCheckFound = false;
+            $runtimeCheckValue = null;
+        }
+    }
+
     return $response->json([
         'php_version' => PHP_VERSION,
         'base_path' => BASE_PATH,
@@ -53,6 +77,8 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'seeder_system_available' => class_exists(\IPKF\Database\Seeds\SeederRunner::class)
             && class_exists(\IPKF\Database\Seeds\RuntimeCheckSeeder::class),
         'runtime_check_table_exists' => $runtimeCheckTableExists,
+        'runtime_check_found' => $runtimeCheckFound,
+        'runtime_check_value' => $runtimeCheckValue,
         'storage_writable' => is_writable(BASE_PATH . '/storage'),
         'routes_loaded_count' => $router->count(),
         'autoload' => [

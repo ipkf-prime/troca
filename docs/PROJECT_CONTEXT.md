@@ -25,6 +25,7 @@ Focus areas:
 - Database foundation
 - Migration and seeder convention
 - Framework-safe runtime migration and seeder verification
+- Maintenance-key protection for development migration and seeder entry points
 - Service, repository, and model layering
 - Diagnostics coverage for foundation status
 

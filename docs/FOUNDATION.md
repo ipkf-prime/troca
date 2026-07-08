@@ -52,13 +52,19 @@ No business features are included in this milestone.
 
 In development only, run migrations from:
 
-- `/migrate.php`
+- `/migrate.php?key=DEV_MAINTENANCE_KEY`
 
 Run seeders from:
 
-- `/seed.php`
+- `/seed.php?key=DEV_MAINTENANCE_KEY`
 
-Both entry points require `APP_DEBUG=true`. When `APP_DEBUG=false`, they return a 404-style response. These public entry points must not be enabled in production.
+Both entry points require `APP_DEBUG=true` and a valid `DEV_MAINTENANCE_KEY` from the local `.env` file. When `APP_DEBUG=false`, or when the key is missing or invalid, they return a 404-style response.
+
+Warnings:
+
+- `APP_DEBUG` must be `false` in production.
+- `DEV_MAINTENANCE_KEY` must not be committed.
+- Public migration and seeder entry points are for development only.
 
 ## Service, Repository, And Model Layers
 

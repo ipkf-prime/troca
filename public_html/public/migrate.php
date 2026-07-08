@@ -5,9 +5,11 @@ define('BASE_PATH', dirname(__DIR__));
 require BASE_PATH . '/bootstrap/app.php';
 
 if (!\IPKF\Support\Env::isDebug()) {
-    http_response_code(404);
-    echo "404 - Route not found: /migrate.php";
-    exit;
+    \IPKF\Support\Maintenance::deny('/migrate.php');
+}
+
+if (!\IPKF\Support\Maintenance::keyIsValid($_GET['key'] ?? null)) {
+    \IPKF\Support\Maintenance::deny('/migrate.php');
 }
 
 try {
