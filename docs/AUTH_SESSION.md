@@ -23,6 +23,7 @@ It does not include login UI, admin panel UI, Bot, CRM, ERP, Automation, or Mark
 Admin seed values are read from `.env`:
 
 - `ADMIN_NAME`
+- `ADMIN_USERNAME`
 - `ADMIN_EMAIL`
 - `ADMIN_MOBILE`
 - `ADMIN_PASSWORD`
@@ -55,6 +56,23 @@ Auth routes are JSON-first:
 
 The `login` value may be username, email, or mobile.
 
+Login resolution checks the same public `login` field against:
+
+- `users.email`
+- `users.username`
+- `users.mobile`
+- `persons.email`
+- `persons.mobile`
+
+Mobile login supports common Iranian formats and normalizes them to the canonical `09xxxxxxxxx` form:
+
+- `09123323170`
+- `9123323170`
+- `+989123323170`
+- `989123323170`
+
+Persian and Arabic digits are converted before lookup. Ambiguous matches fail with the same generic invalid credentials response.
+
 API responses never expose `password_hash`, MFA secrets, database secrets, session IDs, or maintenance keys.
 
 ## Postman JSON Test Flow
@@ -66,6 +84,33 @@ API responses never expose `password_hash`, MFA secrets, database secrets, sessi
 ```json
 {
   "login": "admin@example.com",
+  "password": "your-real-admin-password"
+}
+```
+
+Email login example:
+
+```json
+{
+  "login": "admin@troca.ir",
+  "password": "your-real-admin-password"
+}
+```
+
+Mobile login example:
+
+```json
+{
+  "login": "09123323170",
+  "password": "your-real-admin-password"
+}
+```
+
+Username login example:
+
+```json
+{
+  "login": "admin",
   "password": "your-real-admin-password"
 }
 ```

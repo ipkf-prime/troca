@@ -206,6 +206,7 @@ class AuthRbacSeeder extends Seeder
         $roles = new RoleRepository();
         $admin = $users->createOrUpdateAdminFromEnv([
             'name' => Env::get('ADMIN_NAME', 'Super Admin'),
+            'username' => Env::get('ADMIN_USERNAME', 'admin'),
             'email' => $email,
             'mobile' => Env::get('ADMIN_MOBILE', ''),
             'password' => $password,

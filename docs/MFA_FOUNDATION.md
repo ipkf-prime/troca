@@ -152,7 +152,7 @@ Diagnostics must not expose:
 ## Manual Runtime Test Flow
 
 1. `GET /csrf-token`
-2. `POST /auth/login` with `X-CSRF-TOKEN`
+2. `POST /auth/login` with `X-CSRF-TOKEN` using email, mobile, or username in the `login` field
 3. `GET /mfa/status`
 4. `POST /mfa/totp/setup` with `X-CSRF-TOKEN`
 5. Register the returned `otpauth_uri` in an authenticator app.
