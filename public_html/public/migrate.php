@@ -1,12 +1,17 @@
 <?php
 
-require __DIR__ . '/../vendor/autoload.php';
+define('BASE_PATH', dirname(__DIR__));
 
-use IPKF\Database\DatabaseManager;
+require BASE_PATH . '/bootstrap/app.php';
 
-$manager = new DatabaseManager();
+try {
+    $manager = new \IPKF\Database\DatabaseManager();
 
-$manager->migrate();
-$manager->seed();
+    $manager->migrate();
+    $manager->seed();
 
-echo "MIGRATION DONE";
+    echo "MIGRATION DONE";
+} catch (Throwable $exception) {
+    http_response_code(500);
+    echo "MIGRATION FAILED";
+}

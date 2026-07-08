@@ -15,17 +15,35 @@ $router->get('/health', function ($request, $response) {
 });
 
 $router->get('/_diagnostics', function ($request, $response) use ($router) {
-    $debug = filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    $debug = \IPKF\Support\Env::isDebug();
 
     if (!$debug) {
         return $response->status(404)->send('404 - Route not found: /_diagnostics');
     }
 
+    $databaseConnectionAvailable = false;
+    $databaseConnectionMessage = 'not configured';
+
+    if (\IPKF\Database\Database::configured()) {
+        try {
+            \IPKF\Database\Database::connect();
+            $databaseConnectionAvailable = true;
+            $databaseConnectionMessage = 'available';
+        } catch (\Throwable $exception) {
+            $databaseConnectionMessage = 'unavailable';
+        }
+    }
+
     return $response->json([
         'php_version' => PHP_VERSION,
         'base_path' => BASE_PATH,
-        'app_env' => $_ENV['APP_ENV'] ?? 'production',
+        'app_env' => \IPKF\Support\Env::get('APP_ENV', 'production'),
         'app_debug' => $debug,
+        'env_loaded' => \IPKF\Support\Env::loaded(),
+        'config_loaded' => \IPKF\Support\Config::loaded(),
+        'database_config_loaded' => \IPKF\Support\Config::has('database.connections.mysql'),
+        'database_connection_available' => $databaseConnectionAvailable,
+        'database_connection_message' => $databaseConnectionMessage,
         'storage_writable' => is_writable(BASE_PATH . '/storage'),
         'routes_loaded_count' => $router->count(),
         'autoload' => [

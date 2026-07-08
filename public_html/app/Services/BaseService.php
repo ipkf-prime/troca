@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-class BaseService
+class BaseService implements ServiceInterface
 {
     protected array $data = [];
 

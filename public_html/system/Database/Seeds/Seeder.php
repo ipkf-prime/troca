@@ -3,14 +3,15 @@
 namespace IPKF\Database\Seeds;
 
 use IPKF\Database\Database;
+use PDO;
 
 abstract class Seeder
 {
-    protected $db;
+    protected PDO $db;
 
-    public function __construct()
+    public function __construct(?PDO $db = null)
     {
-        $this->db = Database::connect();
+        $this->db = $db ?? Database::connect();
     }
 
     abstract public function run(): void;

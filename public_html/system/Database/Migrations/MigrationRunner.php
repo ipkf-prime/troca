@@ -7,17 +7,25 @@ use PDO;
 
 class MigrationRunner
 {
-    protected PDO $db;
+    protected ?PDO $db = null;
 
-    public function __construct()
+    public function __construct(?PDO $db = null)
     {
-        $this->db = Database::connect();
-        $this->createTableIfNotExists();
+        $this->db = $db;
+    }
+
+    protected function connection(): PDO
+    {
+        if (!$this->db instanceof PDO) {
+            $this->db = Database::connect();
+        }
+
+        return $this->db;
     }
 
     private function createTableIfNotExists(): void
     {
-        $this->db->exec("
+        $this->connection()->exec("
             CREATE TABLE IF NOT EXISTS migrations (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 migration VARCHAR(255),
@@ -28,11 +36,17 @@ class MigrationRunner
 
     public function run(array $migrations): void
     {
+        if ($migrations === []) {
+            return;
+        }
+
+        $this->createTableIfNotExists();
+
         foreach ($migrations as $migration) {
 
             $name = get_class($migration);
 
-            $stmt = $this->db->prepare("SELECT id FROM migrations WHERE migration = ?");
+            $stmt = $this->connection()->prepare("SELECT id FROM migrations WHERE migration = ?");
             $stmt->execute([$name]);
 
             if ($stmt->fetch()) {
@@ -41,7 +55,7 @@ class MigrationRunner
 
             $migration->up();
 
-            $insert = $this->db->prepare("INSERT INTO migrations (migration) VALUES (?)");
+            $insert = $this->connection()->prepare("INSERT INTO migrations (migration) VALUES (?)");
             $insert->execute([$name]);
         }
     }

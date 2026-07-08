@@ -1,6 +1,7 @@
 <?php
 
 require_once BASE_PATH . '/vendor/autoload.php';
+require_once BASE_PATH . '/system/Support/helpers.php';
 
 use IPKF\Core\Application;
 use IPKF\Routing\RouteLoader;

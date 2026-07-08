@@ -1,12 +1,14 @@
 <?php
 
+use IPKF\Support\Env;
+
 return [
 
-    'name' => $_ENV['APP_NAME'] ?? 'IPKF',
+    'name' => Env::get('APP_NAME', 'IPKF'),
 
-    'env' => $_ENV['APP_ENV'] ?? 'production',
+    'env' => Env::get('APP_ENV', 'production'),
 
-    'debug' => filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN),
+    'debug' => Env::isDebug(),
 
 
 ];
