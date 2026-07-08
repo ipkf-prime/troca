@@ -34,6 +34,10 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         }
     }
 
+    $runtimeCheckTableExists = $databaseConnectionAvailable
+        ? \IPKF\Database\Database::tableExists('ipkf_runtime_checks')
+        : false;
+
     return $response->json([
         'php_version' => PHP_VERSION,
         'base_path' => BASE_PATH,
@@ -44,6 +48,11 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'database_config_loaded' => \IPKF\Support\Config::has('database.connections.mysql'),
         'database_connection_available' => $databaseConnectionAvailable,
         'database_connection_message' => $databaseConnectionMessage,
+        'migration_system_available' => class_exists(\IPKF\Database\Migrations\MigrationRunner::class)
+            && class_exists(\IPKF\Database\Migrations\CreateRuntimeChecksTable::class),
+        'seeder_system_available' => class_exists(\IPKF\Database\Seeds\SeederRunner::class)
+            && class_exists(\IPKF\Database\Seeds\RuntimeCheckSeeder::class),
+        'runtime_check_table_exists' => $runtimeCheckTableExists,
         'storage_writable' => is_writable(BASE_PATH . '/storage'),
         'routes_loaded_count' => $router->count(),
         'autoload' => [

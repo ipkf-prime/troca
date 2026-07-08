@@ -24,6 +24,7 @@ Focus areas:
 - Env and config stability
 - Database foundation
 - Migration and seeder convention
+- Framework-safe runtime migration and seeder verification
 - Service, repository, and model layering
 - Diagnostics coverage for foundation status
 

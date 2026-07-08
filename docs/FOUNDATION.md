@@ -44,7 +44,21 @@ No business features are included in this milestone.
 - Migration execution is coordinated by `IPKF\Database\Migrations\MigrationRunner`.
 - Seeders extend `IPKF\Database\Seeds\Seeder`.
 - Seeder execution is coordinated by `IPKF\Database\Seeds\SeederRunner`.
-- No business tables or permanent framework test tables are added in this milestone.
+- The framework-safe runtime test migration creates `ipkf_runtime_checks`.
+- The framework-safe runtime test seeder upserts the `foundation_v0_2` check row.
+- No business tables are added in this milestone.
+
+## Dev Runtime Commands
+
+In development only, run migrations from:
+
+- `/migrate.php`
+
+Run seeders from:
+
+- `/seed.php`
+
+Both entry points require `APP_DEBUG=true`. When `APP_DEBUG=false`, they return a 404-style response. These public entry points must not be enabled in production.
 
 ## Service, Repository, And Model Layers
 

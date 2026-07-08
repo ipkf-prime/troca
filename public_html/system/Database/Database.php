@@ -61,4 +61,22 @@ class Database
 
         return self::$connection;
     }
+
+    public static function tableExists(string $table): bool
+    {
+        try {
+            $statement = self::connect()->prepare("
+                SELECT COUNT(*)
+                FROM information_schema.tables
+                WHERE table_schema = DATABASE()
+                  AND table_name = ?
+            ");
+
+            $statement->execute([$table]);
+
+            return (int) $statement->fetchColumn() > 0;
+        } catch (RuntimeException|PDOException) {
+            return false;
+        }
+    }
 }
