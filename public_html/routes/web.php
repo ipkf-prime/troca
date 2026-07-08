@@ -76,6 +76,25 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         }
     }
 
+    $personsTableExists = \IPKF\Database\Database::tableExists('persons');
+    $usersTableExists = \IPKF\Database\Database::tableExists('users');
+    $roleAreasTableExists = \IPKF\Database\Database::tableExists('role_areas');
+    $roleKindsTableExists = \IPKF\Database\Database::tableExists('role_kinds');
+    $rolesTableExists = \IPKF\Database\Database::tableExists('roles');
+    $permissionsTableExists = \IPKF\Database\Database::tableExists('permissions');
+    $rolePermissionsTableExists = \IPKF\Database\Database::tableExists('role_permissions');
+    $userRoleAssignmentsTableExists = \IPKF\Database\Database::tableExists('user_role_assignments');
+
+    $mfaSchemaAvailable = \IPKF\Database\Database::tableExists('user_mfa_methods')
+        && \IPKF\Database\Database::tableExists('mfa_challenges')
+        && \IPKF\Database\Database::tableExists('trusted_devices')
+        && \IPKF\Database\Database::tableExists('recovery_codes');
+
+    $organizationsHierarchyReady = \IPKF\Database\Database::tableExists('organizations')
+        && \IPKF\Database\Database::columnExists('organizations', 'parent_id')
+        && \IPKF\Database\Database::columnExists('organizations', 'depth')
+        && \IPKF\Database\Database::columnExists('organizations', 'path');
+
     return $response->json([
         'php_version' => PHP_VERSION,
         'base_path' => BASE_PATH,
@@ -94,6 +113,23 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'runtime_check_table_exists' => $runtimeCheckTableExists,
         'runtime_check_found' => $runtimeCheckFound,
         'runtime_check_value' => $runtimeCheckValue,
+        'auth_schema_available' => $personsTableExists && $usersTableExists,
+        'rbac_schema_available' => $roleAreasTableExists
+            && $roleKindsTableExists
+            && $rolesTableExists
+            && $permissionsTableExists
+            && $rolePermissionsTableExists
+            && $userRoleAssignmentsTableExists,
+        'persons_table_exists' => $personsTableExists,
+        'users_table_exists' => $usersTableExists,
+        'role_areas_table_exists' => $roleAreasTableExists,
+        'role_kinds_table_exists' => $roleKindsTableExists,
+        'roles_table_exists' => $rolesTableExists,
+        'permissions_table_exists' => $permissionsTableExists,
+        'role_permissions_table_exists' => $rolePermissionsTableExists,
+        'user_role_assignments_table_exists' => $userRoleAssignmentsTableExists,
+        'mfa_schema_available' => $mfaSchemaAvailable,
+        'organizations_hierarchy_ready' => $organizationsHierarchyReady,
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),

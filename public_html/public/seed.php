@@ -16,12 +16,13 @@ try {
     $manager = new \IPKF\Database\DatabaseManager();
     $manager->seeders([
         new \IPKF\Database\Seeds\RuntimeCheckSeeder(),
+        new \IPKF\Database\Seeds\AuthRbacSeeder(),
     ]);
 
     $manager->seed();
 
     header('Content-Type: text/plain; charset=UTF-8');
-    echo "SEED DONE: foundation_v0_2";
+    echo "SEED DONE: foundation_v0_2, auth_rbac_schema";
 } catch (Throwable $exception) {
     http_response_code(500);
     echo "SEED FAILED";
