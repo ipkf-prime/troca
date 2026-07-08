@@ -48,6 +48,15 @@ Stable version: `0.3.0-installer`
 
 Deployment branch: `installer-v0.3`
 
+## Active Milestone
+
+IPKF v0.3.1 public site baseline adds a controlled public root mode while the main application is still under development.
+
+Site mode behavior:
+
+- `SITE_MODE=coming_soon` displays the public Persian construction page at `GET /`.
+- `SITE_MODE=app` keeps the framework or future application home behavior.
+
 ## Future Milestones
 
 - Core documentation

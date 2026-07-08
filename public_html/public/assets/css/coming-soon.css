@@ -1,0 +1,131 @@
+:root {
+    --color-forest: #0b3528;
+    --color-forest-deep: #062219;
+    --color-green: #1c6b52;
+    --color-gold: #f3c95b;
+    --color-gold-soft: #ffe7a3;
+    --color-white: #ffffff;
+    --color-muted: #d8e4dc;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    min-height: 100%;
+}
+
+body {
+    min-height: 100%;
+    margin: 0;
+    font-family: Tahoma, Arial, sans-serif;
+    color: var(--color-white);
+    background: var(--color-forest-deep);
+}
+
+.coming-soon {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+    position: relative;
+    padding: 56px clamp(22px, 6vw, 92px) 28px;
+    background:
+        linear-gradient(135deg, rgba(11, 53, 40, 0.95), rgba(6, 34, 25, 0.98)),
+        radial-gradient(circle at 18% 22%, rgba(243, 201, 91, 0.18), transparent 28%),
+        linear-gradient(90deg, rgba(28, 107, 82, 0.45), transparent 62%);
+}
+
+.coming-soon::before {
+    content: "";
+    position: absolute;
+    inset: auto -10% -30% 35%;
+    height: 360px;
+    background:
+        linear-gradient(115deg, transparent 0 30%, rgba(243, 201, 91, 0.18) 30% 31%, transparent 31% 100%),
+        linear-gradient(145deg, transparent 0 46%, rgba(255, 255, 255, 0.08) 46% 47%, transparent 47% 100%);
+    transform: rotate(-4deg);
+    pointer-events: none;
+}
+
+.coming-soon__content {
+    width: min(760px, 100%);
+    position: relative;
+    z-index: 1;
+}
+
+.coming-soon__brand {
+    color: var(--color-gold-soft);
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 28px;
+}
+
+.coming-soon__badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    margin: 0 0 24px;
+    padding: 7px 14px;
+    border: 1px solid rgba(243, 201, 91, 0.52);
+    color: var(--color-gold-soft);
+    background: rgba(243, 201, 91, 0.08);
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+h1 {
+    margin: 0;
+    font-size: clamp(52px, 9vw, 112px);
+    line-height: 1.05;
+    font-weight: 800;
+}
+
+.coming-soon__subtitle {
+    max-width: 720px;
+    margin: 18px 0 0;
+    color: var(--color-gold);
+    font-size: clamp(20px, 3vw, 34px);
+    line-height: 1.7;
+    font-weight: 700;
+}
+
+.coming-soon__message {
+    margin: 42px 0 0;
+    color: var(--color-white);
+    font-size: clamp(24px, 4vw, 42px);
+    line-height: 1.5;
+    font-weight: 700;
+}
+
+.coming-soon__description {
+    max-width: 720px;
+    margin: 14px 0 0;
+    color: var(--color-muted);
+    font-size: clamp(16px, 2vw, 20px);
+    line-height: 2.1;
+}
+
+.coming-soon__footer {
+    position: relative;
+    z-index: 1;
+    padding-top: 36px;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 14px;
+}
+
+@media (max-width: 640px) {
+    .coming-soon {
+        padding: 34px 20px 22px;
+    }
+
+    .coming-soon__brand {
+        margin-bottom: 22px;
+    }
+
+    .coming-soon__message {
+        margin-top: 34px;
+    }
+}

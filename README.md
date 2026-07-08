@@ -40,6 +40,11 @@ The Foundation baseline has been verified with:
 - `GET /seed.php?key=DEV_MAINTENANCE_KEY` runs dev seeders when `APP_DEBUG=true`
 - `GET /install.php` returns safe installer JSON when installer access rules allow it
 
+## Site Mode
+
+Set `SITE_MODE=coming_soon` to show the public Persian Coming Soon page at `GET /`.
+Set `SITE_MODE=app` to keep the framework/app home behavior for future application routing.
+
 ## Architecture Guardrails
 
 - Framework core code lives under `system/`.
