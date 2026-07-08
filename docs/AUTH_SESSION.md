@@ -41,6 +41,7 @@ The seeder is idempotent and updates the same person/user/role assignment instea
 
 Auth routes are JSON-first:
 
+- `GET /csrf-token`
 - `POST /auth/login`
 - `POST /auth/logout`
 - `GET /auth/status`
@@ -55,6 +56,25 @@ Auth routes are JSON-first:
 The `login` value may be username, email, or mobile.
 
 API responses never expose `password_hash`, MFA secrets, database secrets, session IDs, or maintenance keys.
+
+## Postman JSON Test Flow
+
+1. Send `GET /csrf-token`.
+2. Copy the `csrf_token` value and keep the returned session cookie.
+3. Send `POST /auth/login` with header `X-CSRF-TOKEN: <token>` and JSON body:
+
+```json
+{
+  "login": "admin@example.com",
+  "password": "your-real-admin-password"
+}
+```
+
+4. Send `GET /me` with the same cookie.
+5. Send `GET /admin-check` with the same cookie.
+6. Send `POST /auth/logout` with header `X-CSRF-TOKEN: <token>` and the same cookie.
+
+POST auth routes keep CSRF enabled. Tokens are accepted from `X-CSRF-TOKEN` or `_token`.
 
 ## Session Keys
 

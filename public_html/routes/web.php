@@ -28,6 +28,13 @@ $router->get('/health', function ($request, $response) {
     ]);
 });
 
+$router->get('/csrf-token', function ($request, $response) {
+    return $response->json([
+        'status' => 'ok',
+        'csrf_token' => (new \IPKF\Security\Csrf())->token(),
+    ]);
+});
+
 $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $debug = \IPKF\Support\Env::isDebug();
 
@@ -172,6 +179,7 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'organizations_hierarchy_ready' => $organizationsHierarchyReady,
         'auth_session_available' => class_exists(\App\Services\AuthService::class)
             && class_exists(\IPKF\Support\Session::class),
+        'csrf_available' => class_exists(\IPKF\Security\Csrf::class),
         'admin_user_exists' => $adminUserExists,
         'super_admin_role_exists' => $superAdminRoleExists,
         'super_admin_assignment_exists' => $superAdminAssignmentExists,
