@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/troca/dev.troca.ir/
+    - /bin/rsync -a --delete --exclude='.git' --exclude='.cpanel.yml' --exclude='public_html.zip' public_html/ $DEPLOYPATH
