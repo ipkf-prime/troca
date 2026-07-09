@@ -62,6 +62,10 @@ Version: `0.2.0-foundation`
 - Migrations create identity/access foundation tables.
 - MFA delivery channels return `channel_not_configured` when disabled or missing provider config.
 - Login tokens are issued only with `auth.login_token.issue`.
+- `APP_URL` controls login token URL host.
+- Dev token links must use `https://dev.troca.ir`.
+- `expires_at_utc` is ISO-8601 UTC.
+- `expires_at_local` uses `APP_TIMEZONE`.
 - Login tokens are single-use and expire.
 - Identity changes require password and token confirmation.
 - Default active access is the lowest-priority assignment.

@@ -22,6 +22,11 @@ Current version: `0.4.3-identity-access-dev`
 4. Configure the web server document root to the `public/` directory.
 5. Deploy from the active feature branch for development work. The current installer release branch is `installer-v0.3`.
 
+For dev token links, set:
+
+- `APP_URL=https://dev.troca.ir`
+- `APP_TIMEZONE=Asia/Tehran`
+
 On cPanel Git deployment, this repository deploys `public_html/` to the configured application path. The active dev domain uses:
 
 - Repository path: `/home/troca/repositories/troca`

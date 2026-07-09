@@ -33,12 +33,43 @@ If a delivery provider is disabled or missing configuration, `POST /mfa/challeng
 
 The plain token is returned only once as a login URL. The database stores only a SHA-256 token hash.
 
+`APP_URL` controls the generated login URL. Development must use:
+
+```env
+APP_URL=https://dev.troca.ir
+```
+
+Production can later use:
+
+```env
+APP_URL=https://troca.ir
+```
+
+If `APP_URL` is missing, IPKF falls back to the current request scheme and host.
+
+`APP_TIMEZONE` controls display timestamps. The canonical expiry is `expires_at_utc`; `expires_at_local` is display only.
+
+Default:
+
+```env
+APP_TIMEZONE=Asia/Tehran
+```
+
 Token login endpoints:
 
 - `GET /auth/token-login?token=...`
 - `POST /auth/token-login`
 
 Tokens are single-use and expire after five minutes. If the target user has MFA enabled, token login starts pending MFA instead of fully authenticating.
+
+Token issue response includes:
+
+- `login_url`
+- `expires_at`
+- `expires_at_utc`
+- `expires_at_local`
+- `timezone`
+- `ttl_seconds`
 
 ## Identity Changes
 

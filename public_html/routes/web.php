@@ -189,6 +189,9 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'identity_normalizer_available' => class_exists(\App\Services\IdentityNormalizer::class),
         'login_token_system_available' => class_exists(\App\Services\LoginTokenService::class)
             && \IPKF\Database\Database::tableExists('auth_login_tokens'),
+        'app_url_configured' => \IPKF\Support\Env::get('APP_URL', '') !== '',
+        'app_timezone_configured' => \IPKF\Support\Env::get('APP_TIMEZONE', 'Asia/Tehran'),
+        'login_token_url_base' => (new \App\Services\LoginTokenService())->urlBase(),
         'active_access_switching_available' => class_exists(\App\Services\AccessService::class),
         'default_lowest_role_available' => \IPKF\Database\Database::tableExists('roles')
             && \IPKF\Database\Database::columnExists('roles', 'priority'),
@@ -579,6 +582,10 @@ $router->post('/auth/login-token/issue', function ($request, $response) {
         'status' => 'ok',
         'login_url' => $issued['login_url'],
         'expires_at' => $issued['expires_at'],
+        'expires_at_utc' => $issued['expires_at_utc'],
+        'expires_at_local' => $issued['expires_at_local'],
+        'timezone' => $issued['timezone'],
+        'ttl_seconds' => $issued['ttl_seconds'],
     ]);
 });
 
