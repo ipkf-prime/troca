@@ -6,7 +6,7 @@ business modules.
 
 ## Version
 
-Current version: `0.4.2-mfa-foundation-dev`
+Current version: `0.4.3-identity-access-dev`
 
 ## Requirements
 
@@ -63,6 +63,8 @@ Set `SITE_MODE=app` to keep the framework/app home behavior for future applicati
 ## MFA Foundation
 
 The v0.4.2 development branch adds JSON-first MFA foundation routes without adding UI or business modules.
+
+The v0.4.3 development branch adds identity verification, one-time login tokens, MFA delivery channel foundations, and active access switching without adding UI or business modules.
 
 Set:
 

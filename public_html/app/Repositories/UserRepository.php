@@ -2,6 +2,8 @@
 
 namespace App\Repositories;
 
+use App\Services\IdentityNormalizer;
+use IPKF\Database\Database;
 use PDOStatement;
 
 class UserRepository extends BaseRepository
@@ -31,16 +33,36 @@ class UserRepository extends BaseRepository
         $matches = [];
 
         if ($identity['email'] !== null) {
+            if (Database::columnExists('users', 'email_norm')) {
+                $matches[] = 'users.email_norm = :email_norm_user';
+            }
+
+            if (Database::columnExists('persons', 'email_norm')) {
+                $matches[] = 'persons.email_norm = :email_norm_person';
+            }
+
             $matches[] = 'LOWER(users.email) = :email_user';
             $matches[] = 'LOWER(persons.email) = :email_person';
         }
 
         if ($identity['mobile'] !== null) {
+            if (Database::columnExists('users', 'mobile_norm')) {
+                $matches[] = 'users.mobile_norm = :mobile_norm_user';
+            }
+
+            if (Database::columnExists('persons', 'mobile_norm')) {
+                $matches[] = 'persons.mobile_norm = :mobile_norm_person';
+            }
+
             $matches[] = 'users.mobile IN (:user_mobile, :user_mobile_no_zero, :user_mobile_98, :user_mobile_plus_98)';
             $matches[] = 'persons.mobile IN (:person_mobile, :person_mobile_no_zero, :person_mobile_98, :person_mobile_plus_98)';
         }
 
         if ($identity['username'] !== null) {
+            if (Database::columnExists('users', 'username_norm')) {
+                $matches[] = 'users.username_norm = :username_norm';
+            }
+
             $matches[] = 'LOWER(users.username) = :username';
         }
 
@@ -91,6 +113,81 @@ class UserRepository extends BaseRepository
         $statement->execute([$userId]);
     }
 
+    public function passwordHashForUser(int $userId): ?string
+    {
+        $statement = $this->connection()->prepare('SELECT password_hash FROM users WHERE id = ? LIMIT 1');
+        $statement->execute([$userId]);
+        $hash = $statement->fetchColumn();
+
+        return $hash === false ? null : (string) $hash;
+    }
+
+    public function identityValueExists(string $field, string $normalizedValue, int $exceptUserId): bool
+    {
+        $columns = match ($field) {
+            'username' => ['users.username_norm'],
+            'email' => ['users.email_norm', 'persons.email_norm'],
+            'mobile' => ['users.mobile_norm', 'persons.mobile_norm'],
+            default => [],
+        };
+
+        if ($columns === []) {
+            return true;
+        }
+
+        $matches = array_map(fn (string $column): string => "{$column} = ?", $columns);
+        $statement = $this->connection()->prepare("
+            SELECT COUNT(DISTINCT users.id)
+            FROM users
+            LEFT JOIN persons ON persons.id = users.person_id
+            WHERE users.id <> ?
+              AND (" . implode(' OR ', $matches) . ")
+        ");
+        $statement->execute(array_merge([$exceptUserId], array_fill(0, count($matches), $normalizedValue)));
+
+        return (int) $statement->fetchColumn() > 0;
+    }
+
+    public function applyIdentityChange(int $userId, string $field, string $value, string $normalizedValue): void
+    {
+        if ($field === 'username') {
+            $statement = $this->connection()->prepare("
+                UPDATE users
+                SET username = ?, username_norm = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ");
+            $statement->execute([$value, $normalizedValue, $userId]);
+            return;
+        }
+
+        if ($field === 'email') {
+            $statement = $this->connection()->prepare("
+                UPDATE users
+                LEFT JOIN persons ON persons.id = users.person_id
+                SET users.email = ?, users.email_norm = ?,
+                    persons.email = ?, persons.email_norm = ?,
+                    users.updated_at = CURRENT_TIMESTAMP,
+                    persons.updated_at = CURRENT_TIMESTAMP
+                WHERE users.id = ?
+            ");
+            $statement->execute([$value, $normalizedValue, $value, $normalizedValue, $userId]);
+            return;
+        }
+
+        if ($field === 'mobile') {
+            $statement = $this->connection()->prepare("
+                UPDATE users
+                LEFT JOIN persons ON persons.id = users.person_id
+                SET users.mobile = ?, users.mobile_norm = ?,
+                    persons.mobile = ?, persons.mobile_norm = ?,
+                    users.updated_at = CURRENT_TIMESTAMP,
+                    persons.updated_at = CURRENT_TIMESTAMP
+                WHERE users.id = ?
+            ");
+            $statement->execute([$value, $normalizedValue, $value, $normalizedValue, $userId]);
+        }
+    }
+
     public function createOrUpdateAdminFromEnv(array $data): ?array
     {
         $email = strtolower(trim((string) ($data['email'] ?? '')));
@@ -103,24 +200,25 @@ class UserRepository extends BaseRepository
         $name = trim((string) ($data['name'] ?? 'Super Admin')) ?: 'Super Admin';
         $username = trim((string) ($data['username'] ?? ''));
         $username = $username !== '' ? $username : strtok($email, '@');
-        $mobile = $this->normalizeMobile((string) ($data['mobile'] ?? ''));
+        $mobile = (new IdentityNormalizer())->mobile((string) ($data['mobile'] ?? ''));
 
         $personId = $this->findPersonIdByEmailOrMobile($email, $mobile);
 
         if ($personId === null) {
             $statement = $this->connection()->prepare("
-                INSERT INTO persons (person_type, full_name, email, mobile, status, created_at, updated_at)
-                VALUES ('individual', ?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                INSERT INTO persons (person_type, full_name, email, mobile, email_norm, mobile_norm, status, created_at, updated_at)
+                VALUES ('individual', ?, ?, ?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             ");
-            $statement->execute([$name, $email, $mobile ?: null]);
+            $statement->execute([$name, $email, $mobile ?: null, $email, $mobile]);
             $personId = (int) $this->connection()->lastInsertId();
         } else {
             $statement = $this->connection()->prepare("
                 UPDATE persons
-                SET full_name = ?, mobile = ?, status = 'active', updated_at = CURRENT_TIMESTAMP
+                SET full_name = ?, email = ?, mobile = ?, email_norm = ?, mobile_norm = ?,
+                    status = 'active', updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             ");
-            $statement->execute([$name, $mobile ?: null, $personId]);
+            $statement->execute([$name, $email, $mobile ?: null, $email, $mobile, $personId]);
         }
 
         $user = $this->findByLoginIdentifier($email) ?? $this->findByLoginIdentifier($username);
@@ -129,22 +227,22 @@ class UserRepository extends BaseRepository
         if ($user === null) {
             $statement = $this->connection()->prepare("
                 INSERT INTO users (
-                    person_id, username, email, mobile, password_hash, status,
+                    person_id, username, username_norm, email, email_norm, mobile, mobile_norm, password_hash, status,
                     email_verified_at, created_at, updated_at
                 )
-                VALUES (?, ?, ?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             ");
-            $statement->execute([$personId, $username, $email, $mobile ?: null, $passwordHash]);
+            $statement->execute([$personId, $username, strtolower($username), $email, $email, $mobile ?: null, $mobile, $passwordHash]);
             $userId = (int) $this->connection()->lastInsertId();
         } else {
             $userId = (int) $user['id'];
             $statement = $this->connection()->prepare("
                 UPDATE users
-                SET person_id = ?, username = ?, email = ?, mobile = ?,
-                    password_hash = ?, status = 'active', updated_at = CURRENT_TIMESTAMP
+                SET person_id = ?, username = ?, username_norm = ?, email = ?, email_norm = ?,
+                    mobile = ?, mobile_norm = ?, password_hash = ?, status = 'active', updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             ");
-            $statement->execute([$personId, $username, $email, $mobile ?: null, $passwordHash, $userId]);
+            $statement->execute([$personId, $username, strtolower($username), $email, $email, $mobile ?: null, $mobile, $passwordHash, $userId]);
         }
 
         return $this->findById($userId);
@@ -167,11 +265,12 @@ class UserRepository extends BaseRepository
 
     private function normalizeLoginIdentifier(string $identifier): array
     {
-        $value = trim($this->englishDigits($identifier));
+        $normalizer = new IdentityNormalizer();
+        $value = trim($normalizer->englishDigits($identifier));
         $compact = preg_replace('/[\s\-\(\)]+/', '', $value) ?? $value;
-        $email = str_contains($value, '@') ? strtolower($value) : null;
-        $mobile = $this->normalizeMobile($compact);
-        $username = $email === null && $mobile === null ? strtolower($value) : null;
+        $email = str_contains($value, '@') ? $normalizer->email($value) : null;
+        $mobile = $normalizer->mobile($compact);
+        $username = $email === null && $mobile === null ? $normalizer->username($value) : null;
 
         return [
             'email' => $email,
@@ -183,12 +282,28 @@ class UserRepository extends BaseRepository
     private function bindLoginIdentifier(PDOStatement $statement, array $identity): void
     {
         if ($identity['email'] !== null) {
+            if (Database::columnExists('users', 'email_norm')) {
+                $statement->bindValue(':email_norm_user', $identity['email']);
+            }
+
+            if (Database::columnExists('persons', 'email_norm')) {
+                $statement->bindValue(':email_norm_person', $identity['email']);
+            }
+
             $statement->bindValue(':email_user', $identity['email']);
             $statement->bindValue(':email_person', $identity['email']);
         }
 
         if ($identity['mobile'] !== null) {
             $mobile = $identity['mobile'];
+
+            if (Database::columnExists('users', 'mobile_norm')) {
+                $statement->bindValue(':mobile_norm_user', $mobile);
+            }
+
+            if (Database::columnExists('persons', 'mobile_norm')) {
+                $statement->bindValue(':mobile_norm_person', $mobile);
+            }
             $variants = [
                 $mobile,
                 substr($mobile, 1),
@@ -205,53 +320,11 @@ class UserRepository extends BaseRepository
         }
 
         if ($identity['username'] !== null) {
+            if (Database::columnExists('users', 'username_norm')) {
+                $statement->bindValue(':username_norm', $identity['username']);
+            }
+
             $statement->bindValue(':username', $identity['username']);
         }
-    }
-
-    private function normalizeMobile(string $mobile): ?string
-    {
-        $value = preg_replace('/[\s\-\(\)]+/', '', trim($this->englishDigits($mobile))) ?? '';
-        $value = ltrim($value, '+');
-
-        if (preg_match('/^09\d{9}$/', $value) === 1) {
-            return $value;
-        }
-
-        if (preg_match('/^9\d{9}$/', $value) === 1) {
-            return '0' . $value;
-        }
-
-        if (preg_match('/^989\d{9}$/', $value) === 1) {
-            return '0' . substr($value, 2);
-        }
-
-        return null;
-    }
-
-    private function englishDigits(string $value): string
-    {
-        return strtr($value, [
-            "\u{06F0}" => '0',
-            "\u{06F1}" => '1',
-            "\u{06F2}" => '2',
-            "\u{06F3}" => '3',
-            "\u{06F4}" => '4',
-            "\u{06F5}" => '5',
-            "\u{06F6}" => '6',
-            "\u{06F7}" => '7',
-            "\u{06F8}" => '8',
-            "\u{06F9}" => '9',
-            "\u{0660}" => '0',
-            "\u{0661}" => '1',
-            "\u{0662}" => '2',
-            "\u{0663}" => '3',
-            "\u{0664}" => '4',
-            "\u{0665}" => '5',
-            "\u{0666}" => '6',
-            "\u{0667}" => '7',
-            "\u{0668}" => '8',
-            "\u{0669}" => '9',
-        ]);
     }
 }

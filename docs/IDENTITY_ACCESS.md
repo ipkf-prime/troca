@@ -1,0 +1,97 @@
+# IPKF Identity Access Tokens Foundation
+
+Current version: `0.4.3-identity-access-dev`
+
+## Scope
+
+This milestone adds JSON-first foundations for identity verification, one-time login tokens, MFA delivery channels, and active access switching.
+
+It does not add UI, Bot module logic, CRM, ERP, Automation, Marketplace, or admin panel pages.
+
+## MFA Delivery Channels
+
+The MFA channel registry includes:
+
+- `totp`
+- `recovery`
+- `email`
+- `sms`
+- `bot`
+
+Environment flags default to disabled:
+
+- `MFA_EMAIL_ENABLED=false`
+- `MFA_SMS_ENABLED=false`
+- `MFA_BOT_ENABLED=false`
+- `MFA_DEV_EXPOSE_OTP=false`
+
+If a delivery provider is disabled or missing configuration, `POST /mfa/challenge` returns `channel_not_configured` and never fakes delivery success.
+
+## Login Tokens
+
+`POST /auth/login-token/issue` issues a short-lived one-time token for authorized users with `auth.login_token.issue`.
+
+The plain token is returned only once as a login URL. The database stores only a SHA-256 token hash.
+
+Token login endpoints:
+
+- `GET /auth/token-login?token=...`
+- `POST /auth/token-login`
+
+Tokens are single-use and expire after five minutes. If the target user has MFA enabled, token login starts pending MFA instead of fully authenticating.
+
+## Identity Changes
+
+Identity changes use verification requests:
+
+- `POST /identity/change/request`
+- `POST /identity/change/confirm`
+
+Supported fields:
+
+- `username`
+- `email`
+- `mobile`
+
+The request requires the current password. If the current user has MFA enabled, the session must already have recent MFA verification.
+
+The system stores only token hashes and does not expose verification tokens unless `IDENTITY_DEV_EXPOSE_TOKEN=true` in debug mode.
+
+## Active Access
+
+Users can have multiple active role assignments.
+
+On login, IPKF chooses the lowest-priority role assignment by default and stores it in:
+
+- `active_role_assignment_id`
+
+Endpoints:
+
+- `GET /access/assignments`
+- `POST /access/switch`
+
+Authorization checks use the active assignment. A super admin permission only applies while the active assignment is `super_admin`.
+
+## Security Notes
+
+Do not expose:
+
+- login token hashes
+- OTP values
+- OTP hashes
+- identity token hashes
+- provider secrets
+- session IDs
+- CSRF tokens
+- password hashes
+
+## Runtime Flow
+
+1. Run migrations.
+2. Run seeders.
+3. Login with email, mobile, or username.
+4. Complete MFA if required.
+5. Confirm `/access/assignments` defaults to the lowest role.
+6. Switch to `super_admin` before calling `/admin-check`.
+7. Issue and consume a login token.
+8. Request and confirm an identity change using a verification token.

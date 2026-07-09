@@ -13,9 +13,12 @@ class AuthRbacSeeder extends Seeder
         $this->seedRoleAreas();
         $this->seedRoleKinds();
         $this->seedRoles();
+        $this->seedRolePriorities();
         $this->seedPermissions();
+        $this->seedIdentityPermissions();
         $this->assignSuperAdminPermissions();
         $this->seedAdminUser();
+        $this->assignBaseRoleToAllUsers();
     }
 
     private function seedRoleAreas(): void
@@ -165,6 +168,44 @@ class AuthRbacSeeder extends Seeder
         }
     }
 
+    private function seedRolePriorities(): void
+    {
+        $priorities = [
+            'user' => 1,
+            'operator' => 200,
+            'warehouse_manager' => 400,
+            'company_admin' => 500,
+            'county_admin' => 600,
+            'province_admin' => 700,
+            'central_admin' => 800,
+            'system_admin' => 900,
+            'super_admin' => 1000,
+        ];
+
+        $statement = $this->db->prepare('UPDATE roles SET priority = ?, updated_at = CURRENT_TIMESTAMP WHERE code = ?');
+
+        foreach ($priorities as $code => $priority) {
+            $statement->execute([$priority, $code]);
+        }
+    }
+
+    private function seedIdentityPermissions(): void
+    {
+        $statement = $this->db->prepare("
+            INSERT INTO permissions (code, module, resource, action, title, is_active, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON DUPLICATE KEY UPDATE
+                module = VALUES(module),
+                resource = VALUES(resource),
+                action = VALUES(action),
+                title = VALUES(title),
+                is_active = VALUES(is_active),
+                updated_at = CURRENT_TIMESTAMP
+        ");
+
+        $statement->execute(['auth.login_token.issue', 'auth', 'login_tokens', 'issue', 'Issue login tokens']);
+    }
+
     private function assignSuperAdminPermissions(): void
     {
         $roleId = $this->idFor('roles', 'super_admin');
@@ -212,10 +253,31 @@ class AuthRbacSeeder extends Seeder
             'password' => $password,
         ]);
 
+        $baseRole = $roles->findByCode('user');
         $role = $roles->findByCode('super_admin');
+
+        if ($admin !== null && $baseRole !== null) {
+            $roles->assignRoleToUser((int) $admin['id'], (int) $baseRole['id'], 'global', null, false);
+        }
 
         if ($admin !== null && $role !== null) {
             $roles->assignRoleToUser((int) $admin['id'], (int) $role['id'], 'global', null, true);
+        }
+    }
+
+    private function assignBaseRoleToAllUsers(): void
+    {
+        $roleId = $this->idFor('roles', 'user');
+
+        if ($roleId === null) {
+            return;
+        }
+
+        $users = $this->db->query('SELECT id FROM users WHERE status = "active"')->fetchAll();
+        $roles = new RoleRepository();
+
+        foreach ($users as $user) {
+            $roles->assignRoleToUser((int) $user['id'], $roleId, 'global', null, false);
         }
     }
 }

@@ -54,6 +54,8 @@ class AuthService extends BaseService
         Session::put('auth_user_id', $userId);
         Session::put('auth_login_at', date(DATE_ATOM));
         Session::put('auth_mfa_verified', false);
+        (new AccessService())->ensureDefaultAssignment($userId);
+        (new AccessService())->selectLowest($userId);
     }
 
     public function logout(): void

@@ -55,3 +55,17 @@ Version: `0.2.0-foundation`
 - Used recovery codes cannot be reused.
 - No TOTP secret, recovery code hash, password hash, session id, CSRF token, cookie value, maintenance key, or database secret is exposed in diagnostics.
 - No duplicate MFA tables are introduced.
+
+## v0.4.3 Identity Access Tokens Checks
+
+- `/health` returns version `0.4.3-identity-access-dev`.
+- Migrations create identity/access foundation tables.
+- MFA delivery channels return `channel_not_configured` when disabled or missing provider config.
+- Login tokens are issued only with `auth.login_token.issue`.
+- Login tokens are single-use and expire.
+- Identity changes require password and token confirmation.
+- Default active access is the lowest-priority assignment.
+- `/access/assignments` lists assignments.
+- `/access/switch` changes active assignment.
+- `/admin-check` only passes when active assignment has admin permission.
+- Diagnostics expose only safe booleans.

@@ -93,20 +93,19 @@ Scope:
 
 ## Active Milestone
 
-IPKF v0.4.2 MFA Foundation starts the first JSON-first MFA runtime layer.
+IPKF v0.4.3 Identity Access Tokens extends MFA Foundation with identity verification, one-time login tokens, MFA delivery channel foundations, and active access switching.
 
-Working version: `0.4.2-mfa-foundation-dev`
+Working version: `0.4.3-identity-access-dev`
 
-Deployment branch: `mfa-foundation-v0.4.2`
+Deployment branch: `identity-access-tokens-v0.4.3`
 
 Scope:
 
-- MFA runtime services and repositories.
-- TOTP setup and confirmation endpoints.
-- Pending MFA login challenge flow.
-- Recovery code regeneration and verification foundation.
-- Trusted device list/revoke foundation.
-- Safe MFA diagnostics.
+- MFA delivery channel registry for email, sms, and bot.
+- One-time login token foundation.
+- Identity change request and verification foundation.
+- Active role/access assignment switching.
+- Default lowest-privilege access selection.
 - No login UI, admin panel UI, Bot, CRM, ERP, Automation, or Marketplace modules are added.
 
 ## Future Milestones

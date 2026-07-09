@@ -6,8 +6,9 @@ class PermissionRepository extends BaseRepository
 {
     protected string $table = 'permissions';
 
-    public function getUserPermissions(int $userId): array
+    public function getUserPermissions(int $userId, ?int $assignmentId = null): array
     {
+        $assignmentFilter = $assignmentId === null ? '' : ' AND user_role_assignments.id = ?';
         $statement = $this->connection()->prepare("
             SELECT DISTINCT permissions.*
             FROM permissions
@@ -20,8 +21,15 @@ class PermissionRepository extends BaseRepository
               AND permissions.is_active = 1
               AND (user_role_assignments.starts_at IS NULL OR user_role_assignments.starts_at <= CURRENT_TIMESTAMP)
               AND (user_role_assignments.ends_at IS NULL OR user_role_assignments.ends_at >= CURRENT_TIMESTAMP)
+              {$assignmentFilter}
         ");
-        $statement->execute([$userId]);
+        $params = [$userId];
+
+        if ($assignmentId !== null) {
+            $params[] = $assignmentId;
+        }
+
+        $statement->execute($params);
 
         return $statement->fetchAll();
     }
@@ -41,8 +49,9 @@ class PermissionRepository extends BaseRepository
         return (int) $statement->fetchColumn() > 0;
     }
 
-    public function userHasPermission(int $userId, string $permissionCode): bool
+    public function userHasPermission(int $userId, string $permissionCode, ?int $assignmentId = null): bool
     {
+        $assignmentFilter = $assignmentId === null ? '' : ' AND user_role_assignments.id = ?';
         $statement = $this->connection()->prepare("
             SELECT COUNT(*)
             FROM permissions
@@ -54,8 +63,15 @@ class PermissionRepository extends BaseRepository
               AND permissions.is_active = 1
               AND user_role_assignments.is_active = 1
               AND roles.is_active = 1
+              {$assignmentFilter}
         ");
-        $statement->execute([$userId, $permissionCode]);
+        $params = [$userId, $permissionCode];
+
+        if ($assignmentId !== null) {
+            $params[] = $assignmentId;
+        }
+
+        $statement->execute($params);
 
         return (int) $statement->fetchColumn() > 0;
     }

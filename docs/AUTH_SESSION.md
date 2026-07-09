@@ -1,6 +1,6 @@
 # IPKF Auth Session Foundation
 
-Current version: `0.4.2-mfa-foundation-dev`
+Current version: `0.4.3-identity-access-dev`
 
 ## Purpose
 
@@ -124,7 +124,7 @@ POST auth routes keep CSRF enabled. Tokens are accepted from `X-CSRF-TOKEN` or `
 
 ## MFA-Aware Login Flow
 
-MFA runtime starts in `0.4.2-mfa-foundation-dev`.
+MFA runtime starts in `0.4.2-mfa-foundation-dev` and identity/access foundations continue in `0.4.3-identity-access-dev`.
 
 When the user has no enabled MFA method, login behavior is unchanged.
 
@@ -183,7 +183,9 @@ The auth session uses:
 
 - `auth_user_id`
 - `auth_login_at`
-- `active_role_assignment_id` reserved for later
+- `active_role_assignment_id`
+
+`active_role_assignment_id` stores the current access assignment. Login defaults it to the lowest-priority active assignment, and `/access/switch` can change it.
 
 The session name and lifetime are configurable through:
 

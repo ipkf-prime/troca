@@ -48,6 +48,11 @@ class MfaService extends BaseService
             $methods[] = 'recovery_code';
         }
 
+        $methods = array_merge($methods, array_values(array_diff(
+            (new MfaDeliveryChannelService())->configuredMethods(),
+            ['totp', 'recovery']
+        )));
+
         Session::put('auth_pending_user_id', $userId);
         Session::put('auth_pending_at', time());
         Session::put('auth_pending_methods', $methods);
@@ -143,6 +148,8 @@ class MfaService extends BaseService
             $valid = $this->confirmTotpChallenge($userId, $code);
         } elseif ($method === 'recovery_code') {
             $valid = (new RecoveryCodeService())->consume($userId, $code);
+        } elseif (in_array($method, ['email', 'sms', 'bot'], true)) {
+            $valid = (new MfaDeliveryChannelService())->verifyChallenge($userId, $method, $code);
         }
 
         if (!$valid) {
