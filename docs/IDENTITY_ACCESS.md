@@ -31,7 +31,7 @@ If a delivery provider is disabled or missing configuration, `POST /mfa/challeng
 
 `POST /auth/login-token/issue` issues a short-lived one-time token for authorized users with `auth.login_token.issue`.
 
-The plain token is returned only once as a login URL. The database stores only a SHA-256 token hash.
+The plain token is returned only once as a login URL. The database stores only a password-hashed token value.
 
 `APP_URL` controls the generated login URL. Development must use:
 
@@ -59,6 +59,14 @@ Token login endpoints:
 
 - `GET /auth/token-login?token=...`
 - `POST /auth/token-login`
+
+For `POST /auth/token-login`, send `TOKEN_ONLY`, not the full `login_url`:
+
+```json
+{
+  "token": "TOKEN_ONLY"
+}
+```
 
 Tokens are single-use and expire after five minutes. If the target user has MFA enabled, token login starts pending MFA instead of fully authenticating.
 

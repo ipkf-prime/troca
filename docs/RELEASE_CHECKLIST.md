@@ -67,6 +67,8 @@ Version: `0.2.0-foundation`
 - `expires_at_utc` is ISO-8601 UTC.
 - `expires_at_local` uses `APP_TIMEZONE`.
 - Login tokens are single-use and expire.
+- `GET /auth/token-login?token=TOKEN_ONLY` consumes a valid token once.
+- `POST /auth/token-login` must receive `TOKEN_ONLY`, not the full URL.
 - Identity changes require password and token confirmation.
 - Default active access is the lowest-priority assignment.
 - `/access/assignments` lists assignments.

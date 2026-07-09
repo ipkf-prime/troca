@@ -30,21 +30,19 @@ class LoginTokenRepository extends BaseRepository
         return (int) $this->connection()->lastInsertId();
     }
 
-    public function findConsumable(string $tokenHash): ?array
+    public function candidates(): array
     {
         $statement = $this->connection()->prepare("
             SELECT *
             FROM auth_login_tokens
-            WHERE token_hash = ?
-              AND used_at IS NULL
+            WHERE used_at IS NULL
               AND revoked_at IS NULL
-              AND expires_at >= CURRENT_TIMESTAMP
-            LIMIT 1
+            ORDER BY id DESC
+            LIMIT 100
         ");
-        $statement->execute([$tokenHash]);
-        $token = $statement->fetch();
+        $statement->execute();
 
-        return $token ?: null;
+        return $statement->fetchAll();
     }
 
     public function markConsumed(int $id): void

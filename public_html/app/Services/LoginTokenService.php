@@ -23,7 +23,7 @@ class LoginTokenService extends BaseService
 
         $this->tokens->create([
             'user_id' => $userId,
-            'token_hash' => $this->hash($plain),
+            'token_hash' => password_hash($plain, PASSWORD_DEFAULT),
             'purpose' => $purpose,
             'source' => $source,
             'redirect_path' => $redirectPath,
@@ -72,24 +72,42 @@ class LoginTokenService extends BaseService
 
     public function consume(string $plain): ?array
     {
-        $token = $this->tokens->findConsumable($this->hash($plain));
+        $plain = trim($plain);
 
-        if ($token === null) {
+        if ($plain === '') {
             return null;
         }
 
-        $this->tokens->markConsumed((int) $token['id']);
+        foreach ($this->tokens->candidates() as $token) {
+            if ($this->expired((string) $token['expires_at'])) {
+                continue;
+            }
 
-        return $token;
-    }
+            if (!password_verify($plain, (string) $token['token_hash'])) {
+                continue;
+            }
 
-    private function hash(string $token): string
-    {
-        return hash('sha256', $token);
+            $this->tokens->markConsumed((int) $token['id']);
+
+            return $token;
+        }
+
+        return null;
     }
 
     private function isoUtc(DateTimeImmutable $time): string
     {
         return $time->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z');
+    }
+
+    private function expired(string $expiresAt): bool
+    {
+        try {
+            $expires = new DateTimeImmutable($expiresAt, new DateTimeZone('UTC'));
+        } catch (\Throwable) {
+            return true;
+        }
+
+        return $expires < new DateTimeImmutable('now', new DateTimeZone('UTC'));
     }
 }
