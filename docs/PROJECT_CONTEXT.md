@@ -74,7 +74,7 @@ Scope:
 - MFA schema is prepared without verification logic.
 - No login UI, admin panel, admin user, or business modules are added.
 
-## Active Milestone
+## Stable Baseline
 
 IPKF v0.4.1 Auth Session starts the first JSON-first session authentication foundation.
 
@@ -91,9 +91,26 @@ Scope:
 - Auth diagnostics without exposing secrets.
 - No login UI, full MFA, admin panel, or business modules are added.
 
+## Active Milestone
+
+IPKF v0.4.3 Identity Access Tokens extends MFA Foundation with identity verification, one-time login tokens, MFA delivery channel foundations, and active access switching.
+
+Working version: `0.4.3-identity-access-dev`
+
+Deployment branch: `identity-access-tokens-v0.4.3`
+
+Scope:
+
+- MFA delivery channel registry for email, sms, and bot.
+- One-time login token foundation.
+- Identity change request and verification foundation with development-only token exposure, unchanged/duplicate validation, pending duplicate protection, and atomic confirm.
+- Active role/access assignment switching.
+- Default lowest-privilege access selection.
+- No login UI, admin panel UI, Bot, CRM, ERP, Automation, or Marketplace modules are added.
+
 ## Future Milestones
 
-- MFA
+- MFA stabilization
 - Admin Panel Shell
 - Core documentation
 - Auth

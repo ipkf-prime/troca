@@ -1,6 +1,6 @@
 # IPKF Auth Session Foundation
 
-Current version: `0.4.1-auth-session`
+Current version: `0.4.3-identity-access-dev`
 
 ## Purpose
 
@@ -16,13 +16,14 @@ It includes:
 - basic permission checks
 - safe auth diagnostics
 
-It does not include login UI, admin panel UI, MFA verification logic, Bot, CRM, ERP, Automation, or Marketplace modules.
+It does not include login UI, admin panel UI, Bot, CRM, ERP, Automation, or Marketplace modules.
 
 ## Admin Seeding
 
 Admin seed values are read from `.env`:
 
 - `ADMIN_NAME`
+- `ADMIN_USERNAME`
 - `ADMIN_EMAIL`
 - `ADMIN_MOBILE`
 - `ADMIN_PASSWORD`
@@ -55,6 +56,23 @@ Auth routes are JSON-first:
 
 The `login` value may be username, email, or mobile.
 
+Login resolution checks the same public `login` field against:
+
+- `users.email`
+- `users.username`
+- `users.mobile`
+- `persons.email`
+- `persons.mobile`
+
+Mobile login supports common Iranian formats and normalizes them to the canonical `09xxxxxxxxx` form:
+
+- `09123323170`
+- `9123323170`
+- `+989123323170`
+- `989123323170`
+
+Persian and Arabic digits are converted before lookup. Ambiguous matches fail with the same generic invalid credentials response.
+
 API responses never expose `password_hash`, MFA secrets, database secrets, session IDs, or maintenance keys.
 
 ## Postman JSON Test Flow
@@ -70,6 +88,33 @@ API responses never expose `password_hash`, MFA secrets, database secrets, sessi
 }
 ```
 
+Email login example:
+
+```json
+{
+  "login": "admin@troca.ir",
+  "password": "your-real-admin-password"
+}
+```
+
+Mobile login example:
+
+```json
+{
+  "login": "09123323170",
+  "password": "your-real-admin-password"
+}
+```
+
+Username login example:
+
+```json
+{
+  "login": "admin",
+  "password": "your-real-admin-password"
+}
+```
+
 4. Send `GET /me` with the same cookie.
 5. Send `GET /admin-check` with the same cookie.
 6. Send `POST /auth/logout` with header `X-CSRF-TOKEN: <token>` and the same cookie.
@@ -77,13 +122,70 @@ API responses never expose `password_hash`, MFA secrets, database secrets, sessi
 
 POST auth routes keep CSRF enabled. Tokens are accepted from `X-CSRF-TOKEN` or `_token`.
 
+## MFA-Aware Login Flow
+
+MFA runtime starts in `0.4.2-mfa-foundation-dev` and identity/access foundations continue in `0.4.3-identity-access-dev`.
+
+When the user has no enabled MFA method, login behavior is unchanged.
+
+When the user has an enabled MFA method:
+
+- `POST /auth/login` validates the password.
+- The session receives pending MFA keys instead of `auth_user_id`.
+- The response includes `mfa_required=true`.
+- `POST /mfa/challenge/verify` or `POST /mfa/verify` completes the login after a valid MFA code.
+
+Pending MFA session keys:
+
+- `auth_pending_user_id`
+- `auth_pending_at`
+- `auth_pending_methods`
+
+`AUTH_SESSION_NAME` still controls the single shared session cookie. CSRF, pending MFA, and authenticated session state must all use the same cookie. Postman must keep cookies between `/csrf-token`, `/auth/login`, `/mfa/verify`, `/mfa/status`, `/me`, and `/auth/logout`.
+
+## MFA Runtime Routes
+
+- `GET /mfa/status`
+- `POST /mfa/totp/setup`
+- `POST /mfa/totp/confirm`
+- `POST /mfa/challenge/verify`
+- `POST /mfa/verify`
+- `POST /mfa/recovery-codes/regenerate`
+- `POST /mfa/recovery/verify`
+- `GET /mfa/trusted-devices`
+- `POST /mfa/trusted-devices/revoke`
+
+All MFA POST routes require a valid CSRF token.
+
+`GET /mfa/status` returns safe authenticated MFA state after login and after MFA verification. It never exposes TOTP secrets, recovery code values, recovery code hashes, session IDs, CSRF tokens, password hashes, or raw trusted device tokens.
+
+## MFA Postman Flow
+
+1. `GET /csrf-token`
+2. `POST /auth/login` with `X-CSRF-TOKEN`
+3. If the response has `mfa_required=true`, send `POST /mfa/verify` with `X-CSRF-TOKEN` and a valid code.
+4. `GET /mfa/status`
+5. `GET /me`
+6. `POST /auth/logout` with `X-CSRF-TOKEN`
+
+TOTP confirmation may return recovery codes once. Store them safely during testing because IPKF stores only hashed recovery codes.
+
+Recovery code fallback flow:
+
+1. `POST /auth/login` and receive `mfa_required=true`.
+2. `POST /mfa/recovery/verify` with `X-CSRF-TOKEN` and one unused recovery code.
+3. Confirm `authenticated=true`.
+4. Confirm the same recovery code cannot be reused.
+
 ## Session Keys
 
 The auth session uses:
 
 - `auth_user_id`
 - `auth_login_at`
-- `active_role_assignment_id` reserved for later
+- `active_role_assignment_id`
+
+`active_role_assignment_id` stores the current access assignment. Login defaults it to the lowest-priority active assignment, and `/access/switch` can change it.
 
 The session name and lifetime are configurable through:
 
@@ -113,10 +215,10 @@ Parameterized permission middleware is limited by the current router shape, so `
 
 ## Current Limitations
 
-- MFA is not implemented yet.
 - Login UI is not implemented yet.
 - Admin panel UI is not implemented yet.
 - Password reset and invitation flows are not implemented yet.
+- MFA UI and trusted-device login prompts are not implemented yet.
 
 ## UTF-8 Data
 
@@ -134,4 +236,4 @@ The database connection must use `utf8mb4` for Persian RBAC seed data. The auth/
 
 ## Next Phase
 
-The next phase can be MFA verification or Admin Panel Shell, depending on release priority.
+The next phase can stabilize MFA or start Admin Panel Shell, depending on release priority.

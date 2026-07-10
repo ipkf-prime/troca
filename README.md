@@ -6,7 +6,7 @@ business modules.
 
 ## Version
 
-Current version: `0.4.1-auth-session`
+Current version: `0.4.3-identity-access-dev`
 
 ## Requirements
 
@@ -21,6 +21,11 @@ Current version: `0.4.1-auth-session`
 3. Ensure `storage/` is writable by the web server.
 4. Configure the web server document root to the `public/` directory.
 5. Deploy from the active feature branch for development work. The current installer release branch is `installer-v0.3`.
+
+For dev token links, set:
+
+- `APP_URL=https://dev.troca.ir`
+- `APP_TIMEZONE=Asia/Tehran`
 
 On cPanel Git deployment, this repository deploys `public_html/` to the configured application path. The active dev domain uses:
 
@@ -39,6 +44,10 @@ The Foundation baseline has been verified with:
 - `GET /migrate.php?key=DEV_MAINTENANCE_KEY` runs dev migrations when `APP_DEBUG=true`
 - `GET /seed.php?key=DEV_MAINTENANCE_KEY` runs dev seeders when `APP_DEBUG=true`
 - `GET /install.php` returns safe installer JSON when installer access rules allow it
+- `GET /mfa/status` returns MFA status for an authenticated session
+- `POST /mfa/totp/setup` starts TOTP setup for an authenticated session
+- `POST /mfa/totp/confirm` confirms a TOTP method with CSRF protection
+- `POST /mfa/challenge/verify` completes pending MFA login challenges
 
 ## Site Mode
 
@@ -55,3 +64,16 @@ Set `SITE_MODE=app` to keep the framework/app home behavior for future applicati
 - Services contain business logic.
 - Repositories handle data access.
 - Do not add business features unless explicitly requested.
+
+## MFA Foundation
+
+The v0.4.2 development branch adds JSON-first MFA foundation routes without adding UI or business modules.
+
+The v0.4.3 development branch adds identity verification, one-time login tokens, MFA delivery channel foundations, and active access switching without adding UI or business modules.
+
+Set:
+
+- `MFA_ENABLED=true`
+- `MFA_ENFORCEMENT=optional`
+
+MFA shares the same `AUTH_SESSION_NAME` session cookie as CSRF and Auth.

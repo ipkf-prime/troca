@@ -46,6 +46,18 @@ The core seed data creates foundational roles and permissions, then assigns all 
 
 This replaces the legacy access assignment table without copying its denormalized structure.
 
+## Active Access
+
+`v0.4.3-identity-access-dev` adds active role assignment switching.
+
+- Roles have a `priority` value.
+- Lower priority means lower privilege.
+- Login defaults to the lowest active assignment.
+- `active_role_assignment_id` is stored in session.
+- `/access/assignments` lists active assignments.
+- `/access/switch` changes the active assignment.
+- Authorization checks use the active assignment, so `super_admin` permissions apply only after switching to the `super_admin` assignment.
+
 ## Organization Hierarchy
 
 The organizations migration is non-destructive. If `organizations` already exists, it adds missing hierarchy columns and indexes without deleting data or changing existing IDs.
