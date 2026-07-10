@@ -122,28 +122,86 @@ class UserRepository extends BaseRepository
         return $hash === false ? null : (string) $hash;
     }
 
+    public function identityValueForUser(int $userId, string $field): ?string
+    {
+        $column = match ($field) {
+            'username' => 'COALESCE(users.username, users.username_norm)',
+            'email' => 'COALESCE(users.email, persons.email, users.email_norm, persons.email_norm)',
+            'mobile' => 'COALESCE(users.mobile, persons.mobile, users.mobile_norm, persons.mobile_norm)',
+            default => null,
+        };
+
+        if ($column === null) {
+            return null;
+        }
+
+        $statement = $this->connection()->prepare("
+            SELECT {$column} AS value
+            FROM users
+            LEFT JOIN persons ON persons.id = users.person_id
+            WHERE users.id = ?
+            LIMIT 1
+        ");
+        $statement->execute([$userId]);
+        $value = $statement->fetchColumn();
+
+        return $value === false || $value === null ? null : (string) $value;
+    }
+
     public function identityValueExists(string $field, string $normalizedValue, int $exceptUserId): bool
     {
-        $columns = match ($field) {
-            'username' => ['users.username_norm'],
-            'email' => ['users.email_norm', 'persons.email_norm'],
-            'mobile' => ['users.mobile_norm', 'persons.mobile_norm'],
+        $matches = match ($field) {
+            'username' => [
+                'users.username_norm = ?',
+                'LOWER(users.username) = ?',
+            ],
+            'email' => [
+                'users.email_norm = ?',
+                'persons.email_norm = ?',
+                'LOWER(users.email) = ?',
+                'LOWER(persons.email) = ?',
+            ],
+            'mobile' => [
+                'users.mobile_norm = ?',
+                'persons.mobile_norm = ?',
+                'users.mobile IN (?, ?, ?, ?)',
+                'persons.mobile IN (?, ?, ?, ?)',
+            ],
             default => [],
         };
 
-        if ($columns === []) {
+        if ($matches === []) {
             return true;
         }
 
-        $matches = array_map(fn (string $column): string => "{$column} = ?", $columns);
+        $params = [$exceptUserId];
+
+        if ($field === 'mobile') {
+            $variants = [
+                $normalizedValue,
+                substr($normalizedValue, 1),
+                '98' . substr($normalizedValue, 1),
+                '+98' . substr($normalizedValue, 1),
+            ];
+            $params = array_merge(
+                $params,
+                [$normalizedValue, $normalizedValue],
+                $variants,
+                $variants
+            );
+        } else {
+            $params = array_merge($params, array_fill(0, count($matches), $normalizedValue));
+        }
+
         $statement = $this->connection()->prepare("
             SELECT COUNT(DISTINCT users.id)
             FROM users
             LEFT JOIN persons ON persons.id = users.person_id
             WHERE users.id <> ?
+              AND users.status = 'active'
               AND (" . implode(' OR ', $matches) . ")
         ");
-        $statement->execute(array_merge([$exceptUserId], array_fill(0, count($matches), $normalizedValue)));
+        $statement->execute($params);
 
         return (int) $statement->fetchColumn() > 0;
     }

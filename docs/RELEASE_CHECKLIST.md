@@ -70,6 +70,13 @@ Version: `0.2.0-foundation`
 - `GET /auth/token-login?token=TOKEN_ONLY` consumes a valid token once.
 - `POST /auth/token-login` must receive `TOKEN_ONLY`, not the full URL.
 - Identity changes require password and token confirmation.
+- Identity change requests do not apply values before `/identity/change/confirm`.
+- In development only, `IDENTITY_DEV_EXPOSE_TOKEN=true` can expose `dev_token` for Postman testing.
+- If identity delivery providers are disabled, request responses show `delivery_status=not_configured`.
+- Current username, email, or mobile requests return `value_unchanged`.
+- Existing username, email, or mobile requests return `value_not_available`.
+- Repeating the same active pending identity request does not create unlimited rows.
+- Identity confirm re-checks uniqueness, expiry, attempts, and applies the change atomically.
 - Default active access is the lowest-priority assignment.
 - `/access/assignments` lists assignments.
 - `/access/switch` changes active assignment.

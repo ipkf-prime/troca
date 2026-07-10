@@ -187,6 +187,11 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'mfa_routes_available' => true,
         'mfa_delivery_channels_available' => class_exists(\App\Services\MfaDeliveryChannelService::class),
         'identity_normalizer_available' => class_exists(\App\Services\IdentityNormalizer::class),
+        'identity_change_flow_available' => class_exists(\App\Services\IdentityChangeService::class)
+            && \IPKF\Database\Database::tableExists('identity_change_requests'),
+        'identity_dev_expose_token_enabled' => \IPKF\Support\Env::get('APP_ENV', 'production') === 'development'
+            && $debug
+            && filter_var(\IPKF\Support\Env::get('IDENTITY_DEV_EXPOSE_TOKEN', false), FILTER_VALIDATE_BOOLEAN),
         'login_token_system_available' => class_exists(\App\Services\LoginTokenService::class)
             && \IPKF\Database\Database::tableExists('auth_login_tokens'),
         'app_url_configured' => \IPKF\Support\Env::get('APP_URL', '') !== '',

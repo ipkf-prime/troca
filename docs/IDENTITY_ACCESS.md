@@ -96,6 +96,61 @@ The request requires the current password. If the current user has MFA enabled, 
 
 The system stores only token hashes and does not expose verification tokens unless `IDENTITY_DEV_EXPOSE_TOKEN=true` in debug mode.
 
+`POST /identity/change/request` only creates a pending verified-change request. It does not update `/me` and does not change login identifiers until confirmation succeeds.
+
+Development testing can expose the one-time verification token only when all of these are true:
+
+```env
+APP_ENV=development
+APP_DEBUG=true
+IDENTITY_DEV_EXPOSE_TOKEN=true
+```
+
+When enabled, the request response may include:
+
+```json
+{
+  "status": "ok",
+  "request_id": 123,
+  "pending_verification": true,
+  "delivery_status": "dev_token_exposed",
+  "dev_token": "123456",
+  "expires_at_utc": "2026-07-09T10:00:00Z",
+  "expires_at_local": "2026-07-09T13:30:00+03:30"
+}
+```
+
+Production must keep `IDENTITY_DEV_EXPOSE_TOKEN=false`. Plain verification tokens and token hashes must never be exposed outside this development-only flow.
+
+If email, SMS, or bot delivery providers are not configured, IPKF still creates a pending request when validation passes and returns:
+
+```json
+{
+  "delivery_status": "not_configured"
+}
+```
+
+This makes the flow explicit without pretending an external message was sent.
+
+Identity request validation is strict and idempotent:
+
+- Current value requests return `value_unchanged` and do not create a row.
+- Values already owned by another active user/person return `value_not_available` and do not reveal the owner.
+- Repeating the same active pending request returns `change_request_already_pending` instead of creating unlimited rows.
+
+`POST /identity/change/confirm` verifies the token hash, checks expiry and attempts, re-checks uniqueness, applies the change atomically, and marks the request verified/applied.
+
+Confirm body:
+
+```json
+{
+  "request_id": 123,
+  "token": "123456"
+}
+```
+
+After confirm, `/me` reflects the updated username, email, or mobile where applicable, and login uses the new normalized identity value.
+
 ## Active Access
 
 Users can have multiple active role assignments.
@@ -133,4 +188,6 @@ Do not expose:
 5. Confirm `/access/assignments` defaults to the lowest role.
 6. Switch to `super_admin` before calling `/admin-check`.
 7. Issue and consume a login token.
-8. Request and confirm an identity change using a verification token.
+8. Request an identity change. In development, enable `IDENTITY_DEV_EXPOSE_TOKEN=true` to receive `dev_token`.
+9. Confirm the identity change with `/identity/change/confirm`.
+10. Verify `/me` and login by the changed username, email, or mobile.

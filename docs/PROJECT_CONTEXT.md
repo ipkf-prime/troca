@@ -103,7 +103,7 @@ Scope:
 
 - MFA delivery channel registry for email, sms, and bot.
 - One-time login token foundation.
-- Identity change request and verification foundation.
+- Identity change request and verification foundation with development-only token exposure, unchanged/duplicate validation, pending duplicate protection, and atomic confirm.
 - Active role/access assignment switching.
 - Default lowest-privilege access selection.
 - No login UI, admin panel UI, Bot, CRM, ERP, Automation, or Marketplace modules are added.
