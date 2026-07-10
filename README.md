@@ -6,7 +6,7 @@ business modules.
 
 ## Version
 
-Current version: `0.4.3-identity-access`
+Current version: `0.4.4-admin-panel-shell-dev`
 
 ## Requirements
 
@@ -56,6 +56,8 @@ The Foundation baseline has been verified with:
 - `POST /mfa/totp/setup` starts TOTP setup for an authenticated session
 - `POST /mfa/totp/confirm` confirms a TOTP method with CSRF protection
 - `POST /mfa/challenge/verify` completes pending MFA login challenges
+- `GET /admin/login` loads the RTL Persian admin login page
+- `GET /admin/dashboard` loads the authenticated admin dashboard shell
 
 ## Site Mode
 
@@ -78,6 +80,8 @@ Set `SITE_MODE=app` to keep the framework/app home behavior for future applicati
 The v0.4.2 development branch adds JSON-first MFA foundation routes without adding UI or business modules.
 
 The v0.4.3 stable baseline adds identity verification, one-time login tokens, MFA delivery channel foundations, and active access switching without adding UI or business modules.
+
+The v0.4.4 development branch adds the first admin panel shell without adding CRM, Bot, ERP, Automation, Marketplace, admin CRUD, or business workflows.
 
 Set:
 

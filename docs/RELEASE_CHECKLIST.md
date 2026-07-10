@@ -102,3 +102,22 @@ Version: `0.2.0-foundation`
 - Development branches use version-prefixed `-dev` names such as `v0.4.3-identity-access-dev`; release tags omit `-dev`.
 - Diagnostics expose only safe booleans.
 - Diagnostics do not expose tokens, token hashes, OTPs, recovery codes, TOTP secrets, session IDs, CSRF tokens, passwords, or provider secrets.
+
+## v0.4.4 Admin Panel Shell Checks
+
+- `/health` returns version `0.4.4-admin-panel-shell-dev`.
+- `GET /admin/login` loads a RTL Persian login page.
+- Admin login works with username, email, and mobile.
+- Admin login keeps CSRF protection enabled.
+- MFA-required login redirects to `/admin/mfa`.
+- Valid TOTP completes admin login.
+- Recovery code fallback is available through `/admin/mfa`.
+- `/admin/dashboard` requires authentication.
+- `/admin/dashboard` shows auth status, active role, MFA status, and version.
+- `/admin/access` lists role assignments.
+- `/admin/access` can switch active role with CSRF protection.
+- `/admin/profile` displays safe user profile fields.
+- `/admin/logout` logs the user out.
+- Existing JSON endpoints continue to work.
+- No password hash, session ID, MFA secret, recovery code, provider secret, or business data is exposed.
+- `/_diagnostics` may report `admin_panel_shell_available=true` in debug mode.

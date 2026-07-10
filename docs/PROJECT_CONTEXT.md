@@ -122,10 +122,27 @@ Branch naming convention:
 - Development branches start with the version and end with `-dev`, such as `v0.4.3-identity-access-dev`.
 - Release tags use the stable version name without `-dev`, such as `v0.4.3-identity-access`.
 
+## Active Milestone
+
+IPKF v0.4.4 Admin Panel Shell starts the first server-rendered RTL Persian admin UI on top of the existing Auth, MFA, RBAC, and active access foundations.
+
+Working version: `0.4.4-admin-panel-shell-dev`
+
+Development branch: `v0.4.4-admin-panel-shell-dev`
+
+Scope:
+
+- Admin login page using the existing AuthService login resolution for email, mobile, and username.
+- MFA verification page using the existing MfaService pending challenge flow.
+- Dashboard shell with auth status, active role, MFA status, version, and assignment summary.
+- Access switch UI using the existing AccessService.
+- Profile display shell with safe user identity fields.
+- Reusable RTL admin layout and local CSS.
+- No CRM, Bot, ERP, Automation, Marketplace, admin CRUD, or business modules are added.
+
 ## Future Milestones
 
 - MFA stabilization
-- Admin Panel Shell
 - Core documentation
 - Auth
 - RBAC

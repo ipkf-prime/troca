@@ -111,6 +111,7 @@ class AuthService extends BaseService
         return [
             'id' => (int) $user['id'],
             'name' => $user['full_name'] ?? $user['username'] ?? $user['email'] ?? '',
+            'username' => $user['username'] ?? null,
             'email' => $user['email'] ?? null,
             'mobile' => $user['mobile'] ?? null,
             'status' => $user['status'] ?? null,

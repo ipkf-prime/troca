@@ -210,6 +210,7 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'super_admin_role_exists' => $superAdminRoleExists,
         'super_admin_assignment_exists' => $superAdminAssignmentExists,
         'auth_routes_available' => true,
+        'admin_panel_shell_available' => class_exists(\App\Services\AdminPanelService::class),
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),
@@ -227,6 +228,159 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
 
 $router->get('/test', function ($req, $res) {
     return $res->send("Test Route OK");
+});
+
+$adminRender = function ($response, string $view, array $data = [], int $status = 200) {
+    $path = BASE_PATH . '/resources/views/admin/' . $view . '.php';
+
+    if (!is_readable($path)) {
+        return $response->status(500)->send('Admin view not found.');
+    }
+
+    extract($data, EXTR_SKIP);
+    ob_start();
+    require $path;
+    $content = ob_get_clean() ?: '';
+
+    return $response
+        ->status($status)
+        ->header('Content-Type', 'text/html; charset=UTF-8')
+        ->send($content);
+};
+
+$adminContext = fn (): ?array => (new \App\Services\AdminPanelService())->context();
+
+$router->get('/admin', function ($request, $response) {
+    return $response->redirect((new \App\Services\AuthService())->authenticated()
+        ? '/admin/dashboard'
+        : '/admin/login');
+});
+
+$router->get('/admin/login', function ($request, $response) use ($adminRender) {
+    if ((new \App\Services\AuthService())->authenticated()) {
+        return $response->redirect('/admin/dashboard');
+    }
+
+    return $adminRender($response, 'login', [
+        'title' => 'ورود به پنل مدیریت',
+        'error' => null,
+        'login' => '',
+    ]);
+});
+
+$router->post('/admin/login', function ($request, $response) use ($adminRender) {
+    $login = trim((string) $request->input('login', ''));
+    $password = (string) $request->input('password', '');
+    $auth = new \App\Services\AuthService();
+    $user = $auth->attempt($login, $password);
+
+    if ($user === null) {
+        return $adminRender($response, 'login', [
+            'title' => 'ورود به پنل مدیریت',
+            'error' => 'اطلاعات ورود معتبر نیست.',
+            'login' => $login,
+        ], 422);
+    }
+
+    if (($user['mfa_required'] ?? false) === true) {
+        return $response->redirect('/admin/mfa');
+    }
+
+    return $response->redirect('/admin/dashboard');
+});
+
+$router->get('/admin/mfa', function ($request, $response) use ($adminRender) {
+    if ((new \App\Services\AuthService())->authenticated()) {
+        return $response->redirect('/admin/dashboard');
+    }
+
+    if ((new \App\Services\MfaService())->pendingUserId() === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    return $adminRender($response, 'mfa', [
+        'title' => 'تایید دومرحله ای',
+        'error' => null,
+    ]);
+});
+
+$router->post('/admin/mfa', function ($request, $response) use ($adminRender) {
+    $totpCode = trim((string) $request->input('code', ''));
+    $recoveryCode = trim((string) $request->input('recovery_code', ''));
+    $method = $recoveryCode !== '' ? 'recovery_code' : 'totp';
+    $code = $recoveryCode !== '' ? $recoveryCode : $totpCode;
+    $mfa = new \App\Services\MfaService();
+    $userId = $mfa->verifyPendingChallenge($method, $code);
+
+    if ($userId === null) {
+        return $adminRender($response, 'mfa', [
+            'title' => 'تایید دومرحله ای',
+            'error' => 'کد تایید معتبر نیست.',
+        ], 422);
+    }
+
+    (new \App\Services\AuthService())->completeMfaLogin($userId);
+
+    return $response->redirect('/admin/dashboard');
+});
+
+$router->get('/admin/dashboard', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    return $adminRender($response, 'dashboard', [
+        'title' => 'داشبورد مدیریت',
+        'context' => $context,
+    ]);
+});
+
+$router->get('/admin/profile', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    return $adminRender($response, 'profile', [
+        'title' => 'پروفایل کاربر',
+        'context' => $context,
+    ]);
+});
+
+$router->get('/admin/access', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    return $adminRender($response, 'access', [
+        'title' => 'سطح دسترسی فعال',
+        'context' => $context,
+        'status' => trim((string) $request->input('status', '')),
+    ]);
+});
+
+$router->post('/admin/access', function ($request, $response) {
+    $auth = new \App\Services\AuthService();
+    $userId = $auth->currentUserId();
+
+    if ($userId === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    $assignment = (new \App\Services\AccessService())->switchTo($userId, (int) $request->input('role_assignment_id', 0));
+
+    return $response->redirect('/admin/access?status=' . ($assignment === null ? 'forbidden' : 'switched'));
+});
+
+$router->get('/admin/logout', function ($request, $response) {
+    (new \App\Services\AuthService())->logout();
+
+    return $response->redirect('/admin/login');
 });
 
 $router->post('/auth/login', function ($request, $response) {
