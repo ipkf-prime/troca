@@ -35,7 +35,7 @@ class IdentityChangeService extends BaseService
         $field = strtolower(trim($field));
         $normalized = $this->normalize($field, $value);
 
-        if ($normalized === null) {
+        if (!$this->validNormalizedValue($field, $value, $normalized)) {
             return $this->error('invalid_identity_value');
         }
 
@@ -103,7 +103,17 @@ class IdentityChangeService extends BaseService
             return $this->error('invalid_or_expired_token');
         }
 
-        if ($this->users->identityValueExists((string) $request['field_name'], (string) $request['normalized_new_value'], $userId)) {
+        $field = (string) $request['field_name'];
+        $newValue = (string) $request['new_value'];
+        $normalized = $this->normalize($field, $newValue);
+
+        if (!$this->validNormalizedValue($field, $newValue, $normalized)
+            || !hash_equals($normalized, (string) $request['normalized_new_value'])) {
+            $this->changes->markCancelled($requestId);
+            return $this->error('invalid_identity_value');
+        }
+
+        if ($this->users->identityValueExists($field, $normalized, $userId)) {
             return $this->error('value_not_available');
         }
 
@@ -113,9 +123,9 @@ class IdentityChangeService extends BaseService
         try {
             $this->users->applyIdentityChange(
                 $userId,
-                (string) $request['field_name'],
-                (string) $request['new_value'],
-                (string) $request['normalized_new_value']
+                $field,
+                $normalized,
+                $normalized
             );
             $this->changes->markApplied($requestId);
             $db->commit();
@@ -135,6 +145,19 @@ class IdentityChangeService extends BaseService
             'mobile' => $this->normalizer->mobile($value),
             default => null,
         };
+    }
+
+    private function validNormalizedValue(string $field, string $value, ?string $normalized): bool
+    {
+        if ($normalized === null) {
+            return false;
+        }
+
+        if ($field === 'username') {
+            return $this->normalizer->username($value) === $normalized;
+        }
+
+        return in_array($field, ['email', 'mobile'], true);
     }
 
     private function devExposeToken(): bool

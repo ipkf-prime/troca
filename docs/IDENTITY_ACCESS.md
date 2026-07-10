@@ -202,6 +202,8 @@ Identity request validation is strict and idempotent:
 
 `POST /identity/change/confirm` verifies the token hash, checks expiry and attempts, re-checks uniqueness, applies the change atomically, and marks the request verified/applied.
 
+For username changes, confirm also re-validates the pending value with the canonical username policy. Invalid pending username requests from older builds are cancelled and are not applied.
+
 Confirm body:
 
 ```json

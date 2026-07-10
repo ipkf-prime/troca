@@ -90,4 +90,17 @@ class IdentityChangeRepository extends BaseRepository
             $id,
         ]);
     }
+
+    public function markCancelled(int $id): void
+    {
+        $statement = $this->connection()->prepare("
+            UPDATE identity_change_requests
+            SET cancelled_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+              AND applied_at IS NULL
+              AND cancelled_at IS NULL
+        ");
+        $statement->execute([$id]);
+    }
 }
