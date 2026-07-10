@@ -35,7 +35,11 @@ class IdentityNormalizer extends BaseService
     {
         $value = strtolower(trim($this->englishDigits($value)));
 
-        return preg_match('/^[a-z0-9_\.]{3,100}$/', $value) === 1 ? $value : null;
+        if (preg_match('/^[a-z][a-z0-9_]{1,30}[a-z0-9]$/', $value) !== 1) {
+            return null;
+        }
+
+        return str_contains($value, '__') ? null : $value;
     }
 
     public function englishDigits(string $value): string

@@ -92,6 +92,68 @@ Supported fields:
 - `email`
 - `mobile`
 
+### Username Policy
+
+IPKF usernames have one canonical policy for login, identity change requests, and admin seeding.
+
+Allowed:
+
+- English letters `a-z` and `A-Z`
+- Digits `0-9`
+- Underscore `_`
+
+Disallowed:
+
+- Hyphen `-`
+- Dot `.`
+- Space
+- `@`
+- Persian/Arabic letters
+- Any other special character
+
+Format:
+
+- Minimum length: 3 characters
+- Maximum length: 32 characters
+- Must start with an English letter
+- Must end with an English letter or digit
+- Must not contain consecutive underscores `__`
+
+Normalization:
+
+- Trim whitespace
+- Convert to lowercase canonical username
+- Store `username_norm` as the lowercase canonical username
+
+Valid examples:
+
+- `admin`
+- `admin_test`
+- `admin123`
+- `hamzeh_alaei`
+
+Invalid examples:
+
+- `admin-test`
+- `admin.test`
+- `admin test`
+- `admin@`
+- `ادمین`
+- `_admin`
+- `admin_`
+- `ad`
+- `admin__test`
+
+Invalid username format returns a safe `422` JSON response:
+
+```json
+{
+  "status": "error",
+  "error": "invalid_identity_value",
+  "message": "invalid_identity_value"
+}
+```
+
 The request requires the current password. If the current user has MFA enabled, the session must already have recent MFA verification.
 
 The system stores only token hashes and does not expose verification tokens unless `IDENTITY_DEV_EXPOSE_TOKEN=true` in debug mode.

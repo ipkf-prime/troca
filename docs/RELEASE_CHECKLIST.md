@@ -77,6 +77,10 @@ Version: `0.2.0-foundation`
 - Existing username, email, or mobile requests return `value_not_available`.
 - Repeating the same active pending identity request does not create unlimited rows.
 - Identity confirm re-checks uniqueness, expiry, attempts, and applies the change atomically.
+- Username policy allows lowercase canonical `admin`, `admin_test`, `admin123`, and `hamzeh_alaei`.
+- Username policy rejects `admin-test`, `admin.test`, `admin test`, `admin@`, Persian/Arabic letters, `_admin`, `admin_`, `ad`, and `admin__test`.
+- Invalid username format returns `invalid_identity_value`.
+- `username_norm` is lowercase and duplicate username checks use `username_norm`.
 - Default active access is the lowest-priority assignment.
 - `/access/assignments` lists assignments.
 - `/access/switch` changes active assignment.

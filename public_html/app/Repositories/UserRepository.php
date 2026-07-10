@@ -256,9 +256,11 @@ class UserRepository extends BaseRepository
         }
 
         $name = trim((string) ($data['name'] ?? 'Super Admin')) ?: 'Super Admin';
-        $username = trim((string) ($data['username'] ?? ''));
-        $username = $username !== '' ? $username : strtok($email, '@');
-        $mobile = (new IdentityNormalizer())->mobile((string) ($data['mobile'] ?? ''));
+        $normalizer = new IdentityNormalizer();
+        $username = $normalizer->username((string) ($data['username'] ?? ''))
+            ?? $normalizer->username((string) strtok($email, '@'))
+            ?? 'admin';
+        $mobile = $normalizer->mobile((string) ($data['mobile'] ?? ''));
 
         $personId = $this->findPersonIdByEmailOrMobile($email, $mobile);
 
@@ -290,7 +292,7 @@ class UserRepository extends BaseRepository
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             ");
-            $statement->execute([$personId, $username, strtolower($username), $email, $email, $mobile ?: null, $mobile, $passwordHash]);
+            $statement->execute([$personId, $username, $username, $email, $email, $mobile ?: null, $mobile, $passwordHash]);
             $userId = (int) $this->connection()->lastInsertId();
         } else {
             $userId = (int) $user['id'];
@@ -300,7 +302,7 @@ class UserRepository extends BaseRepository
                     mobile = ?, mobile_norm = ?, password_hash = ?, status = 'active', updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             ");
-            $statement->execute([$personId, $username, strtolower($username), $email, $email, $mobile ?: null, $mobile, $passwordHash, $userId]);
+            $statement->execute([$personId, $username, $username, $email, $email, $mobile ?: null, $mobile, $passwordHash, $userId]);
         }
 
         return $this->findById($userId);
