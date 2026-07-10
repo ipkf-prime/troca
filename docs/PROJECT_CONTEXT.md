@@ -91,22 +91,36 @@ Scope:
 - Auth diagnostics without exposing secrets.
 - No login UI, full MFA, admin panel, or business modules are added.
 
-## Active Milestone
+## Stable Baseline
 
 IPKF v0.4.3 Identity Access Tokens extends MFA Foundation with identity verification, one-time login tokens, MFA delivery channel foundations, and active access switching.
 
-Working version: `0.4.3-identity-access-dev`
+Stable version: `0.4.3-identity-access`
 
-Deployment branch: `identity-access-tokens-v0.4.3`
+Development branch: `v0.4.3-identity-access-dev`
+
+Legacy branch retained during cPanel transition: `identity-access-tokens-v0.4.3`
 
 Scope:
 
+- Login works with email, mobile, and username.
+- CSRF and unified `AUTH_SESSION_NAME` session handling are verified.
+- TOTP MFA, recovery codes, and MFA status are verified.
 - MFA delivery channel registry for email, sms, and bot.
+- Unconfigured email, sms, and bot providers return `channel_not_configured` without fake success.
 - One-time login token foundation.
+- Login token URLs use `APP_URL`, display time uses `APP_TIMEZONE`, tokens are single-use, and token login respects MFA.
 - Identity change request and verification foundation with development-only token exposure, unchanged/duplicate validation, pending duplicate protection, and atomic confirm.
+- Username policy is enforced for identity changes and canonical username normalization.
 - Active role/access assignment switching.
 - Default lowest-privilege access selection.
+- `/admin-check` fails with the base user role and passes after switching to `super_admin`.
 - No login UI, admin panel UI, Bot, CRM, ERP, Automation, or Marketplace modules are added.
+
+Branch naming convention:
+
+- Development branches start with the version and end with `-dev`, such as `v0.4.3-identity-access-dev`.
+- Release tags use the stable version name without `-dev`, such as `v0.4.3-identity-access`.
 
 ## Future Milestones
 

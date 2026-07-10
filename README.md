@@ -6,7 +6,7 @@ business modules.
 
 ## Version
 
-Current version: `0.4.3-identity-access-dev`
+Current version: `0.4.3-identity-access`
 
 ## Requirements
 
@@ -22,10 +22,18 @@ Current version: `0.4.3-identity-access-dev`
 4. Configure the web server document root to the `public/` directory.
 5. Deploy from the active feature branch for development work. The current installer release branch is `installer-v0.3`.
 
-For dev token links, set:
+For login token links and local time display, set:
 
 - `APP_URL=https://dev.troca.ir`
 - `APP_TIMEZONE=Asia/Tehran`
+
+Auth, MFA, identity, and provider foundation environment notes:
+
+- `AUTH_SESSION_NAME=ipkf_session` keeps CSRF, Auth, MFA, and access switching on one session cookie.
+- `IDENTITY_DEV_EXPOSE_TOKEN=false` must be used in production. Set it to `true` only with `APP_ENV=development` and `APP_DEBUG=true` for development identity-change testing.
+- `MFA_DEV_EXPOSE_OTP=false` must remain the default.
+- `MFA_EMAIL_ENABLED`, `MFA_SMS_ENABLED`, and `MFA_BOT_ENABLED` enable delivery-channel foundations only when matching provider settings are configured.
+- `MAIL_*`, `SMS_*`, `KAVENEGAR_*`, and `BALE_*` values must be stored in `.env` and never committed.
 
 On cPanel Git deployment, this repository deploys `public_html/` to the configured application path. The active dev domain uses:
 
@@ -69,7 +77,7 @@ Set `SITE_MODE=app` to keep the framework/app home behavior for future applicati
 
 The v0.4.2 development branch adds JSON-first MFA foundation routes without adding UI or business modules.
 
-The v0.4.3 development branch adds identity verification, one-time login tokens, MFA delivery channel foundations, and active access switching without adding UI or business modules.
+The v0.4.3 stable baseline adds identity verification, one-time login tokens, MFA delivery channel foundations, and active access switching without adding UI or business modules.
 
 Set:
 
@@ -77,3 +85,17 @@ Set:
 - `MFA_ENFORCEMENT=optional`
 
 MFA shares the same `AUTH_SESSION_NAME` session cookie as CSRF and Auth.
+
+## Branch Naming
+
+Active development branches should start with the version and end with `-dev`, for example:
+
+- `v0.4.3-identity-access-dev`
+- `v0.4.4-admin-panel-shell-dev`
+- `v0.4.5-admin-users-dev`
+
+Release tags should omit the `-dev` suffix, for example:
+
+- `v0.4.3-identity-access`
+- `v0.4.4-admin-panel-shell`
+- `v0.4.5-admin-users`
