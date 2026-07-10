@@ -48,7 +48,7 @@ This replaces the legacy access assignment table without copying its denormalize
 
 ## Active Access
 
-`v0.4.3-identity-access-dev` adds active role assignment switching.
+`v0.4.3-identity-access` adds active role assignment switching.
 
 - Roles have a `priority` value.
 - Lower priority means lower privilege.

@@ -1,6 +1,6 @@
 # IPKF MFA Foundation
 
-Current version: `0.4.3-identity-access-dev`
+Current version: `0.4.3-identity-access`
 
 ## Purpose
 

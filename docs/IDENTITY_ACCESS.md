@@ -1,12 +1,43 @@
 # IPKF Identity Access Tokens Foundation
 
-Current version: `0.4.3-identity-access-dev`
+Current version: `0.4.3-identity-access`
 
 ## Scope
 
 This milestone adds JSON-first foundations for identity verification, one-time login tokens, MFA delivery channels, and active access switching.
 
 It does not add UI, Bot module logic, CRM, ERP, Automation, Marketplace, or admin panel pages.
+
+## Runtime Verification
+
+The v0.4.3 stable baseline has been verified on the development host:
+
+- Login works with email, mobile, and username.
+- Wrong or unknown credentials fail safely.
+- CSRF and unified session handling work through `AUTH_SESSION_NAME`.
+- TOTP MFA works.
+- Recovery codes are generated, consumed, and cannot be reused.
+- `/mfa/status` works.
+- Email, sms, and bot MFA delivery foundations return `channel_not_configured` when providers are not configured.
+- Login token issue, consume, single-use failure, timezone display, and MFA-respecting token login work.
+- Identity change request and confirm work for username, email, and mobile.
+- Duplicate and unchanged identity values are rejected.
+- Username policy is enforced.
+- Default active role is the lowest role.
+- `/access/assignments` and `/access/switch` work.
+- `/admin-check` fails with the base role and passes after switching to `super_admin`.
+
+## Environment Notes
+
+Use `.env` for real values. Do not commit secrets.
+
+- `APP_URL` controls generated login-token URLs.
+- `APP_TIMEZONE` controls local display timestamps; UTC remains canonical.
+- `AUTH_SESSION_NAME` controls the shared CSRF/Auth/MFA session cookie.
+- `IDENTITY_DEV_EXPOSE_TOKEN` must be `false` in production. It only exposes identity-change `dev_token` when `APP_ENV=development` and `APP_DEBUG=true`.
+- `MFA_DEV_EXPOSE_OTP` must remain `false` by default.
+- `MFA_EMAIL_ENABLED`, `MFA_SMS_ENABLED`, and `MFA_BOT_ENABLED` enable delivery-channel foundations only when provider configuration is present.
+- `MAIL_*`, `SMS_*`, `KAVENEGAR_*`, and `BALE_*` values are provider configuration placeholders and must not contain committed secrets.
 
 ## MFA Delivery Channels
 
@@ -138,7 +169,7 @@ Invalid examples:
 - `admin.test`
 - `admin test`
 - `admin@`
-- `ادمین`
+- Persian or Arabic letters
 - `_admin`
 - `admin_`
 - `ad`
@@ -238,6 +269,8 @@ Do not expose:
 - OTP values
 - OTP hashes
 - identity token hashes
+- recovery code values or hashes
+- TOTP secrets
 - provider secrets
 - session IDs
 - CSRF tokens
