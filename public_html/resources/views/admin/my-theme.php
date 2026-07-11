@@ -23,7 +23,7 @@ ob_start();
 <?php require __DIR__ . '/partials/account-nav.php'; ?>
 
 <?php if ($status === 'saved'): ?>
-    <div class="admin-notice">پوسته نمایشی شما ذخیره شد.</div>
+    <div class="admin-notice">تنظیمات نمایشی شما ذخیره شد.</div>
 <?php elseif ($status === 'reset'): ?>
     <div class="admin-notice">تنظیمات نمایشی شما بازنشانی شد و از پوسته سامانه استفاده می‌شود.</div>
 <?php endif; ?>
@@ -35,18 +35,13 @@ ob_start();
 <form method="post" action="/admin/my-theme" class="admin-theme-form">
     <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
 
-    <nav class="admin-tabs" data-admin-tabs role="tablist" aria-label="بخش‌های پوسته شخصی">
-        <button class="admin-tab is-active" type="button" data-admin-tab="my-presets" role="tab">پوسته‌ها</button>
-        <button class="admin-tab" type="button" data-admin-tab="my-font" role="tab">فونت و خوانایی</button>
-        <button class="admin-tab" type="button" data-admin-tab="my-settings" role="tab">تنظیمات من</button>
-    </nav>
-
-    <section class="admin-section admin-tab-panel is-active" data-admin-tab-panel="my-presets">
+    <section class="admin-section">
         <div class="admin-section__header">
             <div>
-                <h2>پوسته نمایشی من</h2>
-                <p class="admin-muted">این تنظیمات فقط برای حساب شما اعمال می‌شود و پوسته سامانه یا کاربران دیگر را تغییر نمی‌دهد.</p>
+                <h2>پوسته‌های اصلی</h2>
+                <p class="admin-muted">یکی از پوسته‌های اصلی سامانه را برای نمایش حساب خود انتخاب کنید. این انتخاب فقط برای شما ذخیره می‌شود.</p>
             </div>
+            <span class="admin-pill">پوسته فعال من: <?= admin_h($theme['preset_title'] ?? '-') ?></span>
         </div>
         <div class="admin-theme-presets">
             <?php foreach ($presets as $key => $preset): ?>
@@ -66,8 +61,13 @@ ob_start();
         </div>
     </section>
 
-    <section class="admin-section admin-tab-panel" data-admin-tab-panel="my-font" hidden>
-        <h2>فونت و خوانایی</h2>
+    <section class="admin-section">
+        <div class="admin-section__header">
+            <div>
+                <h2>تنظیمات خوانایی من</h2>
+                <p class="admin-muted">این گزینه‌ها فقط ظاهر حساب شما را تغییر می‌دهند و نام برند، لوگو، آواتار پیش‌فرض یا فوتر سامانه را تغییر نمی‌دهند.</p>
+            </div>
+        </div>
         <div class="admin-form-grid">
             <label>
                 <span>فونت پنل</span>
@@ -104,14 +104,15 @@ ob_start();
         </div>
     </section>
 
-    <section class="admin-section admin-tab-panel" data-admin-tab-panel="my-settings" hidden>
-        <h2>تنظیمات من</h2>
-        <p class="admin-muted">اگر تنظیمات شخصی را بازنشانی کنید، ظاهر پنل شما دوباره از پوسته سراسری سامانه پیروی می‌کند.</p>
-        <div class="admin-empty-state"><?= $theme['has_personal_override'] ? 'شما تنظیمات شخصی فعال دارید.' : 'فعلا تنظیمات شخصی ذخیره نشده است.' ?></div>
+    <section class="admin-section">
+        <h2>پوسته فعال من</h2>
+        <div class="admin-empty-state">
+            <?= $theme['has_personal_override'] ? 'شما تنظیمات نمایشی شخصی فعال دارید.' : 'فعلا تنظیمات شخصی ذخیره نشده است و پوسته سامانه برای شما استفاده می‌شود.' ?>
+        </div>
     </section>
 
     <div class="admin-form-actions">
-        <button type="submit">ذخیره پوسته من</button>
+        <button type="submit">ذخیره تنظیمات من</button>
     </div>
 </form>
 

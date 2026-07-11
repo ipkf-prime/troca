@@ -142,6 +142,19 @@ Theme resolution priority:
 
 Personal theme settings can override display-focused values such as preset, font family, base font size, line height, and radius. System theme settings control global branding, logo, default avatar, footer, and global visual defaults.
 
+For v0.4.4, each user has one active personal display theme. The current storage uses `app_settings` with scoped `user_id` values; `user_id=0` is the system scope and a positive `user_id` is a personal scope. This keeps the architecture ready for a future `user_theme_profiles` table with saved named profiles, but that full profile library is intentionally not implemented yet.
+
+Future-ready profile shape:
+
+- `id`
+- `user_id`
+- `title`
+- `preset_base`
+- `settings_json`
+- `is_active`
+- `created_at`
+- `updated_at`
+
 Reset actions:
 
 - `POST /admin/theme/reset` with `scope=user` clears only the current user's personal theme.

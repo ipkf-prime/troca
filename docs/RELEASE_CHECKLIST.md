@@ -19,6 +19,9 @@
 - `/admin/theme` is tabbed and remains CSRF protected.
 - `/admin/theme` saves system theme settings only for users with `admin.theme.manage`.
 - `/admin/my-theme` saves personal display theme settings for the current user only.
+- `/admin/my-theme` shows built-in system presets, the current active personal theme, save, and reset actions.
+- Personal theme controls do not change global brand name, logo, default avatar, or footer text.
+- One active personal theme per user is supported in v0.4.4; multi-profile theme libraries are reserved for a future phase.
 - Theme preset cards are clickable, keyboard-safe radio controls and persist after save.
 - System branding changes update header, sidebar, and login.
 - Invalid logo/avatar paths are rejected.
