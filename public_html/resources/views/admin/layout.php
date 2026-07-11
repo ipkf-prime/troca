@@ -4,6 +4,8 @@ $context = $context ?? null;
 $title = $title ?? 'پنل مدیریت';
 $user = $context['user'] ?? null;
 $active = $context['active_assignment'] ?? null;
+$themeService = new \App\Services\AdminThemeService();
+$theme = $themeService->theme();
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 
 if (!function_exists('admin_h')) {
@@ -16,6 +18,7 @@ if (!function_exists('admin_h')) {
 $nav = [
     '/admin/dashboard' => 'داشبورد',
     '/admin/access' => 'دسترسی',
+    '/admin/theme' => 'پوسته',
     '/admin/profile' => 'پروفایل',
 ];
 ?>
@@ -26,14 +29,19 @@ $nav = [
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= admin_h($title) ?> | IPKF</title>
     <link rel="stylesheet" href="/assets/css/admin.css">
+    <style><?= "\n" . admin_h($themeService->cssVariables()) . "\n" ?></style>
 </head>
 <body>
     <div class="admin-shell">
         <aside class="admin-sidebar">
             <a class="admin-brand" href="/admin/dashboard">
-                <span class="admin-brand__mark">IPKF</span>
+                <?php if (($theme['logo_url'] ?? '') !== ''): ?>
+                    <img class="admin-brand__logo" src="<?= admin_h($theme['logo_url']) ?>" alt="">
+                <?php else: ?>
+                    <span class="admin-brand__mark">IPKF</span>
+                <?php endif; ?>
                 <span>
-                    <strong>پنل مدیریت تروکا</strong>
+                    <strong><?= admin_h($theme['brand_name'] ?? 'پنل مدیریت تروکا') ?></strong>
                     <small>زیرساخت مدیریت دسترسی</small>
                 </span>
             </a>

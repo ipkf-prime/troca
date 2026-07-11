@@ -117,7 +117,12 @@ Version: `0.2.0-foundation`
 - `/admin/access` lists role assignments.
 - `/admin/access` can switch active role with CSRF protection.
 - `/admin/profile` displays safe user profile fields.
+- `/admin/theme` loads the dynamic admin theme page.
+- Base user active role cannot update the admin theme.
+- `super_admin` active role can update the admin theme with `admin.theme.manage`.
+- Invalid color, radius, logo, and unsafe CSS-like values are rejected.
+- Changing presets updates the admin UI.
 - `/admin/logout` logs the user out.
 - Existing JSON endpoints continue to work.
 - No password hash, session ID, MFA secret, recovery code, provider secret, or business data is exposed.
-- `/_diagnostics` may report `admin_panel_shell_available=true` in debug mode.
+- `/_diagnostics` may report `admin_panel_shell_available=true`, `admin_theme_available=true`, and `admin_theme_active_preset`.

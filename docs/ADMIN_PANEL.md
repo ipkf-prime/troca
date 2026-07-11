@@ -19,6 +19,8 @@ It does not add CRM, Bot, ERP, Automation, Marketplace, business workflows, admi
 - `GET /admin/profile`
 - `GET /admin/access`
 - `POST /admin/access`
+- `GET /admin/theme`
+- `POST /admin/theme`
 - `GET /admin/logout`
 
 ## Auth Flow
@@ -86,16 +88,68 @@ The admin shell uses a reusable RTL Persian layout with:
 
 CSS is local at `public/assets/css/admin.css`; no external CDN is required.
 
+## Dynamic Theme System
+
+`/admin/theme` provides the first dynamic admin theme management surface.
+
+Available presets:
+
+- `cooperative_light` is the default lighter cooperative theme.
+- `cooperative_classic` keeps a stronger green cooperative look.
+- `neutral_light` provides a restrained neutral light option.
+
+The admin CSS is driven by safe design tokens:
+
+- `--admin-primary`
+- `--admin-primary-hover`
+- `--admin-primary-soft`
+- `--admin-accent`
+- `--admin-bg`
+- `--admin-bg-gradient-start`
+- `--admin-bg-gradient-end`
+- `--admin-surface`
+- `--admin-surface-muted`
+- `--admin-text`
+- `--admin-text-muted`
+- `--admin-border`
+- `--admin-danger`
+- `--admin-warning`
+- `--admin-success`
+- `--admin-radius`
+- `--admin-shadow`
+- `--admin-sidebar-width`
+- `--admin-topbar-height`
+
+Theme settings are persisted in the framework-safe `app_settings` table under the `admin.theme` namespace. If the table is not available yet, the admin panel falls back to the default preset and environment branding values.
+
+Branding values:
+
+- `ADMIN_BRAND_NAME` sets the fallback admin brand name.
+- `ADMIN_LOGO_URL` sets an optional fallback logo URL.
+- Stored database settings override environment fallback values.
+
+Only an active role with `admin.theme.manage` can update the theme. The seed flow grants this permission to `super_admin`. Base user roles can view the page but cannot save changes.
+
+Theme inputs are validated before persistence:
+
+- colors must be six-digit hex values
+- radius and layout dimensions must be pixel values
+- shadows are restricted to safe simple CSS shadow text
+- logo URLs must be local safe paths or `http/https` URLs
+- arbitrary CSS, `url(...)` injection, scripts, and secrets are not accepted
+
 ## Security Notes
 
 - Admin POST forms are CSRF protected.
 - Existing Auth, MFA, and Access services are reused.
+- Theme updates require `admin.theme.manage`.
 - No password hash is exposed.
 - No session ID is exposed.
 - No CSRF token is exposed outside forms.
 - No MFA secret is exposed.
 - No recovery codes are exposed by the admin shell.
 - No provider secrets are exposed.
+- No arbitrary CSS or provider secret is accepted through theme settings.
 
 ## Known Limitations
 
@@ -104,6 +158,7 @@ CSS is local at `public/assets/css/admin.css`; no external CDN is required.
 - No profile editing exists yet.
 - No MFA management UI exists yet.
 - No business modules are included.
+- The theme system is a shell-level UI foundation only; it does not add tenant branding or module-specific themes yet.
 
 ## Next Phase Suggestions
 
@@ -112,3 +167,4 @@ CSS is local at `public/assets/css/admin.css`; no external CDN is required.
 - Permission-aware navigation
 - MFA management UI
 - Identity-change profile forms
+- Tenant-aware branding and theme governance

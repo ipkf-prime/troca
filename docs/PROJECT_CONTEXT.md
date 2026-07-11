@@ -137,6 +137,7 @@ Scope:
 - Dashboard shell with auth status, active role, MFA status, version, and assignment summary.
 - Access switch UI using the existing AccessService.
 - Profile display shell with safe user identity fields.
+- Dynamic admin theme presets, token validation, and `/admin/theme`.
 - Reusable RTL admin layout and local CSS.
 - No CRM, Bot, ERP, Automation, Marketplace, admin CRUD, or business modules are added.
 

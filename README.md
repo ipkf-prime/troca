@@ -35,6 +35,12 @@ Auth, MFA, identity, and provider foundation environment notes:
 - `MFA_EMAIL_ENABLED`, `MFA_SMS_ENABLED`, and `MFA_BOT_ENABLED` enable delivery-channel foundations only when matching provider settings are configured.
 - `MAIL_*`, `SMS_*`, `KAVENEGAR_*`, and `BALE_*` values must be stored in `.env` and never committed.
 
+Admin panel theme and branding notes:
+
+- `ADMIN_BRAND_NAME` sets the fallback admin brand label.
+- `ADMIN_LOGO_URL` sets an optional fallback logo URL.
+- Stored admin theme settings override these environment fallback values.
+
 On cPanel Git deployment, this repository deploys `public_html/` to the configured application path. The active dev domain uses:
 
 - Repository path: `/home/troca/repositories/troca`
@@ -58,6 +64,7 @@ The Foundation baseline has been verified with:
 - `POST /mfa/challenge/verify` completes pending MFA login challenges
 - `GET /admin/login` loads the RTL Persian admin login page
 - `GET /admin/dashboard` loads the authenticated admin dashboard shell
+- `GET /admin/theme` loads the configurable admin theme page
 
 ## Site Mode
 
@@ -81,7 +88,7 @@ The v0.4.2 development branch adds JSON-first MFA foundation routes without addi
 
 The v0.4.3 stable baseline adds identity verification, one-time login tokens, MFA delivery channel foundations, and active access switching without adding UI or business modules.
 
-The v0.4.4 development branch adds the first admin panel shell without adding CRM, Bot, ERP, Automation, Marketplace, admin CRUD, or business workflows.
+The v0.4.4 development branch adds the first admin panel shell and dynamic theme system without adding CRM, Bot, ERP, Automation, Marketplace, admin CRUD, or business workflows.
 
 Set:
 

@@ -204,6 +204,7 @@ class AuthRbacSeeder extends Seeder
         ");
 
         $statement->execute(['auth.login_token.issue', 'auth', 'login_tokens', 'issue', 'Issue login tokens']);
+        $statement->execute(['admin.theme.manage', 'admin', 'theme', 'manage', 'Manage admin theme']);
     }
 
     private function assignSuperAdminPermissions(): void

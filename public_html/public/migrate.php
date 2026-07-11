@@ -19,12 +19,13 @@ try {
         new \IPKF\Database\Migrations\CreateAuthRbacSchemaTables(),
         new \IPKF\Database\Migrations\EnsureUtf8mb4AuthRbacTables(),
         new \IPKF\Database\Migrations\CreateIdentityAccessFoundationTables(),
+        new \IPKF\Database\Migrations\CreateAdminPanelShellTables(),
     ]);
 
     $manager->migrate();
 
     header('Content-Type: text/plain; charset=UTF-8');
-    echo "MIGRATION DONE: ipkf_runtime_checks, auth_rbac_schema, identity_access_foundation";
+    echo "MIGRATION DONE: ipkf_runtime_checks, auth_rbac_schema, identity_access_foundation, admin_panel_shell";
 } catch (Throwable $exception) {
     http_response_code(500);
     echo "MIGRATION FAILED";

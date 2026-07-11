@@ -211,6 +211,9 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'super_admin_assignment_exists' => $superAdminAssignmentExists,
         'auth_routes_available' => true,
         'admin_panel_shell_available' => class_exists(\App\Services\AdminPanelService::class),
+        'admin_theme_available' => class_exists(\App\Services\AdminThemeService::class)
+            && \IPKF\Database\Database::tableExists('app_settings'),
+        'admin_theme_active_preset' => (new \App\Services\AdminThemeService())->theme()['active_preset'],
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),
@@ -362,6 +365,63 @@ $router->get('/admin/access', function ($request, $response) use ($adminRender, 
         'context' => $context,
         'status' => trim((string) $request->input('status', '')),
     ]);
+});
+
+$router->get('/admin/theme', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    $theme = new \App\Services\AdminThemeService();
+
+    return $adminRender($response, 'theme', [
+        'title' => 'پوسته پنل',
+        'context' => $context,
+        'theme' => $theme->theme(),
+        'presets' => $theme->presets(),
+        'errors' => [],
+        'status' => trim((string) $request->input('status', '')),
+        'canManageTheme' => (new \App\Services\AuthorizationService())->hasPermission((int) $context['user_id'], 'admin.theme.manage'),
+    ]);
+});
+
+$router->post('/admin/theme', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    if (!(new \App\Services\AuthorizationService())->hasPermission((int) $context['user_id'], 'admin.theme.manage')) {
+        return $adminRender($response, 'theme', [
+            'title' => 'پوسته پنل',
+            'context' => $context,
+            'theme' => (new \App\Services\AdminThemeService())->theme(),
+            'presets' => (new \App\Services\AdminThemeService())->presets(),
+            'errors' => ['forbidden'],
+            'status' => '',
+            'canManageTheme' => false,
+        ], 403);
+    }
+
+    $theme = new \App\Services\AdminThemeService();
+    $result = $theme->update($request->all());
+
+    if (!$result['ok']) {
+        return $adminRender($response, 'theme', [
+            'title' => 'پوسته پنل',
+            'context' => $context,
+            'theme' => $theme->theme(),
+            'presets' => $theme->presets(),
+            'errors' => $result['errors'],
+            'status' => '',
+            'canManageTheme' => true,
+        ], 422);
+    }
+
+    return $response->redirect('/admin/theme?status=saved');
 });
 
 $router->post('/admin/access', function ($request, $response) {
