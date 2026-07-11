@@ -9,6 +9,8 @@ use IPKF\Support\Env;
 class AdminThemeService extends BaseService
 {
     private const NAMESPACE = 'admin.theme';
+    private const DEFAULT_LOGO_URL = '/assets/admin/images/logos/default-logo.svg';
+    private const DEFAULT_AVATAR_URL = '/assets/admin/images/avatars/default-avatar.svg';
 
     public function __construct(protected ?AppSettingRepository $settings = null)
     {
@@ -17,10 +19,18 @@ class AdminThemeService extends BaseService
 
     public function presets(): array
     {
+        $fontStack = $this->fontOptions()['vazirmatn'];
+
         return [
             'cooperative_light' => [
                 'title' => 'تعاونی روشن',
                 'tokens' => [
+                    'font_family' => $fontStack,
+                    'font_size_base' => '15px',
+                    'line_height_base' => '1.8',
+                    'font_weight_normal' => '400',
+                    'font_weight_medium' => '600',
+                    'font_weight_bold' => '700',
                     'primary' => '#2f8f5b',
                     'primary_hover' => '#247449',
                     'primary_soft' => '#e8f5ee',
@@ -45,6 +55,12 @@ class AdminThemeService extends BaseService
             'cooperative_classic' => [
                 'title' => 'سبز کلاسیک',
                 'tokens' => [
+                    'font_family' => $fontStack,
+                    'font_size_base' => '15px',
+                    'line_height_base' => '1.8',
+                    'font_weight_normal' => '400',
+                    'font_weight_medium' => '600',
+                    'font_weight_bold' => '700',
                     'primary' => '#1f6f4a',
                     'primary_hover' => '#18583b',
                     'primary_soft' => '#e4f0e8',
@@ -69,6 +85,12 @@ class AdminThemeService extends BaseService
             'neutral_light' => [
                 'title' => 'روشن خنثی',
                 'tokens' => [
+                    'font_family' => $fontStack,
+                    'font_size_base' => '15px',
+                    'line_height_base' => '1.75',
+                    'font_weight_normal' => '400',
+                    'font_weight_medium' => '600',
+                    'font_weight_bold' => '700',
                     'primary' => '#3f7f6b',
                     'primary_hover' => '#326657',
                     'primary_soft' => '#eef5f2',
@@ -90,6 +112,16 @@ class AdminThemeService extends BaseService
                     'topbar_height' => '76px',
                 ],
             ],
+        ];
+    }
+
+    public function fontOptions(): array
+    {
+        return [
+            'vazirmatn' => '"Vazirmatn", "IRANSans", "Tahoma", "Segoe UI", sans-serif',
+            'tahoma' => '"Tahoma", "Segoe UI", sans-serif',
+            'segoe_ui' => '"Segoe UI", "Tahoma", sans-serif',
+            'system_ui' => 'system-ui, "Segoe UI", "Tahoma", sans-serif',
         ];
     }
 
@@ -116,7 +148,8 @@ class AdminThemeService extends BaseService
             'active_preset' => $preset,
             'preset_title' => $this->presets()[$preset]['title'],
             'brand_name' => $this->cleanBrand((string) ($settings['brand_name'] ?? Env::get('ADMIN_BRAND_NAME', 'پنل مدیریت تروکا'))),
-            'logo_url' => $this->cleanLogoUrl((string) ($settings['logo_url'] ?? Env::get('ADMIN_LOGO_URL', ''))),
+            'logo_url' => $this->cleanAssetUrl((string) ($settings['logo_url'] ?? Env::get('ADMIN_LOGO_URL', self::DEFAULT_LOGO_URL)), self::DEFAULT_LOGO_URL),
+            'default_avatar_url' => $this->cleanAssetUrl((string) ($settings['default_avatar_url'] ?? Env::get('ADMIN_DEFAULT_AVATAR_URL', self::DEFAULT_AVATAR_URL)), self::DEFAULT_AVATAR_URL),
             'tokens' => $tokens,
         ];
     }
@@ -149,7 +182,8 @@ class AdminThemeService extends BaseService
         }
 
         $brandName = $this->cleanBrand((string) ($input['brand_name'] ?? ''));
-        $logoUrl = $this->cleanLogoUrl((string) ($input['logo_url'] ?? ''));
+        $logoUrl = $this->cleanAssetUrl((string) ($input['logo_url'] ?? ''), '');
+        $defaultAvatarUrl = $this->cleanAssetUrl((string) ($input['default_avatar_url'] ?? ''), '');
 
         if ($brandName === '') {
             $errors[] = 'invalid_brand_name';
@@ -157,6 +191,10 @@ class AdminThemeService extends BaseService
 
         if ((string) ($input['logo_url'] ?? '') !== '' && $logoUrl === '') {
             $errors[] = 'invalid_logo_url';
+        }
+
+        if ((string) ($input['default_avatar_url'] ?? '') !== '' && $defaultAvatarUrl === '') {
+            $errors[] = 'invalid_default_avatar_url';
         }
 
         foreach (array_keys($this->presets()['cooperative_light']['tokens']) as $key) {
@@ -174,6 +212,7 @@ class AdminThemeService extends BaseService
         $this->settings->put(self::NAMESPACE, 'active_preset', $preset, 'string', true);
         $this->settings->put(self::NAMESPACE, 'brand_name', $brandName, 'string', true);
         $this->settings->put(self::NAMESPACE, 'logo_url', $logoUrl, 'string', true);
+        $this->settings->put(self::NAMESPACE, 'default_avatar_url', $defaultAvatarUrl, 'string', true);
 
         foreach (array_keys($this->presets()['cooperative_light']['tokens']) as $key) {
             $value = trim((string) ($input['token_' . $key] ?? ''));
@@ -205,6 +244,22 @@ class AdminThemeService extends BaseService
             return preg_match('/^\d{1,3}px$/', $value) === 1;
         }
 
+        if ($key === 'font_family') {
+            return in_array($value, $this->fontOptions(), true);
+        }
+
+        if ($key === 'font_size_base') {
+            return preg_match('/^(\d{1,2}px|1(\.\d{1,2})?rem)$/', $value) === 1;
+        }
+
+        if ($key === 'line_height_base') {
+            return preg_match('/^(1(\.\d{1,2})?|2(\.0{1,2})?|[1-2]\d?px)$/', $value) === 1;
+        }
+
+        if (in_array($key, ['font_weight_normal', 'font_weight_medium', 'font_weight_bold'], true)) {
+            return preg_match('/^[1-9]00$/', $value) === 1;
+        }
+
         if ($key === 'shadow') {
             return preg_match('/^[a-zA-Z0-9\s\(\),\.\#\-]+$/', $value) === 1
                 && strlen($value) <= 120
@@ -223,20 +278,22 @@ class AdminThemeService extends BaseService
             : substr($value, 0, 160);
     }
 
-    private function cleanLogoUrl(string $value): string
+    private function cleanAssetUrl(string $value, string $fallback): string
     {
         $value = trim(strip_tags($value));
 
         if ($value === '') {
-            return '';
+            return $fallback;
         }
 
-        if (preg_match('/^\/[A-Za-z0-9_\-\/\.]+$/', $value) === 1) {
+        if (str_contains($value, '..')) {
+            return $fallback;
+        }
+
+        if (preg_match('/^\/(?:assets\/admin\/images\/|uploads\/admin\/(?:logos|avatars)\/)[A-Za-z0-9_\-\/\.]+\.(?:svg|png|jpg|jpeg|webp|gif)$/i', $value) === 1) {
             return $value;
         }
 
-        return filter_var($value, FILTER_VALIDATE_URL) && preg_match('/^https?:\/\//', $value) === 1
-            ? $value
-            : '';
+        return $fallback;
     }
 }

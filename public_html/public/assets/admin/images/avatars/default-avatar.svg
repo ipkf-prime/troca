@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160" role="img" aria-labelledby="title desc">
+  <title id="title">Default admin avatar</title>
+  <desc id="desc">A local safe placeholder avatar for IPKF admin users.</desc>
+  <rect width="160" height="160" rx="80" fill="#eef5f2"/>
+  <circle cx="80" cy="62" r="28" fill="#3f7f6b"/>
+  <path d="M37 130c6-24 23-38 43-38s37 14 43 38" fill="#2f8f5b"/>
+  <circle cx="80" cy="62" r="11" fill="#f2c94c"/>
+</svg>

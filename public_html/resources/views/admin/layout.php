@@ -6,6 +6,7 @@ $user = $context['user'] ?? null;
 $active = $context['active_assignment'] ?? null;
 $themeService = new \App\Services\AdminThemeService();
 $theme = $themeService->theme();
+$avatarUrl = (string) ($user['avatar_url'] ?? $theme['default_avatar_url'] ?? '');
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 
 if (!function_exists('admin_h')) {
@@ -28,8 +29,8 @@ $nav = [
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= admin_h($title) ?> | IPKF</title>
-    <link rel="stylesheet" href="/assets/css/admin.css">
-    <style><?= "\n" . admin_h($themeService->cssVariables()) . "\n" ?></style>
+    <link rel="stylesheet" href="/assets/admin/css/admin.css">
+    <style><?= "\n" . $themeService->cssVariables() . "\n" ?></style>
 </head>
 <body>
     <div class="admin-shell">
@@ -61,6 +62,9 @@ $nav = [
                     <h1><?= admin_h($title) ?></h1>
                 </div>
                 <div class="admin-user">
+                    <?php if ($avatarUrl !== ''): ?>
+                        <img class="admin-avatar" src="<?= admin_h($avatarUrl) ?>" alt="">
+                    <?php endif; ?>
                     <span class="admin-role"><?= admin_h($active['role_title'] ?? 'بدون نقش فعال') ?></span>
                     <span><?= admin_h($user['name'] ?? '') ?></span>
                     <a class="admin-logout" href="/admin/logout">خروج</a>

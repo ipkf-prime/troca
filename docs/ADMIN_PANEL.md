@@ -86,7 +86,33 @@ The admin shell uses a reusable RTL Persian layout with:
 - active role badge
 - logout link
 
-CSS is local at `public/assets/css/admin.css`; no external CDN is required.
+CSS is local at `public/assets/admin/css/admin.css`; no external CDN is required.
+
+## Admin Assets
+
+Admin shell assets live under:
+
+- `public/assets/admin/css/`
+- `public/assets/admin/js/`
+- `public/assets/admin/images/logos/`
+- `public/assets/admin/images/avatars/`
+- `public/assets/admin/images/icons/`
+- `public/assets/admin/images/placeholders/`
+- `public/assets/admin/fonts/`
+
+Prepared runtime upload folders:
+
+- `public/uploads/admin/logos/`
+- `public/uploads/admin/avatars/`
+
+The upload folders include Apache `.htaccess` protection to disable PHP/script execution while keeping normal static image serving available.
+
+Default local placeholders:
+
+- `/assets/admin/images/logos/default-logo.svg`
+- `/assets/admin/images/avatars/default-avatar.svg`
+
+No upload UI is implemented in this phase.
 
 ## Dynamic Theme System
 
@@ -101,6 +127,12 @@ Available presets:
 The admin CSS is driven by safe design tokens:
 
 - `--admin-primary`
+- `--admin-font-family`
+- `--admin-font-size-base`
+- `--admin-line-height-base`
+- `--admin-font-weight-normal`
+- `--admin-font-weight-medium`
+- `--admin-font-weight-bold`
 - `--admin-primary-hover`
 - `--admin-primary-soft`
 - `--admin-accent`
@@ -126,16 +158,28 @@ Branding values:
 
 - `ADMIN_BRAND_NAME` sets the fallback admin brand name.
 - `ADMIN_LOGO_URL` sets an optional fallback logo URL.
+- `ADMIN_DEFAULT_AVATAR_URL` sets the fallback user avatar URL.
 - Stored database settings override environment fallback values.
+
+Typography strategy:
+
+- No external font CDN is used.
+- The default stack is `"Vazirmatn", "IRANSans", "Tahoma", "Segoe UI", sans-serif`.
+- Commercial or unknown font binaries are not bundled.
+- If desired, place a safe local `Vazirmatn.woff2` file at `public/assets/admin/fonts/Vazirmatn.woff2`.
+- If that file is absent, browsers fall back to the remaining Persian-friendly stack.
 
 Only an active role with `admin.theme.manage` can update the theme. The seed flow grants this permission to `super_admin`. Base user roles can view the page but cannot save changes.
 
 Theme inputs are validated before persistence:
 
 - colors must be six-digit hex values
+- font family must be selected from approved options
+- font size and line height must match safe CSS values
 - radius and layout dimensions must be pixel values
 - shadows are restricted to safe simple CSS shadow text
-- logo URLs must be local safe paths or `http/https` URLs
+- logo and avatar URLs must be local safe image paths under `/assets/admin/images/`, `/uploads/admin/logos/`, or `/uploads/admin/avatars/`
+- `javascript:`, `data:`, external `http/https` URLs, and paths containing `../` are rejected
 - arbitrary CSS, `url(...)` injection, scripts, and secrets are not accepted
 
 ## Security Notes
@@ -150,6 +194,7 @@ Theme inputs are validated before persistence:
 - No recovery codes are exposed by the admin shell.
 - No provider secrets are exposed.
 - No arbitrary CSS or provider secret is accepted through theme settings.
+- Upload folders deny PHP/script execution where Apache `.htaccess` is supported.
 
 ## Known Limitations
 

@@ -142,6 +142,19 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         }
     }
 
+    $adminTheme = class_exists(\App\Services\AdminThemeService::class)
+        ? new \App\Services\AdminThemeService()
+        : null;
+    $adminThemeData = $adminTheme === null ? [] : $adminTheme->theme();
+    $adminThemeTokens = $adminThemeData['tokens'] ?? [];
+    $adminAssetsAvailable = is_dir(BASE_PATH . '/public/assets/admin')
+        && is_dir(BASE_PATH . '/public/assets/admin/css')
+        && is_dir(BASE_PATH . '/public/assets/admin/fonts')
+        && is_readable(BASE_PATH . '/public/assets/admin/images/logos/default-logo.svg')
+        && is_readable(BASE_PATH . '/public/assets/admin/images/avatars/default-avatar.svg')
+        && is_dir(BASE_PATH . '/public/uploads/admin/logos')
+        && is_dir(BASE_PATH . '/public/uploads/admin/avatars');
+
     return $response->json([
         'php_version' => PHP_VERSION,
         'base_path' => BASE_PATH,
@@ -211,9 +224,13 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'super_admin_assignment_exists' => $superAdminAssignmentExists,
         'auth_routes_available' => true,
         'admin_panel_shell_available' => class_exists(\App\Services\AdminPanelService::class),
-        'admin_theme_available' => class_exists(\App\Services\AdminThemeService::class)
+        'admin_theme_available' => $adminTheme !== null
             && \IPKF\Database\Database::tableExists('app_settings'),
-        'admin_theme_active_preset' => (new \App\Services\AdminThemeService())->theme()['active_preset'],
+        'admin_theme_active_preset' => $adminThemeData['active_preset'] ?? 'cooperative_light',
+        'admin_assets_available' => $adminAssetsAvailable,
+        'admin_typography_available' => isset($adminThemeTokens['font_family'], $adminThemeTokens['font_size_base'], $adminThemeTokens['line_height_base']),
+        'admin_logo_configured' => ($adminThemeData['logo_url'] ?? '') !== '',
+        'admin_default_avatar_configured' => ($adminThemeData['default_avatar_url'] ?? '') !== '',
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),
@@ -381,6 +398,7 @@ $router->get('/admin/theme', function ($request, $response) use ($adminRender, $
         'context' => $context,
         'theme' => $theme->theme(),
         'presets' => $theme->presets(),
+        'fontOptions' => $theme->fontOptions(),
         'errors' => [],
         'status' => trim((string) $request->input('status', '')),
         'canManageTheme' => (new \App\Services\AuthorizationService())->hasPermission((int) $context['user_id'], 'admin.theme.manage'),
@@ -400,6 +418,7 @@ $router->post('/admin/theme', function ($request, $response) use ($adminRender, 
             'context' => $context,
             'theme' => (new \App\Services\AdminThemeService())->theme(),
             'presets' => (new \App\Services\AdminThemeService())->presets(),
+            'fontOptions' => (new \App\Services\AdminThemeService())->fontOptions(),
             'errors' => ['forbidden'],
             'status' => '',
             'canManageTheme' => false,
@@ -415,6 +434,7 @@ $router->post('/admin/theme', function ($request, $response) use ($adminRender, 
             'context' => $context,
             'theme' => $theme->theme(),
             'presets' => $theme->presets(),
+            'fontOptions' => $theme->fontOptions(),
             'errors' => $result['errors'],
             'status' => '',
             'canManageTheme' => true,

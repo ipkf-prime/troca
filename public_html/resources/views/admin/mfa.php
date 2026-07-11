@@ -8,6 +8,7 @@ if (!function_exists('admin_h')) {
 
 $title = $title ?? 'تایید دومرحله ای';
 $error = $error ?? null;
+$themeService = new \App\Services\AdminThemeService();
 ?>
 <!doctype html>
 <html lang="fa" dir="rtl">
@@ -15,7 +16,8 @@ $error = $error ?? null;
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= admin_h($title) ?> | IPKF</title>
-    <link rel="stylesheet" href="/assets/css/admin.css">
+    <link rel="stylesheet" href="/assets/admin/css/admin.css">
+    <style><?= "\n" . $themeService->cssVariables() . "\n" ?></style>
 </head>
 <body class="admin-auth-page">
     <main class="admin-auth">

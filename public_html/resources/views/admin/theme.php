@@ -7,6 +7,12 @@ if (!function_exists('admin_h')) {
 }
 
 $tokenLabels = [
+    'font_family' => 'خانواده فونت',
+    'font_size_base' => 'اندازه پایه فونت',
+    'line_height_base' => 'فاصله خطوط',
+    'font_weight_normal' => 'وزن معمولی',
+    'font_weight_medium' => 'وزن متوسط',
+    'font_weight_bold' => 'وزن ضخیم',
     'primary' => 'رنگ اصلی',
     'primary_hover' => 'رنگ اصلی در حالت فعال',
     'primary_soft' => 'رنگ زمینه ملایم',
@@ -27,6 +33,15 @@ $tokenLabels = [
     'sidebar_width' => 'عرض منو',
     'topbar_height' => 'ارتفاع سربرگ',
 ];
+
+$fontLabels = [
+    'vazirmatn' => 'Vazirmatn',
+    'tahoma' => 'Tahoma',
+    'segoe_ui' => 'Segoe UI',
+    'system_ui' => 'System UI',
+];
+
+$featuredTokens = ['font_family', 'font_size_base', 'line_height_base', 'radius'];
 
 $colorTokens = [
     'primary', 'primary_hover', 'primary_soft', 'accent', 'bg',
@@ -87,12 +102,45 @@ ob_start();
             </label>
             <label>
                 <span>آدرس لوگو</span>
-                <input name="logo_url" value="<?= admin_h($theme['logo_url']) ?>" placeholder="/assets/logo.png" <?= $canManageTheme ? '' : 'disabled' ?>>
+                <input name="logo_url" value="<?= admin_h($theme['logo_url']) ?>" placeholder="/assets/admin/images/logos/default-logo.svg" <?= $canManageTheme ? '' : 'disabled' ?>>
             </label>
+            <label>
+                <span>آواتار پیش فرض</span>
+                <input name="default_avatar_url" value="<?= admin_h($theme['default_avatar_url']) ?>" placeholder="/assets/admin/images/avatars/default-avatar.svg" <?= $canManageTheme ? '' : 'disabled' ?>>
+            </label>
+            <label>
+                <span>فونت پنل</span>
+                <select name="token_font_family" <?= $canManageTheme ? '' : 'disabled' ?>>
+                    <?php foreach (($fontOptions ?? []) as $key => $fontValue): ?>
+                        <option value="<?= admin_h($fontValue) ?>" <?= $theme['tokens']['font_family'] === $fontValue ? 'selected' : '' ?>>
+                            <?= admin_h($fontLabels[$key] ?? $key) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <label>
+                <span>اندازه پایه فونت</span>
+                <input name="token_font_size_base" value="<?= admin_h($theme['tokens']['font_size_base']) ?>" placeholder="15px" <?= $canManageTheme ? '' : 'disabled' ?>>
+            </label>
+            <label>
+                <span>فاصله خطوط</span>
+                <input name="token_line_height_base" value="<?= admin_h($theme['tokens']['line_height_base']) ?>" placeholder="1.8" <?= $canManageTheme ? '' : 'disabled' ?>>
+            </label>
+            <label>
+                <span>گردی گوشه</span>
+                <input name="token_radius" value="<?= admin_h($theme['tokens']['radius']) ?>" placeholder="16px" <?= $canManageTheme ? '' : 'disabled' ?>>
+            </label>
+        </div>
+
+        <div class="admin-typography-preview">
+            نمونه متن فارسی پنل مدیریت تروکا
         </div>
 
         <div class="admin-token-grid">
             <?php foreach ($theme['tokens'] as $key => $value): ?>
+                <?php if (in_array($key, $featuredTokens, true)): ?>
+                    <?php continue; ?>
+                <?php endif; ?>
                 <label class="admin-token-field">
                     <span><?= admin_h($tokenLabels[$key] ?? $key) ?></span>
                     <?php if (in_array($key, $colorTokens, true)): ?>

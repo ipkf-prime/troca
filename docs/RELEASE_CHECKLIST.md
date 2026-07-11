@@ -118,11 +118,20 @@ Version: `0.2.0-foundation`
 - `/admin/access` can switch active role with CSRF protection.
 - `/admin/profile` displays safe user profile fields.
 - `/admin/theme` loads the dynamic admin theme page.
+- `/admin/theme` shows typography controls.
 - Base user active role cannot update the admin theme.
 - `super_admin` active role can update the admin theme with `admin.theme.manage`.
-- Invalid color, radius, logo, and unsafe CSS-like values are rejected.
+- Invalid color, radius, font family, font size, logo/avatar path, and unsafe CSS-like values are rejected.
 - Changing presets updates the admin UI.
+- Admin CSS loads from `public/assets/admin/css/admin.css`.
+- Admin asset folders exist under `public/assets/admin/`.
+- Admin upload folders exist under `public/uploads/admin/`.
+- Upload folders include `.htaccess` protection to block PHP/script execution where Apache supports it.
+- Default logo exists at `/assets/admin/images/logos/default-logo.svg`.
+- Default avatar exists at `/assets/admin/images/avatars/default-avatar.svg`.
+- `/admin/login` and `/admin/dashboard` use admin typography tokens.
+- Optional `Vazirmatn.woff2` can be placed under `public/assets/admin/fonts/` without requiring a CDN.
 - `/admin/logout` logs the user out.
 - Existing JSON endpoints continue to work.
 - No password hash, session ID, MFA secret, recovery code, provider secret, or business data is exposed.
-- `/_diagnostics` may report `admin_panel_shell_available=true`, `admin_theme_available=true`, and `admin_theme_active_preset`.
+- `/_diagnostics` may report `admin_panel_shell_available=true`, `admin_theme_available=true`, `admin_theme_active_preset`, `admin_assets_available=true`, and `admin_typography_available=true`.
