@@ -47,7 +47,7 @@ $accountNav = [
     <script src="/assets/admin/js/admin.js" defer></script>
     <style><?= "\n" . $themeService->cssVariables() . "\n" ?></style>
 </head>
-<body>
+<body dir="rtl">
     <div class="admin-shell" data-admin-shell>
         <div class="admin-sidebar-overlay" data-admin-sidebar-overlay></div>
         <aside class="admin-sidebar" id="admin-sidebar">
@@ -74,7 +74,7 @@ $accountNav = [
             </nav>
         </aside>
 
-        <main class="admin-main">
+        <div class="admin-main">
             <header class="admin-topbar">
                 <button class="admin-icon-button admin-sidebar-toggle" type="button" data-admin-sidebar-toggle aria-controls="admin-sidebar" aria-label="باز کردن منو">
                     <span></span>
@@ -110,7 +110,9 @@ $accountNav = [
                 </div>
             </header>
 
-            <?= $content ?? '' ?>
+            <main class="admin-content">
+                <?= $content ?? '' ?>
+            </main>
 
             <?php if (($theme['footer_enabled'] ?? true) === true): ?>
                 <footer class="admin-footer">
@@ -118,7 +120,7 @@ $accountNav = [
                     <span><?= admin_h($year) ?></span>
                 </footer>
             <?php endif; ?>
-        </main>
+        </div>
     </div>
 </body>
 </html>
