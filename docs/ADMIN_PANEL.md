@@ -119,12 +119,14 @@ The dropdown closes on outside click and Escape. On mobile, the sidebar opens wi
 
 - پوسته‌ها
 - برندینگ
-- هدر
-- سایدبار
-- داشبورد
 - فوتر
-- فونت
 - پیشرفته
+
+In v0.4.4 the theme UI is intentionally built-in-preset-only. The available presets are `official_emerald`, `modern_light`, `classic_green`, `neutral_light`, and `green_gold`.
+
+Advanced color/token editing is frozen for this milestone. The advanced tab shows the message `ویرایش پیشرفته پوسته در نسخه بعدی فعال می‌شود.` instead of custom-token controls.
+
+`/admin/my-theme` lets the current user choose one personal active preset only and shows the message `در این نسخه می‌توانید یکی از پوسته‌های آماده را برای حساب خود انتخاب کنید.` Typography, radius, and custom token editing are reserved for a future phase.
 
 ## Theme Scopes
 
@@ -140,7 +142,7 @@ Theme resolution priority:
 3. environment defaults
 4. hardcoded safe defaults
 
-Personal theme settings can override display-focused values such as preset, font family, base font size, line height, and radius. System theme settings control global branding, logo, default avatar, footer, and global visual defaults.
+Personal theme settings in v0.4.4 can override only the active preset. System theme settings control global branding, logo, default avatar, footer, and the default preset for users without a personal override.
 
 For v0.4.4, each user has one active personal display theme. The current storage uses `app_settings` with scoped `user_id` values; `user_id=0` is the system scope and a positive `user_id` is a personal scope. This keeps the architecture ready for a future `user_theme_profiles` table with saved named profiles, but that full profile library is intentionally not implemented yet.
 
@@ -148,7 +150,7 @@ The theme resolver must be called with the current user id on authenticated admi
 
 When a system preset is changed in `/admin/theme`, old `token.*` overrides for the system scope are cleared so the selected preset's actual colors, shadows, radius, sidebar, header, and card tokens apply visibly. Personal preset changes remain scoped to the current user's `user_id`.
 
-In v0.4.4, stored visual `token.*` overrides are ignored by default. The resolver loads the selected built-in preset token map, then applies only current-user personal readability overrides for `font_family`, `font_size_base`, `line_height_base`, and `radius`. System-level token overrides are cleared on save to prevent stale colors from masking the selected preset.
+In v0.4.4, stored visual `token.*` overrides are ignored by default. The resolver loads the selected built-in preset token map and does not apply saved custom tokens. System and personal token overrides are cleared on save/reset to prevent stale colors from masking the selected preset.
 
 Future-ready profile shape:
 
@@ -244,18 +246,14 @@ Available presets:
 
 Older stored values such as `cooperative_official`, `cooperative_light`, `cooperative_classic`, and `golden_green` are normalized safely by the resolver. `ADMIN_DEFAULT_THEME` supports the canonical keys and defaults to `official_emerald`.
 
-The theme page is grouped for non-technical admins:
+The v0.4.4 theme page is deliberately simple for non-technical admins:
 
 - انتخاب پوسته
 - برندینگ
-- هدر
-- سایدبار / منو
-- محتوای داشبورد
 - فوتر
-- فونت و خوانایی
-- تنظیمات پیشرفته
+- تنظیمات پیشرفته با پیام نسخه بعدی
 
-The admin CSS is driven by safe design tokens:
+The admin CSS is still driven internally by safe design tokens from the selected preset:
 
 - `--admin-primary`
 - `--admin-font-family`
@@ -332,17 +330,11 @@ Only an active role with `admin.theme.manage` can update the theme. The seed flo
 
 Theme inputs are validated before persistence:
 
-- colors must be six-digit hex values
-- font family must be selected from approved options
-- font family options are Vazirmatn, Tahoma, Segoe UI, and System UI
-- font size options are `13px`, `14px`, `15px`, `16px`, and `1rem`
-- line height options are `1.5`, `1.6`, `1.7`, and `1.8`
-- radius options are `8px`, `12px`, `16px`, `18px`, `20px`, and `24px`
-- layout dimensions must be pixel values
-- shadows are restricted to safe simple CSS shadow text
+- active preset must be one of the five built-in preset keys
+- system branding text must be safe plain text
 - logo and avatar URLs must be local safe image paths under `/assets/admin/images/`, `/uploads/admin/logos/`, or `/uploads/admin/avatars/`
 - `javascript:`, `data:`, external `http/https` URLs, and paths containing `../` are rejected
-- arbitrary CSS, `url(...)` injection, scripts, and secrets are not accepted
+- arbitrary CSS, custom `token.*` fields, `url(...)` injection, scripts, and secrets are not accepted in v0.4.4
 
 Two-user theme isolation test:
 
@@ -361,6 +353,8 @@ Safe diagnostics for runtime testing include:
 - `admin_theme_personal_preset_exists_for_current_user`
 - `admin_theme_token_override_rows_count`
 - `admin_theme_token_override_rows_ignored`
+- `admin_theme_custom_editor_enabled=false`
+- `admin_theme_builtin_presets_only=true`
 - `theme_user_scope_supported`
 - `current_theme_resolver_available`
 

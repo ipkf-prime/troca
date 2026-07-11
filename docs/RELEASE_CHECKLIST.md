@@ -16,10 +16,18 @@
 - User/account actions are in the dropdown menu.
 - Dropdown closes on outside click and Escape.
 - Mobile sidebar opens with hamburger and closes with overlay/Escape.
+- Mobile sidebar closes with its close button, overlay, Escape, menu item click, and viewport resize back to desktop.
+- Mobile sidebar locks body scroll while open and does not cause horizontal overflow.
+- `/admin/login` autofocuses the login field, or the password field after a validation error with a retained login value.
+- `/admin/mfa`, `/admin/mfa/recovery`, `/admin/forgot-password`, and `/admin/password` autofocus the primary input.
 - `/admin/theme` is tabbed and remains CSRF protected.
 - `/admin/theme` saves system theme settings only for users with `admin.theme.manage`.
 - `/admin/my-theme` saves personal display theme settings for the current user only.
 - `/admin/my-theme` shows built-in system presets, the current active personal theme, save, and reset actions.
+- v0.4.4 theme selection is built-in-preset-only: `official_emerald`, `modern_light`, `classic_green`, `neutral_light`, and `green_gold`.
+- `/admin/theme` does not expose color/token editors in v0.4.4.
+- `/admin/my-theme` lets the user select one preset only; typography and token customization are reserved for a future phase.
+- Advanced theme editing shows the Persian next-version notice instead of editable custom-token fields.
 - Personal theme controls do not change global brand name, logo, default avatar, or footer text.
 - One active personal theme per user is supported in v0.4.4; multi-profile theme libraries are reserved for a future phase.
 - Theme preset cards are clickable, keyboard-safe radio controls and persist after save.
@@ -42,6 +50,7 @@
 - Diagnostics include `current_theme_resolver_available=true` and `theme_user_scope_supported=true`.
 - Diagnostics include `admin_theme_resolved_source`, `admin_theme_system_preset_exists`, and `admin_theme_personal_preset_exists_for_current_user`.
 - Diagnostics include `admin_theme_forensics_available=true` and `admin_theme_runtime_fix_version=theme-runtime-forensics-v1`.
+- Diagnostics include `admin_theme_custom_editor_enabled=false` and `admin_theme_builtin_presets_only=true`.
 - `/admin/theme/debug` works only in development/debug for an authorized admin and shows system rows, current user personal rows, resolved source, active preset, generated CSS variables, and loaded asset URLs.
 - `/admin/theme/debug` shows `token_override_rows_ignored=true`.
 - After saving a system preset, system `token.*` rows for `admin.theme` are cleared and `token_override_rows_count=0`.
@@ -173,14 +182,14 @@ Version: `0.2.0-foundation`
 - `/admin/access` can switch active role with CSRF protection.
 - `/admin/profile` displays safe user profile fields.
 - `/admin/theme` loads the dynamic admin theme page.
-- `/admin/theme` shows typography controls.
-- `/admin/theme` shows grouped sections for preset, branding, header, sidebar, dashboard content, footer, typography, and advanced settings.
+- `/admin/theme` shows preset, branding, footer, and advanced placeholder sections only.
+- `/admin/theme` hides typography, color, and custom-token editors in v0.4.4.
 - Persian labels on `/admin/theme` render correctly and do not show question marks.
 - `official_emerald`, `modern_light`, `classic_green`, `neutral_light`, and `green_gold` presets are available and visually distinct.
 - `official_emerald` uses a dark green sidebar, yellow active item, light content area, white cards, and soft shadow.
 - Base user active role cannot update the admin theme.
 - `super_admin` active role can update the admin theme with `admin.theme.manage`.
-- Invalid color, radius, font family, font size, logo/avatar path, and unsafe CSS-like values are rejected.
+- Invalid preset, logo/avatar path, and unsafe CSS-like values are rejected.
 - External `http/https`, `javascript:`, `data:`, `../`, `url()`, and script-like logo/avatar values are rejected.
 - Changing presets updates the admin UI.
 - Admin CSS loads from `public/assets/admin/css/admin.css`.

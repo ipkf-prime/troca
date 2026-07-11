@@ -31,17 +31,6 @@ class AdminThemeService extends BaseService
 
     private const PERSONAL_KEYS = [
         'active_preset',
-        'token.font_family',
-        'token.font_size_base',
-        'token.line_height_base',
-        'token.radius',
-    ];
-
-    private const PERSONAL_TOKEN_KEYS = [
-        'font_family',
-        'font_size_base',
-        'line_height_base',
-        'radius',
     ];
 
     public function __construct(protected ?AppSettingRepository $settings = null)
@@ -242,14 +231,6 @@ class AdminThemeService extends BaseService
         $preset = $this->validPreset((string) ($settings['active_preset'] ?? $this->envDefaultPreset()));
         $tokens = $this->presets()[$preset]['tokens'];
 
-        foreach (self::PERSONAL_TOKEN_KEYS as $key) {
-            $custom = $personal['token.' . $key] ?? null;
-
-            if ($custom !== null && $custom !== '' && isset($tokens[$key]) && $this->validTokenValue($key, $custom)) {
-                $tokens[$key] = $custom;
-            }
-        }
-
         return [
             'active_preset' => $preset,
             'canonical_preset' => $preset,
@@ -340,35 +321,9 @@ class AdminThemeService extends BaseService
             return ['ok' => false, 'errors' => ['settings_unavailable']];
         }
 
-        $errors = [];
         $settings = [];
-        $currentPersonal = $this->personalSettingMap($userId);
         $preset = $this->validPreset((string) ($input['active_preset'] ?? $this->envDefaultPreset()));
         $settings['active_preset'] = [$preset, 'string'];
-
-        foreach (['font_family', 'font_size_base', 'line_height_base', 'radius'] as $key) {
-            $inputKey = 'token_' . $key;
-            $value = trim((string) ($input[$inputKey] ?? ''));
-
-            if ($value === '') {
-                $value = (string) ($currentPersonal['token.' . $key] ?? '');
-            }
-
-            if ($value === '') {
-                continue;
-            }
-
-            if (!$this->validTokenValue($key, $value)) {
-                $errors[] = 'invalid_' . $key;
-                continue;
-            }
-
-            $settings['token.' . $key] = [$value, 'string'];
-        }
-
-        if ($errors !== []) {
-            return ['ok' => false, 'errors' => $errors];
-        }
 
         $this->deleteTokenOverrides($userId);
 
@@ -602,6 +557,7 @@ class AdminThemeService extends BaseService
     {
         $errors = [];
         $settings = [];
+        $currentSystem = $this->settingMap(self::SYSTEM_USER_ID);
         $rawPreset = trim((string) ($input['active_preset'] ?? $this->envDefaultPreset()));
         $preset = $this->validPreset($rawPreset);
 
@@ -638,9 +594,9 @@ class AdminThemeService extends BaseService
         $settings['logo_url'] = [$logoUrl !== '' ? $logoUrl : self::DEFAULT_LOGO_URL, 'string'];
         $settings['default_avatar_url'] = [$defaultAvatarUrl !== '' ? $defaultAvatarUrl : self::DEFAULT_AVATAR_URL, 'string'];
         $settings['footer_text'] = [$footerText, 'string'];
-        $settings['footer_enabled'] = [$this->booleanString($input['footer_enabled'] ?? '0'), 'bool'];
-        $settings['show_user_name'] = [$this->booleanString($input['show_user_name'] ?? '0'), 'bool'];
-        $settings['show_active_role'] = [$this->booleanString($input['show_active_role'] ?? '0'), 'bool'];
+        $settings['footer_enabled'] = [$this->booleanString($input['footer_enabled'] ?? ($currentSystem['footer_enabled'] ?? '0')), 'bool'];
+        $settings['show_user_name'] = [$this->booleanString($input['show_user_name'] ?? ($currentSystem['show_user_name'] ?? '1')), 'bool'];
+        $settings['show_active_role'] = [$this->booleanString($input['show_active_role'] ?? ($currentSystem['show_active_role'] ?? '1')), 'bool'];
 
         return ['errors' => $errors, 'settings' => $settings];
     }

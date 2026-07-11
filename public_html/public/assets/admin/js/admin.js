@@ -6,19 +6,28 @@ document.addEventListener("DOMContentLoaded", () => {
     const userMenu = document.querySelector("[data-admin-user-menu]");
     const userMenuToggle = document.querySelector("[data-admin-user-menu-toggle]");
 
-    const closeSidebar = () => shell?.classList.remove("is-sidebar-open");
+    const setSidebarOpen = (isOpen) => {
+        shell?.classList.toggle("is-sidebar-open", isOpen);
+        document.body.classList.toggle("admin-sidebar-locked", isOpen);
+        sidebarToggle?.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    };
+
+    const closeSidebar = () => setSidebarOpen(false);
     const closeUserMenu = () => {
         userMenu?.classList.remove("is-open");
         userMenuToggle?.setAttribute("aria-expanded", "false");
     };
 
     sidebarToggle?.addEventListener("click", () => {
-        shell?.classList.add("is-sidebar-open");
+        setSidebarOpen(!shell?.classList.contains("is-sidebar-open"));
         closeUserMenu();
     });
 
     sidebarClose?.addEventListener("click", closeSidebar);
     sidebarOverlay?.addEventListener("click", closeSidebar);
+    document.querySelectorAll(".admin-sidebar .admin-nav a").forEach((link) => {
+        link.addEventListener("click", closeSidebar);
+    });
 
     const desktopSidebarQuery = window.matchMedia("(min-width: 921px)");
     const syncSidebarForViewport = () => {
@@ -27,7 +36,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    desktopSidebarQuery.addEventListener?.("change", syncSidebarForViewport);
+    if (desktopSidebarQuery.addEventListener) {
+        desktopSidebarQuery.addEventListener("change", syncSidebarForViewport);
+    } else if (desktopSidebarQuery.addListener) {
+        desktopSidebarQuery.addListener(syncSidebarForViewport);
+    }
     window.addEventListener("resize", syncSidebarForViewport, { passive: true });
     syncSidebarForViewport();
 
@@ -105,4 +118,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
         sync();
     });
+
+    const focusTarget = document.querySelector('[data-autofocus="true"]:not([disabled]), [autofocus]:not([disabled])');
+    const canFocus = (element) => {
+        if (!(element instanceof HTMLElement)) {
+            return false;
+        }
+
+        const style = window.getComputedStyle(element);
+        return style.display !== "none" && style.visibility !== "hidden" && element.offsetParent !== null;
+    };
+
+    if (focusTarget && canFocus(focusTarget) && (!document.activeElement || document.activeElement === document.body)) {
+        focusTarget.focus({ preventScroll: true });
+    }
 });

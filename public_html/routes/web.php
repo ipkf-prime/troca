@@ -247,6 +247,8 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'admin_theme_personal_preset_exists_for_current_user' => $adminTheme !== null && $adminTheme->personalPresetExists($diagnosticUserId),
         'admin_theme_token_override_rows_count' => $adminTheme !== null ? $adminTheme->forensics($diagnosticUserId)['token_override_rows_count'] : 0,
         'admin_theme_token_override_rows_ignored' => true,
+        'admin_theme_custom_editor_enabled' => false,
+        'admin_theme_builtin_presets_only' => true,
         'admin_theme_scope_support' => $adminTheme !== null && $adminTheme->scopeSupport(),
         'admin_personal_theme_available' => $adminTheme !== null && $adminTheme->scopeSupport(),
         'admin_system_theme_available' => $adminTheme !== null && \IPKF\Database\Database::tableExists('app_settings'),

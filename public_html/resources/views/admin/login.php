@@ -9,6 +9,7 @@ if (!function_exists('admin_h')) {
 $title = $title ?? 'ورود به پنل مدیریت';
 $error = $error ?? null;
 $login = $login ?? '';
+$focusPassword = $error !== null && trim((string) $login) !== '';
 $themeService = new \App\Services\AdminThemeService();
 $theme = $themeService->systemTheme();
 $themeAssets = $themeService->assetUrls();
@@ -46,11 +47,11 @@ $themeAssets = $themeService->assetUrls();
                 <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
                 <label>
                     <span>شناسه ورود</span>
-                    <input name="login" value="<?= admin_h($login) ?>" autocomplete="username" placeholder="ایمیل، موبایل یا نام کاربری" required>
+                    <input name="login" value="<?= admin_h($login) ?>" autocomplete="username" placeholder="ایمیل، موبایل یا نام کاربری" <?= $focusPassword ? '' : 'autofocus data-autofocus="true"' ?> required>
                 </label>
                 <label>
                     <span>کلمه عبور</span>
-                    <input name="password" type="password" autocomplete="current-password" placeholder="کلمه عبور خود را وارد کنید" required>
+                    <input name="password" type="password" autocomplete="current-password" placeholder="کلمه عبور خود را وارد کنید" <?= $focusPassword ? 'autofocus data-autofocus="true"' : '' ?> required>
                 </label>
                 <button type="submit">ورود به پنل</button>
             </form>
@@ -61,5 +62,6 @@ $themeAssets = $themeService->assetUrls();
             </div>
         </section>
     </main>
+    <script src="<?= admin_h($themeAssets['admin_js']) ?>" defer></script>
 </body>
 </html>

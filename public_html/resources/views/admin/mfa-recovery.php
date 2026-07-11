@@ -41,7 +41,7 @@ $themeAssets = $themeService->assetUrls();
                 <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
                 <label>
                     <span>کد بازیابی</span>
-                    <input name="recovery_code" autocomplete="one-time-code" placeholder="XXXX-XXXX-XXXX" required>
+                    <input name="recovery_code" autocomplete="one-time-code" dir="ltr" data-autofocus="true" autofocus placeholder="XXXX-XXXX-XXXX" required>
                 </label>
                 <button type="submit">تایید و ادامه</button>
             </form>
@@ -52,5 +52,6 @@ $themeAssets = $themeService->assetUrls();
             </div>
         </section>
     </main>
+    <script src="<?= admin_h($themeAssets['admin_js']) ?>" defer></script>
 </body>
 </html>

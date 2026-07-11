@@ -40,6 +40,7 @@ ob_start();
             <div>
                 <h2>پوسته‌های اصلی</h2>
                 <p class="admin-muted">یکی از پوسته‌های اصلی سامانه را برای نمایش حساب خود انتخاب کنید. این انتخاب فقط برای شما ذخیره می‌شود.</p>
+                <p class="admin-muted">در این نسخه می‌توانید یکی از پوسته‌های آماده را برای حساب خود انتخاب کنید.</p>
             </div>
             <span class="admin-pill">پوسته فعال من: <?= admin_h($theme['preset_title'] ?? '-') ?></span>
         </div>
@@ -58,49 +59,6 @@ ob_start();
                     <small><?= admin_h($preset['description']) ?></small>
                 </label>
             <?php endforeach; ?>
-        </div>
-    </section>
-
-    <section class="admin-section">
-        <div class="admin-section__header">
-            <div>
-                <h2>تنظیمات خوانایی من</h2>
-                <p class="admin-muted">این گزینه‌ها فقط ظاهر حساب شما را تغییر می‌دهند و نام برند، لوگو، آواتار پیش‌فرض یا فوتر سامانه را تغییر نمی‌دهند.</p>
-            </div>
-        </div>
-        <div class="admin-form-grid">
-            <label>
-                <span>فونت پنل</span>
-                <select name="token_font_family">
-                    <?php foreach (($fontOptions ?? []) as $key => $fontValue): ?>
-                        <option value="<?= admin_h($fontValue) ?>" <?= $theme['tokens']['font_family'] === $fontValue ? 'selected' : '' ?>><?= admin_h($fontLabels[$key] ?? $key) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <label>
-                <span>اندازه پایه فونت</span>
-                <select name="token_font_size_base">
-                    <?php foreach ($fontSizeOptions as $size): ?>
-                        <option value="<?= admin_h($size) ?>" <?= $theme['tokens']['font_size_base'] === $size ? 'selected' : '' ?>><?= admin_h($size) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <label>
-                <span>فاصله خطوط</span>
-                <select name="token_line_height_base">
-                    <?php foreach ($lineHeightOptions as $lineHeight): ?>
-                        <option value="<?= admin_h($lineHeight) ?>" <?= $theme['tokens']['line_height_base'] === $lineHeight ? 'selected' : '' ?>><?= admin_h($lineHeight) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <label>
-                <span>گردی گوشه‌ها</span>
-                <select name="token_radius">
-                    <?php foreach ($radiusOptions as $radius): ?>
-                        <option value="<?= admin_h($radius) ?>" <?= $theme['tokens']['radius'] === $radius ? 'selected' : '' ?>><?= admin_h($radius) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
         </div>
     </section>
 

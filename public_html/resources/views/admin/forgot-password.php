@@ -42,7 +42,7 @@ $themeAssets = $themeService->assetUrls();
                 <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
                 <label>
                     <span>ایمیل، موبایل یا نام کاربری</span>
-                    <input name="login" value="<?= admin_h($identifier) ?>" autocomplete="username" required>
+                    <input name="login" value="<?= admin_h($identifier) ?>" autocomplete="username" data-autofocus="true" autofocus required>
                 </label>
                 <button type="submit">ارسال راهنمای بازیابی</button>
             </form>
@@ -53,5 +53,6 @@ $themeAssets = $themeService->assetUrls();
             </div>
         </section>
     </main>
+    <script src="<?= admin_h($themeAssets['admin_js']) ?>" defer></script>
 </body>
 </html>
