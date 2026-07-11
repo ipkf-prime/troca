@@ -10,6 +10,9 @@ $theme = $themeService->theme($themeUserId);
 $avatarUrl = (string) ($user['avatar_url'] ?? $theme['default_avatar_url'] ?? '');
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $year = date('Y');
+$adminCssVersion = (string) (@filemtime(BASE_PATH . '/public/assets/admin/css/admin.css') ?: '1');
+$adminJsVersion = (string) (@filemtime(BASE_PATH . '/public/assets/admin/js/admin.js') ?: '1');
+$adminIconsVersion = (string) (@filemtime(BASE_PATH . '/public/assets/admin/css/icons.css') ?: '1');
 
 if (!function_exists('admin_h')) {
     function admin_h($value): string
@@ -44,9 +47,9 @@ $accountNav = [
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= admin_h($title) ?> | IPKF</title>
-    <link rel="stylesheet" href="/assets/admin/css/icons.css">
-    <link rel="stylesheet" href="/assets/admin/css/admin.css">
-    <script src="/assets/admin/js/admin.js" defer></script>
+    <link rel="stylesheet" href="/assets/admin/css/icons.css?v=<?= admin_h($adminIconsVersion) ?>">
+    <link rel="stylesheet" href="/assets/admin/css/admin.css?v=<?= admin_h($adminCssVersion) ?>">
+    <script src="/assets/admin/js/admin.js?v=<?= admin_h($adminJsVersion) ?>" defer></script>
     <style><?= "\n" . $themeService->cssVariables($themeUserId) . "\n" ?></style>
 </head>
 <body dir="rtl">

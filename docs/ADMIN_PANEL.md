@@ -146,6 +146,8 @@ For v0.4.4, each user has one active personal display theme. The current storage
 
 The theme resolver must be called with the current user id on authenticated admin pages. If no user id is provided, only the system theme is resolved. This prevents one user's `/admin/my-theme` selection from leaking into another user's session or into the global `/admin/theme` settings.
 
+When a system preset is changed in `/admin/theme`, old `token.*` overrides for the system scope are cleared so the selected preset's actual colors, shadows, radius, sidebar, header, and card tokens apply visibly. Personal preset changes remain scoped to the current user's `user_id`.
+
 Future-ready profile shape:
 
 - `id`
@@ -346,6 +348,15 @@ Two-user theme isolation test:
 - Users without personal overrides see `neutral_light`.
 - User A keeps `golden_green` until they reset their personal theme.
 - After User A resets, User A sees the system theme again.
+
+Safe diagnostics for runtime testing include:
+
+- `admin_theme_active_preset`
+- `admin_theme_resolved_source`
+- `admin_theme_system_preset_exists`
+- `admin_theme_personal_preset_exists_for_current_user`
+- `theme_user_scope_supported`
+- `current_theme_resolver_available`
 
 ## Security Notes
 

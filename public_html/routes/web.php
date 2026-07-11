@@ -145,7 +145,17 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $adminTheme = class_exists(\App\Services\AdminThemeService::class)
         ? new \App\Services\AdminThemeService()
         : null;
-    $adminThemeData = $adminTheme === null ? [] : $adminTheme->theme();
+    $diagnosticUserId = null;
+
+    if (class_exists(\App\Services\AuthService::class)) {
+        try {
+            $diagnosticUserId = (new \App\Services\AuthService())->currentUserId();
+        } catch (\Throwable $exception) {
+            $diagnosticUserId = null;
+        }
+    }
+
+    $adminThemeData = $adminTheme === null ? [] : $adminTheme->theme($diagnosticUserId);
     $adminThemeTokens = $adminThemeData['tokens'] ?? [];
     $adminAssetsAvailable = is_dir(BASE_PATH . '/public/assets/admin')
         && is_dir(BASE_PATH . '/public/assets/admin/css')
@@ -230,6 +240,9 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'admin_theme_available' => $adminTheme !== null
             && \IPKF\Database\Database::tableExists('app_settings'),
         'admin_theme_active_preset' => $adminThemeData['active_preset'] ?? 'cooperative_official',
+        'admin_theme_resolved_source' => $adminTheme !== null ? $adminTheme->resolvedPresetSource($diagnosticUserId) : 'default',
+        'admin_theme_system_preset_exists' => $adminTheme !== null && $adminTheme->systemPresetExists(),
+        'admin_theme_personal_preset_exists_for_current_user' => $adminTheme !== null && $adminTheme->personalPresetExists($diagnosticUserId),
         'admin_theme_scope_support' => $adminTheme !== null && $adminTheme->scopeSupport(),
         'admin_personal_theme_available' => $adminTheme !== null && $adminTheme->scopeSupport(),
         'admin_system_theme_available' => $adminTheme !== null && \IPKF\Database\Database::tableExists('app_settings'),

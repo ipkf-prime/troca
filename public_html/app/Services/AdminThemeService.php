@@ -279,10 +279,18 @@ class AdminThemeService extends BaseService
             return ['ok' => false, 'errors' => ['settings_unavailable']];
         }
 
-        $result = $this->sanitizeSystemInput($input);
+        $currentSystem = $this->settingMap(self::SYSTEM_USER_ID);
+        $currentPreset = $this->validPreset((string) ($currentSystem['active_preset'] ?? 'cooperative_official'));
+        $requestedPreset = $this->validPreset((string) ($input['active_preset'] ?? $currentPreset));
+        $presetChanged = $requestedPreset !== $currentPreset;
+        $result = $this->sanitizeSystemInput($input, $presetChanged);
 
         if ($result['errors'] !== []) {
             return ['ok' => false, 'errors' => $result['errors']];
+        }
+
+        if ($presetChanged) {
+            $this->deleteTokenOverrides(self::SYSTEM_USER_ID);
         }
 
         foreach ($result['settings'] as $key => [$value, $type]) {
@@ -455,7 +463,25 @@ class AdminThemeService extends BaseService
         return isset($system['active_preset']) && $system['active_preset'] !== '' ? 'system' : 'default';
     }
 
-    private function sanitizeSystemInput(array $input): array
+    public function systemPresetExists(): bool
+    {
+        $system = $this->settingsAvailable() ? $this->settingMap(self::SYSTEM_USER_ID) : [];
+
+        return isset($system['active_preset']) && $system['active_preset'] !== '';
+    }
+
+    public function personalPresetExists(?int $userId): bool
+    {
+        if ($userId === null || $userId <= self::SYSTEM_USER_ID || !$this->scopeSupport()) {
+            return false;
+        }
+
+        $personal = $this->personalSettingMap($userId);
+
+        return isset($personal['active_preset']) && $personal['active_preset'] !== '';
+    }
+
+    private function sanitizeSystemInput(array $input, bool $presetChanged = false): array
     {
         $errors = [];
         $settings = [];
@@ -498,6 +524,10 @@ class AdminThemeService extends BaseService
         $settings['show_user_name'] = [$this->booleanString($input['show_user_name'] ?? '0'), 'bool'];
         $settings['show_active_role'] = [$this->booleanString($input['show_active_role'] ?? '0'), 'bool'];
 
+        if ($presetChanged) {
+            return ['errors' => $errors, 'settings' => $settings];
+        }
+
         foreach (array_keys($this->presets()['cooperative_official']['tokens']) as $key) {
             $value = trim((string) ($input['token_' . $key] ?? ''));
 
@@ -509,6 +539,13 @@ class AdminThemeService extends BaseService
         }
 
         return ['errors' => $errors, 'settings' => $settings];
+    }
+
+    private function deleteTokenOverrides(int $userId): void
+    {
+        foreach (array_keys($this->presets()['cooperative_official']['tokens']) as $key) {
+            $this->settings->delete(self::NAMESPACE, 'token.' . $key, $userId);
+        }
     }
 
     private function settingMap(int $userId): array

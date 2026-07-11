@@ -9,6 +9,7 @@ if (!function_exists('admin_h')) {
 $title = $title ?? 'رمز یکبارمصرف';
 $error = $error ?? null;
 $themeService = new \App\Services\AdminThemeService();
+$adminCssVersion = (string) (@filemtime(BASE_PATH . '/public/assets/admin/css/admin.css') ?: '1');
 ?>
 <!doctype html>
 <html lang="fa" dir="rtl">
@@ -16,7 +17,7 @@ $themeService = new \App\Services\AdminThemeService();
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= admin_h($title) ?> | IPKF</title>
-    <link rel="stylesheet" href="/assets/admin/css/admin.css">
+    <link rel="stylesheet" href="/assets/admin/css/admin.css?v=<?= admin_h($adminCssVersion) ?>">
     <style><?= "\n" . $themeService->cssVariables() . "\n" ?></style>
 </head>
 <body class="admin-auth-page">

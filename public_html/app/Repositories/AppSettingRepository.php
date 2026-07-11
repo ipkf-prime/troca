@@ -110,6 +110,27 @@ class AppSettingRepository extends BaseRepository
         $statement->execute([$namespace, $userId]);
     }
 
+    public function delete(string $namespace, string $key, int $userId = 0): void
+    {
+        if (!$this->scoped()) {
+            $statement = $this->connection()->prepare("
+                DELETE FROM app_settings
+                WHERE namespace = ?
+                  AND setting_key = ?
+            ");
+            $statement->execute([$namespace, $key]);
+            return;
+        }
+
+        $statement = $this->connection()->prepare("
+            DELETE FROM app_settings
+            WHERE namespace = ?
+              AND setting_key = ?
+              AND user_id = ?
+        ");
+        $statement->execute([$namespace, $key, $userId]);
+    }
+
     public function scoped(): bool
     {
         return Database::columnExists('app_settings', 'user_id');

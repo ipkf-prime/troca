@@ -28,6 +28,8 @@
 - User A's `/admin/my-theme` preset does not affect User B.
 - Users without personal overrides inherit the latest `/admin/theme` system preset.
 - Users with personal overrides keep their own preset until personal reset.
+- Changing system preset visibly changes sidebar, active menu, content surface, cards, and shadows.
+- Changing a preset clears stale visual token overrides for that scope so the new preset applies.
 - Invalid logo/avatar paths are rejected.
 - `POST /admin/theme/reset` with `scope=user` clears only the current user's personal theme.
 - `POST /admin/theme/reset` with `scope=system` requires `admin.theme.manage`.
@@ -38,6 +40,7 @@
 - Diagnostics include safe admin UI booleans.
 - Diagnostics include theme scope, reset, branding, canonical asset, local icon, and webfont path booleans.
 - Diagnostics include `current_theme_resolver_available=true` and `theme_user_scope_supported=true`.
+- Diagnostics include `admin_theme_resolved_source`, `admin_theme_system_preset_exists`, and `admin_theme_personal_preset_exists_for_current_user`.
 - No password hash, session id, CSRF token, recovery code, OTP, provider secret, or maintenance key is exposed.
 - Existing JSON endpoints still work.
 - Persian UTF-8 rendering remains correct.
