@@ -144,6 +144,8 @@ Personal theme settings can override display-focused values such as preset, font
 
 For v0.4.4, each user has one active personal display theme. The current storage uses `app_settings` with scoped `user_id` values; `user_id=0` is the system scope and a positive `user_id` is a personal scope. This keeps the architecture ready for a future `user_theme_profiles` table with saved named profiles, but that full profile library is intentionally not implemented yet.
 
+The theme resolver must be called with the current user id on authenticated admin pages. If no user id is provided, only the system theme is resolved. This prevents one user's `/admin/my-theme` selection from leaking into another user's session or into the global `/admin/theme` settings.
+
 Future-ready profile shape:
 
 - `id`
@@ -159,6 +161,8 @@ Reset actions:
 
 - `POST /admin/theme/reset` with `scope=user` clears only the current user's personal theme.
 - `POST /admin/theme/reset` with `scope=system` resets the system theme and requires `admin.theme.manage`.
+- User reset never touches system branding or another user's personal settings.
+- System reset restores safe defaults for the global theme and does not delete user personal overrides.
 
 ## Canonical Admin Assets
 
@@ -288,6 +292,8 @@ The admin CSS is driven by safe design tokens:
 
 Theme settings are persisted in the framework-safe `app_settings` table under the `admin.theme` namespace. If the table is not available yet, the admin panel falls back to the default preset and environment branding values.
 
+Scoped persistence uses a unique key on `user_id + namespace + setting_key`. System settings are saved with `user_id=0`. Personal settings are saved with the authenticated user's id.
+
 Branding values:
 
 - `ADMIN_BRAND_NAME` sets the fallback admin brand name.
@@ -295,6 +301,8 @@ Branding values:
 - `ADMIN_DEFAULT_AVATAR_URL` sets the fallback user avatar URL.
 - `ADMIN_FONT_FAMILY=Vazirmatn` documents the preferred local font family.
 - Stored database settings override environment fallback values.
+- Branding is system-only. `/admin/my-theme` must not write brand name, logo, default avatar, or footer text.
+- The admin theme seeder fills missing or unsafe defaults but must not overwrite healthy customized system branding.
 
 Typography strategy:
 
@@ -329,6 +337,15 @@ Theme inputs are validated before persistence:
 - logo and avatar URLs must be local safe image paths under `/assets/admin/images/`, `/uploads/admin/logos/`, or `/uploads/admin/avatars/`
 - `javascript:`, `data:`, external `http/https` URLs, and paths containing `../` are rejected
 - arbitrary CSS, `url(...)` injection, scripts, and secrets are not accepted
+
+Two-user theme isolation test:
+
+- User A saves `golden_green` in `/admin/my-theme`.
+- User B logs in and should not inherit User A's personal theme.
+- A super admin changes `/admin/theme` to `neutral_light`.
+- Users without personal overrides see `neutral_light`.
+- User A keeps `golden_green` until they reset their personal theme.
+- After User A resets, User A sees the system theme again.
 
 ## Security Notes
 

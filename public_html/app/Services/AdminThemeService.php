@@ -214,7 +214,7 @@ class AdminThemeService extends BaseService
     public function theme(?int $userId = null): array
     {
         $system = $this->settingsAvailable() ? $this->settingMap(self::SYSTEM_USER_ID) : [];
-        $personal = $userId !== null && $this->scopeSupport()
+        $personal = $userId !== null && $userId > self::SYSTEM_USER_ID && $this->scopeSupport()
             ? $this->personalSettingMap($userId)
             : [];
         $settings = array_replace($system, $personal);
@@ -294,7 +294,7 @@ class AdminThemeService extends BaseService
 
     public function updatePersonal(int $userId, array $input): array
     {
-        if (!$this->scopeSupport()) {
+        if ($userId <= self::SYSTEM_USER_ID || !$this->scopeSupport()) {
             return ['ok' => false, 'errors' => ['settings_unavailable']];
         }
 
@@ -341,7 +341,7 @@ class AdminThemeService extends BaseService
 
     public function resetUser(int $userId): void
     {
-        if ($this->scopeSupport()) {
+        if ($userId > self::SYSTEM_USER_ID && $this->scopeSupport()) {
             $this->settings->deleteNamespace(self::NAMESPACE, $userId);
         }
     }
@@ -424,6 +424,35 @@ class AdminThemeService extends BaseService
     public function webfontsPathAvailable(): bool
     {
         return is_dir(BASE_PATH . '/public/assets/admin/webfonts');
+    }
+
+    public function currentThemeResolverAvailable(): bool
+    {
+        return $this->settingsAvailable()
+            && isset($this->presets()['cooperative_official'])
+            && method_exists($this, 'theme')
+            && method_exists($this, 'personalTheme')
+            && method_exists($this, 'systemTheme');
+    }
+
+    public function themeUserScopeSupported(): bool
+    {
+        return $this->scopeSupport();
+    }
+
+    public function resolvedPresetSource(?int $userId): string
+    {
+        if ($userId !== null && $userId > self::SYSTEM_USER_ID && $this->scopeSupport()) {
+            $personal = $this->personalSettingMap($userId);
+
+            if (isset($personal['active_preset']) && $personal['active_preset'] !== '') {
+                return 'personal';
+            }
+        }
+
+        $system = $this->settingsAvailable() ? $this->settingMap(self::SYSTEM_USER_ID) : [];
+
+        return isset($system['active_preset']) && $system['active_preset'] !== '' ? 'system' : 'default';
     }
 
     private function sanitizeSystemInput(array $input): array

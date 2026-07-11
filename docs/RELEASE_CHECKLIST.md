@@ -24,6 +24,10 @@
 - One active personal theme per user is supported in v0.4.4; multi-profile theme libraries are reserved for a future phase.
 - Theme preset cards are clickable, keyboard-safe radio controls and persist after save.
 - System branding changes update header, sidebar, and login.
+- Rerunning seed does not overwrite healthy customized system branding.
+- User A's `/admin/my-theme` preset does not affect User B.
+- Users without personal overrides inherit the latest `/admin/theme` system preset.
+- Users with personal overrides keep their own preset until personal reset.
 - Invalid logo/avatar paths are rejected.
 - `POST /admin/theme/reset` with `scope=user` clears only the current user's personal theme.
 - `POST /admin/theme/reset` with `scope=system` requires `admin.theme.manage`.
@@ -33,6 +37,7 @@
 - Coming Soon page links to `/admin/login`.
 - Diagnostics include safe admin UI booleans.
 - Diagnostics include theme scope, reset, branding, canonical asset, local icon, and webfont path booleans.
+- Diagnostics include `current_theme_resolver_available=true` and `theme_user_scope_supported=true`.
 - No password hash, session id, CSRF token, recovery code, OTP, provider secret, or maintenance key is exposed.
 - Existing JSON endpoints still work.
 - Persian UTF-8 rendering remains correct.

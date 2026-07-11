@@ -703,6 +703,7 @@ button[type="submit"]:hover,
     display: grid;
     gap: 8px;
     padding: 12px;
+    position: relative;
 }
 
 .admin-preset-card.is-active {
@@ -711,8 +712,17 @@ button[type="submit"]:hover,
 }
 
 .admin-preset-card input {
+    height: 1px;
+    inset-inline-start: 12px;
+    inset-block-start: 12px;
     position: absolute;
     opacity: 0;
+    width: 1px;
+}
+
+.admin-preset-card:has(input:focus-visible) {
+    outline: 3px solid var(--admin-accent);
+    outline-offset: 3px;
 }
 
 .admin-preset-card__visual {

@@ -46,7 +46,7 @@ ob_start();
         <div class="admin-theme-presets">
             <?php foreach ($presets as $key => $preset): ?>
                 <?php $tokens = $preset['tokens']; ?>
-                <label class="admin-preset-card <?= $theme['active_preset'] === $key ? 'is-active' : '' ?>">
+                <label class="admin-preset-card theme-preset-card <?= $theme['active_preset'] === $key ? 'is-active' : '' ?>">
                     <input type="radio" name="active_preset" value="<?= admin_h($key) ?>" <?= $theme['active_preset'] === $key ? 'checked' : '' ?>>
                     <span class="admin-preset-card__visual" style="background: <?= admin_h($tokens['bg']) ?>;">
                         <i style="background: linear-gradient(160deg, <?= admin_h($tokens['sidebar_bg']) ?>, <?= admin_h($tokens['sidebar_bg_2']) ?>);"></i>
