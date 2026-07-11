@@ -239,7 +239,9 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'admin_panel_shell_available' => class_exists(\App\Services\AdminPanelService::class),
         'admin_theme_available' => $adminTheme !== null
             && \IPKF\Database\Database::tableExists('app_settings'),
-        'admin_theme_active_preset' => $adminThemeData['active_preset'] ?? 'cooperative_official',
+        'admin_theme_forensics_available' => $adminTheme !== null,
+        'admin_theme_runtime_fix_version' => $adminTheme !== null ? \App\Services\AdminThemeService::RUNTIME_FIX_VERSION : null,
+        'admin_theme_active_preset' => $adminThemeData['active_preset'] ?? 'official_emerald',
         'admin_theme_resolved_source' => $adminTheme !== null ? $adminTheme->resolvedPresetSource($diagnosticUserId) : 'default',
         'admin_theme_system_preset_exists' => $adminTheme !== null && $adminTheme->systemPresetExists(),
         'admin_theme_personal_preset_exists_for_current_user' => $adminTheme !== null && $adminTheme->personalPresetExists($diagnosticUserId),
@@ -561,7 +563,7 @@ $router->post('/admin/my-theme', function ($request, $response) use ($adminRende
     }
 
     $theme = new \App\Services\AdminThemeService();
-    $result = $theme->updatePersonal((int) $context['user_id'], $request->all());
+    $result = $theme->savePersonalTheme((int) $context['user_id'], $request->all());
 
     if (!$result['ok']) {
         return $adminRender($response, 'my-theme', [
@@ -638,7 +640,7 @@ $router->post('/admin/theme', function ($request, $response) use ($adminRender, 
     }
 
     $theme = new \App\Services\AdminThemeService();
-    $result = $theme->update($request->all());
+    $result = $theme->saveSystemTheme($request->all());
 
     if (!$result['ok']) {
         return $adminRender($response, 'theme', [
@@ -673,14 +675,94 @@ $router->post('/admin/theme/reset', function ($request, $response) use ($adminCo
             return $response->redirect('/admin/theme?status=forbidden');
         }
 
-        $theme->resetSystem();
+        $theme->resetSystemTheme();
 
         return $response->redirect('/admin/theme?status=reset');
     }
 
-    $theme->resetUser((int) $context['user_id']);
+    $theme->resetPersonalTheme((int) $context['user_id']);
 
     return $response->redirect('/admin/my-theme?status=reset');
+});
+
+$router->get('/admin/theme/debug', function ($request, $response) use ($adminContext) {
+    if (!\IPKF\Support\Env::isDebug()) {
+        return $response->status(404)->send('404 - Route not found: /admin/theme/debug');
+    }
+
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    if (!(new \App\Services\AuthorizationService())->hasPermission((int) $context['user_id'], 'admin.theme.manage')) {
+        return $response->status(403)->send('Forbidden');
+    }
+
+    $themeService = new \App\Services\AdminThemeService();
+    $forensics = $themeService->forensics((int) $context['user_id'], $context);
+    $h = static fn ($value): string => htmlspecialchars((string) ($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+    $rowTable = static function (array $rows) use ($h): string {
+        if ($rows === []) {
+            return '<p class="admin-muted">No rows.</p>';
+        }
+
+        $html = '<table class="admin-table"><thead><tr><th>scope</th><th>user_id</th><th>setting_key</th><th>setting_value</th><th>value_type</th><th>updated_at</th></tr></thead><tbody>';
+
+        foreach ($rows as $row) {
+            $html .= '<tr>'
+                . '<td>' . $h($row['scope'] ?? '') . '</td>'
+                . '<td>' . $h($row['user_id'] ?? '') . '</td>'
+                . '<td>' . $h($row['setting_key'] ?? '') . '</td>'
+                . '<td><code>' . $h($row['setting_value'] ?? '') . '</code></td>'
+                . '<td>' . $h($row['value_type'] ?? '') . '</td>'
+                . '<td>' . $h($row['updated_at'] ?? '') . '</td>'
+                . '</tr>';
+        }
+
+        return $html . '</tbody></table>';
+    };
+    $list = static function (array $items) use ($h): string {
+        $html = '<dl class="admin-field-list">';
+
+        foreach ($items as $key => $value) {
+            $html .= '<div><span>' . $h($key) . '</span><strong>' . $h(is_bool($value) ? ($value ? 'true' : 'false') : $value) . '</strong></div>';
+        }
+
+        return $html . '</dl>';
+    };
+
+    ob_start();
+    ?>
+    <!doctype html>
+    <html lang="fa" dir="rtl">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Admin Theme Debug | IPKF</title>
+        <link rel="stylesheet" href="<?= $h($forensics['assets']['admin_css'] ?? '/assets/admin/css/admin.css') ?>">
+        <style id="admin-theme-vars"><?= "\n" . ($forensics['css_variables'] ?? '') . "\n" ?></style>
+    </head>
+    <body class="admin-auth-page" data-admin-theme="<?= $h($forensics['resolved_theme']['canonical_preset'] ?? 'official_emerald') ?>" data-admin-theme-source="<?= $h($forensics['resolved_theme']['resolved_source'] ?? 'default') ?>">
+        <main class="admin-content" style="padding:18px">
+            <section class="admin-section"><h1>Admin Theme Runtime Debug</h1><?= $list($forensics['runtime']) ?></section>
+            <section class="admin-section"><h2>System theme rows</h2><?= $rowTable($forensics['system_rows']) ?></section>
+            <section class="admin-section"><h2>Current user personal theme rows</h2><?= $rowTable($forensics['personal_rows']) ?></section>
+            <section class="admin-section"><h2>Other users</h2><?= $list(['other_user_theme_row_count' => $forensics['other_user_theme_row_count']]) ?></section>
+            <section class="admin-section"><h2>Resolved theme</h2><?= $list($forensics['resolved_theme']) ?></section>
+            <section class="admin-section"><h2>Resolved visual tokens</h2><?= $list($forensics['visual_tokens']) ?></section>
+            <section class="admin-section"><h2>Injected CSS variables</h2><pre dir="ltr"><?= $h($forensics['css_variables']) ?></pre></section>
+            <section class="admin-section"><h2>Loaded admin assets</h2><?= $list($forensics['assets']) ?></section>
+        </main>
+    </body>
+    </html>
+    <?php
+    $content = ob_get_clean() ?: '';
+
+    return $response
+        ->header('Content-Type', 'text/html; charset=UTF-8')
+        ->send($content);
 });
 
 $router->post('/admin/access', function ($request, $response) {

@@ -20,6 +20,17 @@ document.addEventListener("DOMContentLoaded", () => {
     sidebarClose?.addEventListener("click", closeSidebar);
     sidebarOverlay?.addEventListener("click", closeSidebar);
 
+    const desktopSidebarQuery = window.matchMedia("(min-width: 921px)");
+    const syncSidebarForViewport = () => {
+        if (desktopSidebarQuery.matches) {
+            closeSidebar();
+        }
+    };
+
+    desktopSidebarQuery.addEventListener?.("change", syncSidebarForViewport);
+    window.addEventListener("resize", syncSidebarForViewport, { passive: true });
+    syncSidebarForViewport();
+
     userMenuToggle?.addEventListener("click", (event) => {
         event.stopPropagation();
         const isOpen = userMenu?.classList.toggle("is-open") ?? false;

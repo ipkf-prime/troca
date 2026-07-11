@@ -41,6 +41,12 @@
 - Diagnostics include theme scope, reset, branding, canonical asset, local icon, and webfont path booleans.
 - Diagnostics include `current_theme_resolver_available=true` and `theme_user_scope_supported=true`.
 - Diagnostics include `admin_theme_resolved_source`, `admin_theme_system_preset_exists`, and `admin_theme_personal_preset_exists_for_current_user`.
+- Diagnostics include `admin_theme_forensics_available=true` and `admin_theme_runtime_fix_version=theme-runtime-forensics-v1`.
+- `/admin/theme/debug` works only in development/debug for an authorized admin and shows system rows, current user personal rows, resolved source, active preset, generated CSS variables, and loaded asset URLs.
+- System theme test: login as `super_admin`, select `neutral_light` in `/admin/theme`, save, refresh, verify the UI visibly changes and `/admin/theme/debug` shows system active preset as `neutral_light`.
+- Personal isolation test: User A selects `green_gold` in `/admin/my-theme`, verifies personal source in `/admin/theme/debug`, logs out, then User B logs in and must not see `green_gold` unless the system theme is `green_gold`.
+- Reset test: User A resets personal theme and returns to the system theme while system rows remain unchanged.
+- Mobile navigation closes when resizing back to desktop width and does not remain stuck open after viewport changes.
 - No password hash, session id, CSRF token, recovery code, OTP, provider secret, or maintenance key is exposed.
 - Existing JSON endpoints still work.
 - Persian UTF-8 rendering remains correct.
@@ -168,8 +174,8 @@ Version: `0.2.0-foundation`
 - `/admin/theme` shows typography controls.
 - `/admin/theme` shows grouped sections for preset, branding, header, sidebar, dashboard content, footer, typography, and advanced settings.
 - Persian labels on `/admin/theme` render correctly and do not show question marks.
-- `cooperative_official`, `cooperative_light`, `cooperative_classic`, `neutral_light`, and `golden_green` presets are available and visually distinct.
-- `cooperative_official` uses a dark green sidebar, yellow active item, light content area, white cards, and soft shadow.
+- `official_emerald`, `modern_light`, `classic_green`, `neutral_light`, and `green_gold` presets are available and visually distinct.
+- `official_emerald` uses a dark green sidebar, yellow active item, light content area, white cards, and soft shadow.
 - Base user active role cannot update the admin theme.
 - `super_admin` active role can update the admin theme with `admin.theme.manage`.
 - Invalid color, radius, font family, font size, logo/avatar path, and unsafe CSS-like values are rejected.

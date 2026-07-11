@@ -62,6 +62,42 @@ class AppSettingRepository extends BaseRepository
         return $statement->fetchAll();
     }
 
+    public function scopedRows(string $namespace, int $userId = 0): array
+    {
+        if (!$this->scoped()) {
+            return $this->list($namespace);
+        }
+
+        $statement = $this->connection()->prepare("
+            SELECT id, user_id, namespace, setting_key, setting_value, value_type, is_public, updated_at
+            FROM app_settings
+            WHERE namespace = ?
+              AND user_id = ?
+            ORDER BY setting_key ASC
+        ");
+        $statement->execute([$namespace, $userId]);
+
+        return $statement->fetchAll();
+    }
+
+    public function otherScopedUserCount(string $namespace, int $currentUserId): int
+    {
+        if (!$this->scoped()) {
+            return 0;
+        }
+
+        $statement = $this->connection()->prepare("
+            SELECT COUNT(DISTINCT user_id)
+            FROM app_settings
+            WHERE namespace = ?
+              AND user_id > 0
+              AND user_id <> ?
+        ");
+        $statement->execute([$namespace, $currentUserId]);
+
+        return (int) $statement->fetchColumn();
+    }
+
     public function put(string $namespace, string $key, string $value, string $type = 'string', bool $public = true, int $userId = 0): void
     {
         if (!$this->scoped()) {

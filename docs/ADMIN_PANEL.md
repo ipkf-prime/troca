@@ -234,11 +234,13 @@ No upload UI is implemented in this phase.
 
 Available presets:
 
-- `cooperative_official` is the recommended official cooperative theme with dark green sidebar and yellow active menu.
-- `cooperative_light` is a lighter white/green operational theme.
-- `cooperative_classic` keeps a stronger traditional green cooperative look.
+- `official_emerald` is the recommended official emerald theme with dark green sidebar and yellow active menu.
+- `modern_light` is a lighter white/green operational theme.
+- `classic_green` keeps a stronger classic green look.
 - `neutral_light` provides a restrained neutral office option.
-- `golden_green` uses stronger gold highlights for a more promotional Troca identity.
+- `green_gold` uses stronger gold highlights for a more promotional Troca identity.
+
+Older stored values such as `cooperative_official`, `cooperative_light`, `cooperative_classic`, and `golden_green` are normalized safely by the resolver. `ADMIN_DEFAULT_THEME` supports the canonical keys and defaults to `official_emerald`.
 
 The theme page is grouped for non-technical admins:
 
@@ -342,11 +344,11 @@ Theme inputs are validated before persistence:
 
 Two-user theme isolation test:
 
-- User A saves `golden_green` in `/admin/my-theme`.
+- User A saves `green_gold` in `/admin/my-theme`.
 - User B logs in and should not inherit User A's personal theme.
 - A super admin changes `/admin/theme` to `neutral_light`.
 - Users without personal overrides see `neutral_light`.
-- User A keeps `golden_green` until they reset their personal theme.
+- User A keeps `green_gold` until they reset their personal theme.
 - After User A resets, User A sees the system theme again.
 
 Safe diagnostics for runtime testing include:
@@ -357,6 +359,8 @@ Safe diagnostics for runtime testing include:
 - `admin_theme_personal_preset_exists_for_current_user`
 - `theme_user_scope_supported`
 - `current_theme_resolver_available`
+
+Development-only runtime forensics are available at `/admin/theme/debug` when `APP_DEBUG=true` and the authenticated active role can manage the admin theme. The page shows current user id, system rows, current user personal rows, resolved source, active preset, generated CSS variables, and loaded asset URLs without exposing secrets.
 
 ## Security Notes
 

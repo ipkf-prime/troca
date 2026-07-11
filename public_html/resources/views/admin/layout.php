@@ -10,9 +10,8 @@ $theme = $themeService->theme($themeUserId);
 $avatarUrl = (string) ($user['avatar_url'] ?? $theme['default_avatar_url'] ?? '');
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $year = date('Y');
-$adminCssVersion = (string) (@filemtime(BASE_PATH . '/public/assets/admin/css/admin.css') ?: '1');
-$adminJsVersion = (string) (@filemtime(BASE_PATH . '/public/assets/admin/js/admin.js') ?: '1');
-$adminIconsVersion = (string) (@filemtime(BASE_PATH . '/public/assets/admin/css/icons.css') ?: '1');
+$themeAssets = $themeService->assetUrls();
+$themeSource = $themeService->resolvedPresetSource($themeUserId);
 
 if (!function_exists('admin_h')) {
     function admin_h($value): string
@@ -47,12 +46,12 @@ $accountNav = [
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= admin_h($title) ?> | IPKF</title>
-    <link rel="stylesheet" href="/assets/admin/css/icons.css?v=<?= admin_h($adminIconsVersion) ?>">
-    <link rel="stylesheet" href="/assets/admin/css/admin.css?v=<?= admin_h($adminCssVersion) ?>">
-    <script src="/assets/admin/js/admin.js?v=<?= admin_h($adminJsVersion) ?>" defer></script>
-    <style><?= "\n" . $themeService->cssVariables($themeUserId) . "\n" ?></style>
+    <link rel="stylesheet" href="<?= admin_h($themeAssets['icons_css']) ?>">
+    <link rel="stylesheet" href="<?= admin_h($themeAssets['admin_css']) ?>">
+    <script src="<?= admin_h($themeAssets['admin_js']) ?>" defer></script>
+    <style id="admin-theme-vars"><?= "\n" . $themeService->cssVariables($themeUserId) . "\n" ?></style>
 </head>
-<body dir="rtl">
+<body dir="rtl" data-admin-theme="<?= admin_h($theme['canonical_preset'] ?? $theme['active_preset'] ?? 'official_emerald') ?>" data-admin-theme-source="<?= admin_h($themeSource) ?>">
     <div class="admin-shell" data-admin-shell>
         <div class="admin-sidebar-overlay" data-admin-sidebar-overlay></div>
         <aside class="admin-sidebar" id="admin-sidebar">

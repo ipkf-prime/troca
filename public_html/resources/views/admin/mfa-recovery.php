@@ -9,7 +9,8 @@ if (!function_exists('admin_h')) {
 $title = $title ?? 'کد بازیابی';
 $error = $error ?? null;
 $themeService = new \App\Services\AdminThemeService();
-$adminCssVersion = (string) (@filemtime(BASE_PATH . '/public/assets/admin/css/admin.css') ?: '1');
+$theme = $themeService->systemTheme();
+$themeAssets = $themeService->assetUrls();
 ?>
 <!doctype html>
 <html lang="fa" dir="rtl">
@@ -17,10 +18,10 @@ $adminCssVersion = (string) (@filemtime(BASE_PATH . '/public/assets/admin/css/ad
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= admin_h($title) ?> | IPKF</title>
-    <link rel="stylesheet" href="/assets/admin/css/admin.css?v=<?= admin_h($adminCssVersion) ?>">
-    <style><?= "\n" . $themeService->cssVariables() . "\n" ?></style>
+    <link rel="stylesheet" href="<?= admin_h($themeAssets['admin_css']) ?>">
+    <style id="admin-theme-vars"><?= "\n" . $themeService->cssVariables() . "\n" ?></style>
 </head>
-<body class="admin-auth-page">
+<body class="admin-auth-page" data-admin-theme="<?= admin_h($theme['canonical_preset'] ?? $theme['active_preset'] ?? 'official_emerald') ?>" data-admin-theme-source="system">
     <main class="admin-auth">
         <section class="admin-auth__panel">
             <div class="admin-auth__brand">

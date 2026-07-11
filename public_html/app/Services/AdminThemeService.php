@@ -14,6 +14,20 @@ class AdminThemeService extends BaseService
     private const DEFAULT_AVATAR_URL = '/assets/admin/images/avatars/default-avatar.svg';
     private const DEFAULT_BRAND_NAME = 'سامانه هوشمند تروکا';
     private const DEFAULT_FOOTER_TEXT = 'کلیه حقوق این وب‌سایت متعلق به سامانه هوشمند تروکا می‌باشد.';
+    private const DEFAULT_PRESET = 'official_emerald';
+    public const RUNTIME_FIX_VERSION = 'theme-runtime-forensics-v1';
+
+    private const PRESET_ALIASES = [
+        'cooperative_official' => 'official_emerald',
+        'cooperative_light' => 'modern_light',
+        'cooperative_classic' => 'classic_green',
+        'golden_green' => 'green_gold',
+        'official_emerald' => 'official_emerald',
+        'modern_light' => 'modern_light',
+        'classic_green' => 'classic_green',
+        'neutral_light' => 'neutral_light',
+        'green_gold' => 'green_gold',
+    ];
 
     private const PERSONAL_KEYS = [
         'active_preset',
@@ -33,9 +47,9 @@ class AdminThemeService extends BaseService
         $fontStack = $this->envFontStack();
 
         return [
-            'cooperative_official' => [
-                'title' => 'رسمی تعاون',
-                'description' => 'سایدبار سبز رسمی، آیتم فعال طلایی و محتوای روشن برای فضای سازمانی و تعاونی.',
+            'official_emerald' => [
+                'title' => 'زمردی رسمی',
+                'description' => 'سایدبار سبز عمیق، تاکید طلایی و سطح روشن برای فضای مدیریتی رسمی.',
                 'tokens' => $this->baseTokens($fontStack, [
                     'primary' => '#0f7a3f',
                     'primary_hover' => '#0b6533',
@@ -64,8 +78,8 @@ class AdminThemeService extends BaseService
                     'shadow' => '0 10px 30px rgba(15, 80, 43, 0.08)',
                 ]),
             ],
-            'cooperative_light' => [
-                'title' => 'تعاونی روشن',
+            'modern_light' => [
+                'title' => 'روشن مدرن',
                 'description' => 'ظاهر سفید و سبک با تاکیدهای سبز ملایم برای کار روزمره و خوانایی بالا.',
                 'tokens' => $this->baseTokens($fontStack, [
                     'primary' => '#2f8f5b',
@@ -95,7 +109,7 @@ class AdminThemeService extends BaseService
                     'shadow' => '0 12px 32px rgba(31, 41, 51, 0.08)',
                 ]),
             ],
-            'cooperative_classic' => [
+            'classic_green' => [
                 'title' => 'سبز کلاسیک',
                 'description' => 'سبز سنتی‌تر با حس سازمانی، مناسب چیدمان‌های رسمی و کمتر مینیمال.',
                 'tokens' => $this->baseTokens($fontStack, [
@@ -157,7 +171,7 @@ class AdminThemeService extends BaseService
                     'shadow' => '0 12px 32px rgba(15, 23, 42, 0.08)',
                 ]),
             ],
-            'golden_green' => [
+            'green_gold' => [
                 'title' => 'سبز طلایی',
                 'description' => 'سبز تیره با تاکید طلایی پررنگ‌تر، نزدیک‌تر به هویت تبلیغاتی تروکا.',
                 'tokens' => $this->baseTokens($fontStack, [
@@ -218,7 +232,7 @@ class AdminThemeService extends BaseService
             ? $this->personalSettingMap($userId)
             : [];
         $settings = array_replace($system, $personal);
-        $preset = $this->validPreset((string) ($settings['active_preset'] ?? 'cooperative_official'));
+        $preset = $this->validPreset((string) ($settings['active_preset'] ?? $this->envDefaultPreset()));
         $tokens = $this->presets()[$preset]['tokens'];
 
         foreach ($tokens as $key => $default) {
@@ -231,6 +245,7 @@ class AdminThemeService extends BaseService
 
         return [
             'active_preset' => $preset,
+            'canonical_preset' => $preset,
             'preset_title' => $this->presets()[$preset]['title'],
             'brand_name' => $this->textSetting($system, 'brand_name', (string) Env::get('ADMIN_BRAND_NAME', self::DEFAULT_BRAND_NAME), self::DEFAULT_BRAND_NAME),
             'logo_url' => $this->cleanAssetUrl((string) ($system['logo_url'] ?? Env::get('ADMIN_LOGO_URL', self::DEFAULT_LOGO_URL)), self::DEFAULT_LOGO_URL),
@@ -257,10 +272,14 @@ class AdminThemeService extends BaseService
     public function cssVariables(?int $userId = null): string
     {
         $tokens = $this->theme($userId)['tokens'];
-        $lines = [':root {'];
+        $lines = [':root, body[data-admin-theme] {'];
 
         foreach ($tokens as $key => $value) {
             $lines[] = '  --admin-' . str_replace('_', '-', $key) . ': ' . $value . ';';
+        }
+
+        if (isset($tokens['text_muted'])) {
+            $lines[] = '  --admin-muted: ' . $tokens['text_muted'] . ';';
         }
 
         $lines[] = '}';
@@ -270,17 +289,22 @@ class AdminThemeService extends BaseService
 
     public function update(array $input): array
     {
-        return $this->updateSystem($input);
+        return $this->saveSystemTheme($input);
     }
 
     public function updateSystem(array $input): array
+    {
+        return $this->saveSystemTheme($input);
+    }
+
+    public function saveSystemTheme(array $input): array
     {
         if (!$this->settingsAvailable()) {
             return ['ok' => false, 'errors' => ['settings_unavailable']];
         }
 
         $currentSystem = $this->settingMap(self::SYSTEM_USER_ID);
-        $currentPreset = $this->validPreset((string) ($currentSystem['active_preset'] ?? 'cooperative_official'));
+        $currentPreset = $this->validPreset((string) ($currentSystem['active_preset'] ?? $this->envDefaultPreset()));
         $requestedPreset = $this->validPreset((string) ($input['active_preset'] ?? $currentPreset));
         $presetChanged = $requestedPreset !== $currentPreset;
         $result = $this->sanitizeSystemInput($input, $presetChanged);
@@ -302,13 +326,18 @@ class AdminThemeService extends BaseService
 
     public function updatePersonal(int $userId, array $input): array
     {
+        return $this->savePersonalTheme($userId, $input);
+    }
+
+    public function savePersonalTheme(int $userId, array $input): array
+    {
         if ($userId <= self::SYSTEM_USER_ID || !$this->scopeSupport()) {
             return ['ok' => false, 'errors' => ['settings_unavailable']];
         }
 
         $errors = [];
         $settings = [];
-        $preset = $this->validPreset((string) ($input['active_preset'] ?? 'cooperative_official'));
+        $preset = $this->validPreset((string) ($input['active_preset'] ?? $this->envDefaultPreset()));
         $settings['active_preset'] = [$preset, 'string'];
 
         foreach (['font_family', 'font_size_base', 'line_height_base', 'radius'] as $key) {
@@ -340,6 +369,11 @@ class AdminThemeService extends BaseService
 
     public function resetSystem(): void
     {
+        $this->resetSystemTheme();
+    }
+
+    public function resetSystemTheme(): void
+    {
         if ($this->scopeSupport()) {
             $this->settings->deleteNamespace(self::NAMESPACE, self::SYSTEM_USER_ID);
         }
@@ -348,6 +382,11 @@ class AdminThemeService extends BaseService
     }
 
     public function resetUser(int $userId): void
+    {
+        $this->resetPersonalTheme($userId);
+    }
+
+    public function resetPersonalTheme(int $userId): void
     {
         if ($userId > self::SYSTEM_USER_ID && $this->scopeSupport()) {
             $this->settings->deleteNamespace(self::NAMESPACE, $userId);
@@ -361,7 +400,7 @@ class AdminThemeService extends BaseService
         }
 
         $defaults = [
-            'active_preset' => 'cooperative_official',
+            'active_preset' => self::DEFAULT_PRESET,
             'brand_name' => $this->looksCorrupted((string) Env::get('ADMIN_BRAND_NAME', self::DEFAULT_BRAND_NAME))
                 ? self::DEFAULT_BRAND_NAME
                 : (string) Env::get('ADMIN_BRAND_NAME', self::DEFAULT_BRAND_NAME),
@@ -437,7 +476,7 @@ class AdminThemeService extends BaseService
     public function currentThemeResolverAvailable(): bool
     {
         return $this->settingsAvailable()
-            && isset($this->presets()['cooperative_official'])
+            && isset($this->presets()[self::DEFAULT_PRESET])
             && method_exists($this, 'theme')
             && method_exists($this, 'personalTheme')
             && method_exists($this, 'systemTheme');
@@ -481,15 +520,78 @@ class AdminThemeService extends BaseService
         return isset($personal['active_preset']) && $personal['active_preset'] !== '';
     }
 
+    public function assetUrls(): array
+    {
+        return [
+            'admin_css' => '/assets/admin/css/admin.css?v=' . $this->assetVersion('/public/assets/admin/css/admin.css'),
+            'icons_css' => '/assets/admin/css/icons.css?v=' . $this->assetVersion('/public/assets/admin/css/icons.css'),
+            'admin_js' => '/assets/admin/js/admin.js?v=' . $this->assetVersion('/public/assets/admin/js/admin.js'),
+        ];
+    }
+
+    public function visualTokens(?int $userId = null): array
+    {
+        $tokens = $this->theme($userId)['tokens'];
+        $keys = [
+            'primary', 'primary_dark', 'accent', 'bg', 'surface', 'text',
+            'text_muted', 'sidebar_bg', 'sidebar_text', 'sidebar_active_bg',
+            'sidebar_active_text', 'header_bg', 'border', 'shadow', 'radius',
+        ];
+        $visual = [];
+
+        foreach ($keys as $key) {
+            $visual[$key] = $tokens[$key] ?? null;
+        }
+
+        $visual['muted'] = $tokens['text_muted'] ?? null;
+
+        return $visual;
+    }
+
+    public function forensics(?int $userId, array $context = []): array
+    {
+        $theme = $this->theme($userId);
+
+        return [
+            'runtime' => [
+                'route' => $_SERVER['REQUEST_URI'] ?? '',
+                'user_id' => $userId,
+                'username' => $context['user']['username'] ?? null,
+                'email' => $context['user']['email'] ?? null,
+                'mobile' => $context['user']['mobile'] ?? null,
+                'active_role' => $context['active_assignment']['role_code'] ?? null,
+                'app_env' => Env::get('APP_ENV', 'production'),
+                'app_debug' => Env::isDebug(),
+                'resolver_class' => self::class,
+                'runtime_fix_version' => self::RUNTIME_FIX_VERSION,
+            ],
+            'system_rows' => $this->safeRows(self::SYSTEM_USER_ID),
+            'personal_rows' => $userId !== null ? $this->safeRows($userId) : [],
+            'other_user_theme_row_count' => $userId !== null ? $this->settings->otherScopedUserCount(self::NAMESPACE, $userId) : 0,
+            'resolved_theme' => [
+                'resolved_source' => $this->resolvedPresetSource($userId),
+                'active_preset' => $theme['active_preset'],
+                'canonical_preset' => $theme['canonical_preset'],
+                'preset_title' => $theme['preset_title'],
+                'has_personal_override' => $theme['has_personal_override'],
+                'has_system_theme' => $this->systemPresetExists(),
+            ],
+            'visual_tokens' => $this->visualTokens($userId),
+            'css_variables' => $this->cssVariables($userId),
+            'assets' => $this->assetUrls(),
+        ];
+    }
+
     private function sanitizeSystemInput(array $input, bool $presetChanged = false): array
     {
         $errors = [];
         $settings = [];
-        $preset = (string) ($input['active_preset'] ?? 'cooperative_official');
+        $rawPreset = trim((string) ($input['active_preset'] ?? $this->envDefaultPreset()));
+        $preset = $this->validPreset($rawPreset);
 
-        if (!isset($this->presets()[$preset])) {
+        if (!$this->knownPresetInput($rawPreset)) {
             $errors[] = 'invalid_preset';
-            $preset = 'cooperative_official';
+            $preset = self::DEFAULT_PRESET;
         }
 
         $brandName = $this->cleanBrand((string) ($input['brand_name'] ?? ''));
@@ -528,7 +630,7 @@ class AdminThemeService extends BaseService
             return ['errors' => $errors, 'settings' => $settings];
         }
 
-        foreach (array_keys($this->presets()['cooperative_official']['tokens']) as $key) {
+        foreach (array_keys($this->presets()[self::DEFAULT_PRESET]['tokens']) as $key) {
             $value = trim((string) ($input['token_' . $key] ?? ''));
 
             if ($value !== '' && !$this->validTokenValue($key, $value)) {
@@ -543,7 +645,7 @@ class AdminThemeService extends BaseService
 
     private function deleteTokenOverrides(int $userId): void
     {
-        foreach (array_keys($this->presets()['cooperative_official']['tokens']) as $key) {
+        foreach (array_keys($this->presets()[self::DEFAULT_PRESET]['tokens']) as $key) {
             $this->settings->delete(self::NAMESPACE, 'token.' . $key, $userId);
         }
     }
@@ -567,9 +669,49 @@ class AdminThemeService extends BaseService
         );
     }
 
+    private function safeRows(int $userId): array
+    {
+        return array_map(
+            fn (array $row): array => [
+                'setting_key' => (string) ($row['setting_key'] ?? ''),
+                'setting_value' => $this->safeDebugValue((string) ($row['setting_value'] ?? '')),
+                'value_type' => (string) ($row['value_type'] ?? ''),
+                'user_id' => (int) ($row['user_id'] ?? $userId),
+                'scope' => $userId === self::SYSTEM_USER_ID ? 'system' : 'personal',
+                'updated_at' => (string) ($row['updated_at'] ?? ''),
+            ],
+            $this->settings->scopedRows(self::NAMESPACE, $userId)
+        );
+    }
+
+    private function safeDebugValue(string $value): string
+    {
+        return strlen($value) > 160 ? substr($value, 0, 157) . '...' : $value;
+    }
+
+    private function assetVersion(string $path): string
+    {
+        return (string) (@filemtime(BASE_PATH . $path) ?: '1');
+    }
+
+    private function envDefaultPreset(): string
+    {
+        return $this->validPreset((string) Env::get('ADMIN_DEFAULT_THEME', self::DEFAULT_PRESET));
+    }
+
     private function validPreset(string $preset): string
     {
-        return isset($this->presets()[$preset]) ? $preset : 'cooperative_official';
+        $preset = trim($preset);
+        $preset = self::PRESET_ALIASES[$preset] ?? $preset;
+
+        return isset($this->presets()[$preset]) ? $preset : self::DEFAULT_PRESET;
+    }
+
+    private function knownPresetInput(string $preset): bool
+    {
+        $preset = trim($preset);
+
+        return isset(self::PRESET_ALIASES[$preset]) || isset($this->presets()[$preset]);
     }
 
     private function baseTokens(string $fontStack, array $overrides): array
