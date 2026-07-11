@@ -15,12 +15,25 @@ It does not add CRM, Bot, ERP, Automation, Marketplace, business workflows, admi
 - `POST /admin/login`
 - `GET /admin/mfa`
 - `POST /admin/mfa`
+- `GET /admin/mfa/recovery`
+- `POST /admin/mfa/recovery`
+- `GET /admin/forgot-password`
+- `POST /admin/forgot-password`
 - `GET /admin/dashboard`
 - `GET /admin/profile`
+- `GET /admin/account`
+- `GET /admin/security`
+- `GET /admin/password`
+- `POST /admin/password`
+- `GET /admin/my-theme`
 - `GET /admin/access`
 - `POST /admin/access`
 - `GET /admin/theme`
 - `POST /admin/theme`
+- `GET /admin/settings`
+- `GET /admin/pages`
+- `GET /admin/reports`
+- `GET /admin/support`
 - `GET /admin/logout`
 
 ## Auth Flow
@@ -35,7 +48,11 @@ If the user does not require MFA, successful login redirects to `/admin/dashboar
 
 When `AuthService` returns `mfa_required=true`, the admin shell redirects to `/admin/mfa`.
 
-`/admin/mfa` supports:
+`/admin/mfa` uses Persian user-facing labels for one-time password verification. It avoids technical MFA/TOTP wording in the UI.
+
+`/admin/mfa/recovery` supports recovery-code login when the user cannot access a one-time password.
+
+Internally the shell still reuses existing MFA services:
 
 - TOTP code
 - recovery code fallback
@@ -74,6 +91,40 @@ The default active role remains the lowest-privilege assignment selected by the 
 - MFA status
 
 Profile editing is intentionally not implemented in this phase. Future profile edits should reuse the existing identity change verification flow.
+
+## Account Pages
+
+The shell includes account-focused pages:
+
+- `/admin/profile`
+- `/admin/account`
+- `/admin/security`
+- `/admin/password`
+- `/admin/my-theme`
+
+`/admin/password` verifies the current password, requires confirmation, and stores only a new password hash. Password recovery UI is available at `/admin/forgot-password` and returns a generic safe message without user enumeration.
+
+## Two-Part Navigation
+
+Navigation is split intentionally:
+
+- The right sidebar contains only system sections: dashboard, access, admin theme, settings, internal pages, reports, and support.
+- User and account actions live in the avatar/name dropdown: profile, account, security, one-time password, password change, personal display theme, and logout.
+
+The dropdown closes on outside click and Escape. On mobile, the sidebar opens with a hamburger button and closes with the overlay, close button, or Escape.
+
+## Theme Page UX
+
+`/admin/theme` is tabbed:
+
+- پوسته‌ها
+- برندینگ
+- هدر
+- سایدبار
+- داشبورد
+- فوتر
+- فونت
+- پیشرفته
 
 ## Layout
 

@@ -6,9 +6,8 @@ if (!function_exists('admin_h')) {
     }
 }
 
-$title = $title ?? 'ورود به پنل مدیریت';
+$title = $title ?? 'کد بازیابی';
 $error = $error ?? null;
-$login = $login ?? '';
 $themeService = new \App\Services\AdminThemeService();
 ?>
 <!doctype html>
@@ -24,34 +23,30 @@ $themeService = new \App\Services\AdminThemeService();
     <main class="admin-auth">
         <section class="admin-auth__panel">
             <div class="admin-auth__brand">
-                <span class="admin-auth__mark">T</span>
+                <span class="admin-auth__mark">R</span>
                 <div>
-                    <p class="admin-kicker">IPKF / Troca</p>
-                    <h1>ورود به پنل مدیریت</h1>
+                    <p class="admin-kicker">امنیت ورود</p>
+                    <h1>ورود با کد بازیابی</h1>
                 </div>
             </div>
-            <p class="admin-muted">برای ورود، ایمیل، موبایل یا نام کاربری خود را وارد کنید.</p>
+            <p class="admin-muted">اگر به رمز یکبارمصرف دسترسی ندارید، یکی از کدهای بازیابی ذخیره‌شده را وارد کنید.</p>
 
             <?php if ($error): ?>
                 <div class="admin-alert"><?= admin_h($error) ?></div>
             <?php endif; ?>
 
-            <form method="post" action="/admin/login" class="admin-form">
+            <form method="post" action="/admin/mfa/recovery" class="admin-form">
                 <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
                 <label>
-                    <span>شناسه ورود</span>
-                    <input name="login" value="<?= admin_h($login) ?>" autocomplete="username" placeholder="ایمیل، موبایل یا نام کاربری" required>
+                    <span>کد بازیابی</span>
+                    <input name="recovery_code" autocomplete="one-time-code" placeholder="XXXX-XXXX-XXXX" required>
                 </label>
-                <label>
-                    <span>کلمه عبور</span>
-                    <input name="password" type="password" autocomplete="current-password" placeholder="کلمه عبور خود را وارد کنید" required>
-                </label>
-                <button type="submit">ورود به پنل</button>
+                <button type="submit">تایید و ادامه</button>
             </form>
 
             <div class="admin-auth-links">
-                <a href="/admin/forgot-password">بازیابی کلمه عبور</a>
-                <a href="/">بازگشت به صفحه اصلی</a>
+                <a href="/admin/mfa">بازگشت به رمز یکبارمصرف</a>
+                <a href="/admin/support">نیاز به پشتیبانی دارم</a>
             </div>
         </section>
     </main>

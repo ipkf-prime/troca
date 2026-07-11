@@ -17,7 +17,12 @@ ob_start();
 <?php endif; ?>
 
 <section class="admin-section">
-    <h2>انتخاب نقش فعال</h2>
+    <div class="admin-section__header">
+        <div>
+            <h2>انتخاب نقش فعال</h2>
+            <p class="admin-muted">پنل بر اساس نقش فعال شما رفتار می‌کند. برای دسترسی مدیریتی، نقش مناسب را انتخاب کنید.</p>
+        </div>
+    </div>
     <div class="admin-table-wrap">
         <table class="admin-table">
             <thead>
@@ -44,7 +49,7 @@ ob_start();
                                 <form method="post" action="/admin/access" class="admin-inline-form">
                                     <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
                                     <input type="hidden" name="role_assignment_id" value="<?= (int) $assignment['id'] ?>">
-                                    <button type="submit">فعال سازی</button>
+                                    <button type="submit">فعال‌سازی</button>
                                 </form>
                             <?php endif; ?>
                         </td>

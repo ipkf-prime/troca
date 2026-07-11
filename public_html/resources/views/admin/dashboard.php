@@ -9,7 +9,7 @@ if (!function_exists('admin_h')) {
 $cards = [
     ['label' => 'وضعیت ورود', 'value' => 'فعال'],
     ['label' => 'نقش فعال', 'value' => $context['active_assignment']['role_title'] ?? 'بدون نقش'],
-    ['label' => 'MFA', 'value' => ($context['mfa']['enabled'] ?? false) ? 'فعال' : 'غیرفعال'],
+    ['label' => 'رمز یکبارمصرف', 'value' => ($context['mfa']['enabled'] ?? false) ? 'فعال' : 'غیرفعال'],
     ['label' => 'نسخه', 'value' => $context['version'] ?? ''],
 ];
 
@@ -25,7 +25,13 @@ ob_start();
 </section>
 
 <section class="admin-section">
-    <h2>خلاصه دسترسی</h2>
+    <div class="admin-section__header">
+        <div>
+            <h2>خلاصه دسترسی</h2>
+            <p class="admin-muted">نقش فعال، دسترسی جاری شما را در پنل مشخص می‌کند.</p>
+        </div>
+        <a class="admin-button admin-button--soft" href="/admin/access">تغییر نقش فعال</a>
+    </div>
     <div class="admin-table-wrap">
         <table class="admin-table">
             <thead>

@@ -235,6 +235,12 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'admin_logo_configured' => ($adminThemeData['logo_url'] ?? '') !== '',
         'admin_default_avatar_configured' => ($adminThemeData['default_avatar_url'] ?? '') !== '',
         'admin_theme_persian_ok' => $adminTheme !== null && $adminTheme->persianDefaultsOk(),
+        'admin_footer_available' => true,
+        'admin_user_menu_available' => true,
+        'admin_password_recovery_ui_available' => true,
+        'admin_mfa_recovery_ui_available' => true,
+        'admin_two_part_navigation_available' => true,
+        'admin_responsive_ui_available' => true,
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),
@@ -292,6 +298,30 @@ $router->get('/admin/login', function ($request, $response) use ($adminRender) {
     ]);
 });
 
+$router->get('/admin/forgot-password', function ($request, $response) use ($adminRender) {
+    if ((new \App\Services\AuthService())->authenticated()) {
+        return $response->redirect('/admin/dashboard');
+    }
+
+    return $adminRender($response, 'forgot-password', [
+        'title' => 'بازیابی کلمه عبور',
+        'sent' => false,
+        'identifier' => '',
+    ]);
+});
+
+$router->post('/admin/forgot-password', function ($request, $response) use ($adminRender) {
+    if ((new \App\Services\AuthService())->authenticated()) {
+        return $response->redirect('/admin/dashboard');
+    }
+
+    return $adminRender($response, 'forgot-password', [
+        'title' => 'بازیابی کلمه عبور',
+        'sent' => true,
+        'identifier' => trim((string) $request->input('login', '')),
+    ]);
+});
+
 $router->post('/admin/login', function ($request, $response) use ($adminRender) {
     $login = trim((string) $request->input('login', ''));
     $password = (string) $request->input('password', '');
@@ -323,7 +353,7 @@ $router->get('/admin/mfa', function ($request, $response) use ($adminRender) {
     }
 
     return $adminRender($response, 'mfa', [
-        'title' => 'تایید دومرحله ای',
+        'title' => 'رمز یکبارمصرف',
         'error' => null,
     ]);
 });
@@ -338,8 +368,39 @@ $router->post('/admin/mfa', function ($request, $response) use ($adminRender) {
 
     if ($userId === null) {
         return $adminRender($response, 'mfa', [
-            'title' => 'تایید دومرحله ای',
-            'error' => 'کد تایید معتبر نیست.',
+            'title' => 'رمز یکبارمصرف',
+            'error' => 'رمز وارد شده معتبر نیست.',
+        ], 422);
+    }
+
+    (new \App\Services\AuthService())->completeMfaLogin($userId);
+
+    return $response->redirect('/admin/dashboard');
+});
+
+$router->get('/admin/mfa/recovery', function ($request, $response) use ($adminRender) {
+    if ((new \App\Services\AuthService())->authenticated()) {
+        return $response->redirect('/admin/dashboard');
+    }
+
+    if ((new \App\Services\MfaService())->pendingUserId() === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    return $adminRender($response, 'mfa-recovery', [
+        'title' => 'کد بازیابی',
+        'error' => null,
+    ]);
+});
+
+$router->post('/admin/mfa/recovery', function ($request, $response) use ($adminRender) {
+    $code = trim((string) $request->input('recovery_code', ''));
+    $userId = (new \App\Services\MfaService())->verifyPendingChallenge('recovery_code', $code);
+
+    if ($userId === null) {
+        return $adminRender($response, 'mfa-recovery', [
+            'title' => 'کد بازیابی',
+            'error' => 'کد بازیابی معتبر نیست.',
         ], 422);
     }
 
@@ -370,6 +431,94 @@ $router->get('/admin/profile', function ($request, $response) use ($adminRender,
 
     return $adminRender($response, 'profile', [
         'title' => 'پروفایل کاربر',
+        'context' => $context,
+    ]);
+});
+
+$router->get('/admin/account', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    return $adminRender($response, 'account', [
+        'title' => 'اطلاعات حساب',
+        'context' => $context,
+    ]);
+});
+
+$router->get('/admin/security', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    return $adminRender($response, 'security', [
+        'title' => 'امنیت و ورود',
+        'context' => $context,
+    ]);
+});
+
+$router->get('/admin/password', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    return $adminRender($response, 'password', [
+        'title' => 'تغییر کلمه عبور',
+        'context' => $context,
+        'status' => trim((string) $request->input('status', '')),
+        'error' => '',
+    ]);
+});
+
+$router->post('/admin/password', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    $currentPassword = (string) $request->input('current_password', '');
+    $password = (string) $request->input('password', '');
+    $confirmation = (string) $request->input('password_confirmation', '');
+
+    if (strlen($password) < 8 || $password !== $confirmation) {
+        return $adminRender($response, 'password', [
+            'title' => 'تغییر کلمه عبور',
+            'context' => $context,
+            'status' => '',
+            'error' => 'کلمه عبور جدید معتبر نیست یا با تکرار آن یکسان نیست.',
+        ], 422);
+    }
+
+    $changed = (new \App\Services\AuthService())->changePassword((int) $context['user_id'], $currentPassword, $password);
+
+    if (!$changed) {
+        return $adminRender($response, 'password', [
+            'title' => 'تغییر کلمه عبور',
+            'context' => $context,
+            'status' => '',
+            'error' => 'کلمه عبور فعلی معتبر نیست.',
+        ], 422);
+    }
+
+    return $response->redirect('/admin/password?status=updated');
+});
+
+$router->get('/admin/my-theme', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    return $adminRender($response, 'my-theme', [
+        'title' => 'پوسته نمایشی من',
         'context' => $context,
     ]);
 });
@@ -466,6 +615,27 @@ $router->post('/admin/access', function ($request, $response) {
 
     return $response->redirect('/admin/access?status=' . ($assignment === null ? 'forbidden' : 'switched'));
 });
+
+$adminPlaceholder = function ($title, $message) use ($adminRender, $adminContext) {
+    return function ($request, $response) use ($adminRender, $adminContext, $title, $message) {
+        $context = $adminContext();
+
+        if ($context === null) {
+            return $response->redirect('/admin/login');
+        }
+
+        return $adminRender($response, 'placeholder', [
+            'title' => $title,
+            'context' => $context,
+            'message' => $message,
+        ]);
+    };
+};
+
+$router->get('/admin/settings', $adminPlaceholder('تنظیمات', 'تنظیمات سامانه در فازهای بعدی تکمیل می‌شود.'));
+$router->get('/admin/pages', $adminPlaceholder('صفحات داخلی', 'مدیریت صفحات داخلی هنوز فعال نشده است.'));
+$router->get('/admin/reports', $adminPlaceholder('گزارش‌ها', 'گزارش‌های مدیریتی در نسخه‌های بعدی اضافه می‌شود.'));
+$router->get('/admin/support', $adminPlaceholder('پشتیبانی', 'مسیرهای پشتیبانی و راهنمای داخلی در فاز بعدی تکمیل می‌شود.'));
 
 $router->get('/admin/logout', function ($request, $response) {
     (new \App\Services\AuthService())->logout();

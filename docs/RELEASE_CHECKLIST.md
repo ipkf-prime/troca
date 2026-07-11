@@ -1,4 +1,29 @@
-# IPKF v0.2.0 Foundation Release Checklist
+# IPKF Release Checklist
+
+## v0.4.4 Admin Panel Shell UI Checks
+
+- `/health` returns `0.4.4-admin-panel-shell-dev`.
+- `/admin/login` loads the RTL Persian login UI.
+- Login works with email, mobile, and username.
+- `/admin/mfa` uses one-time-password wording for users.
+- `/admin/mfa/recovery` loads and submits recovery codes safely.
+- `/admin/forgot-password` returns a generic safe response.
+- `/admin/dashboard` loads after authentication and shows active role.
+- `/admin/access` lists assignments and switches active role.
+- `/admin/profile`, `/admin/account`, `/admin/security`, `/admin/password`, and `/admin/my-theme` load safely.
+- Password change verifies the current password and never exposes password hashes.
+- Sidebar contains only system navigation.
+- User/account actions are in the dropdown menu.
+- Dropdown closes on outside click and Escape.
+- Mobile sidebar opens with hamburger and closes with overlay/Escape.
+- `/admin/theme` is tabbed and remains CSRF protected.
+- Coming Soon page links to `/admin/login`.
+- Diagnostics include safe admin UI booleans.
+- No password hash, session id, CSRF token, recovery code, OTP, provider secret, or maintenance key is exposed.
+- Existing JSON endpoints still work.
+- Persian UTF-8 rendering remains correct.
+
+## v0.2.0 Foundation Release Checklist
 
 Version: `0.2.0-foundation`
 

@@ -16,6 +16,8 @@ $fontLabels = [
 $fontSizeOptions = ['13px', '14px', '15px', '16px', '1rem'];
 $lineHeightOptions = ['1.5', '1.6', '1.7', '1.8'];
 $radiusOptions = ['8px', '12px', '16px', '18px', '20px', '24px'];
+$logoOptions = $logoOptions ?? [];
+$avatarOptions = $avatarOptions ?? [];
 
 $colorLabels = [
     'primary' => 'رنگ اصلی',
@@ -24,20 +26,13 @@ $colorLabels = [
     'primary_soft' => 'سبز ملایم',
     'accent' => 'رنگ تاکید',
     'accent_hover' => 'تاکید در حالت hover',
-    'bg' => 'پس‌زمینه محتوا',
-    'surface' => 'سطح کارت',
     'surface_muted' => 'سطح ملایم',
     'text' => 'متن اصلی',
     'text_muted' => 'متن کم‌رنگ',
     'border' => 'خط جداکننده',
-    'sidebar_bg' => 'پس‌زمینه سایدبار',
-    'sidebar_bg_2' => 'گرادیان سایدبار',
     'sidebar_text' => 'متن سایدبار',
     'sidebar_text_muted' => 'متن کم‌رنگ سایدبار',
-    'sidebar_active_bg' => 'آیتم فعال منو',
     'sidebar_active_text' => 'متن آیتم فعال',
-    'header_bg' => 'پس‌زمینه هدر',
-    'footer_bg' => 'پس‌زمینه فوتر',
     'footer_text' => 'متن فوتر',
 ];
 
@@ -51,9 +46,6 @@ $advancedTextTokens = [
     'font_weight_medium' => 'وزن متوسط',
     'font_weight_bold' => 'وزن ضخیم',
 ];
-
-$logoOptions = $logoOptions ?? [];
-$avatarOptions = $avatarOptions ?? [];
 
 ob_start();
 ?>
@@ -72,10 +64,23 @@ ob_start();
 <form method="post" action="/admin/theme" class="admin-theme-form">
     <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
 
-    <section class="admin-section admin-theme-section">
+    <nav class="admin-tabs" data-admin-tabs role="tablist" aria-label="بخش‌های پوسته">
+        <button class="admin-tab is-active" type="button" data-admin-tab="presets" role="tab">پوسته‌ها</button>
+        <button class="admin-tab" type="button" data-admin-tab="branding" role="tab">برندینگ</button>
+        <button class="admin-tab" type="button" data-admin-tab="header" role="tab">هدر</button>
+        <button class="admin-tab" type="button" data-admin-tab="sidebar" role="tab">سایدبار</button>
+        <button class="admin-tab" type="button" data-admin-tab="dashboard" role="tab">داشبورد</button>
+        <button class="admin-tab" type="button" data-admin-tab="footer" role="tab">فوتر</button>
+        <button class="admin-tab" type="button" data-admin-tab="font" role="tab">فونت</button>
+        <button class="admin-tab" type="button" data-admin-tab="advanced" role="tab">پیشرفته</button>
+    </nav>
+
+    <section class="admin-section admin-tab-panel is-active" data-admin-tab-panel="presets">
         <div class="admin-section__header">
-            <h2>انتخاب پوسته</h2>
-            <p class="admin-muted">یک ظاهر پایه انتخاب کنید. هر پوسته رنگ، سایدبار و حس بصری متفاوتی دارد.</p>
+            <div>
+                <h2>انتخاب پوسته</h2>
+                <p class="admin-muted">یک ظاهر پایه انتخاب کنید. هر پوسته رنگ، سایدبار و حس بصری متفاوتی دارد.</p>
+            </div>
         </div>
         <div class="admin-theme-presets">
             <?php foreach ($presets as $key => $preset): ?>
@@ -94,16 +99,15 @@ ob_start();
         </div>
     </section>
 
-    <section class="admin-section admin-theme-section">
+    <section class="admin-section admin-tab-panel" data-admin-tab-panel="branding" hidden>
         <div class="admin-section__header">
-            <h2>برندینگ</h2>
-            <p class="admin-muted">نام سامانه، لوگو و آواتار پیش‌فرض کاربران را تنظیم کنید.</p>
+            <div>
+                <h2>برندینگ</h2>
+                <p class="admin-muted">نام سامانه، لوگو و آواتار پیش‌فرض کاربران را تنظیم کنید.</p>
+            </div>
         </div>
         <div class="admin-form-grid">
-            <label>
-                <span>نام سامانه</span>
-                <input name="brand_name" value="<?= admin_h($theme['brand_name']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>>
-            </label>
+            <label><span>نام سامانه</span><input name="brand_name" value="<?= admin_h($theme['brand_name']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>></label>
             <label>
                 <span>لوگوی پنل</span>
                 <select name="logo_url" <?= $canManageTheme ? '' : 'disabled' ?>>
@@ -125,43 +129,24 @@ ob_start();
             <img src="<?= admin_h($theme['logo_url']) ?>" alt="">
             <div>
                 <strong><?= admin_h($theme['brand_name']) ?></strong>
-                <span>پیش‌نمایش برند در هدر و سایدبار</span>
+                <span class="admin-muted">پیش‌نمایش برند در هدر و سایدبار</span>
             </div>
             <img class="admin-avatar" src="<?= admin_h($theme['default_avatar_url']) ?>" alt="">
         </div>
-        <p class="admin-muted">بارگذاری فایل لوگو در نسخه بعدی اضافه می‌شود. فعلاً مسیر فایل داخلی را از بخش پیشرفته وارد کنید.</p>
     </section>
 
-    <section class="admin-section admin-theme-section">
-        <div class="admin-section__header">
-            <h2>هدر</h2>
-            <p class="admin-muted">نمایش کاربر، نقش فعال و رنگ هدر پنل.</p>
-        </div>
+    <section class="admin-section admin-tab-panel" data-admin-tab-panel="header" hidden>
+        <div class="admin-section__header"><div><h2>هدر</h2><p class="admin-muted">نمایش کاربر، نقش فعال و رنگ هدر پنل.</p></div></div>
         <div class="admin-form-grid">
-            <label>
-                <span>رنگ هدر</span>
-                <input type="color" name="token_header_bg" value="<?= admin_h($theme['tokens']['header_bg']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>>
-            </label>
-            <label class="admin-check-field">
-                <input type="checkbox" name="show_user_name" value="1" <?= $theme['show_user_name'] ? 'checked' : '' ?> <?= $canManageTheme ? '' : 'disabled' ?>>
-                <span>نمایش نام کاربر</span>
-            </label>
-            <label class="admin-check-field">
-                <input type="checkbox" name="show_active_role" value="1" <?= $theme['show_active_role'] ? 'checked' : '' ?> <?= $canManageTheme ? '' : 'disabled' ?>>
-                <span>نمایش نقش فعال</span>
-            </label>
+            <label><span>رنگ هدر</span><input type="color" name="token_header_bg" value="<?= admin_h($theme['tokens']['header_bg']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>></label>
+            <label class="admin-check-field"><input type="checkbox" name="show_user_name" value="1" <?= $theme['show_user_name'] ? 'checked' : '' ?> <?= $canManageTheme ? '' : 'disabled' ?>><span>نمایش نام کاربر</span></label>
+            <label class="admin-check-field"><input type="checkbox" name="show_active_role" value="1" <?= $theme['show_active_role'] ? 'checked' : '' ?> <?= $canManageTheme ? '' : 'disabled' ?>><span>نمایش نقش فعال</span></label>
         </div>
-        <div class="admin-header-preview" style="background: <?= admin_h($theme['tokens']['header_bg']) ?>;">
-            <span><?= admin_h($theme['brand_name']) ?></span>
-            <b>مدیر کل سامانه</b>
-        </div>
+        <div class="admin-header-preview" style="background: <?= admin_h($theme['tokens']['header_bg']) ?>;"><span><?= admin_h($theme['brand_name']) ?></span><b>مدیر کل سامانه</b></div>
     </section>
 
-    <section class="admin-section admin-theme-section">
-        <div class="admin-section__header">
-            <h2>سایدبار / منو</h2>
-            <p class="admin-muted">رنگ منوی اصلی، آیتم فعال و حالت hover را تنظیم کنید.</p>
-        </div>
+    <section class="admin-section admin-tab-panel" data-admin-tab-panel="sidebar" hidden>
+        <div class="admin-section__header"><div><h2>سایدبار</h2><p class="admin-muted">رنگ منوی اصلی، آیتم فعال و حالت hover را تنظیم کنید.</p></div></div>
         <div class="admin-form-grid">
             <label><span>پس‌زمینه سایدبار</span><input type="color" name="token_sidebar_bg" value="<?= admin_h($theme['tokens']['sidebar_bg']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>></label>
             <label><span>رنگ دوم سایدبار</span><input type="color" name="token_sidebar_bg_2" value="<?= admin_h($theme['tokens']['sidebar_bg_2']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>></label>
@@ -169,16 +154,13 @@ ob_start();
         </div>
         <div class="admin-sidebar-preview" style="background: linear-gradient(180deg, <?= admin_h($theme['tokens']['sidebar_bg']) ?>, <?= admin_h($theme['tokens']['sidebar_bg_2']) ?>); color: <?= admin_h($theme['tokens']['sidebar_text']) ?>;">
             <span>داشبورد</span>
-            <strong style="background: <?= admin_h($theme['tokens']['sidebar_active_bg']) ?>; color: <?= admin_h($theme['tokens']['sidebar_active_text']) ?>;">پوسته</strong>
-            <span>پروفایل</span>
+            <strong style="background: <?= admin_h($theme['tokens']['sidebar_active_bg']) ?>; color: <?= admin_h($theme['tokens']['sidebar_active_text']) ?>;">پوسته پنل</strong>
+            <span>گزارش‌ها</span>
         </div>
     </section>
 
-    <section class="admin-section admin-theme-section">
-        <div class="admin-section__header">
-            <h2>محتوای داشبورد</h2>
-            <p class="admin-muted">پس‌زمینه، کارت‌ها، گردی گوشه‌ها و سایه‌ها.</p>
-        </div>
+    <section class="admin-section admin-tab-panel" data-admin-tab-panel="dashboard" hidden>
+        <div class="admin-section__header"><div><h2>داشبورد</h2><p class="admin-muted">پس‌زمینه، کارت‌ها، گردی گوشه‌ها و سایه‌ها.</p></div></div>
         <div class="admin-form-grid">
             <label><span>پس‌زمینه</span><input type="color" name="token_bg" value="<?= admin_h($theme['tokens']['bg']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>></label>
             <label><span>رنگ کارت‌ها</span><input type="color" name="token_surface" value="<?= admin_h($theme['tokens']['surface']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>></label>
@@ -193,26 +175,17 @@ ob_start();
         </div>
     </section>
 
-    <section class="admin-section admin-theme-section">
-        <div class="admin-section__header">
-            <h2>فوتر</h2>
-            <p class="admin-muted">متن و رنگ فوتر پنل مدیریت.</p>
-        </div>
+    <section class="admin-section admin-tab-panel" data-admin-tab-panel="footer" hidden>
+        <div class="admin-section__header"><div><h2>فوتر</h2><p class="admin-muted">متن و رنگ فوتر پنل مدیریت.</p></div></div>
         <div class="admin-form-grid">
             <label><span>متن فوتر</span><input name="footer_text" value="<?= admin_h($theme['footer_text']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>></label>
             <label><span>رنگ فوتر</span><input type="color" name="token_footer_bg" value="<?= admin_h($theme['tokens']['footer_bg']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>></label>
-            <label class="admin-check-field">
-                <input type="checkbox" name="footer_enabled" value="1" <?= $theme['footer_enabled'] ? 'checked' : '' ?> <?= $canManageTheme ? '' : 'disabled' ?>>
-                <span>نمایش فوتر</span>
-            </label>
+            <label class="admin-check-field"><input type="checkbox" name="footer_enabled" value="1" <?= $theme['footer_enabled'] ? 'checked' : '' ?> <?= $canManageTheme ? '' : 'disabled' ?>><span>نمایش فوتر</span></label>
         </div>
     </section>
 
-    <section class="admin-section admin-theme-section">
-        <div class="admin-section__header">
-            <h2>فونت و خوانایی</h2>
-            <p class="admin-muted">فونت، اندازه متن و فاصله خطوط برای خوانایی فارسی.</p>
-        </div>
+    <section class="admin-section admin-tab-panel" data-admin-tab-panel="font" hidden>
+        <div class="admin-section__header"><div><h2>فونت و خوانایی</h2><p class="admin-muted">فونت، اندازه متن و فاصله خطوط برای خوانایی فارسی.</p></div></div>
         <div class="admin-form-grid">
             <label>
                 <span>فونت پنل</span>
@@ -242,16 +215,15 @@ ob_start();
         <div class="admin-typography-preview">«نمونه متن فارسی پنل مدیریت تروکا»</div>
     </section>
 
-    <details class="admin-section admin-theme-section">
-        <summary>تنظیمات پیشرفته</summary>
-        <p class="admin-muted">این بخش برای تنظیم دقیق رنگ‌ها و مسیرهای داخلی است. مقدارهای خارجی یا ناامن ذخیره نمی‌شوند.</p>
+    <section class="admin-section admin-tab-panel" data-admin-tab-panel="advanced" hidden>
+        <div class="admin-section__header"><div><h2>پیشرفته</h2><p class="admin-muted">تنظیم دقیق رنگ‌ها، مسیرهای داخلی و توکن‌های نمایشی. مقدار خارجی یا ناامن ذخیره نمی‌شود.</p></div></div>
         <div class="admin-form-grid">
             <label><span>مسیر دستی لوگو</span><input name="logo_url_manual" placeholder="/assets/admin/images/logos/default-logo.svg" <?= $canManageTheme ? '' : 'disabled' ?>></label>
             <label><span>مسیر دستی آواتار</span><input name="default_avatar_url_manual" placeholder="/assets/admin/images/avatars/default-avatar.svg" <?= $canManageTheme ? '' : 'disabled' ?>></label>
         </div>
         <div class="admin-token-grid">
             <?php foreach ($colorLabels as $key => $label): ?>
-                <?php if (!isset($theme['tokens'][$key]) || in_array($key, ['sidebar_bg', 'sidebar_bg_2', 'sidebar_active_bg', 'header_bg', 'bg', 'surface', 'footer_bg'], true)): ?>
+                <?php if (!isset($theme['tokens'][$key])): ?>
                     <?php continue; ?>
                 <?php endif; ?>
                 <label class="admin-token-field">
@@ -269,7 +241,7 @@ ob_start();
                 </label>
             <?php endforeach; ?>
         </div>
-    </details>
+    </section>
 
     <?php if ($canManageTheme): ?>
         <div class="admin-form-actions">

@@ -6,7 +6,7 @@ if (!function_exists('admin_h')) {
     }
 }
 
-$title = $title ?? 'تایید دومرحله ای';
+$title = $title ?? 'رمز یکبارمصرف';
 $error = $error ?? null;
 $themeService = new \App\Services\AdminThemeService();
 ?>
@@ -22,9 +22,14 @@ $themeService = new \App\Services\AdminThemeService();
 <body class="admin-auth-page">
     <main class="admin-auth">
         <section class="admin-auth__panel">
-            <p class="admin-kicker">IPKF Security</p>
-            <h1>تایید دومرحله ای</h1>
-            <p class="admin-muted">کد برنامه احراز هویت یا یکی از کدهای بازیابی را وارد کنید.</p>
+            <div class="admin-auth__brand">
+                <span class="admin-auth__mark">✓</span>
+                <div>
+                    <p class="admin-kicker">امنیت ورود</p>
+                    <h1>رمز یکبارمصرف</h1>
+                </div>
+            </div>
+            <p class="admin-muted">رمز یکبارمصرف حساب خود را وارد کنید تا ورود کامل شود.</p>
 
             <?php if ($error): ?>
                 <div class="admin-alert"><?= admin_h($error) ?></div>
@@ -33,15 +38,16 @@ $themeService = new \App\Services\AdminThemeService();
             <form method="post" action="/admin/mfa" class="admin-form">
                 <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
                 <label>
-                    <span>کد TOTP</span>
-                    <input name="code" inputmode="numeric" autocomplete="one-time-code">
+                    <span>رمز یکبارمصرف</span>
+                    <input name="code" inputmode="numeric" autocomplete="one-time-code" placeholder="کد ۶ رقمی" required>
                 </label>
-                <label>
-                    <span>کد بازیابی</span>
-                    <input name="recovery_code" autocomplete="one-time-code">
-                </label>
-                <button type="submit">تایید و ورود</button>
+                <button type="submit">تایید و ادامه</button>
             </form>
+
+            <div class="admin-auth-links">
+                <a href="/admin/mfa/recovery">ورود با کد بازیابی</a>
+                <a href="/admin/support">عدم دسترسی به رمز یکبارمصرف</a>
+            </div>
         </section>
     </main>
 </body>
