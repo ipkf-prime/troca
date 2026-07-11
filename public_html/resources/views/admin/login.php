@@ -10,6 +10,7 @@ $title = $title ?? 'ورود به پنل مدیریت';
 $error = $error ?? null;
 $login = $login ?? '';
 $themeService = new \App\Services\AdminThemeService();
+$theme = $themeService->systemTheme();
 ?>
 <!doctype html>
 <html lang="fa" dir="rtl">
@@ -24,9 +25,13 @@ $themeService = new \App\Services\AdminThemeService();
     <main class="admin-auth">
         <section class="admin-auth__panel">
             <div class="admin-auth__brand">
-                <span class="admin-auth__mark">T</span>
+                <?php if (($theme['logo_url'] ?? '') !== ''): ?>
+                    <img class="admin-brand__logo" src="<?= admin_h($theme['logo_url']) ?>" alt="">
+                <?php else: ?>
+                    <span class="admin-auth__mark">T</span>
+                <?php endif; ?>
                 <div>
-                    <p class="admin-kicker">IPKF / Troca</p>
+                    <p class="admin-kicker"><?= admin_h($theme['brand_name'] ?? 'IPKF / Troca') ?></p>
                     <h1>ورود به پنل مدیریت</h1>
                 </div>
             </div>

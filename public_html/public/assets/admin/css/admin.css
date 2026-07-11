@@ -1,6 +1,8 @@
 @font-face {
     font-family: "Vazirmatn";
-    src: url("/assets/admin/fonts/Vazirmatn.woff2") format("woff2");
+    src:
+        url("/assets/admin/webfonts/Vazirmatn.woff2") format("woff2"),
+        url("/assets/admin/fonts/Vazirmatn.woff2") format("woff2");
     font-display: swap;
     font-style: normal;
     font-weight: 100 900;
@@ -736,6 +738,27 @@ button[type="submit"]:hover,
 
 .admin-preset-card small {
     color: var(--admin-text-muted);
+}
+
+.admin-preset-card__selected {
+    align-self: start;
+    background: var(--admin-primary-soft);
+    border-radius: 999px;
+    color: var(--admin-primary-hover);
+    display: none;
+    font-size: var(--admin-font-size-sm);
+    font-weight: var(--admin-font-weight-bold);
+    padding: 3px 9px;
+}
+
+.admin-preset-card.is-active .admin-preset-card__selected {
+    display: inline-flex;
+}
+
+.admin-reset-form {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
 }
 
 .admin-branding-preview,

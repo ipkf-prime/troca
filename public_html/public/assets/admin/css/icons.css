@@ -1,0 +1,23 @@
+@font-face {
+    font-family: "Font Awesome 6 Free";
+    src:
+        url("../webfonts/fa-solid-900.woff2") format("woff2"),
+        url("../webfonts/fa-solid-900.ttf") format("truetype");
+    font-display: block;
+    font-style: normal;
+    font-weight: 900;
+}
+
+.admin-icon,
+.fa,
+.fas {
+    display: inline-block;
+    font-family: "Font Awesome 6 Free", sans-serif;
+    font-style: normal;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.admin-icon[aria-hidden="true"] {
+    pointer-events: none;
+}

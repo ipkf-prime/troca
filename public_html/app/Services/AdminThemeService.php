@@ -9,10 +9,19 @@ use IPKF\Support\Env;
 class AdminThemeService extends BaseService
 {
     private const NAMESPACE = 'admin.theme';
+    private const SYSTEM_USER_ID = 0;
     private const DEFAULT_LOGO_URL = '/assets/admin/images/logos/default-logo.svg';
     private const DEFAULT_AVATAR_URL = '/assets/admin/images/avatars/default-avatar.svg';
     private const DEFAULT_BRAND_NAME = 'سامانه هوشمند تروکا';
     private const DEFAULT_FOOTER_TEXT = 'کلیه حقوق این وب‌سایت متعلق به سامانه هوشمند تروکا می‌باشد.';
+
+    private const PERSONAL_KEYS = [
+        'active_preset',
+        'token.font_family',
+        'token.font_size_base',
+        'token.line_height_base',
+        'token.radius',
+    ];
 
     public function __construct(protected ?AppSettingRepository $settings = null)
     {
@@ -26,7 +35,7 @@ class AdminThemeService extends BaseService
         return [
             'cooperative_official' => [
                 'title' => 'رسمی تعاون',
-                'description' => 'سایدبار سبز رسمی، آیتم فعال طلایی و محتوای روشن برای فضای دولتی و تعاونی.',
+                'description' => 'سایدبار سبز رسمی، آیتم فعال طلایی و محتوای روشن برای فضای سازمانی و تعاونی.',
                 'tokens' => $this->baseTokens($fontStack, [
                     'primary' => '#0f7a3f',
                     'primary_hover' => '#0b6533',
@@ -119,7 +128,7 @@ class AdminThemeService extends BaseService
             ],
             'neutral_light' => [
                 'title' => 'روشن خنثی',
-                'description' => 'ظاهر اداری خاکستری و سفید با سبز بسیار کنترل‌شده.',
+                'description' => 'ظاهر اداری خاکستری و سفید با سبز کنترل‌شده.',
                 'tokens' => $this->baseTokens($fontStack, [
                     'primary' => '#3f7f6b',
                     'primary_hover' => '#326657',
@@ -192,20 +201,6 @@ class AdminThemeService extends BaseService
         ];
     }
 
-    private function envFontStack(): string
-    {
-        $key = strtolower(str_replace([' ', '-'], '_', (string) Env::get('ADMIN_FONT_FAMILY', 'Vazirmatn')));
-        $aliases = [
-            'vazirmatn' => 'vazirmatn',
-            'iransans' => 'vazirmatn',
-            'tahoma' => 'tahoma',
-            'segoe_ui' => 'segoe_ui',
-            'system_ui' => 'system_ui',
-        ];
-
-        return $this->fontOptions()[$aliases[$key] ?? 'vazirmatn'];
-    }
-
     public function logoOptions(): array
     {
         return $this->assetOptions('/assets/admin/images/logos/', BASE_PATH . '/public/assets/admin/images/logos');
@@ -216,15 +211,14 @@ class AdminThemeService extends BaseService
         return $this->assetOptions('/assets/admin/images/avatars/', BASE_PATH . '/public/assets/admin/images/avatars');
     }
 
-    public function theme(): array
+    public function theme(?int $userId = null): array
     {
-        $settings = $this->settingsAvailable() ? $this->settingMap() : [];
-        $preset = (string) ($settings['active_preset'] ?? 'cooperative_official');
-
-        if (!isset($this->presets()[$preset])) {
-            $preset = 'cooperative_official';
-        }
-
+        $system = $this->settingsAvailable() ? $this->settingMap(self::SYSTEM_USER_ID) : [];
+        $personal = $userId !== null && $this->scopeSupport()
+            ? $this->personalSettingMap($userId)
+            : [];
+        $settings = array_replace($system, $personal);
+        $preset = $this->validPreset((string) ($settings['active_preset'] ?? 'cooperative_official'));
         $tokens = $this->presets()[$preset]['tokens'];
 
         foreach ($tokens as $key => $default) {
@@ -238,20 +232,31 @@ class AdminThemeService extends BaseService
         return [
             'active_preset' => $preset,
             'preset_title' => $this->presets()[$preset]['title'],
-            'brand_name' => $this->textSetting($settings, 'brand_name', (string) Env::get('ADMIN_BRAND_NAME', self::DEFAULT_BRAND_NAME), self::DEFAULT_BRAND_NAME),
-            'logo_url' => $this->cleanAssetUrl((string) ($settings['logo_url'] ?? Env::get('ADMIN_LOGO_URL', self::DEFAULT_LOGO_URL)), self::DEFAULT_LOGO_URL),
-            'default_avatar_url' => $this->cleanAssetUrl((string) ($settings['default_avatar_url'] ?? Env::get('ADMIN_DEFAULT_AVATAR_URL', self::DEFAULT_AVATAR_URL)), self::DEFAULT_AVATAR_URL),
-            'footer_text' => $this->textSetting($settings, 'footer_text', self::DEFAULT_FOOTER_TEXT, self::DEFAULT_FOOTER_TEXT, 140),
-            'footer_enabled' => (string) ($settings['footer_enabled'] ?? '1') !== '0',
-            'show_user_name' => (string) ($settings['show_user_name'] ?? '1') !== '0',
-            'show_active_role' => (string) ($settings['show_active_role'] ?? '1') !== '0',
+            'brand_name' => $this->textSetting($system, 'brand_name', (string) Env::get('ADMIN_BRAND_NAME', self::DEFAULT_BRAND_NAME), self::DEFAULT_BRAND_NAME),
+            'logo_url' => $this->cleanAssetUrl((string) ($system['logo_url'] ?? Env::get('ADMIN_LOGO_URL', self::DEFAULT_LOGO_URL)), self::DEFAULT_LOGO_URL),
+            'default_avatar_url' => $this->cleanAssetUrl((string) ($system['default_avatar_url'] ?? Env::get('ADMIN_DEFAULT_AVATAR_URL', self::DEFAULT_AVATAR_URL)), self::DEFAULT_AVATAR_URL),
+            'footer_text' => $this->textSetting($system, 'footer_text', self::DEFAULT_FOOTER_TEXT, self::DEFAULT_FOOTER_TEXT, 140),
+            'footer_enabled' => (string) ($system['footer_enabled'] ?? '1') !== '0',
+            'show_user_name' => (string) ($system['show_user_name'] ?? '1') !== '0',
+            'show_active_role' => (string) ($system['show_active_role'] ?? '1') !== '0',
             'tokens' => $tokens,
+            'has_personal_override' => $personal !== [],
         ];
     }
 
-    public function cssVariables(): string
+    public function systemTheme(): array
     {
-        $tokens = $this->theme()['tokens'];
+        return $this->theme(null);
+    }
+
+    public function personalTheme(int $userId): array
+    {
+        return $this->theme($userId);
+    }
+
+    public function cssVariables(?int $userId = null): string
+    {
+        $tokens = $this->theme($userId)['tokens'];
         $lines = [':root {'];
 
         foreach ($tokens as $key => $value) {
@@ -265,73 +270,83 @@ class AdminThemeService extends BaseService
 
     public function update(array $input): array
     {
+        return $this->updateSystem($input);
+    }
+
+    public function updateSystem(array $input): array
+    {
         if (!$this->settingsAvailable()) {
             return ['ok' => false, 'errors' => ['settings_unavailable']];
         }
 
+        $result = $this->sanitizeSystemInput($input);
+
+        if ($result['errors'] !== []) {
+            return ['ok' => false, 'errors' => $result['errors']];
+        }
+
+        foreach ($result['settings'] as $key => [$value, $type]) {
+            $this->settings->put(self::NAMESPACE, $key, $value, $type, true, self::SYSTEM_USER_ID);
+        }
+
+        return ['ok' => true, 'errors' => []];
+    }
+
+    public function updatePersonal(int $userId, array $input): array
+    {
+        if (!$this->scopeSupport()) {
+            return ['ok' => false, 'errors' => ['settings_unavailable']];
+        }
+
         $errors = [];
-        $preset = (string) ($input['active_preset'] ?? 'cooperative_official');
+        $settings = [];
+        $preset = $this->validPreset((string) ($input['active_preset'] ?? 'cooperative_official'));
+        $settings['active_preset'] = [$preset, 'string'];
 
-        if (!isset($this->presets()[$preset])) {
-            $errors[] = 'invalid_preset';
-        }
+        foreach (['font_family', 'font_size_base', 'line_height_base', 'radius'] as $key) {
+            $inputKey = 'token_' . $key;
+            $value = trim((string) ($input[$inputKey] ?? ''));
 
-        $brandName = $this->cleanBrand((string) ($input['brand_name'] ?? ''));
-        $footerText = $this->cleanBrand((string) ($input['footer_text'] ?? self::DEFAULT_FOOTER_TEXT), 140);
-        $logoInput = trim((string) ($input['logo_url_manual'] ?? '')) !== ''
-            ? (string) $input['logo_url_manual']
-            : (string) ($input['logo_url'] ?? '');
-        $avatarInput = trim((string) ($input['default_avatar_url_manual'] ?? '')) !== ''
-            ? (string) $input['default_avatar_url_manual']
-            : (string) ($input['default_avatar_url'] ?? '');
-        $logoUrl = $this->cleanAssetUrl($logoInput, '');
-        $defaultAvatarUrl = $this->cleanAssetUrl($avatarInput, '');
-        $footerEnabled = $this->booleanString($input['footer_enabled'] ?? '0');
-        $showUserName = $this->booleanString($input['show_user_name'] ?? '0');
-        $showActiveRole = $this->booleanString($input['show_active_role'] ?? '0');
-
-        if ($brandName === '') {
-            $errors[] = 'invalid_brand_name';
-        }
-
-        if ($logoInput !== '' && $logoUrl === '') {
-            $errors[] = 'invalid_logo_url';
-        }
-
-        if ($avatarInput !== '' && $defaultAvatarUrl === '') {
-            $errors[] = 'invalid_default_avatar_url';
-        }
-
-        foreach (array_keys($this->presets()['cooperative_official']['tokens']) as $key) {
-            $value = trim((string) ($input['token_' . $key] ?? ''));
-
-            if ($value !== '' && !$this->validTokenValue($key, $value)) {
-                $errors[] = 'invalid_' . $key;
+            if ($value === '') {
+                continue;
             }
+
+            if (!$this->validTokenValue($key, $value)) {
+                $errors[] = 'invalid_' . $key;
+                continue;
+            }
+
+            $settings['token.' . $key] = [$value, 'string'];
         }
 
         if ($errors !== []) {
             return ['ok' => false, 'errors' => $errors];
         }
 
-        $this->settings->put(self::NAMESPACE, 'active_preset', $preset, 'string', true);
-        $this->settings->put(self::NAMESPACE, 'brand_name', $brandName, 'string', true);
-        $this->settings->put(self::NAMESPACE, 'logo_url', $logoUrl, 'string', true);
-        $this->settings->put(self::NAMESPACE, 'default_avatar_url', $defaultAvatarUrl, 'string', true);
-        $this->settings->put(self::NAMESPACE, 'footer_text', $footerText, 'string', true);
-        $this->settings->put(self::NAMESPACE, 'footer_enabled', $footerEnabled, 'bool', true);
-        $this->settings->put(self::NAMESPACE, 'show_user_name', $showUserName, 'bool', true);
-        $this->settings->put(self::NAMESPACE, 'show_active_role', $showActiveRole, 'bool', true);
-
-        foreach (array_keys($this->presets()['cooperative_official']['tokens']) as $key) {
-            $value = trim((string) ($input['token_' . $key] ?? ''));
-            $this->settings->put(self::NAMESPACE, 'token.' . $key, $value, 'string', true);
+        foreach ($settings as $key => [$value, $type]) {
+            $this->settings->put(self::NAMESPACE, $key, $value, $type, true, $userId);
         }
 
         return ['ok' => true, 'errors' => []];
     }
 
-    public function seedDefaults(): void
+    public function resetSystem(): void
+    {
+        if ($this->scopeSupport()) {
+            $this->settings->deleteNamespace(self::NAMESPACE, self::SYSTEM_USER_ID);
+        }
+
+        $this->seedDefaults(true);
+    }
+
+    public function resetUser(int $userId): void
+    {
+        if ($this->scopeSupport()) {
+            $this->settings->deleteNamespace(self::NAMESPACE, $userId);
+        }
+    }
+
+    public function seedDefaults(bool $force = false): void
     {
         if (!$this->settingsAvailable()) {
             return;
@@ -341,9 +356,9 @@ class AdminThemeService extends BaseService
             'active_preset' => 'cooperative_official',
             'brand_name' => $this->looksCorrupted((string) Env::get('ADMIN_BRAND_NAME', self::DEFAULT_BRAND_NAME))
                 ? self::DEFAULT_BRAND_NAME
-                : Env::get('ADMIN_BRAND_NAME', self::DEFAULT_BRAND_NAME),
-            'logo_url' => Env::get('ADMIN_LOGO_URL', self::DEFAULT_LOGO_URL),
-            'default_avatar_url' => Env::get('ADMIN_DEFAULT_AVATAR_URL', self::DEFAULT_AVATAR_URL),
+                : (string) Env::get('ADMIN_BRAND_NAME', self::DEFAULT_BRAND_NAME),
+            'logo_url' => self::DEFAULT_LOGO_URL,
+            'default_avatar_url' => self::DEFAULT_AVATAR_URL,
             'footer_text' => self::DEFAULT_FOOTER_TEXT,
             'footer_enabled' => '1',
             'show_user_name' => '1',
@@ -351,18 +366,18 @@ class AdminThemeService extends BaseService
         ];
 
         foreach ($defaults as $key => $value) {
-            $current = $this->settings->get(self::NAMESPACE, $key);
+            $current = $this->settings->get(self::NAMESPACE, $key, self::SYSTEM_USER_ID);
             $stored = (string) ($current['setting_value'] ?? '');
 
-            if ($current === null || $stored === '' || $this->looksCorrupted($stored)) {
-                $this->settings->put(self::NAMESPACE, $key, (string) $value, 'string', true);
+            if ($force || $current === null || $stored === '' || $this->looksCorrupted($stored)) {
+                $this->settings->put(self::NAMESPACE, $key, (string) $value, 'string', true, self::SYSTEM_USER_ID);
             }
         }
     }
 
     public function persianDefaultsOk(): bool
     {
-        $theme = $this->theme();
+        $theme = $this->systemTheme();
         $values = [
             $theme['brand_name'],
             $theme['preset_title'],
@@ -385,6 +400,112 @@ class AdminThemeService extends BaseService
         return Database::tableExists('app_settings');
     }
 
+    public function scopeSupport(): bool
+    {
+        return $this->settingsAvailable() && $this->settings->scoped();
+    }
+
+    public function assetsCanonical(): bool
+    {
+        return is_readable(BASE_PATH . '/public/assets/admin/css/admin.css')
+            && is_readable(BASE_PATH . '/public/assets/admin/js/admin.js')
+            && is_dir(BASE_PATH . '/public/assets/admin/webfonts')
+            && is_dir(BASE_PATH . '/public/assets/admin/images/icons')
+            && is_readable(BASE_PATH . '/public/assets/admin/images/logos/default-logo.svg')
+            && is_readable(BASE_PATH . '/public/assets/admin/images/avatars/default-avatar.svg');
+    }
+
+    public function localIconsAvailable(): bool
+    {
+        return is_readable(BASE_PATH . '/public/assets/admin/css/icons.css')
+            || count(glob(BASE_PATH . '/public/assets/admin/webfonts/fa-*') ?: []) > 0;
+    }
+
+    public function webfontsPathAvailable(): bool
+    {
+        return is_dir(BASE_PATH . '/public/assets/admin/webfonts');
+    }
+
+    private function sanitizeSystemInput(array $input): array
+    {
+        $errors = [];
+        $settings = [];
+        $preset = (string) ($input['active_preset'] ?? 'cooperative_official');
+
+        if (!isset($this->presets()[$preset])) {
+            $errors[] = 'invalid_preset';
+            $preset = 'cooperative_official';
+        }
+
+        $brandName = $this->cleanBrand((string) ($input['brand_name'] ?? ''));
+        $footerText = $this->cleanBrand((string) ($input['footer_text'] ?? self::DEFAULT_FOOTER_TEXT), 140);
+        $logoInput = trim((string) ($input['logo_url_manual'] ?? '')) !== ''
+            ? (string) $input['logo_url_manual']
+            : (string) ($input['logo_url'] ?? '');
+        $avatarInput = trim((string) ($input['default_avatar_url_manual'] ?? '')) !== ''
+            ? (string) $input['default_avatar_url_manual']
+            : (string) ($input['default_avatar_url'] ?? '');
+        $logoUrl = $this->cleanAssetUrl($logoInput, '');
+        $defaultAvatarUrl = $this->cleanAssetUrl($avatarInput, '');
+
+        if ($brandName === '') {
+            $errors[] = 'invalid_brand_name';
+        }
+
+        if ($logoInput !== '' && $logoUrl === '') {
+            $errors[] = 'invalid_logo_url';
+        }
+
+        if ($avatarInput !== '' && $defaultAvatarUrl === '') {
+            $errors[] = 'invalid_default_avatar_url';
+        }
+
+        $settings['active_preset'] = [$preset, 'string'];
+        $settings['brand_name'] = [$brandName, 'string'];
+        $settings['logo_url'] = [$logoUrl !== '' ? $logoUrl : self::DEFAULT_LOGO_URL, 'string'];
+        $settings['default_avatar_url'] = [$defaultAvatarUrl !== '' ? $defaultAvatarUrl : self::DEFAULT_AVATAR_URL, 'string'];
+        $settings['footer_text'] = [$footerText, 'string'];
+        $settings['footer_enabled'] = [$this->booleanString($input['footer_enabled'] ?? '0'), 'bool'];
+        $settings['show_user_name'] = [$this->booleanString($input['show_user_name'] ?? '0'), 'bool'];
+        $settings['show_active_role'] = [$this->booleanString($input['show_active_role'] ?? '0'), 'bool'];
+
+        foreach (array_keys($this->presets()['cooperative_official']['tokens']) as $key) {
+            $value = trim((string) ($input['token_' . $key] ?? ''));
+
+            if ($value !== '' && !$this->validTokenValue($key, $value)) {
+                $errors[] = 'invalid_' . $key;
+            }
+
+            $settings['token.' . $key] = [$value, 'string'];
+        }
+
+        return ['errors' => $errors, 'settings' => $settings];
+    }
+
+    private function settingMap(int $userId): array
+    {
+        $map = [];
+
+        foreach ($this->settings->list(self::NAMESPACE, $userId) as $setting) {
+            $map[(string) $setting['setting_key']] = (string) ($setting['setting_value'] ?? '');
+        }
+
+        return $map;
+    }
+
+    private function personalSettingMap(int $userId): array
+    {
+        return array_intersect_key(
+            $this->settingMap($userId),
+            array_flip(self::PERSONAL_KEYS)
+        );
+    }
+
+    private function validPreset(string $preset): string
+    {
+        return isset($this->presets()[$preset]) ? $preset : 'cooperative_official';
+    }
+
     private function baseTokens(string $fontStack, array $overrides): array
     {
         return array_replace([
@@ -404,15 +525,18 @@ class AdminThemeService extends BaseService
         ], $overrides);
     }
 
-    private function settingMap(): array
+    private function envFontStack(): string
     {
-        $map = [];
+        $key = strtolower(str_replace([' ', '-'], '_', (string) Env::get('ADMIN_FONT_FAMILY', 'Vazirmatn')));
+        $aliases = [
+            'vazirmatn' => 'vazirmatn',
+            'iransans' => 'vazirmatn',
+            'tahoma' => 'tahoma',
+            'segoe_ui' => 'segoe_ui',
+            'system_ui' => 'system_ui',
+        ];
 
-        foreach ($this->settings->list(self::NAMESPACE) as $setting) {
-            $map[(string) $setting['setting_key']] = (string) ($setting['setting_value'] ?? '');
-        }
-
-        return $map;
+        return $this->fontOptions()[$aliases[$key] ?? 'vazirmatn'];
     }
 
     private function validTokenValue(string $key, string $value): bool
@@ -505,20 +629,22 @@ class AdminThemeService extends BaseService
             return $fallback;
         }
 
-        if (preg_match('/^\/(?:assets\/admin\/images\/|uploads\/admin\/(?:logos|avatars)\/)[A-Za-z0-9_\-\/\.]+\.(?:svg|png|jpg|jpeg|webp|gif)$/i', $value) === 1) {
-            return $value;
+        if (preg_match('/^\/(?:assets\/admin\/images\/|uploads\/admin\/(?:logos|avatars)\/)[A-Za-z0-9_\-\/\.]+\.(?:svg|png|jpg|jpeg|webp|gif)$/i', $value) !== 1) {
+            return $fallback;
         }
 
-        return $fallback;
+        $path = BASE_PATH . '/public' . $value;
+
+        return is_readable($path) ? $value : $fallback;
     }
 
     private function assetOptions(string $publicPrefix, string $directory): array
     {
-        if (!is_dir($directory)) {
-            return [];
-        }
-
         $options = [];
+
+        if (!is_dir($directory)) {
+            return $options;
+        }
 
         foreach (scandir($directory) ?: [] as $file) {
             if ($file === '.' || $file === '..') {
@@ -544,10 +670,10 @@ class AdminThemeService extends BaseService
     {
         return $value === ''
             || str_contains($value, '???')
-            || str_contains($value, 'ط§')
-            || str_contains($value, 'ظ†')
-            || str_contains($value, 'غŒ')
-            || str_contains($value, 'ع©')
-            || str_contains($value, 'â');
+            || str_contains($value, 'ط·آ§')
+            || str_contains($value, 'ط¸â€ ')
+            || str_contains($value, 'ط؛إ’')
+            || str_contains($value, 'ط¹آ©')
+            || str_contains($value, 'أ¢');
     }
 }

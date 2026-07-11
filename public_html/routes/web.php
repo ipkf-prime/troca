@@ -230,6 +230,14 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'admin_theme_available' => $adminTheme !== null
             && \IPKF\Database\Database::tableExists('app_settings'),
         'admin_theme_active_preset' => $adminThemeData['active_preset'] ?? 'cooperative_light',
+        'admin_theme_scope_support' => $adminTheme !== null && $adminTheme->scopeSupport(),
+        'admin_personal_theme_available' => $adminTheme !== null && $adminTheme->scopeSupport(),
+        'admin_system_theme_available' => $adminTheme !== null && \IPKF\Database\Database::tableExists('app_settings'),
+        'admin_theme_reset_available' => $adminTheme !== null && $adminTheme->scopeSupport(),
+        'admin_branding_configurable' => $adminTheme !== null,
+        'admin_assets_canonical' => $adminTheme !== null && $adminTheme->assetsCanonical(),
+        'admin_local_icons_available' => $adminTheme !== null && $adminTheme->localIconsAvailable(),
+        'admin_webfonts_path_available' => $adminTheme !== null && $adminTheme->webfontsPathAvailable(),
         'admin_assets_available' => $adminAssetsAvailable,
         'admin_typography_available' => isset($adminThemeTokens['font_family'], $adminThemeTokens['font_size_base'], $adminThemeTokens['line_height_base']),
         'admin_logo_configured' => ($adminThemeData['logo_url'] ?? '') !== '',
@@ -517,10 +525,42 @@ $router->get('/admin/my-theme', function ($request, $response) use ($adminRender
         return $response->redirect('/admin/login');
     }
 
+    $theme = new \App\Services\AdminThemeService();
+
     return $adminRender($response, 'my-theme', [
         'title' => 'پوسته نمایشی من',
         'context' => $context,
+        'theme' => $theme->personalTheme((int) $context['user_id']),
+        'presets' => $theme->presets(),
+        'fontOptions' => $theme->fontOptions(),
+        'errors' => [],
+        'status' => trim((string) $request->input('status', '')),
     ]);
+});
+
+$router->post('/admin/my-theme', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    $theme = new \App\Services\AdminThemeService();
+    $result = $theme->updatePersonal((int) $context['user_id'], $request->all());
+
+    if (!$result['ok']) {
+        return $adminRender($response, 'my-theme', [
+            'title' => 'پوسته نمایشی من',
+            'context' => $context,
+            'theme' => $theme->personalTheme((int) $context['user_id']),
+            'presets' => $theme->presets(),
+            'fontOptions' => $theme->fontOptions(),
+            'errors' => $result['errors'],
+            'status' => '',
+        ], 422);
+    }
+
+    return $response->redirect('/admin/my-theme?status=saved');
 });
 
 $router->get('/admin/access', function ($request, $response) use ($adminRender, $adminContext) {
@@ -549,7 +589,7 @@ $router->get('/admin/theme', function ($request, $response) use ($adminRender, $
     return $adminRender($response, 'theme', [
         'title' => 'پوسته پنل',
         'context' => $context,
-        'theme' => $theme->theme(),
+        'theme' => $theme->systemTheme(),
         'presets' => $theme->presets(),
         'fontOptions' => $theme->fontOptions(),
         'logoOptions' => $theme->logoOptions(),
@@ -571,7 +611,7 @@ $router->post('/admin/theme', function ($request, $response) use ($adminRender, 
         return $adminRender($response, 'theme', [
             'title' => 'پوسته پنل',
             'context' => $context,
-            'theme' => (new \App\Services\AdminThemeService())->theme(),
+            'theme' => (new \App\Services\AdminThemeService())->systemTheme(),
             'presets' => (new \App\Services\AdminThemeService())->presets(),
             'fontOptions' => (new \App\Services\AdminThemeService())->fontOptions(),
             'logoOptions' => (new \App\Services\AdminThemeService())->logoOptions(),
@@ -589,7 +629,7 @@ $router->post('/admin/theme', function ($request, $response) use ($adminRender, 
         return $adminRender($response, 'theme', [
             'title' => 'پوسته پنل',
             'context' => $context,
-            'theme' => $theme->theme(),
+            'theme' => $theme->systemTheme(),
             'presets' => $theme->presets(),
             'fontOptions' => $theme->fontOptions(),
             'logoOptions' => $theme->logoOptions(),
@@ -601,6 +641,31 @@ $router->post('/admin/theme', function ($request, $response) use ($adminRender, 
     }
 
     return $response->redirect('/admin/theme?status=saved');
+});
+
+$router->post('/admin/theme/reset', function ($request, $response) use ($adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    $theme = new \App\Services\AdminThemeService();
+    $scope = trim((string) $request->input('scope', 'user'));
+
+    if ($scope === 'system') {
+        if (!(new \App\Services\AuthorizationService())->hasPermission((int) $context['user_id'], 'admin.theme.manage')) {
+            return $response->redirect('/admin/theme?status=forbidden');
+        }
+
+        $theme->resetSystem();
+
+        return $response->redirect('/admin/theme?status=reset');
+    }
+
+    $theme->resetUser((int) $context['user_id']);
+
+    return $response->redirect('/admin/my-theme?status=reset');
 });
 
 $router->post('/admin/access', function ($request, $response) {

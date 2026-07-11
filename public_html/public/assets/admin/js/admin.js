@@ -69,4 +69,29 @@ document.addEventListener("DOMContentLoaded", () => {
             activate(tabs.find((tab) => tab.classList.contains("is-active"))?.getAttribute("data-admin-tab") || tabs[0].getAttribute("data-admin-tab"));
         }
     });
+
+    document.querySelectorAll(".admin-theme-presets").forEach((presetRoot) => {
+        const cards = Array.from(presetRoot.querySelectorAll(".admin-preset-card"));
+
+        const sync = () => {
+            cards.forEach((card) => {
+                const input = card.querySelector('input[type="radio"]');
+                card.classList.toggle("is-active", input?.checked === true);
+            });
+        };
+
+        cards.forEach((card) => {
+            const input = card.querySelector('input[type="radio"]');
+
+            input?.addEventListener("change", sync);
+            card.addEventListener("click", () => {
+                if (input && !input.disabled) {
+                    input.checked = true;
+                    input.dispatchEvent(new Event("change", { bubbles: true }));
+                }
+            });
+        });
+
+        sync();
+    });
 });

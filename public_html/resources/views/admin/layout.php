@@ -5,7 +5,8 @@ $title = $title ?? 'پنل مدیریت';
 $user = $context['user'] ?? null;
 $active = $context['active_assignment'] ?? null;
 $themeService = new \App\Services\AdminThemeService();
-$theme = $themeService->theme();
+$themeUserId = isset($context['user_id']) ? (int) $context['user_id'] : null;
+$theme = $themeService->theme($themeUserId);
 $avatarUrl = (string) ($user['avatar_url'] ?? $theme['default_avatar_url'] ?? '');
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $year = date('Y');
@@ -43,9 +44,10 @@ $accountNav = [
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= admin_h($title) ?> | IPKF</title>
+    <link rel="stylesheet" href="/assets/admin/css/icons.css">
     <link rel="stylesheet" href="/assets/admin/css/admin.css">
     <script src="/assets/admin/js/admin.js" defer></script>
-    <style><?= "\n" . $themeService->cssVariables() . "\n" ?></style>
+    <style><?= "\n" . $themeService->cssVariables($themeUserId) . "\n" ?></style>
 </head>
 <body dir="rtl">
     <div class="admin-shell" data-admin-shell>

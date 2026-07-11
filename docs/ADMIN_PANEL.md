@@ -126,6 +126,49 @@ The dropdown closes on outside click and Escape. On mobile, the sidebar opens wi
 - فونت
 - پیشرفته
 
+## Theme Scopes
+
+Admin theme settings now have two scopes:
+
+- `/admin/theme` manages the system-wide admin panel theme. It is limited to users with `admin.theme.manage`.
+- `/admin/my-theme` manages the current user's personal display theme. Any authenticated user can save or reset their own display theme.
+
+Theme resolution priority:
+
+1. Current user personal display theme
+2. System admin theme
+3. environment defaults
+4. hardcoded safe defaults
+
+Personal theme settings can override display-focused values such as preset, font family, base font size, line height, and radius. System theme settings control global branding, logo, default avatar, footer, and global visual defaults.
+
+Reset actions:
+
+- `POST /admin/theme/reset` with `scope=user` clears only the current user's personal theme.
+- `POST /admin/theme/reset` with `scope=system` resets the system theme and requires `admin.theme.manage`.
+
+## Canonical Admin Assets
+
+Admin assets must be loaded from canonical `/assets/admin/...` paths:
+
+- `public/assets/admin/css/`
+- `public/assets/admin/js/`
+- `public/assets/admin/webfonts/`
+- `public/assets/admin/images/`
+- `public/assets/admin/images/logos/`
+- `public/assets/admin/images/avatars/`
+- `public/assets/admin/images/icons/`
+- `public/assets/admin/images/placeholders/`
+
+Runtime uploads stay under:
+
+- `public/uploads/admin/logos/`
+- `public/uploads/admin/avatars/`
+
+The admin panel must not use CDN fonts or external icon CSS. Local icon support is provided through `/assets/admin/css/icons.css`, which references webfonts through `../webfonts/...`. If webfont files are missing, the UI must continue to work without broken navigation.
+
+Logo and avatar values are validated as local paths only. External URLs, `javascript:`, `data:`, `../`, and CSS `url()` values are rejected.
+
 ## Layout
 
 The admin shell uses a reusable RTL Persian layout with:

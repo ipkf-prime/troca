@@ -17,8 +17,19 @@
 - Dropdown closes on outside click and Escape.
 - Mobile sidebar opens with hamburger and closes with overlay/Escape.
 - `/admin/theme` is tabbed and remains CSRF protected.
+- `/admin/theme` saves system theme settings only for users with `admin.theme.manage`.
+- `/admin/my-theme` saves personal display theme settings for the current user only.
+- Theme preset cards are clickable, keyboard-safe radio controls and persist after save.
+- System branding changes update header, sidebar, and login.
+- Invalid logo/avatar paths are rejected.
+- `POST /admin/theme/reset` with `scope=user` clears only the current user's personal theme.
+- `POST /admin/theme/reset` with `scope=system` requires `admin.theme.manage`.
+- Admin CSS/JS/icon assets load from canonical `/assets/admin/...` paths.
+- Local icon/webfont support uses `/assets/admin/css/icons.css` and `/assets/admin/webfonts/`.
+- No CDN or external font/icon URL is used.
 - Coming Soon page links to `/admin/login`.
 - Diagnostics include safe admin UI booleans.
+- Diagnostics include theme scope, reset, branding, canonical asset, local icon, and webfont path booleans.
 - No password hash, session id, CSRF token, recovery code, OTP, provider secret, or maintenance key is exposed.
 - Existing JSON endpoints still work.
 - Persian UTF-8 rendering remains correct.
