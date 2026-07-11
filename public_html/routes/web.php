@@ -153,7 +153,10 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         && is_readable(BASE_PATH . '/public/assets/admin/images/logos/default-logo.svg')
         && is_readable(BASE_PATH . '/public/assets/admin/images/avatars/default-avatar.svg')
         && is_dir(BASE_PATH . '/public/uploads/admin/logos')
-        && is_dir(BASE_PATH . '/public/uploads/admin/avatars');
+        && is_dir(BASE_PATH . '/public/uploads/admin/avatars')
+        && is_readable(BASE_PATH . '/public/uploads/admin/.htaccess')
+        && is_readable(BASE_PATH . '/public/uploads/admin/logos/.htaccess')
+        && is_readable(BASE_PATH . '/public/uploads/admin/avatars/.htaccess');
 
     return $response->json([
         'php_version' => PHP_VERSION,
@@ -231,6 +234,7 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'admin_typography_available' => isset($adminThemeTokens['font_family'], $adminThemeTokens['font_size_base'], $adminThemeTokens['line_height_base']),
         'admin_logo_configured' => ($adminThemeData['logo_url'] ?? '') !== '',
         'admin_default_avatar_configured' => ($adminThemeData['default_avatar_url'] ?? '') !== '',
+        'admin_theme_persian_ok' => $adminTheme !== null && $adminTheme->persianDefaultsOk(),
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),
@@ -399,6 +403,8 @@ $router->get('/admin/theme', function ($request, $response) use ($adminRender, $
         'theme' => $theme->theme(),
         'presets' => $theme->presets(),
         'fontOptions' => $theme->fontOptions(),
+        'logoOptions' => $theme->logoOptions(),
+        'avatarOptions' => $theme->avatarOptions(),
         'errors' => [],
         'status' => trim((string) $request->input('status', '')),
         'canManageTheme' => (new \App\Services\AuthorizationService())->hasPermission((int) $context['user_id'], 'admin.theme.manage'),
@@ -419,6 +425,8 @@ $router->post('/admin/theme', function ($request, $response) use ($adminRender, 
             'theme' => (new \App\Services\AdminThemeService())->theme(),
             'presets' => (new \App\Services\AdminThemeService())->presets(),
             'fontOptions' => (new \App\Services\AdminThemeService())->fontOptions(),
+            'logoOptions' => (new \App\Services\AdminThemeService())->logoOptions(),
+            'avatarOptions' => (new \App\Services\AdminThemeService())->avatarOptions(),
             'errors' => ['forbidden'],
             'status' => '',
             'canManageTheme' => false,
@@ -435,6 +443,8 @@ $router->post('/admin/theme', function ($request, $response) use ($adminRender, 
             'theme' => $theme->theme(),
             'presets' => $theme->presets(),
             'fontOptions' => $theme->fontOptions(),
+            'logoOptions' => $theme->logoOptions(),
+            'avatarOptions' => $theme->avatarOptions(),
             'errors' => $result['errors'],
             'status' => '',
             'canManageTheme' => true,

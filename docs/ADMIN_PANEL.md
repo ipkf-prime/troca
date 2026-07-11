@@ -80,11 +80,12 @@ Profile editing is intentionally not implemented in this phase. Future profile e
 The admin shell uses a reusable RTL Persian layout with:
 
 - header
-- sidebar
+- right-side sidebar
 - content area
 - user display
 - active role badge
 - logout link
+- footer
 
 CSS is local at `public/assets/admin/css/admin.css`; no external CDN is required.
 
@@ -120,22 +121,39 @@ No upload UI is implemented in this phase.
 
 Available presets:
 
-- `cooperative_light` is the default lighter cooperative theme.
-- `cooperative_classic` keeps a stronger green cooperative look.
-- `neutral_light` provides a restrained neutral light option.
+- `cooperative_official` is the recommended official cooperative theme with dark green sidebar and yellow active menu.
+- `cooperative_light` is a lighter white/green operational theme.
+- `cooperative_classic` keeps a stronger traditional green cooperative look.
+- `neutral_light` provides a restrained neutral office option.
+- `golden_green` uses stronger gold highlights for a more promotional Troca identity.
+
+The theme page is grouped for non-technical admins:
+
+- انتخاب پوسته
+- برندینگ
+- هدر
+- سایدبار / منو
+- محتوای داشبورد
+- فوتر
+- فونت و خوانایی
+- تنظیمات پیشرفته
 
 The admin CSS is driven by safe design tokens:
 
 - `--admin-primary`
 - `--admin-font-family`
 - `--admin-font-size-base`
+- `--admin-font-size-sm`
+- `--admin-font-size-lg`
 - `--admin-line-height-base`
 - `--admin-font-weight-normal`
 - `--admin-font-weight-medium`
 - `--admin-font-weight-bold`
 - `--admin-primary-hover`
+- `--admin-primary-dark`
 - `--admin-primary-soft`
 - `--admin-accent`
+- `--admin-accent-hover`
 - `--admin-bg`
 - `--admin-bg-gradient-start`
 - `--admin-bg-gradient-end`
@@ -147,6 +165,15 @@ The admin CSS is driven by safe design tokens:
 - `--admin-danger`
 - `--admin-warning`
 - `--admin-success`
+- `--admin-sidebar-bg`
+- `--admin-sidebar-bg-2`
+- `--admin-sidebar-text`
+- `--admin-sidebar-text-muted`
+- `--admin-sidebar-active-bg`
+- `--admin-sidebar-active-text`
+- `--admin-header-bg`
+- `--admin-footer-bg`
+- `--admin-footer-text`
 - `--admin-radius`
 - `--admin-shadow`
 - `--admin-sidebar-width`
@@ -159,6 +186,7 @@ Branding values:
 - `ADMIN_BRAND_NAME` sets the fallback admin brand name.
 - `ADMIN_LOGO_URL` sets an optional fallback logo URL.
 - `ADMIN_DEFAULT_AVATAR_URL` sets the fallback user avatar URL.
+- `ADMIN_FONT_FAMILY=Vazirmatn` documents the preferred local font family.
 - Stored database settings override environment fallback values.
 
 Typography strategy:
@@ -168,6 +196,16 @@ Typography strategy:
 - Commercial or unknown font binaries are not bundled.
 - If desired, place a safe local `Vazirmatn.woff2` file at `public/assets/admin/fonts/Vazirmatn.woff2`.
 - If that file is absent, browsers fall back to the remaining Persian-friendly stack.
+- Admin views escape Persian output with UTF-8 and substitution handling.
+- If saved `app_settings` values contain mojibake or question marks, the theme seeder repairs core defaults idempotently without overwriting healthy customized settings.
+
+Persian encoding troubleshooting:
+
+- HTML admin responses must send `Content-Type: text/html; charset=UTF-8`.
+- JSON responses use UTF-8 and `JSON_UNESCAPED_UNICODE`.
+- `app_settings` must use `utf8mb4`.
+- If labels show as `?????`, rerun the protected development seeder after deployment so corrupted admin theme defaults can be repaired.
+- Do not paste values from incorrectly decoded terminal output into theme settings.
 
 Only an active role with `admin.theme.manage` can update the theme. The seed flow grants this permission to `super_admin`. Base user roles can view the page but cannot save changes.
 
@@ -175,8 +213,11 @@ Theme inputs are validated before persistence:
 
 - colors must be six-digit hex values
 - font family must be selected from approved options
-- font size and line height must match safe CSS values
-- radius and layout dimensions must be pixel values
+- font family options are Vazirmatn, Tahoma, Segoe UI, and System UI
+- font size options are `13px`, `14px`, `15px`, `16px`, and `1rem`
+- line height options are `1.5`, `1.6`, `1.7`, and `1.8`
+- radius options are `8px`, `12px`, `16px`, `18px`, `20px`, and `24px`
+- layout dimensions must be pixel values
 - shadows are restricted to safe simple CSS shadow text
 - logo and avatar URLs must be local safe image paths under `/assets/admin/images/`, `/uploads/admin/logos/`, or `/uploads/admin/avatars/`
 - `javascript:`, `data:`, external `http/https` URLs, and paths containing `../` are rejected

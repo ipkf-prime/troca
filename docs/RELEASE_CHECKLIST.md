@@ -119,9 +119,14 @@ Version: `0.2.0-foundation`
 - `/admin/profile` displays safe user profile fields.
 - `/admin/theme` loads the dynamic admin theme page.
 - `/admin/theme` shows typography controls.
+- `/admin/theme` shows grouped sections for preset, branding, header, sidebar, dashboard content, footer, typography, and advanced settings.
+- Persian labels on `/admin/theme` render correctly and do not show question marks.
+- `cooperative_official`, `cooperative_light`, `cooperative_classic`, `neutral_light`, and `golden_green` presets are available and visually distinct.
+- `cooperative_official` uses a dark green sidebar, yellow active item, light content area, white cards, and soft shadow.
 - Base user active role cannot update the admin theme.
 - `super_admin` active role can update the admin theme with `admin.theme.manage`.
 - Invalid color, radius, font family, font size, logo/avatar path, and unsafe CSS-like values are rejected.
+- External `http/https`, `javascript:`, `data:`, `../`, `url()`, and script-like logo/avatar values are rejected.
 - Changing presets updates the admin UI.
 - Admin CSS loads from `public/assets/admin/css/admin.css`.
 - Admin asset folders exist under `public/assets/admin/`.
@@ -131,7 +136,10 @@ Version: `0.2.0-foundation`
 - Default avatar exists at `/assets/admin/images/avatars/default-avatar.svg`.
 - `/admin/login` and `/admin/dashboard` use admin typography tokens.
 - Optional `Vazirmatn.woff2` can be placed under `public/assets/admin/fonts/` without requiring a CDN.
+- Header displays brand name, user avatar, user display name when enabled, and active role when enabled.
+- Sidebar is RTL on the right, includes Persian menu labels, and highlights the active item.
+- Footer displays the Troca ownership text and year when enabled.
 - `/admin/logout` logs the user out.
 - Existing JSON endpoints continue to work.
 - No password hash, session ID, MFA secret, recovery code, provider secret, or business data is exposed.
-- `/_diagnostics` may report `admin_panel_shell_available=true`, `admin_theme_available=true`, `admin_theme_active_preset`, `admin_assets_available=true`, and `admin_typography_available=true`.
+- `/_diagnostics` may report `admin_panel_shell_available=true`, `admin_theme_available=true`, `admin_theme_active_preset`, `admin_assets_available=true`, `admin_typography_available=true`, and `admin_theme_persian_ok=true`.

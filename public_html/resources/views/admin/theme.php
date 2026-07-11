@@ -2,37 +2,9 @@
 if (!function_exists('admin_h')) {
     function admin_h($value): string
     {
-        return htmlspecialchars((string) ($value ?? ''), ENT_QUOTES, 'UTF-8');
+        return htmlspecialchars((string) ($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
     }
 }
-
-$tokenLabels = [
-    'font_family' => 'خانواده فونت',
-    'font_size_base' => 'اندازه پایه فونت',
-    'line_height_base' => 'فاصله خطوط',
-    'font_weight_normal' => 'وزن معمولی',
-    'font_weight_medium' => 'وزن متوسط',
-    'font_weight_bold' => 'وزن ضخیم',
-    'primary' => 'رنگ اصلی',
-    'primary_hover' => 'رنگ اصلی در حالت فعال',
-    'primary_soft' => 'رنگ زمینه ملایم',
-    'accent' => 'رنگ تاکید',
-    'bg' => 'پس زمینه',
-    'bg_gradient_start' => 'شروع گرادیان',
-    'bg_gradient_end' => 'پایان گرادیان',
-    'surface' => 'سطح کارت',
-    'surface_muted' => 'سطح ملایم',
-    'text' => 'متن اصلی',
-    'text_muted' => 'متن کم رنگ',
-    'border' => 'خط جداکننده',
-    'danger' => 'خطا',
-    'warning' => 'هشدار',
-    'success' => 'موفقیت',
-    'radius' => 'گردی گوشه',
-    'shadow' => 'سایه',
-    'sidebar_width' => 'عرض منو',
-    'topbar_height' => 'ارتفاع سربرگ',
-];
 
 $fontLabels = [
     'vazirmatn' => 'Vazirmatn',
@@ -41,122 +13,270 @@ $fontLabels = [
     'system_ui' => 'System UI',
 ];
 
-$featuredTokens = ['font_family', 'font_size_base', 'line_height_base', 'radius'];
+$fontSizeOptions = ['13px', '14px', '15px', '16px', '1rem'];
+$lineHeightOptions = ['1.5', '1.6', '1.7', '1.8'];
+$radiusOptions = ['8px', '12px', '16px', '18px', '20px', '24px'];
 
-$colorTokens = [
-    'primary', 'primary_hover', 'primary_soft', 'accent', 'bg',
-    'bg_gradient_start', 'bg_gradient_end', 'surface', 'surface_muted',
-    'text', 'text_muted', 'border', 'danger', 'warning', 'success',
+$colorLabels = [
+    'primary' => 'رنگ اصلی',
+    'primary_hover' => 'رنگ اصلی در حالت hover',
+    'primary_dark' => 'سبز تیره',
+    'primary_soft' => 'سبز ملایم',
+    'accent' => 'رنگ تاکید',
+    'accent_hover' => 'تاکید در حالت hover',
+    'bg' => 'پس‌زمینه محتوا',
+    'surface' => 'سطح کارت',
+    'surface_muted' => 'سطح ملایم',
+    'text' => 'متن اصلی',
+    'text_muted' => 'متن کم‌رنگ',
+    'border' => 'خط جداکننده',
+    'sidebar_bg' => 'پس‌زمینه سایدبار',
+    'sidebar_bg_2' => 'گرادیان سایدبار',
+    'sidebar_text' => 'متن سایدبار',
+    'sidebar_text_muted' => 'متن کم‌رنگ سایدبار',
+    'sidebar_active_bg' => 'آیتم فعال منو',
+    'sidebar_active_text' => 'متن آیتم فعال',
+    'header_bg' => 'پس‌زمینه هدر',
+    'footer_bg' => 'پس‌زمینه فوتر',
+    'footer_text' => 'متن فوتر',
 ];
+
+$advancedTextTokens = [
+    'shadow' => 'سایه کارت‌ها',
+    'sidebar_width' => 'عرض سایدبار',
+    'topbar_height' => 'ارتفاع هدر',
+    'font_size_sm' => 'اندازه متن کوچک',
+    'font_size_lg' => 'اندازه تیترها',
+    'font_weight_normal' => 'وزن معمولی',
+    'font_weight_medium' => 'وزن متوسط',
+    'font_weight_bold' => 'وزن ضخیم',
+];
+
+$logoOptions = $logoOptions ?? [];
+$avatarOptions = $avatarOptions ?? [];
 
 ob_start();
 ?>
 <?php if ($status === 'saved'): ?>
-    <div class="admin-notice">پوسته پنل به روز شد.</div>
+    <div class="admin-notice">پوسته پنل با موفقیت ذخیره شد.</div>
 <?php endif; ?>
 
 <?php if ($errors !== []): ?>
-    <div class="admin-alert">تنظیمات پوسته معتبر نیست یا دسترسی کافی ندارید.</div>
+    <div class="admin-alert">بخشی از تنظیمات معتبر نیست یا دسترسی کافی ندارید. مقادیر رنگ، فونت، لوگو و آواتار را بررسی کنید.</div>
 <?php endif; ?>
 
-<section class="admin-section">
-    <h2>پیش نمایش پوسته</h2>
-    <div class="admin-theme-preview">
-        <?php foreach ($presets as $key => $preset): ?>
-            <article class="admin-theme-card <?= $theme['active_preset'] === $key ? 'is-active' : '' ?>">
-                <span><?= admin_h($preset['title']) ?></span>
-                <strong><?= admin_h($key) ?></strong>
-                <div class="admin-color-row">
-                    <i style="background: <?= admin_h($preset['tokens']['primary']) ?>"></i>
-                    <i style="background: <?= admin_h($preset['tokens']['accent']) ?>"></i>
-                    <i style="background: <?= admin_h($preset['tokens']['surface_muted']) ?>"></i>
-                </div>
-            </article>
-        <?php endforeach; ?>
-    </div>
-</section>
+<?php if (!$canManageTheme): ?>
+    <div class="admin-alert">برای ذخیره تغییرات باید نقش فعال شما دارای دسترسی مدیریت پوسته باشد.</div>
+<?php endif; ?>
 
-<section class="admin-section">
-    <h2>تنظیمات پوسته</h2>
-    <?php if (!$canManageTheme): ?>
-        <p class="admin-muted">برای تغییر پوسته باید نقش فعال دارای دسترسی مدیریت پوسته باشد.</p>
-    <?php endif; ?>
+<form method="post" action="/admin/theme" class="admin-theme-form">
+    <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
 
-    <form method="post" action="/admin/theme" class="admin-theme-form">
-        <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
+    <section class="admin-section admin-theme-section">
+        <div class="admin-section__header">
+            <h2>انتخاب پوسته</h2>
+            <p class="admin-muted">یک ظاهر پایه انتخاب کنید. هر پوسته رنگ، سایدبار و حس بصری متفاوتی دارد.</p>
+        </div>
+        <div class="admin-theme-presets">
+            <?php foreach ($presets as $key => $preset): ?>
+                <?php $tokens = $preset['tokens']; ?>
+                <label class="admin-preset-card <?= $theme['active_preset'] === $key ? 'is-active' : '' ?>">
+                    <input type="radio" name="active_preset" value="<?= admin_h($key) ?>" <?= $theme['active_preset'] === $key ? 'checked' : '' ?> <?= $canManageTheme ? '' : 'disabled' ?>>
+                    <span class="admin-preset-card__visual" style="background: <?= admin_h($tokens['bg']) ?>;">
+                        <i style="background: linear-gradient(160deg, <?= admin_h($tokens['sidebar_bg']) ?>, <?= admin_h($tokens['sidebar_bg_2']) ?>);"></i>
+                        <b style="background: <?= admin_h($tokens['sidebar_active_bg']) ?>;"></b>
+                        <em style="background: <?= admin_h($tokens['surface']) ?>;"></em>
+                    </span>
+                    <strong><?= admin_h($preset['title']) ?></strong>
+                    <small><?= admin_h($preset['description']) ?></small>
+                </label>
+            <?php endforeach; ?>
+        </div>
+    </section>
 
+    <section class="admin-section admin-theme-section">
+        <div class="admin-section__header">
+            <h2>برندینگ</h2>
+            <p class="admin-muted">نام سامانه، لوگو و آواتار پیش‌فرض کاربران را تنظیم کنید.</p>
+        </div>
         <div class="admin-form-grid">
             <label>
-                <span>پوسته فعال</span>
-                <select name="active_preset" <?= $canManageTheme ? '' : 'disabled' ?>>
-                    <?php foreach ($presets as $key => $preset): ?>
-                        <option value="<?= admin_h($key) ?>" <?= $theme['active_preset'] === $key ? 'selected' : '' ?>>
-                            <?= admin_h($preset['title']) ?>
-                        </option>
+                <span>نام سامانه</span>
+                <input name="brand_name" value="<?= admin_h($theme['brand_name']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>>
+            </label>
+            <label>
+                <span>لوگوی پنل</span>
+                <select name="logo_url" <?= $canManageTheme ? '' : 'disabled' ?>>
+                    <?php foreach ($logoOptions as $label => $path): ?>
+                        <option value="<?= admin_h($path) ?>" <?= $theme['logo_url'] === $path ? 'selected' : '' ?>><?= admin_h($label) ?></option>
                     <?php endforeach; ?>
                 </select>
             </label>
             <label>
-                <span>نام برند</span>
-                <input name="brand_name" value="<?= admin_h($theme['brand_name']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>>
+                <span>آواتار پیش‌فرض کاربران</span>
+                <select name="default_avatar_url" <?= $canManageTheme ? '' : 'disabled' ?>>
+                    <?php foreach ($avatarOptions as $label => $path): ?>
+                        <option value="<?= admin_h($path) ?>" <?= $theme['default_avatar_url'] === $path ? 'selected' : '' ?>><?= admin_h($label) ?></option>
+                    <?php endforeach; ?>
+                </select>
             </label>
+        </div>
+        <div class="admin-branding-preview">
+            <img src="<?= admin_h($theme['logo_url']) ?>" alt="">
+            <div>
+                <strong><?= admin_h($theme['brand_name']) ?></strong>
+                <span>پیش‌نمایش برند در هدر و سایدبار</span>
+            </div>
+            <img class="admin-avatar" src="<?= admin_h($theme['default_avatar_url']) ?>" alt="">
+        </div>
+        <p class="admin-muted">بارگذاری فایل لوگو در نسخه بعدی اضافه می‌شود. فعلاً مسیر فایل داخلی را از بخش پیشرفته وارد کنید.</p>
+    </section>
+
+    <section class="admin-section admin-theme-section">
+        <div class="admin-section__header">
+            <h2>هدر</h2>
+            <p class="admin-muted">نمایش کاربر، نقش فعال و رنگ هدر پنل.</p>
+        </div>
+        <div class="admin-form-grid">
             <label>
-                <span>آدرس لوگو</span>
-                <input name="logo_url" value="<?= admin_h($theme['logo_url']) ?>" placeholder="/assets/admin/images/logos/default-logo.svg" <?= $canManageTheme ? '' : 'disabled' ?>>
+                <span>رنگ هدر</span>
+                <input type="color" name="token_header_bg" value="<?= admin_h($theme['tokens']['header_bg']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>>
             </label>
+            <label class="admin-check-field">
+                <input type="checkbox" name="show_user_name" value="1" <?= $theme['show_user_name'] ? 'checked' : '' ?> <?= $canManageTheme ? '' : 'disabled' ?>>
+                <span>نمایش نام کاربر</span>
+            </label>
+            <label class="admin-check-field">
+                <input type="checkbox" name="show_active_role" value="1" <?= $theme['show_active_role'] ? 'checked' : '' ?> <?= $canManageTheme ? '' : 'disabled' ?>>
+                <span>نمایش نقش فعال</span>
+            </label>
+        </div>
+        <div class="admin-header-preview" style="background: <?= admin_h($theme['tokens']['header_bg']) ?>;">
+            <span><?= admin_h($theme['brand_name']) ?></span>
+            <b>مدیر کل سامانه</b>
+        </div>
+    </section>
+
+    <section class="admin-section admin-theme-section">
+        <div class="admin-section__header">
+            <h2>سایدبار / منو</h2>
+            <p class="admin-muted">رنگ منوی اصلی، آیتم فعال و حالت hover را تنظیم کنید.</p>
+        </div>
+        <div class="admin-form-grid">
+            <label><span>پس‌زمینه سایدبار</span><input type="color" name="token_sidebar_bg" value="<?= admin_h($theme['tokens']['sidebar_bg']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>></label>
+            <label><span>رنگ دوم سایدبار</span><input type="color" name="token_sidebar_bg_2" value="<?= admin_h($theme['tokens']['sidebar_bg_2']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>></label>
+            <label><span>آیتم فعال</span><input type="color" name="token_sidebar_active_bg" value="<?= admin_h($theme['tokens']['sidebar_active_bg']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>></label>
+        </div>
+        <div class="admin-sidebar-preview" style="background: linear-gradient(180deg, <?= admin_h($theme['tokens']['sidebar_bg']) ?>, <?= admin_h($theme['tokens']['sidebar_bg_2']) ?>); color: <?= admin_h($theme['tokens']['sidebar_text']) ?>;">
+            <span>داشبورد</span>
+            <strong style="background: <?= admin_h($theme['tokens']['sidebar_active_bg']) ?>; color: <?= admin_h($theme['tokens']['sidebar_active_text']) ?>;">پوسته</strong>
+            <span>پروفایل</span>
+        </div>
+    </section>
+
+    <section class="admin-section admin-theme-section">
+        <div class="admin-section__header">
+            <h2>محتوای داشبورد</h2>
+            <p class="admin-muted">پس‌زمینه، کارت‌ها، گردی گوشه‌ها و سایه‌ها.</p>
+        </div>
+        <div class="admin-form-grid">
+            <label><span>پس‌زمینه</span><input type="color" name="token_bg" value="<?= admin_h($theme['tokens']['bg']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>></label>
+            <label><span>رنگ کارت‌ها</span><input type="color" name="token_surface" value="<?= admin_h($theme['tokens']['surface']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>></label>
             <label>
-                <span>آواتار پیش فرض</span>
-                <input name="default_avatar_url" value="<?= admin_h($theme['default_avatar_url']) ?>" placeholder="/assets/admin/images/avatars/default-avatar.svg" <?= $canManageTheme ? '' : 'disabled' ?>>
+                <span>گردی گوشه‌ها</span>
+                <select name="token_radius" <?= $canManageTheme ? '' : 'disabled' ?>>
+                    <?php foreach ($radiusOptions as $radius): ?>
+                        <option value="<?= admin_h($radius) ?>" <?= $theme['tokens']['radius'] === $radius ? 'selected' : '' ?>><?= admin_h($radius) ?></option>
+                    <?php endforeach; ?>
+                </select>
             </label>
+        </div>
+    </section>
+
+    <section class="admin-section admin-theme-section">
+        <div class="admin-section__header">
+            <h2>فوتر</h2>
+            <p class="admin-muted">متن و رنگ فوتر پنل مدیریت.</p>
+        </div>
+        <div class="admin-form-grid">
+            <label><span>متن فوتر</span><input name="footer_text" value="<?= admin_h($theme['footer_text']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>></label>
+            <label><span>رنگ فوتر</span><input type="color" name="token_footer_bg" value="<?= admin_h($theme['tokens']['footer_bg']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>></label>
+            <label class="admin-check-field">
+                <input type="checkbox" name="footer_enabled" value="1" <?= $theme['footer_enabled'] ? 'checked' : '' ?> <?= $canManageTheme ? '' : 'disabled' ?>>
+                <span>نمایش فوتر</span>
+            </label>
+        </div>
+    </section>
+
+    <section class="admin-section admin-theme-section">
+        <div class="admin-section__header">
+            <h2>فونت و خوانایی</h2>
+            <p class="admin-muted">فونت، اندازه متن و فاصله خطوط برای خوانایی فارسی.</p>
+        </div>
+        <div class="admin-form-grid">
             <label>
                 <span>فونت پنل</span>
                 <select name="token_font_family" <?= $canManageTheme ? '' : 'disabled' ?>>
                     <?php foreach (($fontOptions ?? []) as $key => $fontValue): ?>
-                        <option value="<?= admin_h($fontValue) ?>" <?= $theme['tokens']['font_family'] === $fontValue ? 'selected' : '' ?>>
-                            <?= admin_h($fontLabels[$key] ?? $key) ?>
-                        </option>
+                        <option value="<?= admin_h($fontValue) ?>" <?= $theme['tokens']['font_family'] === $fontValue ? 'selected' : '' ?>><?= admin_h($fontLabels[$key] ?? $key) ?></option>
                     <?php endforeach; ?>
                 </select>
             </label>
             <label>
                 <span>اندازه پایه فونت</span>
-                <input name="token_font_size_base" value="<?= admin_h($theme['tokens']['font_size_base']) ?>" placeholder="15px" <?= $canManageTheme ? '' : 'disabled' ?>>
+                <select name="token_font_size_base" <?= $canManageTheme ? '' : 'disabled' ?>>
+                    <?php foreach ($fontSizeOptions as $size): ?>
+                        <option value="<?= admin_h($size) ?>" <?= $theme['tokens']['font_size_base'] === $size ? 'selected' : '' ?>><?= admin_h($size) ?></option>
+                    <?php endforeach; ?>
+                </select>
             </label>
             <label>
                 <span>فاصله خطوط</span>
-                <input name="token_line_height_base" value="<?= admin_h($theme['tokens']['line_height_base']) ?>" placeholder="1.8" <?= $canManageTheme ? '' : 'disabled' ?>>
-            </label>
-            <label>
-                <span>گردی گوشه</span>
-                <input name="token_radius" value="<?= admin_h($theme['tokens']['radius']) ?>" placeholder="16px" <?= $canManageTheme ? '' : 'disabled' ?>>
+                <select name="token_line_height_base" <?= $canManageTheme ? '' : 'disabled' ?>>
+                    <?php foreach ($lineHeightOptions as $lineHeight): ?>
+                        <option value="<?= admin_h($lineHeight) ?>" <?= $theme['tokens']['line_height_base'] === $lineHeight ? 'selected' : '' ?>><?= admin_h($lineHeight) ?></option>
+                    <?php endforeach; ?>
+                </select>
             </label>
         </div>
+        <div class="admin-typography-preview">«نمونه متن فارسی پنل مدیریت تروکا»</div>
+    </section>
 
-        <div class="admin-typography-preview">
-            نمونه متن فارسی پنل مدیریت تروکا
+    <details class="admin-section admin-theme-section">
+        <summary>تنظیمات پیشرفته</summary>
+        <p class="admin-muted">این بخش برای تنظیم دقیق رنگ‌ها و مسیرهای داخلی است. مقدارهای خارجی یا ناامن ذخیره نمی‌شوند.</p>
+        <div class="admin-form-grid">
+            <label><span>مسیر دستی لوگو</span><input name="logo_url_manual" placeholder="/assets/admin/images/logos/default-logo.svg" <?= $canManageTheme ? '' : 'disabled' ?>></label>
+            <label><span>مسیر دستی آواتار</span><input name="default_avatar_url_manual" placeholder="/assets/admin/images/avatars/default-avatar.svg" <?= $canManageTheme ? '' : 'disabled' ?>></label>
         </div>
-
         <div class="admin-token-grid">
-            <?php foreach ($theme['tokens'] as $key => $value): ?>
-                <?php if (in_array($key, $featuredTokens, true)): ?>
+            <?php foreach ($colorLabels as $key => $label): ?>
+                <?php if (!isset($theme['tokens'][$key]) || in_array($key, ['sidebar_bg', 'sidebar_bg_2', 'sidebar_active_bg', 'header_bg', 'bg', 'surface', 'footer_bg'], true)): ?>
                     <?php continue; ?>
                 <?php endif; ?>
                 <label class="admin-token-field">
-                    <span><?= admin_h($tokenLabels[$key] ?? $key) ?></span>
-                    <?php if (in_array($key, $colorTokens, true)): ?>
-                        <input type="color" name="token_<?= admin_h($key) ?>" value="<?= admin_h($value) ?>" <?= $canManageTheme ? '' : 'disabled' ?>>
-                    <?php else: ?>
-                        <input name="token_<?= admin_h($key) ?>" value="<?= admin_h($value) ?>" <?= $canManageTheme ? '' : 'disabled' ?>>
-                    <?php endif; ?>
+                    <span><?= admin_h($label) ?></span>
+                    <input type="color" name="token_<?= admin_h($key) ?>" value="<?= admin_h($theme['tokens'][$key]) ?>" <?= $canManageTheme ? '' : 'disabled' ?>>
+                </label>
+            <?php endforeach; ?>
+            <?php foreach ($advancedTextTokens as $key => $label): ?>
+                <?php if (!isset($theme['tokens'][$key])): ?>
+                    <?php continue; ?>
+                <?php endif; ?>
+                <label class="admin-token-field">
+                    <span><?= admin_h($label) ?></span>
+                    <input name="token_<?= admin_h($key) ?>" value="<?= admin_h($theme['tokens'][$key]) ?>" <?= $canManageTheme ? '' : 'disabled' ?>>
                 </label>
             <?php endforeach; ?>
         </div>
+    </details>
 
-        <?php if ($canManageTheme): ?>
+    <?php if ($canManageTheme): ?>
+        <div class="admin-form-actions">
             <button type="submit">ذخیره پوسته</button>
-        <?php endif; ?>
-    </form>
-</section>
+        </div>
+    <?php endif; ?>
+</form>
 <?php
 $content = ob_get_clean();
 require __DIR__ . '/layout.php';

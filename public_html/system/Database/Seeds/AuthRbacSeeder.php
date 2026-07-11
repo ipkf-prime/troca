@@ -4,6 +4,7 @@ namespace IPKF\Database\Seeds;
 
 use App\Repositories\RoleRepository;
 use App\Repositories\UserRepository;
+use App\Services\AdminThemeService;
 use IPKF\Support\Env;
 
 class AuthRbacSeeder extends Seeder
@@ -17,6 +18,7 @@ class AuthRbacSeeder extends Seeder
         $this->seedPermissions();
         $this->seedIdentityPermissions();
         $this->assignSuperAdminPermissions();
+        $this->seedAdminThemeDefaults();
         $this->seedAdminUser();
         $this->assignBaseRoleToAllUsers();
     }
@@ -224,6 +226,11 @@ class AuthRbacSeeder extends Seeder
         foreach ($permissions as $permission) {
             $statement->execute([$roleId, (int) $permission['id']]);
         }
+    }
+
+    private function seedAdminThemeDefaults(): void
+    {
+        (new AdminThemeService())->seedDefaults();
     }
 
     private function idFor(string $table, string $code): ?int

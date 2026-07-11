@@ -19,8 +19,10 @@ class CreateAdminPanelShellTables extends Migration
                 UNIQUE KEY app_settings_namespace_key_unique (namespace, setting_key),
                 INDEX app_settings_namespace_index (namespace),
                 INDEX app_settings_is_public_index (is_public)
-            )
+            ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
+
+        $this->db->exec('ALTER TABLE app_settings CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
     }
 
     public function down(): void
