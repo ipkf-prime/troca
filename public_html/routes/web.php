@@ -245,6 +245,8 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'admin_theme_resolved_source' => $adminTheme !== null ? $adminTheme->resolvedPresetSource($diagnosticUserId) : 'default',
         'admin_theme_system_preset_exists' => $adminTheme !== null && $adminTheme->systemPresetExists(),
         'admin_theme_personal_preset_exists_for_current_user' => $adminTheme !== null && $adminTheme->personalPresetExists($diagnosticUserId),
+        'admin_theme_token_override_rows_count' => $adminTheme !== null ? $adminTheme->forensics($diagnosticUserId)['token_override_rows_count'] : 0,
+        'admin_theme_token_override_rows_ignored' => true,
         'admin_theme_scope_support' => $adminTheme !== null && $adminTheme->scopeSupport(),
         'admin_personal_theme_available' => $adminTheme !== null && $adminTheme->scopeSupport(),
         'admin_system_theme_available' => $adminTheme !== null && \IPKF\Database\Database::tableExists('app_settings'),
@@ -750,6 +752,11 @@ $router->get('/admin/theme/debug', function ($request, $response) use ($adminCon
             <section class="admin-section"><h2>System theme rows</h2><?= $rowTable($forensics['system_rows']) ?></section>
             <section class="admin-section"><h2>Current user personal theme rows</h2><?= $rowTable($forensics['personal_rows']) ?></section>
             <section class="admin-section"><h2>Other users</h2><?= $list(['other_user_theme_row_count' => $forensics['other_user_theme_row_count']]) ?></section>
+            <section class="admin-section"><h2>Token override policy</h2><?= $list([
+                'token_override_rows_count' => $forensics['token_override_rows_count'] ?? 0,
+                'personal_token_override_rows_count' => $forensics['personal_token_override_rows_count'] ?? 0,
+                'token_override_rows_ignored' => $forensics['token_override_rows_ignored'] ?? true,
+            ]) ?></section>
             <section class="admin-section"><h2>Resolved theme</h2><?= $list($forensics['resolved_theme']) ?></section>
             <section class="admin-section"><h2>Resolved visual tokens</h2><?= $list($forensics['visual_tokens']) ?></section>
             <section class="admin-section"><h2>Injected CSS variables</h2><pre dir="ltr"><?= $h($forensics['css_variables']) ?></pre></section>

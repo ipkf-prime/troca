@@ -37,6 +37,13 @@ class AdminThemeService extends BaseService
         'token.radius',
     ];
 
+    private const PERSONAL_TOKEN_KEYS = [
+        'font_family',
+        'font_size_base',
+        'line_height_base',
+        'radius',
+    ];
+
     public function __construct(protected ?AppSettingRepository $settings = null)
     {
         $this->settings ??= new AppSettingRepository();
@@ -235,10 +242,10 @@ class AdminThemeService extends BaseService
         $preset = $this->validPreset((string) ($settings['active_preset'] ?? $this->envDefaultPreset()));
         $tokens = $this->presets()[$preset]['tokens'];
 
-        foreach ($tokens as $key => $default) {
-            $custom = $settings['token.' . $key] ?? null;
+        foreach (self::PERSONAL_TOKEN_KEYS as $key) {
+            $custom = $personal['token.' . $key] ?? null;
 
-            if ($custom !== null && $custom !== '' && $this->validTokenValue($key, $custom)) {
+            if ($custom !== null && $custom !== '' && isset($tokens[$key]) && $this->validTokenValue($key, $custom)) {
                 $tokens[$key] = $custom;
             }
         }
@@ -313,9 +320,7 @@ class AdminThemeService extends BaseService
             return ['ok' => false, 'errors' => $result['errors']];
         }
 
-        if ($presetChanged) {
-            $this->deleteTokenOverrides(self::SYSTEM_USER_ID);
-        }
+        $this->deleteTokenOverrides(self::SYSTEM_USER_ID);
 
         foreach ($result['settings'] as $key => [$value, $type]) {
             $this->settings->put(self::NAMESPACE, $key, $value, $type, true, self::SYSTEM_USER_ID);
@@ -337,12 +342,17 @@ class AdminThemeService extends BaseService
 
         $errors = [];
         $settings = [];
+        $currentPersonal = $this->personalSettingMap($userId);
         $preset = $this->validPreset((string) ($input['active_preset'] ?? $this->envDefaultPreset()));
         $settings['active_preset'] = [$preset, 'string'];
 
         foreach (['font_family', 'font_size_base', 'line_height_base', 'radius'] as $key) {
             $inputKey = 'token_' . $key;
             $value = trim((string) ($input[$inputKey] ?? ''));
+
+            if ($value === '') {
+                $value = (string) ($currentPersonal['token.' . $key] ?? '');
+            }
 
             if ($value === '') {
                 continue;
@@ -360,6 +370,8 @@ class AdminThemeService extends BaseService
             return ['ok' => false, 'errors' => $errors];
         }
 
+        $this->deleteTokenOverrides($userId);
+
         foreach ($settings as $key => [$value, $type]) {
             $this->settings->put(self::NAMESPACE, $key, $value, $type, true, $userId);
         }
@@ -375,7 +387,8 @@ class AdminThemeService extends BaseService
     public function resetSystemTheme(): void
     {
         if ($this->scopeSupport()) {
-            $this->settings->deleteNamespace(self::NAMESPACE, self::SYSTEM_USER_ID);
+            $this->deleteTokenOverrides(self::SYSTEM_USER_ID);
+            $this->settings->delete(self::NAMESPACE, 'active_preset', self::SYSTEM_USER_ID);
         }
 
         $this->seedDefaults(true);
@@ -568,6 +581,9 @@ class AdminThemeService extends BaseService
             'system_rows' => $this->safeRows(self::SYSTEM_USER_ID),
             'personal_rows' => $userId !== null ? $this->safeRows($userId) : [],
             'other_user_theme_row_count' => $userId !== null ? $this->settings->otherScopedUserCount(self::NAMESPACE, $userId) : 0,
+            'token_override_rows_count' => $this->tokenOverrideRowsCount(self::SYSTEM_USER_ID),
+            'personal_token_override_rows_count' => $userId !== null ? $this->tokenOverrideRowsCount($userId) : 0,
+            'token_override_rows_ignored' => true,
             'resolved_theme' => [
                 'resolved_source' => $this->resolvedPresetSource($userId),
                 'active_preset' => $theme['active_preset'],
@@ -626,20 +642,6 @@ class AdminThemeService extends BaseService
         $settings['show_user_name'] = [$this->booleanString($input['show_user_name'] ?? '0'), 'bool'];
         $settings['show_active_role'] = [$this->booleanString($input['show_active_role'] ?? '0'), 'bool'];
 
-        if ($presetChanged) {
-            return ['errors' => $errors, 'settings' => $settings];
-        }
-
-        foreach (array_keys($this->presets()[self::DEFAULT_PRESET]['tokens']) as $key) {
-            $value = trim((string) ($input['token_' . $key] ?? ''));
-
-            if ($value !== '' && !$this->validTokenValue($key, $value)) {
-                $errors[] = 'invalid_' . $key;
-            }
-
-            $settings['token.' . $key] = [$value, 'string'];
-        }
-
         return ['errors' => $errors, 'settings' => $settings];
     }
 
@@ -648,6 +650,11 @@ class AdminThemeService extends BaseService
         foreach (array_keys($this->presets()[self::DEFAULT_PRESET]['tokens']) as $key) {
             $this->settings->delete(self::NAMESPACE, 'token.' . $key, $userId);
         }
+    }
+
+    private function tokenOverrideRowsCount(int $userId): int
+    {
+        return $this->settings->tokenOverrideCount(self::NAMESPACE, $userId);
     }
 
     private function settingMap(int $userId): array

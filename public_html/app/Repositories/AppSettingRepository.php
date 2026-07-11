@@ -98,6 +98,32 @@ class AppSettingRepository extends BaseRepository
         return (int) $statement->fetchColumn();
     }
 
+    public function tokenOverrideCount(string $namespace, int $userId = 0): int
+    {
+        if (!$this->scoped()) {
+            $statement = $this->connection()->prepare("
+                SELECT COUNT(*)
+                FROM app_settings
+                WHERE namespace = ?
+                  AND setting_key LIKE 'token.%'
+            ");
+            $statement->execute([$namespace]);
+
+            return (int) $statement->fetchColumn();
+        }
+
+        $statement = $this->connection()->prepare("
+            SELECT COUNT(*)
+            FROM app_settings
+            WHERE namespace = ?
+              AND user_id = ?
+              AND setting_key LIKE 'token.%'
+        ");
+        $statement->execute([$namespace, $userId]);
+
+        return (int) $statement->fetchColumn();
+    }
+
     public function put(string $namespace, string $key, string $value, string $type = 'string', bool $public = true, int $userId = 0): void
     {
         if (!$this->scoped()) {

@@ -43,6 +43,8 @@
 - Diagnostics include `admin_theme_resolved_source`, `admin_theme_system_preset_exists`, and `admin_theme_personal_preset_exists_for_current_user`.
 - Diagnostics include `admin_theme_forensics_available=true` and `admin_theme_runtime_fix_version=theme-runtime-forensics-v1`.
 - `/admin/theme/debug` works only in development/debug for an authorized admin and shows system rows, current user personal rows, resolved source, active preset, generated CSS variables, and loaded asset URLs.
+- `/admin/theme/debug` shows `token_override_rows_ignored=true`.
+- After saving a system preset, system `token.*` rows for `admin.theme` are cleared and `token_override_rows_count=0`.
 - System theme test: login as `super_admin`, select `neutral_light` in `/admin/theme`, save, refresh, verify the UI visibly changes and `/admin/theme/debug` shows system active preset as `neutral_light`.
 - Personal isolation test: User A selects `green_gold` in `/admin/my-theme`, verifies personal source in `/admin/theme/debug`, logs out, then User B logs in and must not see `green_gold` unless the system theme is `green_gold`.
 - Reset test: User A resets personal theme and returns to the system theme while system rows remain unchanged.

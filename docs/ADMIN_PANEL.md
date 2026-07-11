@@ -148,6 +148,8 @@ The theme resolver must be called with the current user id on authenticated admi
 
 When a system preset is changed in `/admin/theme`, old `token.*` overrides for the system scope are cleared so the selected preset's actual colors, shadows, radius, sidebar, header, and card tokens apply visibly. Personal preset changes remain scoped to the current user's `user_id`.
 
+In v0.4.4, stored visual `token.*` overrides are ignored by default. The resolver loads the selected built-in preset token map, then applies only current-user personal readability overrides for `font_family`, `font_size_base`, `line_height_base`, and `radius`. System-level token overrides are cleared on save to prevent stale colors from masking the selected preset.
+
 Future-ready profile shape:
 
 - `id`
@@ -357,6 +359,8 @@ Safe diagnostics for runtime testing include:
 - `admin_theme_resolved_source`
 - `admin_theme_system_preset_exists`
 - `admin_theme_personal_preset_exists_for_current_user`
+- `admin_theme_token_override_rows_count`
+- `admin_theme_token_override_rows_ignored`
 - `theme_user_scope_supported`
 - `current_theme_resolver_available`
 
