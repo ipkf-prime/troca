@@ -2,6 +2,8 @@
 
 Current branch: `v0.4.4-admin-panel-shell-dev`
 
+Current release baseline: `0.4.4-admin-panel-shell`
+
 ## Homepage
 
 `GET /` renders a static RTL Persian public landing page for IPKF/Troca.
@@ -17,6 +19,8 @@ The page includes:
 - footer
 
 The landing page is static. It does not add CRM, Bot, ERP, Automation, Marketplace, page builder, or public content-management features.
+
+The public landing page is included in the v0.4.4 stable admin panel shell baseline.
 
 ## SITE_MODE
 

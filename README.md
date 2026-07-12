@@ -6,7 +6,7 @@ business modules.
 
 ## Version
 
-Current version: `0.4.4-admin-panel-shell-dev`
+Current version: `0.4.4-admin-panel-shell`
 
 ## Requirements
 
@@ -47,11 +47,24 @@ On cPanel Git deployment, this repository deploys `public_html/` to the configur
 - Application path: `/home/troca/dev.troca.ir`
 - Document root: `/home/troca/dev.troca.ir/public`
 
+## Production Safety
+
+For production:
+
+- `APP_ENV=production`
+- `APP_DEBUG=false`
+- `IDENTITY_DEV_EXPOSE_TOKEN=false`
+- `MFA_DEV_EXPOSE_OTP=false`
+
+The `/admin/theme/debug` route is available only when `APP_DEBUG=true` and must not be available in production.
+
+Development maintenance endpoints such as `/migrate.php` and `/seed.php` remain protected by `DEV_MAINTENANCE_KEY`; production usage must be controlled and never expose the key.
+
 ## Development Route Tests
 
 The Foundation baseline has been verified with:
 
-- `GET /` returns `IPKF Framework Genesis OK`
+- `GET /` renders the public RTL Persian IPKF/Troca landing page
 - `GET /unknown` returns a clean 404 response
 - `GET /health` returns JSON health status
 - `GET /_diagnostics` returns JSON diagnostics when `APP_DEBUG=true`
@@ -68,8 +81,8 @@ The Foundation baseline has been verified with:
 
 ## Site Mode
 
-Set `SITE_MODE=coming_soon` to show the public Persian Coming Soon page at `GET /`.
-Set `SITE_MODE=app` to keep the framework/app home behavior for future application routing.
+Set `SITE_MODE=coming_soon` to show the polished public Persian landing page at `GET /` with the development/coming-soon badge.
+Set `SITE_MODE=app` to show the same public landing foundation without the coming-soon badge until future application routing replaces it.
 
 ## Architecture Guardrails
 
@@ -88,7 +101,17 @@ The v0.4.2 development branch adds JSON-first MFA foundation routes without addi
 
 The v0.4.3 stable baseline adds identity verification, one-time login tokens, MFA delivery channel foundations, and active access switching without adding UI or business modules.
 
-The v0.4.4 development branch adds the first admin panel shell and dynamic theme system without adding CRM, Bot, ERP, Automation, Marketplace, admin CRUD, or business workflows.
+The v0.4.4 stable baseline adds the first admin panel shell, simplified built-in theme preset selection, responsive admin navigation, autofocus behavior, and the public landing page without adding CRM, Bot, ERP, Automation, Marketplace, admin CRUD, or business workflows.
+
+Deferred after v0.4.4:
+
+- RBAC-based admin menu visibility
+- permission-based route guard matrix
+- automation module
+- custom theme builder
+- named user theme profiles
+
+Next phase: `v0.4.5-admin-navigation-rbac`.
 
 Set:
 

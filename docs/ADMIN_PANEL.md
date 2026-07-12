@@ -1,12 +1,54 @@
 # IPKF Admin Panel Shell
 
-Current version: `0.4.4-admin-panel-shell-dev`
+Current version: `0.4.4-admin-panel-shell`
 
 ## Purpose
 
 This milestone adds the first server-rendered admin panel shell on top of the existing IPKF Auth, MFA, RBAC, session, and active access foundations.
 
 It does not add CRM, Bot, ERP, Automation, Marketplace, business workflows, admin CRUD, or profile editing features.
+
+## Stable Scope
+
+Included in v0.4.4:
+
+- admin shell and dashboard
+- admin login UI
+- MFA and recovery-code UI foundation
+- forgot-password UI shell
+- profile, account, security, and password pages
+- basic access switching page
+- built-in system and personal theme preset selection
+- custom theme editor hidden and deferred
+- responsive admin layout and mobile sidebar
+- autofocus behavior on login, MFA, recovery, forgot-password, and password forms
+- public landing page
+- APP_DEBUG-only theme diagnostics
+
+Deferred after v0.4.4:
+
+- RBAC-based admin menu visibility
+- full permission route guard matrix
+- automation module
+- custom theme builder
+- named user theme profiles
+- CRM, ERP, Bot, and Marketplace modules
+
+Next phase: `v0.4.5-admin-navigation-rbac`.
+
+That phase should align menu visibility with actual permissions and block direct URL access when the active role is not authorized.
+
+## Production Safety
+
+For production:
+
+- `APP_ENV=production`
+- `APP_DEBUG=false`
+- `IDENTITY_DEV_EXPOSE_TOKEN=false`
+
+`/admin/theme/debug` is available only when `APP_DEBUG=true` and the active role can manage the admin theme. It must not be available in production.
+
+Development maintenance endpoints such as `/migrate.php` and `/seed.php` remain protected by `DEV_MAINTENANCE_KEY`; production usage must be controlled.
 
 ## Public Landing Link
 
@@ -121,6 +163,8 @@ Navigation is split intentionally:
 - User and account actions live in the avatar/name dropdown: profile, account, security, one-time password, password change, personal display theme, and logout.
 
 The dropdown closes on outside click and Escape. On mobile, the sidebar opens with a hamburger button and closes with the overlay, close button, or Escape.
+
+Some sidebar items are marked `(به‌زودی)` in v0.4.4 because they are safe placeholders. Permission-based menu visibility is intentionally deferred to `v0.4.5-admin-navigation-rbac`.
 
 ## Theme Page UX
 

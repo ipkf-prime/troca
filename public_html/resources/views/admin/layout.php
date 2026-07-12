@@ -24,10 +24,10 @@ $systemNav = [
     '/admin/dashboard' => 'داشبورد',
     '/admin/access' => 'دسترسی‌ها',
     '/admin/theme' => 'پوسته پنل',
-    '/admin/settings' => 'تنظیمات',
-    '/admin/pages' => 'صفحات داخلی',
-    '/admin/reports' => 'گزارش‌ها',
-    '/admin/support' => 'پشتیبانی',
+    '/admin/settings' => 'تنظیمات (به‌زودی)',
+    '/admin/pages' => 'صفحات داخلی (به‌زودی)',
+    '/admin/reports' => 'گزارش‌ها (به‌زودی)',
+    '/admin/support' => 'پشتیبانی (به‌زودی)',
 ];
 
 $accountNav = [

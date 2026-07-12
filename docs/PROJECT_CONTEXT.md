@@ -126,7 +126,7 @@ Branch naming convention:
 
 IPKF v0.4.4 Admin Panel Shell starts the first server-rendered RTL Persian admin UI on top of the existing Auth, MFA, RBAC, and active access foundations.
 
-Working version: `0.4.4-admin-panel-shell-dev`
+Stable version: `0.4.4-admin-panel-shell`
 
 Development branch: `v0.4.4-admin-panel-shell-dev`
 
@@ -137,9 +137,21 @@ Scope:
 - Dashboard shell with auth status, active role, MFA status, version, and assignment summary.
 - Access switch UI using the existing AccessService.
 - Profile display shell with safe user identity fields.
-- Dynamic admin theme presets, token validation, and `/admin/theme`.
+- Built-in admin theme preset selection, system/personal theme scope, and `/admin/theme`.
 - Reusable RTL admin layout and local CSS.
+- Public landing page for `/`.
+- Responsive mobile sidebar and autofocus behavior for admin forms.
 - No CRM, Bot, ERP, Automation, Marketplace, admin CRUD, or business modules are added.
+
+Deferred to the next phase:
+
+- RBAC-based admin menu visibility.
+- permission-based route guards.
+- automation module.
+- custom theme builder.
+- named user theme profiles.
+
+Next phase: `v0.4.5-admin-navigation-rbac`.
 
 ## Future Milestones
 

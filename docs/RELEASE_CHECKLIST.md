@@ -2,7 +2,7 @@
 
 ## v0.4.4 Admin Panel Shell UI Checks
 
-- `/health` returns `0.4.4-admin-panel-shell-dev`.
+- `/health` returns `0.4.4-admin-panel-shell`.
 - `/` renders the professional RTL Persian IPKF/Troca public landing page.
 - `SITE_MODE=coming_soon` keeps `/` polished and shows `نسخه آزمایشی / در حال آماده‌سازی`.
 - The homepage includes hero, capability cards, automation preview, roadmap, admin login CTA, and footer.
@@ -59,6 +59,7 @@
 - Diagnostics include `admin_theme_forensics_available=true` and `admin_theme_runtime_fix_version=theme-runtime-forensics-v1`.
 - Diagnostics include `admin_theme_custom_editor_enabled=false` and `admin_theme_builtin_presets_only=true`.
 - `/admin/theme/debug` works only in development/debug for an authorized admin and shows system rows, current user personal rows, resolved source, active preset, generated CSS variables, and loaded asset URLs.
+- `/admin/theme/debug` returns 404 or is otherwise unavailable when `APP_DEBUG=false`.
 - `/admin/theme/debug` shows `token_override_rows_ignored=true`.
 - After saving a system preset, system `token.*` rows for `admin.theme` are cleared and `token_override_rows_count=0`.
 - System theme test: login as `super_admin`, select `neutral_light` in `/admin/theme`, save, refresh, verify the UI visibly changes and `/admin/theme/debug` shows system active preset as `neutral_light`.
@@ -68,6 +69,35 @@
 - No password hash, session id, CSRF token, recovery code, OTP, provider secret, or maintenance key is exposed.
 - Existing JSON endpoints still work.
 - Persian UTF-8 rendering remains correct.
+
+Production safety:
+
+- `APP_ENV=production`.
+- `APP_DEBUG=false`.
+- `IDENTITY_DEV_EXPOSE_TOKEN=false`.
+- `MFA_DEV_EXPOSE_OTP=false`.
+- `/migrate.php` and `/seed.php` stay protected by `DEV_MAINTENANCE_KEY`.
+- No secrets, tokens, session ids, CSRF tokens, password hashes, recovery codes, login tokens, maintenance keys, or raw cookies are exposed.
+
+Final v0.4.4 manual checks:
+
+- Public: `/`, `/health`, and `/_diagnostics` in development only.
+- Auth/admin: `/admin/login`, `/admin/mfa`, `/admin/mfa/recovery`, `/admin/forgot-password`, `/admin/dashboard`, `/admin/profile`, `/admin/account`, `/admin/security`, `/admin/password`, `/admin/access`, `/admin/theme`, `/admin/my-theme`, and `/admin/logout`.
+- Responsive: mobile sidebar open/close, overlay close, Escape close, resize mobile to desktop, no horizontal overflow, and landing page mobile view.
+- Theme: choose system preset, choose personal preset, reset personal preset, custom editor hidden/disabled, and debug route only in development.
+- Autofocus: login field, MFA code, recovery code, forgot-password input, and password form.
+- Landing: homepage displays, admin login CTA works, “back to homepage” from `/admin/login` works, and no CDN/external assets are loaded.
+
+Deferred after v0.4.4:
+
+- RBAC menu visibility.
+- permission-based route guards.
+- automation module.
+- custom theme builder.
+- named user theme profiles.
+- CRM, ERP, Bot, and Marketplace modules.
+
+Next phase: `v0.4.5-admin-navigation-rbac`.
 
 ## v0.2.0 Foundation Release Checklist
 
@@ -176,7 +206,7 @@ Version: `0.2.0-foundation`
 
 ## v0.4.4 Admin Panel Shell Checks
 
-- `/health` returns version `0.4.4-admin-panel-shell-dev`.
+- `/health` returns version `0.4.4-admin-panel-shell`.
 - `GET /admin/login` loads a RTL Persian login page.
 - Admin login works with username, email, and mobile.
 - Admin login keeps CSRF protection enabled.
