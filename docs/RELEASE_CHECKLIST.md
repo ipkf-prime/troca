@@ -11,9 +11,21 @@
 - `/_diagnostics` includes `org_units_schema_available=true`.
 - `/_diagnostics` includes `positions_schema_available=true`.
 - `/_diagnostics` includes `user_org_assignments_schema_available=true`.
+- Run protected seeders in development.
+- `/_diagnostics` includes `admin_users_menu_available=true`.
+- `/_diagnostics` includes `admin_org_units_menu_available=true`.
+- `/_diagnostics` includes `admin_positions_menu_available=true`.
+- `/_diagnostics` includes `admin_users_permissions_seeded=true`.
+- `super_admin` sees `کاربران`, `واحدهای سازمانی`, and `سمت‌ها`.
+- Active base `user` role does not see users organization menu items by default.
+- `/admin/users` as an unauthorized active role returns HTTP 403.
+- `/admin/users` as `super_admin` opens the placeholder.
+- `/admin/org-units` and `/admin/positions` open placeholders for authorized roles.
+- Placeholder pages show `این بخش در حال آماده‌سازی است.`
 - Existing login, MFA, and admin routes still work.
 - Existing RBAC navigation still works.
 - Public landing page still works.
+- Full CRUD remains deferred.
 - No automation, correspondence, inbox/cartable, referral, attachment, workflow, CRM, ERP, or Bot tables are created in this phase.
 - No secrets are exposed.
 

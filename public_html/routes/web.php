@@ -107,6 +107,7 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $adminUserExists = false;
     $superAdminRoleExists = false;
     $superAdminAssignmentExists = false;
+    $adminUsersPermissionsSeeded = false;
 
     if ($databaseConnectionAvailable) {
         try {
@@ -137,10 +138,74 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
                     $superAdminAssignmentExists = (int) $statement->fetchColumn() > 0;
                 }
             }
+
+            if ($permissionsTableExists && $rolesTableExists && $rolePermissionsTableExists) {
+                $statement = $db->query("
+                    SELECT COUNT(*)
+                    FROM permissions
+                    WHERE code IN (
+                        'users.view',
+                        'users.manage',
+                        'org_units.view',
+                        'org_units.manage',
+                        'positions.view',
+                        'positions.manage',
+                        'user_org_assignments.manage'
+                    )
+                      AND is_active = 1
+                ");
+                $adminUsersPermissionsSeeded = (int) $statement->fetchColumn() === 7;
+
+                $requiredRolePermissions = [
+                    'super_admin' => [
+                        'users.view',
+                        'users.manage',
+                        'org_units.view',
+                        'org_units.manage',
+                        'positions.view',
+                        'positions.manage',
+                        'user_org_assignments.manage',
+                    ],
+                    'system_admin' => [
+                        'users.view',
+                        'users.manage',
+                        'org_units.view',
+                        'org_units.manage',
+                        'positions.view',
+                        'positions.manage',
+                        'user_org_assignments.manage',
+                    ],
+                    'province_admin' => [
+                        'users.view',
+                        'org_units.view',
+                        'positions.view',
+                    ],
+                ];
+
+                foreach ($requiredRolePermissions as $roleCode => $permissionCodes) {
+                    $quotedCodes = "'" . implode("','", $permissionCodes) . "'";
+                    $statement = $db->query("
+                        SELECT COUNT(DISTINCT permissions.code)
+                        FROM role_permissions
+                        INNER JOIN roles ON roles.id = role_permissions.role_id
+                        INNER JOIN permissions ON permissions.id = role_permissions.permission_id
+                        WHERE roles.code = '{$roleCode}'
+                          AND permissions.code IN ({$quotedCodes})
+                          AND roles.is_active = 1
+                          AND permissions.is_active = 1
+                    ");
+
+                    if ((int) $statement->fetchColumn() !== count($permissionCodes)) {
+                        $adminUsersPermissionsSeeded = false;
+                        break;
+                    }
+                }
+            }
         } catch (\Throwable $exception) {
             $adminUserExists = false;
             $superAdminRoleExists = false;
             $superAdminAssignmentExists = false;
+            $adminUsersPermissionsSeeded = false;
         }
     }
 
@@ -282,6 +347,10 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
             && class_exists(\App\Services\AccessService::class),
         'admin_active_access_switch_available' => class_exists(\App\Services\AccessService::class),
         'admin_active_access_switch_self_service' => true,
+        'admin_users_menu_available' => true,
+        'admin_org_units_menu_available' => true,
+        'admin_positions_menu_available' => true,
+        'admin_users_permissions_seeded' => $adminUsersPermissionsSeeded,
         'admin_users_organization_foundation_available' => $orgUnitsTableExists
             && $positionsTableExists
             && $userOrgAssignmentsTableExists,
@@ -837,6 +906,9 @@ $adminPlaceholder = function ($path, $title, $message) use ($adminRender, $admin
 };
 
 $router->get('/admin/settings', $adminPlaceholder('/admin/settings', 'تنظیمات', 'تنظیمات سامانه در فازهای بعدی تکمیل می‌شود.'));
+$router->get('/admin/users', $adminPlaceholder('/admin/users', 'کاربران', 'این بخش در حال آماده‌سازی است.'));
+$router->get('/admin/org-units', $adminPlaceholder('/admin/org-units', 'واحدهای سازمانی', 'این بخش در حال آماده‌سازی است.'));
+$router->get('/admin/positions', $adminPlaceholder('/admin/positions', 'سمت‌ها', 'این بخش در حال آماده‌سازی است.'));
 $router->get('/admin/pages', $adminPlaceholder('/admin/pages', 'صفحات داخلی', 'مدیریت صفحات داخلی هنوز فعال نشده است.'));
 $router->get('/admin/reports', $adminPlaceholder('/admin/reports', 'گزارش‌ها', 'گزارش‌های مدیریتی در نسخه‌های بعدی اضافه می‌شود.'));
 $router->get('/admin/support', $adminPlaceholder('/admin/support', 'پشتیبانی', 'مسیرهای پشتیبانی و راهنمای داخلی در فاز بعدی تکمیل می‌شود.'));

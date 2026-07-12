@@ -8,6 +8,39 @@ This phase adds the schema foundation required before Automation. It prepares in
 
 This is schema foundation only. It does not add Automation, letter/correspondence tables, inbox/cartable tables, routing/referral tables, attachments, workflow history, CRM, ERP, Bot modules, or UI.
 
+## Admin permissions
+
+The users organization foundation seeds these permissions idempotently:
+
+- `users.view`
+- `users.manage`
+- `org_units.view`
+- `org_units.manage`
+- `positions.view`
+- `positions.manage`
+- `user_org_assignments.manage`
+
+Default role mappings:
+
+- `super_admin`: all users organization permissions.
+- `system_admin`: all users organization permissions.
+- `province_admin`: `users.view`, `org_units.view`, and `positions.view`.
+- `user`: none by default.
+
+The seeder creates missing permissions and missing role-permission mappings only. It does not delete custom permissions and does not overwrite unrelated assignments.
+
+## Admin routes
+
+The admin panel includes permission-filtered placeholder routes:
+
+- `/admin/users` requires `users.view`.
+- `/admin/org-units` requires `org_units.view`.
+- `/admin/positions` requires `positions.view`.
+
+Guests are redirected to `/admin/login`. Authenticated users without the required permission receive the standard Persian 403 page.
+
+The sidebar menu and direct route access use the same permission map.
+
 ## Tables
 
 ### org_units
@@ -68,5 +101,6 @@ The table is designed for future personal and unit cartables, routing work to a 
 - Existing persons/users/RBAC schema remains unchanged.
 - Text columns are utf8mb4-compatible.
 - Migrations are idempotent.
+- Admin pages are placeholders only.
+- Full CRUD remains deferred.
 - No automation features are implemented yet.
-

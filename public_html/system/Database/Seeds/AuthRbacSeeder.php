@@ -18,6 +18,7 @@ class AuthRbacSeeder extends Seeder
         $this->seedPermissions();
         $this->seedIdentityPermissions();
         $this->seedAdminNavigationPermissions();
+        $this->seedUsersOrganizationPermissions();
         $this->assignDefaultAdminNavigationPermissions();
         $this->assignSuperAdminPermissions();
         $this->seedAdminThemeDefaults();
@@ -245,6 +246,28 @@ class AuthRbacSeeder extends Seeder
         }
     }
 
+    private function seedUsersOrganizationPermissions(): void
+    {
+        $permissions = [
+            ['users.manage', 'users', 'users', 'manage', 'Manage users'],
+            ['org_units.view', 'organization', 'org_units', 'view', 'View organizational units'],
+            ['org_units.manage', 'organization', 'org_units', 'manage', 'Manage organizational units'],
+            ['positions.view', 'organization', 'positions', 'view', 'View positions'],
+            ['positions.manage', 'organization', 'positions', 'manage', 'Manage positions'],
+            ['user_org_assignments.manage', 'organization', 'user_org_assignments', 'manage', 'Manage user organization assignments'],
+        ];
+
+        $statement = $this->db->prepare("
+            INSERT INTO permissions (code, module, resource, action, title, is_active, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON DUPLICATE KEY UPDATE code = code
+        ");
+
+        foreach ($permissions as $permission) {
+            $statement->execute($permission);
+        }
+    }
+
     private function assignDefaultAdminNavigationPermissions(): void
     {
         $rolePermissions = [
@@ -255,6 +278,13 @@ class AuthRbacSeeder extends Seeder
                 'account.password.change',
                 'account.theme.manage',
                 'access.manage',
+                'users.view',
+                'users.manage',
+                'org_units.view',
+                'org_units.manage',
+                'positions.view',
+                'positions.manage',
+                'user_org_assignments.manage',
                 'admin.theme.manage',
                 'admin.settings.manage',
                 'admin.pages.manage',
@@ -268,6 +298,9 @@ class AuthRbacSeeder extends Seeder
                 'account.security.view',
                 'account.password.change',
                 'account.theme.manage',
+                'users.view',
+                'org_units.view',
+                'positions.view',
                 'admin.reports.view',
                 'support.view',
             ],
