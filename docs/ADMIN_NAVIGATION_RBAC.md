@@ -1,12 +1,44 @@
 # IPKF Admin Navigation RBAC
 
-Current version: `0.4.5-admin-navigation-rbac-dev`
+Current version: `0.4.5-admin-navigation-rbac`
 
 ## Purpose
 
 This milestone aligns admin navigation visibility with route access checks. The admin sidebar, account dropdown, and direct URL guards use one central permission map and respect the current active role assignment.
 
 No CRM, Bot, ERP, Automation, Marketplace, or business module is added in this phase.
+
+## Final Scope
+
+Included in v0.4.5:
+
+- RBAC-based sidebar menu filtering
+- RBAC-based user dropdown filtering
+- Admin route permission map
+- Route guards for protected admin pages
+- Clean Persian 403 page
+- Active role/access-aware permissions
+- Self-service active access switching
+- Seeded permissions and default role-permission mappings
+
+Deferred after v0.4.5:
+
+- full permission management UI
+- advanced audit logs
+- automation module
+- CRM, ERP, and Bot modules
+- organization, geography, and fiscal-year scoped UI enforcement beyond the existing foundation
+
+Next phase: `v0.4.6-automation-foundation`
+
+Planned next work:
+
+- automation module schema
+- correspondence and incoming/outgoing letter foundation
+- inbox/cartable
+- routing/referrals
+- attachments
+- workflow history
 
 ## Permission Map
 

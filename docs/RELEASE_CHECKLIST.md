@@ -2,33 +2,57 @@
 
 ## v0.4.5 Admin Navigation RBAC Checks
 
-- `/health` returns `0.4.5-admin-navigation-rbac-dev`.
+- `/health` returns `0.4.5-admin-navigation-rbac`.
+- Deploy the `v0.4.5-admin-navigation-rbac` branch.
+- Run protected migrations in development.
+- Run protected seeders in development.
+- Login through the admin panel.
+- Verify `/health` after deployment.
 - `/_diagnostics` includes `admin_navigation_rbac_available=true`.
 - `/_diagnostics` includes `admin_route_guards_available=true`.
 - `/_diagnostics` includes `admin_menu_permission_filtering_available=true`.
 - `/_diagnostics` includes `admin_active_role_permission_context=true`.
+- `/_diagnostics` includes `admin_active_access_switch_available=true`.
+- `/_diagnostics` includes `admin_active_access_switch_self_service=true`.
 - Migrations and seeders run successfully.
 - Required admin navigation permissions exist.
+
+Super admin:
+
 - `super_admin` active role sees dashboard, access, theme, settings, pages, reports, and support.
 - `super_admin` can open `/admin/access` and `/admin/theme`.
+
+Active user role:
+
 - Switching active access to the base `user` role reduces sidebar items.
 - Base user active role does not see access, theme, settings, pages, or reports unless explicitly granted.
 - `/admin/access` returns HTTP 403 when the active role lacks `access.manage`.
 - `/admin/theme` returns HTTP 403 when the active role lacks `admin.theme.manage`.
+- Profile, account, security, password, and my-theme remain available if allowed.
+
+Active access switch:
+
 - Dashboard assignment table shows the active row as active and other rows with a role selection button.
 - Active role `user` can switch to the user's own `super_admin` assignment from the dashboard.
 - Active role switching does not require `access.manage`.
 - `/access/switch` cannot switch to another user's assignment.
 - `/access/switch` cannot switch to inactive, revoked, or expired assignments.
 - Header active role badge and sidebar permissions update after switching.
+- After switching back to user, restricted routes return 403 again.
+
+Guest, MFA, and public routes:
+
 - User/account dropdown items respect `account.profile.view`, `account.security.view`, `account.password.change`, and `account.theme.manage`.
 - `/admin/dashboard` works for roles with `admin.dashboard.view`.
 - Placeholder pages require their mapped permissions.
 - Guest access to `/admin/dashboard` redirects to `/admin/login`.
+- `/admin/login` opens for guests.
 - Existing admin login, MFA, recovery, and logout flow remains unchanged.
 - Existing JSON endpoints continue to work.
 - `/admin/navigation/debug` works only with `APP_DEBUG=true` and an authorized active role.
 - Public landing page still works.
+- `/health` works.
+- `/_diagnostics` remains development-only.
 - Persian UTF-8 rendering remains correct.
 - No password hash, session id, CSRF token, recovery code, OTP, provider secret, login token, or maintenance key is exposed.
 
@@ -120,16 +144,15 @@ Final v0.4.4 manual checks:
 - Autofocus: login field, MFA code, recovery code, forgot-password input, and password form.
 - Landing: homepage displays, admin login CTA works, “back to homepage” from `/admin/login` works, and no CDN/external assets are loaded.
 
-Deferred after v0.4.4:
+Deferred after v0.4.5:
 
-- RBAC menu visibility.
-- permission-based route guards.
+- full permission management UI.
+- advanced audit logs.
 - automation module.
-- custom theme builder.
-- named user theme profiles.
 - CRM, ERP, Bot, and Marketplace modules.
+- organization, geography, and fiscal-year scoped UI enforcement beyond the existing foundation.
 
-Next phase: `v0.4.5-admin-navigation-rbac`.
+Next phase: `v0.4.6-automation-foundation`.
 
 ## v0.2.0 Foundation Release Checklist
 

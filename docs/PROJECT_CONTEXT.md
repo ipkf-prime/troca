@@ -147,7 +147,7 @@ Scope:
 
 IPKF v0.4.5 Admin Navigation RBAC adds permission-based admin navigation and route guards.
 
-Working version: `0.4.5-admin-navigation-rbac-dev`
+Stable version: `0.4.5-admin-navigation-rbac`
 
 Development branch: `v0.4.5-admin-navigation-rbac`
 

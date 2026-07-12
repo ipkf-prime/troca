@@ -1,6 +1,6 @@
 # IPKF Admin Panel Shell
 
-Current version: `0.4.5-admin-navigation-rbac-dev`
+Current version: `0.4.5-admin-navigation-rbac`
 
 ## Purpose
 
@@ -25,18 +25,17 @@ Included in v0.4.4:
 - public landing page
 - APP_DEBUG-only theme diagnostics
 
-Deferred after v0.4.4:
+v0.4.5 adds RBAC-based admin menu visibility, account dropdown filtering, direct route guards, a clean Persian 403 page, and active-role-aware permissions on top of the v0.4.4 shell.
 
-- RBAC-based admin menu visibility
-- full permission route guard matrix
+Deferred after v0.4.5:
+
+- full permission management UI
+- advanced audit logs
 - automation module
-- custom theme builder
-- named user theme profiles
 - CRM, ERP, Bot, and Marketplace modules
+- organization, geography, and fiscal-year scoped UI enforcement beyond the existing foundation
 
-Next phase: `v0.4.5-admin-navigation-rbac`.
-
-That phase should align menu visibility with actual permissions and block direct URL access when the active role is not authorized.
+Next phase: `v0.4.6-automation-foundation`.
 
 ## Production Safety
 
@@ -166,7 +165,7 @@ Navigation is split intentionally:
 
 The dropdown closes on outside click and Escape. On mobile, the sidebar opens with a hamburger button and closes with the overlay, close button, or Escape.
 
-Some sidebar items are marked `(به‌زودی)` in v0.4.4 because they are safe placeholders. Permission-based menu visibility is intentionally deferred to `v0.4.5-admin-navigation-rbac`.
+Some sidebar items are marked `(به‌زودی)` because they are safe placeholders. In v0.4.5, those items are visible only when the active role has the matching permission, and direct URL access uses the same guard.
 
 ## Theme Page UX
 
