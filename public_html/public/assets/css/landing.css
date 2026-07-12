@@ -9,9 +9,9 @@
     --site-primary-soft: #dff2e9;
     --site-gold: #d8aa3a;
     --site-border: #d9e7df;
-    --site-shadow: 0 18px 44px rgba(11, 53, 40, .1);
-    --site-radius: 18px;
-    --site-font: "Vazirmatn", "IRANSans", "Tahoma", "Segoe UI", Arial, sans-serif;
+    --site-shadow: 0 14px 32px rgba(11, 53, 40, .08);
+    --site-radius: 20px;
+    --site-font: Tahoma, "Segoe UI", Arial, sans-serif;
 }
 
 * {
@@ -28,14 +28,14 @@ body {
 
 body {
     background:
-        radial-gradient(circle at 10% 6%, rgba(216, 170, 58, .12), transparent 26%),
-        radial-gradient(circle at 92% 18%, rgba(13, 107, 69, .08), transparent 28%),
-        linear-gradient(180deg, #fbfdfb 0%, var(--site-bg) 48%, #eef5f1 100%);
+        radial-gradient(circle at 12% 20%, rgba(246, 195, 67, .12), transparent 34%),
+        radial-gradient(circle at 88% 30%, rgba(15, 122, 63, .1), transparent 38%),
+        #f8fbf9;
     color: var(--site-text);
     font-family: var(--site-font);
     font-size: 16px;
     font-weight: 400;
-    line-height: 1.85;
+    line-height: 1.9;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
 }
@@ -50,15 +50,15 @@ main,
 .site-footer {
     margin-inline: auto;
     max-width: 1180px;
-    width: min(100% - 32px, 1180px);
+    width: min(100%, 1180px);
 }
 
 .site-header {
     align-items: center;
-    display: grid;
-    gap: 16px;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    padding: 16px 0 10px;
+    display: flex;
+    gap: 24px;
+    justify-content: space-between;
+    padding: 22px 24px;
 }
 
 .site-brand {
@@ -88,7 +88,7 @@ main,
     color: var(--site-muted);
     display: flex;
     flex-wrap: wrap;
-    gap: 8px 16px;
+    gap: 8px 24px;
     justify-content: flex-start;
     min-width: 0;
 }
@@ -109,8 +109,8 @@ main,
     display: inline-flex;
     font-weight: 700;
     justify-content: center;
-    min-height: 46px;
-    padding: 10px 18px;
+    min-height: 48px;
+    padding: 0 22px;
 }
 
 .site-header__cta,
@@ -130,9 +130,9 @@ main,
     align-items: center;
     display: grid;
     gap: 56px;
-    grid-template-columns: minmax(0, 1.08fr) minmax(320px, .92fr);
+    grid-template-columns: minmax(0, 1fr) minmax(360px, .9fr);
     min-height: auto;
-    padding: 72px 0 56px;
+    padding: 56px 24px 64px;
 }
 
 .hero__content {
@@ -167,12 +167,12 @@ p {
 
 h1 {
     color: var(--site-primary-dark);
-    font-size: clamp(38px, 5vw, 76px);
+    font-size: clamp(34px, 4vw, 58px);
     font-weight: 800;
-    letter-spacing: 0;
-    line-height: 1.38;
-    margin-bottom: 20px;
-    max-width: 720px;
+    letter-spacing: -.5px;
+    line-height: 1.45;
+    margin-bottom: 24px;
+    max-width: 680px;
 }
 
 h2 {
@@ -199,7 +199,8 @@ h3 {
 .automation p,
 .final-cta p {
     color: var(--site-muted);
-    font-size: 17px;
+    font-size: 16px;
+    font-weight: 400;
 }
 
 .hero__actions {
@@ -210,14 +211,16 @@ h3 {
 }
 
 .hero-preview {
-    background:
-        linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(242, 248, 245, .98)),
-        linear-gradient(45deg, rgba(216, 170, 58, .08), transparent);
-    border: 1px solid var(--site-border);
+    background: rgba(255, 255, 255, .86);
+    border: 1px solid rgba(15, 122, 63, .14);
     border-radius: 24px;
-    box-shadow: 0 22px 56px rgba(11, 53, 40, .11);
+    box-shadow: 0 24px 70px rgba(15, 80, 43, .12);
+    justify-self: start;
+    max-width: 520px;
+    min-height: 320px;
     min-width: 0;
-    padding: clamp(18px, 3vw, 26px);
+    padding: 24px;
+    width: 100%;
 }
 
 .hero-preview__top,
@@ -309,7 +312,7 @@ h3 {
 }
 
 .section {
-    padding: 58px 0;
+    padding: 64px 24px;
 }
 
 .section__head {
@@ -326,12 +329,11 @@ h3 {
 .feature-grid article {
     min-height: 210px;
     padding: 22px;
-    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    transition: transform .18s ease, border-color .18s ease;
 }
 
 .feature-grid article:hover {
     border-color: rgba(13, 107, 69, .24);
-    box-shadow: 0 16px 34px rgba(11, 53, 40, .07);
     transform: translateY(-2px);
 }
 
@@ -362,7 +364,7 @@ h3 {
     display: grid;
     gap: 30px;
     grid-template-columns: minmax(0, 1fr) minmax(260px, .8fr);
-    margin: 46px auto;
+    margin: 40px auto;
     padding: clamp(28px, 5vw, 52px);
 }
 
@@ -389,11 +391,17 @@ h3 {
 }
 
 .process-flow span:not(:last-child)::after {
+    background: var(--site-gold);
+    border-radius: 999px;
     color: var(--site-gold);
-    content: "←";
+    content: "";
+    display: inline-block;
     font-weight: 800;
+    height: 2px;
     margin-inline-start: 10px;
     position: static;
+    vertical-align: middle;
+    width: 18px;
 }
 
 .roadmap {
@@ -422,7 +430,7 @@ h3 {
     display: grid;
     gap: 16px;
     grid-template-columns: minmax(0, 1fr) auto;
-    margin: 42px auto 70px;
+    margin: 40px 24px 70px;
     padding: clamp(24px, 5vw, 42px);
 }
 
@@ -441,14 +449,13 @@ h3 {
     padding: 28px 0 40px;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 900px) {
     .site-header {
-        grid-template-columns: minmax(0, 1fr) auto;
+        padding: 18px;
     }
 
     .site-nav {
-        grid-column: 1 / -1;
-        justify-content: flex-start;
+        display: none;
     }
 
     .site-header__cta {
@@ -464,7 +471,14 @@ h3 {
     .hero {
         min-height: auto;
         gap: 28px;
-        padding: 42px 0 32px;
+        grid-template-columns: 1fr;
+        padding: 32px 18px 42px;
+        text-align: right;
+    }
+
+    .hero-preview {
+        justify-self: stretch;
+        max-width: 100%;
     }
 
     .feature-grid,
@@ -477,21 +491,7 @@ h3 {
     .site-header,
     main,
     .site-footer {
-        width: min(100% - 24px, 1180px);
-    }
-
-    .site-nav {
-        border-top: 1px solid var(--site-border);
-        gap: 8px;
-        padding-top: 14px;
-    }
-
-    .site-nav a {
-        background: var(--site-surface);
-        border: 1px solid var(--site-border);
-        border-radius: 999px;
-        font-size: 13px;
-        padding: 6px 10px;
+        width: 100%;
     }
 
     .site-brand span {
@@ -511,8 +511,8 @@ h3 {
     }
 
     h1 {
-        font-size: clamp(30px, 9vw, 44px);
-        line-height: 1.45;
+        font-size: clamp(28px, 8vw, 40px);
+        line-height: 1.55;
     }
 
     h2 {
@@ -524,6 +524,10 @@ h3 {
     .automation p,
     .final-cta p {
         font-size: 15px;
+    }
+
+    .section {
+        padding: 40px 18px;
     }
 
     .hero-preview__grid,
@@ -551,9 +555,10 @@ h3 {
     }
 
     .process-flow span:not(:last-child)::after {
-        content: "↓";
+        content: "";
         display: block;
-        margin: 4px 0 -6px;
-        text-align: center;
+        height: 14px;
+        margin: 6px auto -4px;
+        width: 2px;
     }
 }
