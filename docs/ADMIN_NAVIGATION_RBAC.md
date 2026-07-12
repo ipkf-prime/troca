@@ -29,16 +29,15 @@ Deferred after v0.4.5:
 - CRM, ERP, and Bot modules
 - organization, geography, and fiscal-year scoped UI enforcement beyond the existing foundation
 
-Next phase: `v0.4.6-automation-foundation`
+Next phase: `v0.4.6-admin-users-organization-dev`
 
 Planned next work:
 
-- automation module schema
-- correspondence and incoming/outgoing letter foundation
-- inbox/cartable
-- routing/referrals
-- attachments
-- workflow history
+- admin users organization schema
+- organizational units
+- positions
+- user organizational assignments
+- automation readiness without creating automation tables
 
 ## Permission Map
 

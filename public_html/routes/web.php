@@ -90,6 +90,9 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $permissionsTableExists = \IPKF\Database\Database::tableExists('permissions');
     $rolePermissionsTableExists = \IPKF\Database\Database::tableExists('role_permissions');
     $userRoleAssignmentsTableExists = \IPKF\Database\Database::tableExists('user_role_assignments');
+    $orgUnitsTableExists = \IPKF\Database\Database::tableExists('org_units');
+    $positionsTableExists = \IPKF\Database\Database::tableExists('positions');
+    $userOrgAssignmentsTableExists = \IPKF\Database\Database::tableExists('user_org_assignments');
 
     $mfaSchemaAvailable = \IPKF\Database\Database::tableExists('user_mfa_methods')
         && \IPKF\Database\Database::tableExists('mfa_challenges')
@@ -279,6 +282,12 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
             && class_exists(\App\Services\AccessService::class),
         'admin_active_access_switch_available' => class_exists(\App\Services\AccessService::class),
         'admin_active_access_switch_self_service' => true,
+        'admin_users_organization_foundation_available' => $orgUnitsTableExists
+            && $positionsTableExists
+            && $userOrgAssignmentsTableExists,
+        'org_units_schema_available' => $orgUnitsTableExists,
+        'positions_schema_available' => $positionsTableExists,
+        'user_org_assignments_schema_available' => $userOrgAssignmentsTableExists,
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),

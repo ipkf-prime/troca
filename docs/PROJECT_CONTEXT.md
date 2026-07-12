@@ -143,7 +143,7 @@ Scope:
 - Responsive mobile sidebar and autofocus behavior for admin forms.
 - No CRM, Bot, ERP, Automation, Marketplace, admin CRUD, or business modules are added.
 
-## Active Milestone
+## Stable Baseline
 
 IPKF v0.4.5 Admin Navigation RBAC adds permission-based admin navigation and route guards.
 
@@ -162,12 +162,31 @@ Scope:
 - Safe APP_DEBUG-only navigation diagnostics.
 - No Automation, CRM, ERP, Bot, Marketplace, or business module is added.
 
-Deferred after v0.4.5:
+## Active Milestone
 
-- automation module.
-- custom theme builder.
-- named user theme profiles.
-- admin user CRUD.
+IPKF v0.4.6 Admin Users Organization starts the schema foundation required before Automation.
+
+Working version: `0.4.6-admin-users-organization-dev`
+
+Development branch: `v0.4.6-admin-users-organization-dev`
+
+Scope:
+
+- `org_units` table for internal units and departments.
+- `positions` table for job positions and titles.
+- `user_org_assignments` table linking users to units and positions.
+- Safe diagnostics for the organization schema foundation.
+- No Automation tables, correspondence tables, UI, CRM, ERP, Bot, or business workflows are added.
+
+Future automation readiness:
+
+- دبیرخانه
+- مدیر
+- کارشناس
+- ارجاع نامه به کاربر
+- ارجاع نامه به واحد
+- کارتابل شخصی
+- کارتابل واحد
 
 ## Future Milestones
 

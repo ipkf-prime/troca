@@ -1,6 +1,6 @@
 # IPKF Admin Panel Shell
 
-Current version: `0.4.5-admin-navigation-rbac`
+Current version: `0.4.6-admin-users-organization-dev`
 
 ## Purpose
 
@@ -35,7 +35,7 @@ Deferred after v0.4.5:
 - CRM, ERP, Bot, and Marketplace modules
 - organization, geography, and fiscal-year scoped UI enforcement beyond the existing foundation
 
-Next phase: `v0.4.6-automation-foundation`.
+v0.4.6 starts the admin users and organization schema foundation before Automation. It adds `org_units`, `positions`, and `user_org_assignments` without adding UI or automation workflows.
 
 ## Production Safety
 

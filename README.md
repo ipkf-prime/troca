@@ -6,7 +6,7 @@ business modules.
 
 ## Version
 
-Current version: `0.4.5-admin-navigation-rbac`
+Current version: `0.4.6-admin-users-organization-dev`
 
 ## Requirements
 
@@ -107,6 +107,8 @@ The v0.4.4 stable baseline adds the first admin panel shell, simplified built-in
 
 The v0.4.5 stable baseline adds permission-based admin navigation and route guards. Sidebar visibility, account dropdown visibility, and direct URL access now share one route permission map and respect the current active role assignment.
 
+The v0.4.6 development baseline adds the schema foundation for admin user management, organizational units, positions, and user organizational assignments before the Automation module begins.
+
 Deferred after v0.4.5:
 
 - full permission management UI
@@ -115,7 +117,7 @@ Deferred after v0.4.5:
 - CRM, ERP, Bot, and Marketplace modules
 - organization, geography, and fiscal-year scoped UI enforcement beyond the existing foundation
 
-Next phase: `v0.4.6-automation-foundation`.
+Current v0.4.6 work prepares the data model that Automation needs before adding correspondence, cartable, referrals, attachments, or workflow history.
 
 Planned next work includes automation schema, correspondence and incoming/outgoing letter foundation, inbox/cartable, routing/referrals, attachments, and workflow history.
 

@@ -1,5 +1,22 @@
 # IPKF Release Checklist
 
+## v0.4.6 Admin Users Organization Schema Checks
+
+- `/health` returns `0.4.6-admin-users-organization-dev`.
+- Protected migrations run successfully.
+- `org_units` table exists.
+- `positions` table exists.
+- `user_org_assignments` table exists.
+- `/_diagnostics` includes `admin_users_organization_foundation_available=true`.
+- `/_diagnostics` includes `org_units_schema_available=true`.
+- `/_diagnostics` includes `positions_schema_available=true`.
+- `/_diagnostics` includes `user_org_assignments_schema_available=true`.
+- Existing login, MFA, and admin routes still work.
+- Existing RBAC navigation still works.
+- Public landing page still works.
+- No automation, correspondence, inbox/cartable, referral, attachment, workflow, CRM, ERP, or Bot tables are created in this phase.
+- No secrets are exposed.
+
 ## v0.4.5 Admin Navigation RBAC Checks
 
 - `/health` returns `0.4.5-admin-navigation-rbac`.
@@ -152,7 +169,7 @@ Deferred after v0.4.5:
 - CRM, ERP, Bot, and Marketplace modules.
 - organization, geography, and fiscal-year scoped UI enforcement beyond the existing foundation.
 
-Next phase: `v0.4.6-automation-foundation`.
+Next phase: `v0.4.6-admin-users-organization-dev`.
 
 ## v0.2.0 Foundation Release Checklist
 
