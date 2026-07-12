@@ -42,6 +42,14 @@ Fallbacks:
 
 No CDN, remote images, or external font imports are used.
 
+## Typography
+
+The landing page uses the local/system fallback stack:
+
+`"Vazirmatn", "IRANSans", "Tahoma", "Segoe UI", Arial, sans-serif`
+
+If a safe local `Vazirmatn` file is added under the existing local assets folders in the future, it can be loaded locally. No commercial font files and no CDN font imports are committed in this milestone.
+
 ## Admin Login Link
 
 The public page links to:
