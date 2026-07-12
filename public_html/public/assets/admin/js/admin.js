@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const setSidebarOpen = (isOpen) => {
         shell?.classList.toggle("is-sidebar-open", isOpen);
+        document.body.classList.toggle("admin-sidebar-open", isOpen);
         document.body.classList.toggle("admin-sidebar-locked", isOpen);
         sidebarToggle?.setAttribute("aria-expanded", isOpen ? "true" : "false");
     };
@@ -19,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     sidebarToggle?.addEventListener("click", () => {
-        setSidebarOpen(!shell?.classList.contains("is-sidebar-open"));
+        setSidebarOpen(!document.body.classList.contains("admin-sidebar-open"));
         closeUserMenu();
     });
 
