@@ -106,11 +106,25 @@ class AuthService extends BaseService
         return $this->currentUser() !== null;
     }
 
+    public function changePassword(int $userId, string $currentPassword, string $newPassword): bool
+    {
+        $hash = $this->users->passwordHashForUser($userId);
+
+        if ($hash === null || !password_verify($currentPassword, $hash)) {
+            return false;
+        }
+
+        $this->users->updatePasswordHash($userId, password_hash($newPassword, PASSWORD_DEFAULT));
+
+        return true;
+    }
+
     public function safeUser(array $user): array
     {
         return [
             'id' => (int) $user['id'],
             'name' => $user['full_name'] ?? $user['username'] ?? $user['email'] ?? '',
+            'username' => $user['username'] ?? null,
             'email' => $user['email'] ?? null,
             'mobile' => $user['mobile'] ?? null,
             'status' => $user['status'] ?? null,

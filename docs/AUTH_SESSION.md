@@ -1,6 +1,6 @@
 # IPKF Auth Session Foundation
 
-Current version: `0.4.3-identity-access-dev`
+Current version: `0.4.3-identity-access`
 
 ## Purpose
 
@@ -124,7 +124,7 @@ POST auth routes keep CSRF enabled. Tokens are accepted from `X-CSRF-TOKEN` or `
 
 ## MFA-Aware Login Flow
 
-MFA runtime starts in `0.4.2-mfa-foundation-dev` and identity/access foundations continue in `0.4.3-identity-access-dev`.
+MFA runtime starts in `0.4.2-mfa-foundation-dev` and identity/access foundations continue in `0.4.3-identity-access`.
 
 When the user has no enabled MFA method, login behavior is unchanged.
 

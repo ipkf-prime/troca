@@ -122,6 +122,17 @@ class UserRepository extends BaseRepository
         return $hash === false ? null : (string) $hash;
     }
 
+    public function updatePasswordHash(int $userId, string $passwordHash): void
+    {
+        $statement = $this->connection()->prepare("
+            UPDATE users
+            SET password_hash = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ");
+        $statement->execute([$passwordHash, $userId]);
+    }
+
     public function identityValueForUser(int $userId, string $field): ?string
     {
         $column = match ($field) {

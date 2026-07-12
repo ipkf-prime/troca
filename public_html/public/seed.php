@@ -22,7 +22,7 @@ try {
     $manager->seed();
 
     header('Content-Type: text/plain; charset=UTF-8');
-    echo "SEED DONE: foundation_v0_2, auth_rbac_schema, identity_access_foundation";
+    echo "SEED DONE: foundation_v0_2, auth_rbac_schema, identity_access_foundation, admin_panel_shell";
 } catch (Throwable $exception) {
     http_response_code(500);
     echo "SEED FAILED";

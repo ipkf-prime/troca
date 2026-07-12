@@ -6,7 +6,7 @@ business modules.
 
 ## Version
 
-Current version: `0.4.3-identity-access-dev`
+Current version: `0.4.4-admin-panel-shell`
 
 ## Requirements
 
@@ -22,10 +22,24 @@ Current version: `0.4.3-identity-access-dev`
 4. Configure the web server document root to the `public/` directory.
 5. Deploy from the active feature branch for development work. The current installer release branch is `installer-v0.3`.
 
-For dev token links, set:
+For login token links and local time display, set:
 
 - `APP_URL=https://dev.troca.ir`
 - `APP_TIMEZONE=Asia/Tehran`
+
+Auth, MFA, identity, and provider foundation environment notes:
+
+- `AUTH_SESSION_NAME=ipkf_session` keeps CSRF, Auth, MFA, and access switching on one session cookie.
+- `IDENTITY_DEV_EXPOSE_TOKEN=false` must be used in production. Set it to `true` only with `APP_ENV=development` and `APP_DEBUG=true` for development identity-change testing.
+- `MFA_DEV_EXPOSE_OTP=false` must remain the default.
+- `MFA_EMAIL_ENABLED`, `MFA_SMS_ENABLED`, and `MFA_BOT_ENABLED` enable delivery-channel foundations only when matching provider settings are configured.
+- `MAIL_*`, `SMS_*`, `KAVENEGAR_*`, and `BALE_*` values must be stored in `.env` and never committed.
+
+Admin panel theme and branding notes:
+
+- `ADMIN_BRAND_NAME` sets the fallback admin brand label.
+- `ADMIN_LOGO_URL` sets an optional fallback logo URL.
+- Stored admin theme settings override these environment fallback values.
 
 On cPanel Git deployment, this repository deploys `public_html/` to the configured application path. The active dev domain uses:
 
@@ -33,11 +47,24 @@ On cPanel Git deployment, this repository deploys `public_html/` to the configur
 - Application path: `/home/troca/dev.troca.ir`
 - Document root: `/home/troca/dev.troca.ir/public`
 
+## Production Safety
+
+For production:
+
+- `APP_ENV=production`
+- `APP_DEBUG=false`
+- `IDENTITY_DEV_EXPOSE_TOKEN=false`
+- `MFA_DEV_EXPOSE_OTP=false`
+
+The `/admin/theme/debug` route is available only when `APP_DEBUG=true` and must not be available in production.
+
+Development maintenance endpoints such as `/migrate.php` and `/seed.php` remain protected by `DEV_MAINTENANCE_KEY`; production usage must be controlled and never expose the key.
+
 ## Development Route Tests
 
 The Foundation baseline has been verified with:
 
-- `GET /` returns `IPKF Framework Genesis OK`
+- `GET /` renders the public RTL Persian IPKF/Troca landing page
 - `GET /unknown` returns a clean 404 response
 - `GET /health` returns JSON health status
 - `GET /_diagnostics` returns JSON diagnostics when `APP_DEBUG=true`
@@ -48,11 +75,14 @@ The Foundation baseline has been verified with:
 - `POST /mfa/totp/setup` starts TOTP setup for an authenticated session
 - `POST /mfa/totp/confirm` confirms a TOTP method with CSRF protection
 - `POST /mfa/challenge/verify` completes pending MFA login challenges
+- `GET /admin/login` loads the RTL Persian admin login page
+- `GET /admin/dashboard` loads the authenticated admin dashboard shell
+- `GET /admin/theme` loads the configurable admin theme page
 
 ## Site Mode
 
-Set `SITE_MODE=coming_soon` to show the public Persian Coming Soon page at `GET /`.
-Set `SITE_MODE=app` to keep the framework/app home behavior for future application routing.
+Set `SITE_MODE=coming_soon` to show the polished public Persian landing page at `GET /` with the development/coming-soon badge.
+Set `SITE_MODE=app` to show the same public landing foundation without the coming-soon badge until future application routing replaces it.
 
 ## Architecture Guardrails
 
@@ -69,7 +99,19 @@ Set `SITE_MODE=app` to keep the framework/app home behavior for future applicati
 
 The v0.4.2 development branch adds JSON-first MFA foundation routes without adding UI or business modules.
 
-The v0.4.3 development branch adds identity verification, one-time login tokens, MFA delivery channel foundations, and active access switching without adding UI or business modules.
+The v0.4.3 stable baseline adds identity verification, one-time login tokens, MFA delivery channel foundations, and active access switching without adding UI or business modules.
+
+The v0.4.4 stable baseline adds the first admin panel shell, simplified built-in theme preset selection, responsive admin navigation, autofocus behavior, and the public landing page without adding CRM, Bot, ERP, Automation, Marketplace, admin CRUD, or business workflows.
+
+Deferred after v0.4.4:
+
+- RBAC-based admin menu visibility
+- permission-based route guard matrix
+- automation module
+- custom theme builder
+- named user theme profiles
+
+Next phase: `v0.4.5-admin-navigation-rbac`.
 
 Set:
 
@@ -77,3 +119,17 @@ Set:
 - `MFA_ENFORCEMENT=optional`
 
 MFA shares the same `AUTH_SESSION_NAME` session cookie as CSRF and Auth.
+
+## Branch Naming
+
+Active development branches should start with the version and end with `-dev`, for example:
+
+- `v0.4.3-identity-access-dev`
+- `v0.4.4-admin-panel-shell-dev`
+- `v0.4.5-admin-users-dev`
+
+Release tags should omit the `-dev` suffix, for example:
+
+- `v0.4.3-identity-access`
+- `v0.4.4-admin-panel-shell`
+- `v0.4.5-admin-users`

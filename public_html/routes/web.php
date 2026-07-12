@@ -3,18 +3,17 @@
 /** @var \IPKF\Routing\Router $router */
 
 $router->get('/', function ($request, $response) {
-    if (\IPKF\Support\Env::get('SITE_MODE', 'coming_soon') === 'coming_soon') {
-        $view = BASE_PATH . '/resources/views/site/coming-soon.php';
+    $siteMode = (string) \IPKF\Support\Env::get('SITE_MODE', 'coming_soon');
+    $view = BASE_PATH . '/resources/views/site/coming-soon.php';
 
-        if (is_readable($view)) {
-            ob_start();
-            require $view;
-            $content = ob_get_clean() ?: '';
+    if (is_readable($view)) {
+        ob_start();
+        require $view;
+        $content = ob_get_clean() ?: '';
 
-            return $response
-                ->header('Content-Type', 'text/html; charset=UTF-8')
-                ->send($content);
-        }
+        return $response
+            ->header('Content-Type', 'text/html; charset=UTF-8')
+            ->send($content);
     }
 
     return $response->send('IPKF Framework Genesis OK');
@@ -142,12 +141,41 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         }
     }
 
+    $adminTheme = class_exists(\App\Services\AdminThemeService::class)
+        ? new \App\Services\AdminThemeService()
+        : null;
+    $diagnosticUserId = null;
+
+    if (class_exists(\App\Services\AuthService::class)) {
+        try {
+            $diagnosticUserId = (new \App\Services\AuthService())->currentUserId();
+        } catch (\Throwable $exception) {
+            $diagnosticUserId = null;
+        }
+    }
+
+    $adminThemeData = $adminTheme === null ? [] : $adminTheme->theme($diagnosticUserId);
+    $adminThemeTokens = $adminThemeData['tokens'] ?? [];
+    $adminAssetsAvailable = is_dir(BASE_PATH . '/public/assets/admin')
+        && is_dir(BASE_PATH . '/public/assets/admin/css')
+        && is_dir(BASE_PATH . '/public/assets/admin/fonts')
+        && is_readable(BASE_PATH . '/public/assets/admin/images/logos/default-logo.svg')
+        && is_readable(BASE_PATH . '/public/assets/admin/images/avatars/default-avatar.svg')
+        && is_dir(BASE_PATH . '/public/uploads/admin/logos')
+        && is_dir(BASE_PATH . '/public/uploads/admin/avatars')
+        && is_readable(BASE_PATH . '/public/uploads/admin/.htaccess')
+        && is_readable(BASE_PATH . '/public/uploads/admin/logos/.htaccess')
+        && is_readable(BASE_PATH . '/public/uploads/admin/avatars/.htaccess');
+
     return $response->json([
         'php_version' => PHP_VERSION,
         'base_path' => BASE_PATH,
         'app_env' => \IPKF\Support\Env::get('APP_ENV', 'production'),
         'app_debug' => $debug,
         'site_mode' => \IPKF\Support\Env::get('SITE_MODE', 'coming_soon'),
+        'public_landing_available' => is_readable(BASE_PATH . '/resources/views/site/coming-soon.php')
+            && is_readable(BASE_PATH . '/public/assets/css/landing.css'),
+        'coming_soon_landing_available' => is_readable(BASE_PATH . '/resources/views/site/coming-soon.php'),
         'env_loaded' => \IPKF\Support\Env::loaded(),
         'config_loaded' => \IPKF\Support\Config::loaded(),
         'database_config_loaded' => \IPKF\Support\Config::has('database.connections.mysql'),
@@ -210,6 +238,40 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'super_admin_role_exists' => $superAdminRoleExists,
         'super_admin_assignment_exists' => $superAdminAssignmentExists,
         'auth_routes_available' => true,
+        'admin_panel_shell_available' => class_exists(\App\Services\AdminPanelService::class),
+        'admin_theme_available' => $adminTheme !== null
+            && \IPKF\Database\Database::tableExists('app_settings'),
+        'admin_theme_forensics_available' => $adminTheme !== null,
+        'admin_theme_runtime_fix_version' => $adminTheme !== null ? \App\Services\AdminThemeService::RUNTIME_FIX_VERSION : null,
+        'admin_theme_active_preset' => $adminThemeData['active_preset'] ?? 'official_emerald',
+        'admin_theme_resolved_source' => $adminTheme !== null ? $adminTheme->resolvedPresetSource($diagnosticUserId) : 'default',
+        'admin_theme_system_preset_exists' => $adminTheme !== null && $adminTheme->systemPresetExists(),
+        'admin_theme_personal_preset_exists_for_current_user' => $adminTheme !== null && $adminTheme->personalPresetExists($diagnosticUserId),
+        'admin_theme_token_override_rows_count' => $adminTheme !== null ? $adminTheme->forensics($diagnosticUserId)['token_override_rows_count'] : 0,
+        'admin_theme_token_override_rows_ignored' => true,
+        'admin_theme_custom_editor_enabled' => false,
+        'admin_theme_builtin_presets_only' => true,
+        'admin_theme_scope_support' => $adminTheme !== null && $adminTheme->scopeSupport(),
+        'admin_personal_theme_available' => $adminTheme !== null && $adminTheme->scopeSupport(),
+        'admin_system_theme_available' => $adminTheme !== null && \IPKF\Database\Database::tableExists('app_settings'),
+        'admin_theme_reset_available' => $adminTheme !== null && $adminTheme->scopeSupport(),
+        'admin_branding_configurable' => $adminTheme !== null,
+        'admin_assets_canonical' => $adminTheme !== null && $adminTheme->assetsCanonical(),
+        'current_theme_resolver_available' => $adminTheme !== null && $adminTheme->currentThemeResolverAvailable(),
+        'theme_user_scope_supported' => $adminTheme !== null && $adminTheme->themeUserScopeSupported(),
+        'admin_local_icons_available' => $adminTheme !== null && $adminTheme->localIconsAvailable(),
+        'admin_webfonts_path_available' => $adminTheme !== null && $adminTheme->webfontsPathAvailable(),
+        'admin_assets_available' => $adminAssetsAvailable,
+        'admin_typography_available' => isset($adminThemeTokens['font_family'], $adminThemeTokens['font_size_base'], $adminThemeTokens['line_height_base']),
+        'admin_logo_configured' => ($adminThemeData['logo_url'] ?? '') !== '',
+        'admin_default_avatar_configured' => ($adminThemeData['default_avatar_url'] ?? '') !== '',
+        'admin_theme_persian_ok' => $adminTheme !== null && $adminTheme->persianDefaultsOk(),
+        'admin_footer_available' => true,
+        'admin_user_menu_available' => true,
+        'admin_password_recovery_ui_available' => true,
+        'admin_mfa_recovery_ui_available' => true,
+        'admin_two_part_navigation_available' => true,
+        'admin_responsive_ui_available' => true,
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),
@@ -227,6 +289,531 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
 
 $router->get('/test', function ($req, $res) {
     return $res->send("Test Route OK");
+});
+
+$adminRender = function ($response, string $view, array $data = [], int $status = 200) {
+    $path = BASE_PATH . '/resources/views/admin/' . $view . '.php';
+
+    if (!is_readable($path)) {
+        return $response->status(500)->send('Admin view not found.');
+    }
+
+    extract($data, EXTR_SKIP);
+    ob_start();
+    require $path;
+    $content = ob_get_clean() ?: '';
+
+    return $response
+        ->status($status)
+        ->header('Content-Type', 'text/html; charset=UTF-8')
+        ->send($content);
+};
+
+$adminContext = fn (): ?array => (new \App\Services\AdminPanelService())->context();
+
+$router->get('/admin', function ($request, $response) {
+    return $response->redirect((new \App\Services\AuthService())->authenticated()
+        ? '/admin/dashboard'
+        : '/admin/login');
+});
+
+$router->get('/admin/login', function ($request, $response) use ($adminRender) {
+    if ((new \App\Services\AuthService())->authenticated()) {
+        return $response->redirect('/admin/dashboard');
+    }
+
+    return $adminRender($response, 'login', [
+        'title' => 'ورود به پنل مدیریت',
+        'error' => null,
+        'login' => '',
+    ]);
+});
+
+$router->get('/admin/forgot-password', function ($request, $response) use ($adminRender) {
+    if ((new \App\Services\AuthService())->authenticated()) {
+        return $response->redirect('/admin/dashboard');
+    }
+
+    return $adminRender($response, 'forgot-password', [
+        'title' => 'بازیابی کلمه عبور',
+        'sent' => false,
+        'identifier' => '',
+    ]);
+});
+
+$router->post('/admin/forgot-password', function ($request, $response) use ($adminRender) {
+    if ((new \App\Services\AuthService())->authenticated()) {
+        return $response->redirect('/admin/dashboard');
+    }
+
+    return $adminRender($response, 'forgot-password', [
+        'title' => 'بازیابی کلمه عبور',
+        'sent' => true,
+        'identifier' => trim((string) $request->input('login', '')),
+    ]);
+});
+
+$router->post('/admin/login', function ($request, $response) use ($adminRender) {
+    $login = trim((string) $request->input('login', ''));
+    $password = (string) $request->input('password', '');
+    $auth = new \App\Services\AuthService();
+    $user = $auth->attempt($login, $password);
+
+    if ($user === null) {
+        return $adminRender($response, 'login', [
+            'title' => 'ورود به پنل مدیریت',
+            'error' => 'اطلاعات ورود معتبر نیست.',
+            'login' => $login,
+        ], 422);
+    }
+
+    if (($user['mfa_required'] ?? false) === true) {
+        return $response->redirect('/admin/mfa');
+    }
+
+    return $response->redirect('/admin/dashboard');
+});
+
+$router->get('/admin/mfa', function ($request, $response) use ($adminRender) {
+    if ((new \App\Services\AuthService())->authenticated()) {
+        return $response->redirect('/admin/dashboard');
+    }
+
+    if ((new \App\Services\MfaService())->pendingUserId() === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    return $adminRender($response, 'mfa', [
+        'title' => 'رمز یکبارمصرف',
+        'error' => null,
+    ]);
+});
+
+$router->post('/admin/mfa', function ($request, $response) use ($adminRender) {
+    $totpCode = trim((string) $request->input('code', ''));
+    $recoveryCode = trim((string) $request->input('recovery_code', ''));
+    $method = $recoveryCode !== '' ? 'recovery_code' : 'totp';
+    $code = $recoveryCode !== '' ? $recoveryCode : $totpCode;
+    $mfa = new \App\Services\MfaService();
+    $userId = $mfa->verifyPendingChallenge($method, $code);
+
+    if ($userId === null) {
+        return $adminRender($response, 'mfa', [
+            'title' => 'رمز یکبارمصرف',
+            'error' => 'رمز وارد شده معتبر نیست.',
+        ], 422);
+    }
+
+    (new \App\Services\AuthService())->completeMfaLogin($userId);
+
+    return $response->redirect('/admin/dashboard');
+});
+
+$router->get('/admin/mfa/recovery', function ($request, $response) use ($adminRender) {
+    if ((new \App\Services\AuthService())->authenticated()) {
+        return $response->redirect('/admin/dashboard');
+    }
+
+    if ((new \App\Services\MfaService())->pendingUserId() === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    return $adminRender($response, 'mfa-recovery', [
+        'title' => 'کد بازیابی',
+        'error' => null,
+    ]);
+});
+
+$router->post('/admin/mfa/recovery', function ($request, $response) use ($adminRender) {
+    $code = trim((string) $request->input('recovery_code', ''));
+    $userId = (new \App\Services\MfaService())->verifyPendingChallenge('recovery_code', $code);
+
+    if ($userId === null) {
+        return $adminRender($response, 'mfa-recovery', [
+            'title' => 'کد بازیابی',
+            'error' => 'کد بازیابی معتبر نیست.',
+        ], 422);
+    }
+
+    (new \App\Services\AuthService())->completeMfaLogin($userId);
+
+    return $response->redirect('/admin/dashboard');
+});
+
+$router->get('/admin/dashboard', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    return $adminRender($response, 'dashboard', [
+        'title' => 'داشبورد مدیریت',
+        'context' => $context,
+    ]);
+});
+
+$router->get('/admin/profile', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    return $adminRender($response, 'profile', [
+        'title' => 'پروفایل کاربر',
+        'context' => $context,
+    ]);
+});
+
+$router->get('/admin/account', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    return $adminRender($response, 'account', [
+        'title' => 'اطلاعات حساب',
+        'context' => $context,
+    ]);
+});
+
+$router->get('/admin/security', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    return $adminRender($response, 'security', [
+        'title' => 'امنیت و ورود',
+        'context' => $context,
+    ]);
+});
+
+$router->get('/admin/password', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    return $adminRender($response, 'password', [
+        'title' => 'تغییر کلمه عبور',
+        'context' => $context,
+        'status' => trim((string) $request->input('status', '')),
+        'error' => '',
+    ]);
+});
+
+$router->post('/admin/password', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    $currentPassword = (string) $request->input('current_password', '');
+    $password = (string) $request->input('password', '');
+    $confirmation = (string) $request->input('password_confirmation', '');
+
+    if (strlen($password) < 8 || $password !== $confirmation) {
+        return $adminRender($response, 'password', [
+            'title' => 'تغییر کلمه عبور',
+            'context' => $context,
+            'status' => '',
+            'error' => 'کلمه عبور جدید معتبر نیست یا با تکرار آن یکسان نیست.',
+        ], 422);
+    }
+
+    $changed = (new \App\Services\AuthService())->changePassword((int) $context['user_id'], $currentPassword, $password);
+
+    if (!$changed) {
+        return $adminRender($response, 'password', [
+            'title' => 'تغییر کلمه عبور',
+            'context' => $context,
+            'status' => '',
+            'error' => 'کلمه عبور فعلی معتبر نیست.',
+        ], 422);
+    }
+
+    return $response->redirect('/admin/password?status=updated');
+});
+
+$router->get('/admin/my-theme', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    $theme = new \App\Services\AdminThemeService();
+
+    return $adminRender($response, 'my-theme', [
+        'title' => 'پوسته نمایشی من',
+        'context' => $context,
+        'theme' => $theme->personalTheme((int) $context['user_id']),
+        'presets' => $theme->presets(),
+        'fontOptions' => $theme->fontOptions(),
+        'errors' => [],
+        'status' => trim((string) $request->input('status', '')),
+    ]);
+});
+
+$router->post('/admin/my-theme', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    $theme = new \App\Services\AdminThemeService();
+    $result = $theme->savePersonalTheme((int) $context['user_id'], $request->all());
+
+    if (!$result['ok']) {
+        return $adminRender($response, 'my-theme', [
+            'title' => 'پوسته نمایشی من',
+            'context' => $context,
+            'theme' => $theme->personalTheme((int) $context['user_id']),
+            'presets' => $theme->presets(),
+            'fontOptions' => $theme->fontOptions(),
+            'errors' => $result['errors'],
+            'status' => '',
+        ], 422);
+    }
+
+    return $response->redirect('/admin/my-theme?status=saved');
+});
+
+$router->get('/admin/access', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    return $adminRender($response, 'access', [
+        'title' => 'سطح دسترسی فعال',
+        'context' => $context,
+        'status' => trim((string) $request->input('status', '')),
+    ]);
+});
+
+$router->get('/admin/theme', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    $theme = new \App\Services\AdminThemeService();
+
+    return $adminRender($response, 'theme', [
+        'title' => 'پوسته پنل',
+        'context' => $context,
+        'theme' => $theme->systemTheme(),
+        'presets' => $theme->presets(),
+        'fontOptions' => $theme->fontOptions(),
+        'logoOptions' => $theme->logoOptions(),
+        'avatarOptions' => $theme->avatarOptions(),
+        'errors' => [],
+        'status' => trim((string) $request->input('status', '')),
+        'canManageTheme' => (new \App\Services\AuthorizationService())->hasPermission((int) $context['user_id'], 'admin.theme.manage'),
+    ]);
+});
+
+$router->post('/admin/theme', function ($request, $response) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    if (!(new \App\Services\AuthorizationService())->hasPermission((int) $context['user_id'], 'admin.theme.manage')) {
+        return $adminRender($response, 'theme', [
+            'title' => 'پوسته پنل',
+            'context' => $context,
+            'theme' => (new \App\Services\AdminThemeService())->systemTheme(),
+            'presets' => (new \App\Services\AdminThemeService())->presets(),
+            'fontOptions' => (new \App\Services\AdminThemeService())->fontOptions(),
+            'logoOptions' => (new \App\Services\AdminThemeService())->logoOptions(),
+            'avatarOptions' => (new \App\Services\AdminThemeService())->avatarOptions(),
+            'errors' => ['forbidden'],
+            'status' => '',
+            'canManageTheme' => false,
+        ], 403);
+    }
+
+    $theme = new \App\Services\AdminThemeService();
+    $result = $theme->saveSystemTheme($request->all());
+
+    if (!$result['ok']) {
+        return $adminRender($response, 'theme', [
+            'title' => 'پوسته پنل',
+            'context' => $context,
+            'theme' => $theme->systemTheme(),
+            'presets' => $theme->presets(),
+            'fontOptions' => $theme->fontOptions(),
+            'logoOptions' => $theme->logoOptions(),
+            'avatarOptions' => $theme->avatarOptions(),
+            'errors' => $result['errors'],
+            'status' => '',
+            'canManageTheme' => true,
+        ], 422);
+    }
+
+    return $response->redirect('/admin/theme?status=saved');
+});
+
+$router->post('/admin/theme/reset', function ($request, $response) use ($adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    $theme = new \App\Services\AdminThemeService();
+    $scope = trim((string) $request->input('scope', 'user'));
+
+    if ($scope === 'system') {
+        if (!(new \App\Services\AuthorizationService())->hasPermission((int) $context['user_id'], 'admin.theme.manage')) {
+            return $response->redirect('/admin/theme?status=forbidden');
+        }
+
+        $theme->resetSystemTheme();
+
+        return $response->redirect('/admin/theme?status=reset');
+    }
+
+    $theme->resetPersonalTheme((int) $context['user_id']);
+
+    return $response->redirect('/admin/my-theme?status=reset');
+});
+
+$router->get('/admin/theme/debug', function ($request, $response) use ($adminContext) {
+    if (!\IPKF\Support\Env::isDebug()) {
+        return $response->status(404)->send('404 - Route not found: /admin/theme/debug');
+    }
+
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    if (!(new \App\Services\AuthorizationService())->hasPermission((int) $context['user_id'], 'admin.theme.manage')) {
+        return $response->status(403)->send('Forbidden');
+    }
+
+    $themeService = new \App\Services\AdminThemeService();
+    $forensics = $themeService->forensics((int) $context['user_id'], $context);
+    $h = static fn ($value): string => htmlspecialchars((string) ($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+    $rowTable = static function (array $rows) use ($h): string {
+        if ($rows === []) {
+            return '<p class="admin-muted">No rows.</p>';
+        }
+
+        $html = '<table class="admin-table"><thead><tr><th>scope</th><th>user_id</th><th>setting_key</th><th>setting_value</th><th>value_type</th><th>updated_at</th></tr></thead><tbody>';
+
+        foreach ($rows as $row) {
+            $html .= '<tr>'
+                . '<td>' . $h($row['scope'] ?? '') . '</td>'
+                . '<td>' . $h($row['user_id'] ?? '') . '</td>'
+                . '<td>' . $h($row['setting_key'] ?? '') . '</td>'
+                . '<td><code>' . $h($row['setting_value'] ?? '') . '</code></td>'
+                . '<td>' . $h($row['value_type'] ?? '') . '</td>'
+                . '<td>' . $h($row['updated_at'] ?? '') . '</td>'
+                . '</tr>';
+        }
+
+        return $html . '</tbody></table>';
+    };
+    $list = static function (array $items) use ($h): string {
+        $html = '<dl class="admin-field-list">';
+
+        foreach ($items as $key => $value) {
+            $html .= '<div><span>' . $h($key) . '</span><strong>' . $h(is_bool($value) ? ($value ? 'true' : 'false') : $value) . '</strong></div>';
+        }
+
+        return $html . '</dl>';
+    };
+
+    ob_start();
+    ?>
+    <!doctype html>
+    <html lang="fa" dir="rtl">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Admin Theme Debug | IPKF</title>
+        <link rel="stylesheet" href="<?= $h($forensics['assets']['admin_css'] ?? '/assets/admin/css/admin.css') ?>">
+        <style id="admin-theme-vars"><?= "\n" . ($forensics['css_variables'] ?? '') . "\n" ?></style>
+    </head>
+    <body class="admin-auth-page" data-admin-theme="<?= $h($forensics['resolved_theme']['canonical_preset'] ?? 'official_emerald') ?>" data-admin-theme-source="<?= $h($forensics['resolved_theme']['resolved_source'] ?? 'default') ?>">
+        <main class="admin-content" style="padding:18px">
+            <section class="admin-section"><h1>Admin Theme Runtime Debug</h1><?= $list($forensics['runtime']) ?></section>
+            <section class="admin-section"><h2>System theme rows</h2><?= $rowTable($forensics['system_rows']) ?></section>
+            <section class="admin-section"><h2>Current user personal theme rows</h2><?= $rowTable($forensics['personal_rows']) ?></section>
+            <section class="admin-section"><h2>Other users</h2><?= $list(['other_user_theme_row_count' => $forensics['other_user_theme_row_count']]) ?></section>
+            <section class="admin-section"><h2>Token override policy</h2><?= $list([
+                'token_override_rows_count' => $forensics['token_override_rows_count'] ?? 0,
+                'personal_token_override_rows_count' => $forensics['personal_token_override_rows_count'] ?? 0,
+                'token_override_rows_ignored' => $forensics['token_override_rows_ignored'] ?? true,
+            ]) ?></section>
+            <section class="admin-section"><h2>Resolved theme</h2><?= $list($forensics['resolved_theme']) ?></section>
+            <section class="admin-section"><h2>Resolved visual tokens</h2><?= $list($forensics['visual_tokens']) ?></section>
+            <section class="admin-section"><h2>Injected CSS variables</h2><pre dir="ltr"><?= $h($forensics['css_variables']) ?></pre></section>
+            <section class="admin-section"><h2>Loaded admin assets</h2><?= $list($forensics['assets']) ?></section>
+        </main>
+    </body>
+    </html>
+    <?php
+    $content = ob_get_clean() ?: '';
+
+    return $response
+        ->header('Content-Type', 'text/html; charset=UTF-8')
+        ->send($content);
+});
+
+$router->post('/admin/access', function ($request, $response) {
+    $auth = new \App\Services\AuthService();
+    $userId = $auth->currentUserId();
+
+    if ($userId === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    $assignment = (new \App\Services\AccessService())->switchTo($userId, (int) $request->input('role_assignment_id', 0));
+
+    return $response->redirect('/admin/access?status=' . ($assignment === null ? 'forbidden' : 'switched'));
+});
+
+$adminPlaceholder = function ($title, $message) use ($adminRender, $adminContext) {
+    return function ($request, $response) use ($adminRender, $adminContext, $title, $message) {
+        $context = $adminContext();
+
+        if ($context === null) {
+            return $response->redirect('/admin/login');
+        }
+
+        return $adminRender($response, 'placeholder', [
+            'title' => $title,
+            'context' => $context,
+            'message' => $message,
+        ]);
+    };
+};
+
+$router->get('/admin/settings', $adminPlaceholder('تنظیمات', 'تنظیمات سامانه در فازهای بعدی تکمیل می‌شود.'));
+$router->get('/admin/pages', $adminPlaceholder('صفحات داخلی', 'مدیریت صفحات داخلی هنوز فعال نشده است.'));
+$router->get('/admin/reports', $adminPlaceholder('گزارش‌ها', 'گزارش‌های مدیریتی در نسخه‌های بعدی اضافه می‌شود.'));
+$router->get('/admin/support', $adminPlaceholder('پشتیبانی', 'مسیرهای پشتیبانی و راهنمای داخلی در فاز بعدی تکمیل می‌شود.'));
+
+$router->get('/admin/logout', function ($request, $response) {
+    (new \App\Services\AuthService())->logout();
+
+    return $response->redirect('/admin/login');
 });
 
 $router->post('/auth/login', function ($request, $response) {
