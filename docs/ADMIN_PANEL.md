@@ -8,8 +8,17 @@ This milestone adds the first server-rendered admin panel shell on top of the ex
 
 It does not add CRM, Bot, ERP, Automation, Marketplace, business workflows, admin CRUD, or profile editing features.
 
+## Public Landing Link
+
+`GET /` renders a professional RTL Persian public landing page for IPKF/Troca. The admin login page links back to `/`, so users leaving `/admin/login` return to a polished customer-facing homepage instead of a raw framework response.
+
+When `SITE_MODE=coming_soon`, the homepage remains polished and shows the visible badge `نسخه آزمایشی / در حال آماده‌سازی`.
+
+The public landing page is static in this milestone. Automation appears only as roadmap/preview text and no automation routes, tables, or business modules are added.
+
 ## Routes
 
+- `GET /`
 - `GET /admin`
 - `GET /admin/login`
 - `POST /admin/login`

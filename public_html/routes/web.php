@@ -3,18 +3,17 @@
 /** @var \IPKF\Routing\Router $router */
 
 $router->get('/', function ($request, $response) {
-    if (\IPKF\Support\Env::get('SITE_MODE', 'coming_soon') === 'coming_soon') {
-        $view = BASE_PATH . '/resources/views/site/coming-soon.php';
+    $siteMode = (string) \IPKF\Support\Env::get('SITE_MODE', 'coming_soon');
+    $view = BASE_PATH . '/resources/views/site/coming-soon.php';
 
-        if (is_readable($view)) {
-            ob_start();
-            require $view;
-            $content = ob_get_clean() ?: '';
+    if (is_readable($view)) {
+        ob_start();
+        require $view;
+        $content = ob_get_clean() ?: '';
 
-            return $response
-                ->header('Content-Type', 'text/html; charset=UTF-8')
-                ->send($content);
-        }
+        return $response
+            ->header('Content-Type', 'text/html; charset=UTF-8')
+            ->send($content);
     }
 
     return $response->send('IPKF Framework Genesis OK');
@@ -174,6 +173,9 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'app_env' => \IPKF\Support\Env::get('APP_ENV', 'production'),
         'app_debug' => $debug,
         'site_mode' => \IPKF\Support\Env::get('SITE_MODE', 'coming_soon'),
+        'public_landing_available' => is_readable(BASE_PATH . '/resources/views/site/coming-soon.php')
+            && is_readable(BASE_PATH . '/public/assets/css/landing.css'),
+        'coming_soon_landing_available' => is_readable(BASE_PATH . '/resources/views/site/coming-soon.php'),
         'env_loaded' => \IPKF\Support\Env::loaded(),
         'config_loaded' => \IPKF\Support\Config::loaded(),
         'database_config_loaded' => \IPKF\Support\Config::has('database.connections.mysql'),

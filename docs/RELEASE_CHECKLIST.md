@@ -3,6 +3,12 @@
 ## v0.4.4 Admin Panel Shell UI Checks
 
 - `/health` returns `0.4.4-admin-panel-shell-dev`.
+- `/` renders the professional RTL Persian IPKF/Troca public landing page.
+- `SITE_MODE=coming_soon` keeps `/` polished and shows `نسخه آزمایشی / در حال آماده‌سازی`.
+- The homepage includes hero, capability cards, automation preview, roadmap, admin login CTA, and footer.
+- The homepage uses local assets only and no CDN, remote images, or external font imports.
+- The homepage is responsive, stacks cleanly on mobile, and has no horizontal overflow.
+- `/admin/login` includes a useful back-to-homepage link to `/`.
 - `/admin/login` loads the RTL Persian login UI.
 - Login works with email, mobile, and username.
 - `/admin/mfa` uses one-time-password wording for users.
@@ -46,6 +52,7 @@
 - No CDN or external font/icon URL is used.
 - Coming Soon page links to `/admin/login`.
 - Diagnostics include safe admin UI booleans.
+- Diagnostics include `public_landing_available=true` and `coming_soon_landing_available=true` when public landing assets are present.
 - Diagnostics include theme scope, reset, branding, canonical asset, local icon, and webfont path booleans.
 - Diagnostics include `current_theme_resolver_available=true` and `theme_user_scope_supported=true`.
 - Diagnostics include `admin_theme_resolved_source`, `admin_theme_system_preset_exists`, and `admin_theme_personal_preset_exists_for_current_user`.
