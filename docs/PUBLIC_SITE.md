@@ -48,7 +48,7 @@ The landing page prefers Vazirmatn and falls back to safe Persian-readable syste
 
 `"Vazirmatn", Tahoma, "Segoe UI", Arial, sans-serif`
 
-No commercial font files and no CDN font imports are committed in this milestone. If a real local Vazirmatn file is added under local assets later, the same stack can use it without remote requests.
+No commercial font files and no CDN font imports are committed in this milestone. If `Vazirmatn.woff2` exists at `/assets/admin/fonts/Vazirmatn.woff2`, the public landing stylesheet loads it locally with `@font-face`.
 
 ## Admin Login Link
 

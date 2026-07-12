@@ -1,3 +1,11 @@
+@font-face {
+    font-family: "Vazirmatn";
+    src: url("/assets/admin/fonts/Vazirmatn.woff2") format("woff2");
+    font-display: swap;
+    font-style: normal;
+    font-weight: 100 900;
+}
+
 :root {
     --site-bg: #f5f8f6;
     --site-surface: #ffffff;
