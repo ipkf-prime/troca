@@ -343,6 +343,12 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'admin_navigation_rbac_available' => class_exists(\App\Services\AdminNavigationRbacService::class),
         'admin_route_guards_available' => class_exists(\App\Services\AdminNavigationRbacService::class),
         'admin_menu_permission_filtering_available' => class_exists(\App\Services\AdminNavigationRbacService::class),
+        'admin_dashboard_module_tiles_available' => class_exists(\App\Services\AdminPanelService::class),
+        'admin_dashboard_modules_permission_filtered' => class_exists(\App\Services\AdminPanelService::class)
+            && class_exists(\App\Services\AdminNavigationRbacService::class),
+        'admin_dashboard_modules_active_role_aware' => class_exists(\App\Services\AdminPanelService::class)
+            && class_exists(\App\Services\AuthorizationService::class)
+            && class_exists(\App\Services\AccessService::class),
         'admin_active_role_permission_context' => class_exists(\App\Services\AuthorizationService::class)
             && class_exists(\App\Services\AccessService::class),
         'admin_active_access_switch_available' => class_exists(\App\Services\AccessService::class),

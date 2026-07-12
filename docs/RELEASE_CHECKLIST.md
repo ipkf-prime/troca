@@ -22,6 +22,18 @@
 - `/admin/users` as `super_admin` opens the placeholder.
 - `/admin/org-units` and `/admin/positions` open placeholders for authorized roles.
 - Placeholder pages show `این بخش در حال آماده‌سازی است.`
+- `/admin/dashboard` opens normally.
+- Dashboard module tiles appear after the statistic cards.
+- `super_admin` sees all authorized dashboard module tiles and links.
+- `province_admin` sees only permitted dashboard module tiles and quick links.
+- Active base `user` role does not see restricted dashboard modules.
+- Dashboard tiles are hidden when none of their destinations are permitted.
+- Unauthorized dashboard quick links are not rendered.
+- Switching active role changes visible dashboard tiles after redirect/refresh.
+- `/_diagnostics` includes `admin_dashboard_module_tiles_available=true`.
+- `/_diagnostics` includes `admin_dashboard_modules_permission_filtered=true`.
+- `/_diagnostics` includes `admin_dashboard_modules_active_role_aware=true`.
+- No nested sidebar navigation is added.
 - Existing login, MFA, and admin routes still work.
 - Existing RBAC navigation still works.
 - Public landing page still works.

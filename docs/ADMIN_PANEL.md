@@ -37,6 +37,8 @@ Deferred after v0.4.5:
 
 v0.4.6 starts the admin users and organization schema foundation before Automation. It adds `org_units`, `positions`, and `user_org_assignments` without adding UI or automation workflows.
 
+v0.4.6 also adds permission-aware dashboard module tiles as the primary entry point for admin modules. The sidebar remains unchanged in this task.
+
 ## Production Safety
 
 For production:
@@ -118,8 +120,21 @@ The page uses the existing `MfaService` pending challenge flow. Valid verificati
 - MFA status
 - framework version
 - available role assignments
+- permission-filtered module tiles
 
 It does not show CRM, Bot, ERP, Automation, Marketplace, or business data.
+
+Dashboard module tiles use the current active-role permission context. A tile is rendered only when at least one destination inside it is permitted, and unauthorized quick links are not rendered.
+
+Current module tiles:
+
+- مدیریت کاربران
+- ساختار سازمانی
+- مدیریت سامانه
+- گزارش‌ها
+- پشتیبانی
+
+The dashboard is the preferred module entry point for this phase. Nested sidebar groups are intentionally not added yet.
 
 ## Active Access Switching
 

@@ -15,6 +15,7 @@ $cards = [
     ['label' => '&#x0631;&#x0645;&#x0632; &#x06CC;&#x06A9;&#x0628;&#x0627;&#x0631;&#x0645;&#x0635;&#x0631;&#x0641;', 'value' => ($context['mfa']['enabled'] ?? false) ? $fa('&#x0641;&#x0639;&#x0627;&#x0644;') : $fa('&#x063A;&#x06CC;&#x0631;&#x0641;&#x0639;&#x0627;&#x0644;')],
     ['label' => '&#x0646;&#x0633;&#x062E;&#x0647;', 'value' => $context['version'] ?? ''],
 ];
+$modules = $context['dashboard_modules'] ?? [];
 
 ob_start();
 ?>
@@ -32,6 +33,42 @@ ob_start();
         </article>
     <?php endforeach; ?>
 </section>
+
+<?php if ($modules !== []): ?>
+    <section class="admin-section admin-dashboard-modules">
+        <div class="admin-section__header">
+            <div>
+                <h2>&#x0645;&#x0627;&#x0698;&#x0648;&#x0644;&#x200C;&#x0647;&#x0627;&#x06CC; &#x0633;&#x0627;&#x0645;&#x0627;&#x0646;&#x0647;</h2>
+                <p class="admin-muted">&#x062F;&#x0633;&#x062A;&#x0631;&#x0633;&#x06CC; &#x0628;&#x0647; &#x0628;&#x062E;&#x0634;&#x200C;&#x0647;&#x0627; &#x0628;&#x0631; &#x0627;&#x0633;&#x0627;&#x0633; &#x0646;&#x0642;&#x0634; &#x0641;&#x0639;&#x0627;&#x0644; &#x0634;&#x0645;&#x0627; &#x0646;&#x0645;&#x0627;&#x06CC;&#x0634; &#x062F;&#x0627;&#x062F;&#x0647; &#x0645;&#x06CC;&#x200C;&#x0634;&#x0648;&#x062F;.</p>
+            </div>
+        </div>
+        <div class="admin-module-grid">
+            <?php foreach ($modules as $module): ?>
+                <article class="admin-module-tile admin-module-tile--<?= admin_h($module['key'] ?? 'module') ?>">
+                    <div class="admin-module-tile__head">
+                        <span class="admin-module-tile__icon" aria-hidden="true"><?= admin_h($module['icon_label'] ?? '') ?></span>
+                        <div>
+                            <h3><?= admin_h($module['title'] ?? '') ?></h3>
+                            <p><?= admin_h($module['description'] ?? '') ?></p>
+                        </div>
+                    </div>
+
+                    <?php if (($module['links'] ?? []) !== []): ?>
+                        <div class="admin-module-tile__links">
+                            <?php foreach ($module['links'] as $link): ?>
+                                <a href="<?= admin_h($link['url'] ?? '#') ?>"><?= admin_h($link['title'] ?? '') ?></a>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php elseif (($module['url'] ?? '') !== ''): ?>
+                        <div class="admin-module-tile__links">
+                            <a href="<?= admin_h($module['url']) ?>">&#x0645;&#x0634;&#x0627;&#x0647;&#x062F;&#x0647;</a>
+                        </div>
+                    <?php endif; ?>
+                </article>
+            <?php endforeach; ?>
+        </div>
+    </section>
+<?php endif; ?>
 
 <section class="admin-section">
     <div class="admin-section__header">

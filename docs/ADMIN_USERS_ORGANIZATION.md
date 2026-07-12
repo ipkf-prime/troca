@@ -41,6 +41,19 @@ Guests are redirected to `/admin/login`. Authenticated users without the require
 
 The sidebar menu and direct route access use the same permission map.
 
+## Dashboard module tiles
+
+The admin dashboard is the primary entry point for users and organization management in this phase.
+
+Permission-aware dashboard tiles include:
+
+- مدیریت کاربران: visible when the active role can access `users.view` or `access.manage`.
+- ساختار سازمانی: visible when the active role can access `org_units.view` or `positions.view`.
+
+Tiles are filtered by the current active role. Unauthorized quick links are not rendered, and empty tiles are hidden. The existing sidebar remains operational and is not converted into nested groups in this task.
+
+Full CRUD pages remain deferred. The current links open guarded placeholders only.
+
 ## Tables
 
 ### org_units

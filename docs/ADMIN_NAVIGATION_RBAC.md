@@ -1,12 +1,14 @@
 # IPKF Admin Navigation RBAC
 
-Current version: `0.4.5-admin-navigation-rbac`
+Current version: `0.4.6-admin-users-organization-dev`
 
 ## Purpose
 
 This milestone aligns admin navigation visibility with route access checks. The admin sidebar, account dropdown, and direct URL guards use one central permission map and respect the current active role assignment.
 
 No CRM, Bot, ERP, Automation, Marketplace, or business module is added in this phase.
+
+In v0.4.6 the admin dashboard also shows permission-aware module tiles. These tiles use the same active-role permission context as the sidebar and route guards.
 
 ## Final Scope
 
@@ -48,6 +50,9 @@ Planned next work:
 - `/admin/password` -> `account.password.change`
 - `/admin/my-theme` -> `account.theme.manage`
 - `/admin/access` -> `access.manage`
+- `/admin/users` -> `users.view`
+- `/admin/org-units` -> `org_units.view`
+- `/admin/positions` -> `positions.view`
 - `/admin/theme` -> `admin.theme.manage`
 - `/admin/theme/debug` -> `admin.theme.manage` and `APP_DEBUG=true`
 - `/admin/navigation/debug` -> `admin.navigation.debug` and `APP_DEBUG=true`
@@ -80,6 +85,19 @@ There are two separate concepts:
 Switching active access is self-service because a limited active role must still be able to switch back to another assigned role. The switch action can only target assignments that belong to the current authenticated user and are active, enabled, and unexpired.
 
 After a successful switch, the session `active_role_assignment_id` changes, permissions are recalculated from the new active assignment, and the sidebar updates on the next page load.
+
+Dashboard module tiles also update after the redirect/refresh. They do not aggregate permissions from inactive assignments.
+
+## Dashboard Module Tiles
+
+The dashboard is the primary module entry point in v0.4.6.
+
+- Tiles are permission filtered.
+- Tiles use the active-role permission context.
+- A tile is hidden when none of its destinations are permitted.
+- Unauthorized quick links are not rendered.
+- The sidebar remains unchanged; nested sidebar groups are not implemented in this task.
+- Automation module tiles will be added later only when real Automation routes exist.
 
 ## Seeded Permissions
 

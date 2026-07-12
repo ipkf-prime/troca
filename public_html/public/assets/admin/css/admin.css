@@ -563,6 +563,92 @@ body.admin-sidebar-locked {
     margin-top: 8px;
 }
 
+.admin-module-grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-module-tile {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    box-shadow: var(--admin-shadow);
+    display: grid;
+    gap: 16px;
+    min-height: 190px;
+    min-width: 0;
+    padding: 16px;
+    transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.admin-module-tile:hover {
+    border-color: color-mix(in srgb, var(--admin-primary) 34%, var(--admin-border));
+    box-shadow: 0 14px 30px color-mix(in srgb, var(--admin-primary) 10%, transparent);
+    transform: translateY(-1px);
+}
+
+.admin-module-tile__head {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: auto minmax(0, 1fr);
+}
+
+.admin-module-tile__icon {
+    align-items: center;
+    background: var(--admin-primary-soft);
+    border: 1px solid color-mix(in srgb, var(--admin-primary) 18%, var(--admin-border));
+    border-radius: 14px;
+    color: var(--admin-primary-hover);
+    display: inline-flex;
+    font-weight: var(--admin-font-weight-bold);
+    height: 44px;
+    justify-content: center;
+    width: 44px;
+}
+
+.admin-module-tile h3 {
+    font-size: 17px;
+    margin: 0 0 7px;
+}
+
+.admin-module-tile p {
+    color: var(--admin-text-muted);
+    line-height: 1.9;
+    margin: 0;
+}
+
+.admin-module-tile__links {
+    align-content: end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.admin-module-tile__links a {
+    background: var(--admin-surface-muted);
+    border: 1px solid var(--admin-border);
+    border-radius: 999px;
+    color: var(--admin-primary-hover);
+    font-size: var(--admin-font-size-sm);
+    font-weight: var(--admin-font-weight-bold);
+    min-height: 36px;
+    padding: 8px 12px;
+}
+
+.admin-module-tile__links a:hover,
+.admin-module-tile__links a:focus-visible {
+    background: var(--admin-primary);
+    border-color: var(--admin-primary);
+    color: #fff;
+}
+
+.admin-module-tile__links a:focus-visible {
+    outline: 3px solid var(--admin-accent);
+    outline-offset: 3px;
+}
+
 .admin-section {
     margin-bottom: 16px;
     padding: 18px;
@@ -1009,6 +1095,7 @@ button[type="submit"]:hover,
 @media (max-width: 1180px) {
     .admin-grid,
     .admin-mini-grid,
+    .admin-module-grid,
     .admin-theme-presets {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -1104,6 +1191,7 @@ button[type="submit"]:hover,
 
     .admin-grid,
     .admin-mini-grid,
+    .admin-module-grid,
     .admin-form-grid,
     .admin-theme-presets,
     .admin-token-grid {
