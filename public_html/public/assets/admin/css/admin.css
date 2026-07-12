@@ -349,6 +349,16 @@ body.admin-sidebar-locked {
     font-weight: var(--admin-font-weight-bold);
 }
 
+.admin-nav__badge {
+    margin-inline-start: auto;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    line-height: 1.7;
+    color: var(--admin-sidebar-text-muted);
+    background: rgba(255, 255, 255, .12);
+}
+
 .admin-main {
     display: flex;
     flex-direction: column;

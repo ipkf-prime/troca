@@ -6,7 +6,7 @@ business modules.
 
 ## Version
 
-Current version: `0.4.4-admin-panel-shell`
+Current version: `0.4.5-admin-navigation-rbac`
 
 ## Requirements
 
@@ -78,6 +78,8 @@ The Foundation baseline has been verified with:
 - `GET /admin/login` loads the RTL Persian admin login page
 - `GET /admin/dashboard` loads the authenticated admin dashboard shell
 - `GET /admin/theme` loads the configurable admin theme page
+- `GET /admin/access` returns a clean 403 page when the active role lacks `access.manage`
+- `GET /admin/theme` returns a clean 403 page when the active role lacks `admin.theme.manage`
 
 ## Site Mode
 
@@ -103,15 +105,19 @@ The v0.4.3 stable baseline adds identity verification, one-time login tokens, MF
 
 The v0.4.4 stable baseline adds the first admin panel shell, simplified built-in theme preset selection, responsive admin navigation, autofocus behavior, and the public landing page without adding CRM, Bot, ERP, Automation, Marketplace, admin CRUD, or business workflows.
 
-Deferred after v0.4.4:
+The v0.4.5 stable baseline adds permission-based admin navigation and route guards. Sidebar visibility, account dropdown visibility, and direct URL access now share one route permission map and respect the current active role assignment.
 
-- RBAC-based admin menu visibility
-- permission-based route guard matrix
+Deferred after v0.4.5:
+
+- full permission management UI
+- advanced audit logs
 - automation module
-- custom theme builder
-- named user theme profiles
+- CRM, ERP, Bot, and Marketplace modules
+- organization, geography, and fiscal-year scoped UI enforcement beyond the existing foundation
 
-Next phase: `v0.4.5-admin-navigation-rbac`.
+Next phase: `v0.4.6-automation-foundation`.
+
+Planned next work includes automation schema, correspondence and incoming/outgoing letter foundation, inbox/cartable, routing/referrals, attachments, and workflow history.
 
 Set:
 

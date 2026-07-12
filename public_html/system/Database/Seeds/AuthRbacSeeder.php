@@ -17,6 +17,8 @@ class AuthRbacSeeder extends Seeder
         $this->seedRolePriorities();
         $this->seedPermissions();
         $this->seedIdentityPermissions();
+        $this->seedAdminNavigationPermissions();
+        $this->assignDefaultAdminNavigationPermissions();
         $this->assignSuperAdminPermissions();
         $this->seedAdminThemeDefaults();
         $this->seedAdminUser();
@@ -207,6 +209,98 @@ class AuthRbacSeeder extends Seeder
 
         $statement->execute(['auth.login_token.issue', 'auth', 'login_tokens', 'issue', 'Issue login tokens']);
         $statement->execute(['admin.theme.manage', 'admin', 'theme', 'manage', 'Manage admin theme']);
+    }
+
+    private function seedAdminNavigationPermissions(): void
+    {
+        $permissions = [
+            ['admin.dashboard.view', 'admin', 'dashboard', 'view', 'View admin dashboard'],
+            ['account.profile.view', 'account', 'profile', 'view', 'View account profile'],
+            ['account.security.view', 'account', 'security', 'view', 'View account security'],
+            ['account.password.change', 'account', 'password', 'change', 'Change account password'],
+            ['account.theme.manage', 'account', 'theme', 'manage', 'Manage personal admin theme'],
+            ['access.manage', 'admin', 'access', 'manage', 'Manage active access'],
+            ['admin.settings.manage', 'admin', 'settings', 'manage', 'Manage admin settings'],
+            ['admin.pages.manage', 'admin', 'pages', 'manage', 'Manage admin pages'],
+            ['admin.reports.view', 'admin', 'reports', 'view', 'View admin reports'],
+            ['support.view', 'support', 'support', 'view', 'View support area'],
+            ['admin.navigation.debug', 'admin', 'navigation', 'debug', 'Debug admin navigation'],
+            ['admin.route.debug', 'admin', 'routes', 'debug', 'Debug admin routes'],
+        ];
+
+        $statement = $this->db->prepare("
+            INSERT INTO permissions (code, module, resource, action, title, is_active, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON DUPLICATE KEY UPDATE
+                module = VALUES(module),
+                resource = VALUES(resource),
+                action = VALUES(action),
+                title = VALUES(title),
+                is_active = VALUES(is_active),
+                updated_at = CURRENT_TIMESTAMP
+        ");
+
+        foreach ($permissions as $permission) {
+            $statement->execute($permission);
+        }
+    }
+
+    private function assignDefaultAdminNavigationPermissions(): void
+    {
+        $rolePermissions = [
+            'system_admin' => [
+                'admin.dashboard.view',
+                'account.profile.view',
+                'account.security.view',
+                'account.password.change',
+                'account.theme.manage',
+                'access.manage',
+                'admin.theme.manage',
+                'admin.settings.manage',
+                'admin.pages.manage',
+                'admin.reports.view',
+                'support.view',
+                'admin.navigation.debug',
+            ],
+            'province_admin' => [
+                'admin.dashboard.view',
+                'account.profile.view',
+                'account.security.view',
+                'account.password.change',
+                'account.theme.manage',
+                'admin.reports.view',
+                'support.view',
+            ],
+            'user' => [
+                'admin.dashboard.view',
+                'account.profile.view',
+                'account.security.view',
+                'account.password.change',
+                'account.theme.manage',
+                'support.view',
+            ],
+        ];
+
+        $statement = $this->db->prepare("
+            INSERT IGNORE INTO role_permissions (role_id, permission_id, created_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+        ");
+
+        foreach ($rolePermissions as $roleCode => $permissionCodes) {
+            $roleId = $this->idFor('roles', $roleCode);
+
+            if ($roleId === null) {
+                continue;
+            }
+
+            foreach ($permissionCodes as $permissionCode) {
+                $permissionId = $this->idFor('permissions', $permissionCode);
+
+                if ($permissionId !== null) {
+                    $statement->execute([$roleId, $permissionId]);
+                }
+            }
+        }
     }
 
     private function assignSuperAdminPermissions(): void
