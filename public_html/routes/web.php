@@ -277,6 +277,8 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'admin_menu_permission_filtering_available' => class_exists(\App\Services\AdminNavigationRbacService::class),
         'admin_active_role_permission_context' => class_exists(\App\Services\AuthorizationService::class)
             && class_exists(\App\Services\AccessService::class),
+        'admin_active_access_switch_available' => class_exists(\App\Services\AccessService::class),
+        'admin_active_access_switch_self_service' => true,
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),
@@ -796,16 +798,17 @@ $router->get('/admin/theme/debug', function ($request, $response) use ($adminGua
         ->send($content);
 });
 
-$router->post('/admin/access', function ($request, $response) use ($adminGuard) {
-    $context = $adminGuard($response, '/admin/access');
+$router->post('/admin/access', function ($request, $response) {
+    $auth = new \App\Services\AuthService();
+    $userId = $auth->currentUserId();
 
-    if (!is_array($context)) {
-        return $context;
+    if ($userId === null) {
+        return $response->redirect('/admin/login');
     }
 
-    $assignment = (new \App\Services\AccessService())->switchTo((int) $context['user_id'], (int) $request->input('role_assignment_id', 0));
+    $assignment = (new \App\Services\AccessService())->switchTo($userId, (int) $request->input('role_assignment_id', 0));
 
-    return $response->redirect('/admin/access?status=' . ($assignment === null ? 'forbidden' : 'switched'));
+    return $response->redirect('/admin/dashboard?access_status=' . ($assignment === null ? 'forbidden' : 'switched'));
 });
 
 $adminPlaceholder = function ($path, $title, $message) use ($adminRender, $adminGuard) {

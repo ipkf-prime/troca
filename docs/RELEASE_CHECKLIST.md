@@ -15,6 +15,12 @@
 - Base user active role does not see access, theme, settings, pages, or reports unless explicitly granted.
 - `/admin/access` returns HTTP 403 when the active role lacks `access.manage`.
 - `/admin/theme` returns HTTP 403 when the active role lacks `admin.theme.manage`.
+- Dashboard assignment table shows the active row as active and other rows with a role selection button.
+- Active role `user` can switch to the user's own `super_admin` assignment from the dashboard.
+- Active role switching does not require `access.manage`.
+- `/access/switch` cannot switch to another user's assignment.
+- `/access/switch` cannot switch to inactive, revoked, or expired assignments.
+- Header active role badge and sidebar permissions update after switching.
 - User/account dropdown items respect `account.profile.view`, `account.security.view`, `account.password.change`, and `account.theme.manage`.
 - `/admin/dashboard` works for roles with `admin.dashboard.view`.
 - Placeholder pages require their mapped permissions.

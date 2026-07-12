@@ -130,6 +130,8 @@ After switching, `active_role_assignment_id` is updated in the session. Permissi
 
 The default active role remains the lowest-privilege assignment selected by the Auth foundation.
 
+In v0.4.5, `/admin/access` remains an admin management page and requires `access.manage`, but switching the authenticated user's own active assignment is self-service. The dashboard assignment table posts to the same switch action and does not require the current active role to have `access.manage`.
+
 ## Profile Shell
 
 `/admin/profile` safely displays:

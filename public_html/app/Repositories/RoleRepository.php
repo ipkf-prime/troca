@@ -72,6 +72,8 @@ class RoleRepository extends BaseRepository
               AND user_role_assignments.user_id = ?
               AND user_role_assignments.is_active = 1
               AND roles.is_active = 1
+              AND (user_role_assignments.starts_at IS NULL OR user_role_assignments.starts_at <= CURRENT_TIMESTAMP)
+              AND (user_role_assignments.ends_at IS NULL OR user_role_assignments.ends_at >= CURRENT_TIMESTAMP)
             LIMIT 1
         ");
         $statement->execute([$assignmentId, $userId]);
