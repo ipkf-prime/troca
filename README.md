@@ -6,7 +6,7 @@ business modules.
 
 ## Version
 
-Current version: `0.4.4-admin-panel-shell`
+Current version: `0.4.5-admin-navigation-rbac-dev`
 
 ## Requirements
 
@@ -78,6 +78,8 @@ The Foundation baseline has been verified with:
 - `GET /admin/login` loads the RTL Persian admin login page
 - `GET /admin/dashboard` loads the authenticated admin dashboard shell
 - `GET /admin/theme` loads the configurable admin theme page
+- `GET /admin/access` returns a clean 403 page when the active role lacks `access.manage`
+- `GET /admin/theme` returns a clean 403 page when the active role lacks `admin.theme.manage`
 
 ## Site Mode
 
@@ -102,6 +104,8 @@ The v0.4.2 development branch adds JSON-first MFA foundation routes without addi
 The v0.4.3 stable baseline adds identity verification, one-time login tokens, MFA delivery channel foundations, and active access switching without adding UI or business modules.
 
 The v0.4.4 stable baseline adds the first admin panel shell, simplified built-in theme preset selection, responsive admin navigation, autofocus behavior, and the public landing page without adding CRM, Bot, ERP, Automation, Marketplace, admin CRUD, or business workflows.
+
+The v0.4.5 development baseline adds permission-based admin navigation and route guards. Sidebar visibility, account dropdown visibility, and direct URL access now share one route permission map and respect the current active role assignment.
 
 Deferred after v0.4.4:
 

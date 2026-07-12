@@ -1,6 +1,6 @@
 # IPKF Admin Panel Shell
 
-Current version: `0.4.4-admin-panel-shell`
+Current version: `0.4.5-admin-navigation-rbac-dev`
 
 ## Purpose
 
@@ -417,6 +417,9 @@ Development-only runtime forensics are available at `/admin/theme/debug` when `A
 
 - Admin POST forms are CSRF protected.
 - Existing Auth, MFA, and Access services are reused.
+- Admin route guards use the active role assignment permission context.
+- Admin sidebar and account dropdown visibility are permission-filtered in v0.4.5.
+- Authenticated users without permission receive a clean Persian 403 page.
 - Theme updates require `admin.theme.manage`.
 - No password hash is exposed.
 - No session ID is exposed.
@@ -440,7 +443,6 @@ Development-only runtime forensics are available at `/admin/theme/debug` when `A
 
 - Admin users list
 - Admin invitation flow
-- Permission-aware navigation
 - MFA management UI
 - Identity-change profile forms
 - Tenant-aware branding and theme governance

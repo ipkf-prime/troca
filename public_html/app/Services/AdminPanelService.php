@@ -10,11 +10,13 @@ class AdminPanelService extends BaseService
     public function __construct(
         protected ?AuthService $auth = null,
         protected ?AccessService $access = null,
-        protected ?MfaService $mfa = null
+        protected ?MfaService $mfa = null,
+        protected ?AdminNavigationRbacService $navigation = null
     ) {
         $this->auth ??= new AuthService();
         $this->access ??= new AccessService();
         $this->mfa ??= new MfaService();
+        $this->navigation ??= new AdminNavigationRbacService();
     }
 
     public function context(): ?array
@@ -41,6 +43,10 @@ class AdminPanelService extends BaseService
                 'verified' => (bool) Session::get('auth_mfa_verified', false),
                 'methods' => $methods,
                 'recovery_codes_available' => $this->mfa->recoveryCodesAvailable($userId),
+            ],
+            'navigation' => [
+                'system' => $this->navigation->systemNavigation($userId),
+                'account' => $this->navigation->accountNavigation($userId),
             ],
             'version' => Version::CURRENT,
         ];

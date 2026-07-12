@@ -20,25 +20,8 @@ if (!function_exists('admin_h')) {
     }
 }
 
-$systemNav = [
-    '/admin/dashboard' => 'داشبورد',
-    '/admin/access' => 'دسترسی‌ها',
-    '/admin/theme' => 'پوسته پنل',
-    '/admin/settings' => 'تنظیمات (به‌زودی)',
-    '/admin/pages' => 'صفحات داخلی (به‌زودی)',
-    '/admin/reports' => 'گزارش‌ها (به‌زودی)',
-    '/admin/support' => 'پشتیبانی (به‌زودی)',
-];
-
-$accountNav = [
-    '/admin/profile' => 'پروفایل کاربری',
-    '/admin/account' => 'اطلاعات حساب',
-    '/admin/security' => 'امنیت و ورود',
-    '/admin/mfa' => 'رمز یکبارمصرف',
-    '/admin/password' => 'تغییر کلمه عبور',
-    '/admin/my-theme' => 'پوسته نمایشی من',
-    '/admin/logout' => 'خروج',
-];
+$systemNav = $context['navigation']['system'] ?? [];
+$accountNav = $context['navigation']['account'] ?? [];
 ?>
 <!doctype html>
 <html lang="fa" dir="rtl">
@@ -70,9 +53,13 @@ $accountNav = [
                 <button class="admin-icon-button admin-sidebar__close" type="button" data-admin-sidebar-close aria-label="بستن منو">×</button>
             </div>
             <nav class="admin-nav" aria-label="منوی سامانه">
-                <?php foreach ($systemNav as $href => $label): ?>
+                <?php foreach ($systemNav as $item): ?>
+                    <?php $href = (string) ($item['url'] ?? '#'); ?>
                     <a class="<?= $currentPath === $href ? 'is-active' : '' ?>" href="<?= admin_h($href) ?>">
-                        <?= admin_h($label) ?>
+                        <span><?= admin_h($item['title'] ?? '') ?></span>
+                        <?php if (($item['badge'] ?? '') !== ''): ?>
+                            <small class="admin-nav__badge"><?= admin_h($item['badge']) ?></small>
+                        <?php endif; ?>
                     </a>
                 <?php endforeach; ?>
             </nav>
@@ -104,9 +91,10 @@ $accountNav = [
                             <b aria-hidden="true">▾</b>
                         </button>
                         <div class="admin-dropdown" role="menu">
-                            <?php foreach ($accountNav as $href => $label): ?>
+                            <?php foreach ($accountNav as $item): ?>
+                                <?php $href = (string) ($item['url'] ?? '#'); ?>
                                 <a class="<?= $currentPath === $href ? 'is-active' : '' ?> <?= $href === '/admin/logout' ? 'is-danger' : '' ?>" href="<?= admin_h($href) ?>" role="menuitem">
-                                    <?= admin_h($label) ?>
+                                    <?= admin_h($item['title'] ?? '') ?>
                                 </a>
                             <?php endforeach; ?>
                         </div>

@@ -1,5 +1,31 @@
 # IPKF Release Checklist
 
+## v0.4.5 Admin Navigation RBAC Checks
+
+- `/health` returns `0.4.5-admin-navigation-rbac-dev`.
+- `/_diagnostics` includes `admin_navigation_rbac_available=true`.
+- `/_diagnostics` includes `admin_route_guards_available=true`.
+- `/_diagnostics` includes `admin_menu_permission_filtering_available=true`.
+- `/_diagnostics` includes `admin_active_role_permission_context=true`.
+- Migrations and seeders run successfully.
+- Required admin navigation permissions exist.
+- `super_admin` active role sees dashboard, access, theme, settings, pages, reports, and support.
+- `super_admin` can open `/admin/access` and `/admin/theme`.
+- Switching active access to the base `user` role reduces sidebar items.
+- Base user active role does not see access, theme, settings, pages, or reports unless explicitly granted.
+- `/admin/access` returns HTTP 403 when the active role lacks `access.manage`.
+- `/admin/theme` returns HTTP 403 when the active role lacks `admin.theme.manage`.
+- User/account dropdown items respect `account.profile.view`, `account.security.view`, `account.password.change`, and `account.theme.manage`.
+- `/admin/dashboard` works for roles with `admin.dashboard.view`.
+- Placeholder pages require their mapped permissions.
+- Guest access to `/admin/dashboard` redirects to `/admin/login`.
+- Existing admin login, MFA, recovery, and logout flow remains unchanged.
+- Existing JSON endpoints continue to work.
+- `/admin/navigation/debug` works only with `APP_DEBUG=true` and an authorized active role.
+- Public landing page still works.
+- Persian UTF-8 rendering remains correct.
+- No password hash, session id, CSRF token, recovery code, OTP, provider secret, login token, or maintenance key is exposed.
+
 ## v0.4.4 Admin Panel Shell UI Checks
 
 - `/health` returns `0.4.4-admin-panel-shell`.

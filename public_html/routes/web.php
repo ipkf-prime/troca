@@ -272,6 +272,11 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'admin_mfa_recovery_ui_available' => true,
         'admin_two_part_navigation_available' => true,
         'admin_responsive_ui_available' => true,
+        'admin_navigation_rbac_available' => class_exists(\App\Services\AdminNavigationRbacService::class),
+        'admin_route_guards_available' => class_exists(\App\Services\AdminNavigationRbacService::class),
+        'admin_menu_permission_filtering_available' => class_exists(\App\Services\AdminNavigationRbacService::class),
+        'admin_active_role_permission_context' => class_exists(\App\Services\AuthorizationService::class)
+            && class_exists(\App\Services\AccessService::class),
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),
@@ -310,6 +315,25 @@ $adminRender = function ($response, string $view, array $data = [], int $status 
 };
 
 $adminContext = fn (): ?array => (new \App\Services\AdminPanelService())->context();
+
+$adminGuard = function ($response, string $path) use ($adminRender, $adminContext) {
+    $context = $adminContext();
+
+    if ($context === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    $userId = (int) $context['user_id'];
+
+    if (!(new \App\Services\AdminNavigationRbacService())->canAccessPath($userId, $path)) {
+        return $adminRender($response, 'forbidden', [
+            'title' => html_entity_decode('&#x062F;&#x0633;&#x062A;&#x0631;&#x0633;&#x06CC; &#x063A;&#x06CC;&#x0631;&#x0645;&#x062C;&#x0627;&#x0632;', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+            'context' => $context,
+        ], 403);
+    }
+
+    return $context;
+};
 
 $router->get('/admin', function ($request, $response) {
     return $response->redirect((new \App\Services\AuthService())->authenticated()
@@ -440,11 +464,11 @@ $router->post('/admin/mfa/recovery', function ($request, $response) use ($adminR
     return $response->redirect('/admin/dashboard');
 });
 
-$router->get('/admin/dashboard', function ($request, $response) use ($adminRender, $adminContext) {
-    $context = $adminContext();
+$router->get('/admin/dashboard', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/dashboard');
 
-    if ($context === null) {
-        return $response->redirect('/admin/login');
+    if (!is_array($context)) {
+        return $context;
     }
 
     return $adminRender($response, 'dashboard', [
@@ -453,11 +477,11 @@ $router->get('/admin/dashboard', function ($request, $response) use ($adminRende
     ]);
 });
 
-$router->get('/admin/profile', function ($request, $response) use ($adminRender, $adminContext) {
-    $context = $adminContext();
+$router->get('/admin/profile', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/profile');
 
-    if ($context === null) {
-        return $response->redirect('/admin/login');
+    if (!is_array($context)) {
+        return $context;
     }
 
     return $adminRender($response, 'profile', [
@@ -466,11 +490,11 @@ $router->get('/admin/profile', function ($request, $response) use ($adminRender,
     ]);
 });
 
-$router->get('/admin/account', function ($request, $response) use ($adminRender, $adminContext) {
-    $context = $adminContext();
+$router->get('/admin/account', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/account');
 
-    if ($context === null) {
-        return $response->redirect('/admin/login');
+    if (!is_array($context)) {
+        return $context;
     }
 
     return $adminRender($response, 'account', [
@@ -479,11 +503,11 @@ $router->get('/admin/account', function ($request, $response) use ($adminRender,
     ]);
 });
 
-$router->get('/admin/security', function ($request, $response) use ($adminRender, $adminContext) {
-    $context = $adminContext();
+$router->get('/admin/security', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/security');
 
-    if ($context === null) {
-        return $response->redirect('/admin/login');
+    if (!is_array($context)) {
+        return $context;
     }
 
     return $adminRender($response, 'security', [
@@ -492,11 +516,11 @@ $router->get('/admin/security', function ($request, $response) use ($adminRender
     ]);
 });
 
-$router->get('/admin/password', function ($request, $response) use ($adminRender, $adminContext) {
-    $context = $adminContext();
+$router->get('/admin/password', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/password');
 
-    if ($context === null) {
-        return $response->redirect('/admin/login');
+    if (!is_array($context)) {
+        return $context;
     }
 
     return $adminRender($response, 'password', [
@@ -507,11 +531,11 @@ $router->get('/admin/password', function ($request, $response) use ($adminRender
     ]);
 });
 
-$router->post('/admin/password', function ($request, $response) use ($adminRender, $adminContext) {
-    $context = $adminContext();
+$router->post('/admin/password', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/password');
 
-    if ($context === null) {
-        return $response->redirect('/admin/login');
+    if (!is_array($context)) {
+        return $context;
     }
 
     $currentPassword = (string) $request->input('current_password', '');
@@ -541,11 +565,11 @@ $router->post('/admin/password', function ($request, $response) use ($adminRende
     return $response->redirect('/admin/password?status=updated');
 });
 
-$router->get('/admin/my-theme', function ($request, $response) use ($adminRender, $adminContext) {
-    $context = $adminContext();
+$router->get('/admin/my-theme', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/my-theme');
 
-    if ($context === null) {
-        return $response->redirect('/admin/login');
+    if (!is_array($context)) {
+        return $context;
     }
 
     $theme = new \App\Services\AdminThemeService();
@@ -561,11 +585,11 @@ $router->get('/admin/my-theme', function ($request, $response) use ($adminRender
     ]);
 });
 
-$router->post('/admin/my-theme', function ($request, $response) use ($adminRender, $adminContext) {
-    $context = $adminContext();
+$router->post('/admin/my-theme', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/my-theme');
 
-    if ($context === null) {
-        return $response->redirect('/admin/login');
+    if (!is_array($context)) {
+        return $context;
     }
 
     $theme = new \App\Services\AdminThemeService();
@@ -586,11 +610,11 @@ $router->post('/admin/my-theme', function ($request, $response) use ($adminRende
     return $response->redirect('/admin/my-theme?status=saved');
 });
 
-$router->get('/admin/access', function ($request, $response) use ($adminRender, $adminContext) {
-    $context = $adminContext();
+$router->get('/admin/access', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/access');
 
-    if ($context === null) {
-        return $response->redirect('/admin/login');
+    if (!is_array($context)) {
+        return $context;
     }
 
     return $adminRender($response, 'access', [
@@ -600,11 +624,11 @@ $router->get('/admin/access', function ($request, $response) use ($adminRender, 
     ]);
 });
 
-$router->get('/admin/theme', function ($request, $response) use ($adminRender, $adminContext) {
-    $context = $adminContext();
+$router->get('/admin/theme', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/theme');
 
-    if ($context === null) {
-        return $response->redirect('/admin/login');
+    if (!is_array($context)) {
+        return $context;
     }
 
     $theme = new \App\Services\AdminThemeService();
@@ -623,11 +647,11 @@ $router->get('/admin/theme', function ($request, $response) use ($adminRender, $
     ]);
 });
 
-$router->post('/admin/theme', function ($request, $response) use ($adminRender, $adminContext) {
-    $context = $adminContext();
+$router->post('/admin/theme', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/theme');
 
-    if ($context === null) {
-        return $response->redirect('/admin/login');
+    if (!is_array($context)) {
+        return $context;
     }
 
     if (!(new \App\Services\AuthorizationService())->hasPermission((int) $context['user_id'], 'admin.theme.manage')) {
@@ -666,15 +690,15 @@ $router->post('/admin/theme', function ($request, $response) use ($adminRender, 
     return $response->redirect('/admin/theme?status=saved');
 });
 
-$router->post('/admin/theme/reset', function ($request, $response) use ($adminContext) {
-    $context = $adminContext();
+$router->post('/admin/theme/reset', function ($request, $response) use ($adminGuard) {
+    $scope = trim((string) $request->input('scope', 'user'));
+    $context = $adminGuard($response, $scope === 'system' ? '/admin/theme' : '/admin/my-theme');
 
-    if ($context === null) {
-        return $response->redirect('/admin/login');
+    if (!is_array($context)) {
+        return $context;
     }
 
     $theme = new \App\Services\AdminThemeService();
-    $scope = trim((string) $request->input('scope', 'user'));
 
     if ($scope === 'system') {
         if (!(new \App\Services\AuthorizationService())->hasPermission((int) $context['user_id'], 'admin.theme.manage')) {
@@ -691,19 +715,15 @@ $router->post('/admin/theme/reset', function ($request, $response) use ($adminCo
     return $response->redirect('/admin/my-theme?status=reset');
 });
 
-$router->get('/admin/theme/debug', function ($request, $response) use ($adminContext) {
+$router->get('/admin/theme/debug', function ($request, $response) use ($adminGuard) {
     if (!\IPKF\Support\Env::isDebug()) {
         return $response->status(404)->send('404 - Route not found: /admin/theme/debug');
     }
 
-    $context = $adminContext();
+    $context = $adminGuard($response, '/admin/theme/debug');
 
-    if ($context === null) {
-        return $response->redirect('/admin/login');
-    }
-
-    if (!(new \App\Services\AuthorizationService())->hasPermission((int) $context['user_id'], 'admin.theme.manage')) {
-        return $response->status(403)->send('Forbidden');
+    if (!is_array($context)) {
+        return $context;
     }
 
     $themeService = new \App\Services\AdminThemeService();
@@ -776,25 +796,24 @@ $router->get('/admin/theme/debug', function ($request, $response) use ($adminCon
         ->send($content);
 });
 
-$router->post('/admin/access', function ($request, $response) {
-    $auth = new \App\Services\AuthService();
-    $userId = $auth->currentUserId();
+$router->post('/admin/access', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/access');
 
-    if ($userId === null) {
-        return $response->redirect('/admin/login');
+    if (!is_array($context)) {
+        return $context;
     }
 
-    $assignment = (new \App\Services\AccessService())->switchTo($userId, (int) $request->input('role_assignment_id', 0));
+    $assignment = (new \App\Services\AccessService())->switchTo((int) $context['user_id'], (int) $request->input('role_assignment_id', 0));
 
     return $response->redirect('/admin/access?status=' . ($assignment === null ? 'forbidden' : 'switched'));
 });
 
-$adminPlaceholder = function ($title, $message) use ($adminRender, $adminContext) {
-    return function ($request, $response) use ($adminRender, $adminContext, $title, $message) {
-        $context = $adminContext();
+$adminPlaceholder = function ($path, $title, $message) use ($adminRender, $adminGuard) {
+    return function ($request, $response) use ($adminRender, $adminGuard, $path, $title, $message) {
+        $context = $adminGuard($response, $path);
 
-        if ($context === null) {
-            return $response->redirect('/admin/login');
+        if (!is_array($context)) {
+            return $context;
         }
 
         return $adminRender($response, 'placeholder', [
@@ -805,11 +824,37 @@ $adminPlaceholder = function ($title, $message) use ($adminRender, $adminContext
     };
 };
 
-$router->get('/admin/settings', $adminPlaceholder('تنظیمات', 'تنظیمات سامانه در فازهای بعدی تکمیل می‌شود.'));
-$router->get('/admin/pages', $adminPlaceholder('صفحات داخلی', 'مدیریت صفحات داخلی هنوز فعال نشده است.'));
-$router->get('/admin/reports', $adminPlaceholder('گزارش‌ها', 'گزارش‌های مدیریتی در نسخه‌های بعدی اضافه می‌شود.'));
-$router->get('/admin/support', $adminPlaceholder('پشتیبانی', 'مسیرهای پشتیبانی و راهنمای داخلی در فاز بعدی تکمیل می‌شود.'));
+$router->get('/admin/settings', $adminPlaceholder('/admin/settings', 'تنظیمات', 'تنظیمات سامانه در فازهای بعدی تکمیل می‌شود.'));
+$router->get('/admin/pages', $adminPlaceholder('/admin/pages', 'صفحات داخلی', 'مدیریت صفحات داخلی هنوز فعال نشده است.'));
+$router->get('/admin/reports', $adminPlaceholder('/admin/reports', 'گزارش‌ها', 'گزارش‌های مدیریتی در نسخه‌های بعدی اضافه می‌شود.'));
+$router->get('/admin/support', $adminPlaceholder('/admin/support', 'پشتیبانی', 'مسیرهای پشتیبانی و راهنمای داخلی در فاز بعدی تکمیل می‌شود.'));
 
+$router->get('/admin/navigation/debug', function ($request, $response) use ($adminGuard) {
+    if (!\IPKF\Support\Env::isDebug()) {
+        return $response->status(404)->send('404 - Route not found: /admin/navigation/debug');
+    }
+
+    $context = $adminGuard($response, '/admin/navigation/debug');
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $navigation = new \App\Services\AdminNavigationRbacService();
+
+    if (!$navigation->debugRouteAvailable((int) $context['user_id'])) {
+        return $response->status(403)->json([
+            'status' => 'error',
+            'message' => 'Forbidden.',
+        ]);
+    }
+
+    return $response->json([
+        'status' => 'ok',
+        'active_role' => $context['active_assignment']['role_code'] ?? null,
+        'debug' => $navigation->debug((int) $context['user_id']),
+    ]);
+});
 $router->get('/admin/logout', function ($request, $response) {
     (new \App\Services\AuthService())->logout();
 

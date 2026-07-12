@@ -122,7 +122,7 @@ Branch naming convention:
 - Development branches start with the version and end with `-dev`, such as `v0.4.3-identity-access-dev`.
 - Release tags use the stable version name without `-dev`, such as `v0.4.3-identity-access`.
 
-## Active Milestone
+## Stable Baseline
 
 IPKF v0.4.4 Admin Panel Shell starts the first server-rendered RTL Persian admin UI on top of the existing Auth, MFA, RBAC, and active access foundations.
 
@@ -143,15 +143,31 @@ Scope:
 - Responsive mobile sidebar and autofocus behavior for admin forms.
 - No CRM, Bot, ERP, Automation, Marketplace, admin CRUD, or business modules are added.
 
-Deferred to the next phase:
+## Active Milestone
 
-- RBAC-based admin menu visibility.
-- permission-based route guards.
+IPKF v0.4.5 Admin Navigation RBAC adds permission-based admin navigation and route guards.
+
+Working version: `0.4.5-admin-navigation-rbac-dev`
+
+Development branch: `v0.4.5-admin-navigation-rbac`
+
+Scope:
+
+- Central admin route permission map.
+- Sidebar menu visibility based on current active role permissions.
+- User/account dropdown filtering based on current active role permissions.
+- Direct URL route guards with clean Persian 403 responses.
+- Active role/access assignment compatibility.
+- Idempotent seeding for admin navigation permissions.
+- Safe APP_DEBUG-only navigation diagnostics.
+- No Automation, CRM, ERP, Bot, Marketplace, or business module is added.
+
+Deferred after v0.4.5:
+
 - automation module.
 - custom theme builder.
 - named user theme profiles.
-
-Next phase: `v0.4.5-admin-navigation-rbac`.
+- admin user CRUD.
 
 ## Future Milestones
 
