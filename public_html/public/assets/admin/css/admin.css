@@ -1400,6 +1400,40 @@ button[type="submit"]:hover,
     padding: 7px 14px;
 }
 
+.admin-breadcrumb + .admin-users-heading {
+    margin-top: -2px;
+}
+
+.admin-users-heading {
+    gap: 14px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    margin-bottom: 12px;
+    min-height: 110px;
+    padding: 20px 24px;
+}
+
+.admin-users-heading .admin-module-hub__icon {
+    border-radius: 16px;
+    font-size: 26px;
+    height: 56px;
+    width: 56px;
+}
+
+.admin-users-heading h2 {
+    font-size: 23px;
+    margin-bottom: 4px;
+}
+
+.admin-users-heading p {
+    font-size: 14px;
+    line-height: 1.75;
+}
+
+.admin-users-heading .admin-module-hub__back {
+    min-height: 40px;
+    padding: 8px 16px;
+}
+
 .admin-users-toolbar {
     align-items: end;
     display: grid;
@@ -1801,6 +1835,35 @@ button[type="submit"]:hover,
     .admin-action-tile__icon {
         height: 56px;
         width: 56px;
+    }
+
+    .admin-users-heading {
+        gap: 12px;
+        grid-template-columns: auto minmax(0, 1fr);
+        min-height: 0;
+        padding: 16px;
+    }
+
+    .admin-users-heading .admin-module-hub__icon {
+        border-radius: 14px;
+        font-size: 24px;
+        height: 48px;
+        width: 48px;
+    }
+
+    .admin-users-heading h2 {
+        font-size: 21px;
+        margin-bottom: 3px;
+    }
+
+    .admin-users-heading p {
+        font-size: 13px;
+    }
+
+    .admin-users-heading .admin-module-hub__back {
+        grid-column: 1 / -1;
+        justify-self: start;
+        min-height: 38px;
     }
 
     .admin-section {
