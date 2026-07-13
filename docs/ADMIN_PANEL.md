@@ -155,6 +155,8 @@ Child routes activate their parent module in the sidebar. For example, `/admin/u
 
 `/admin/users` is now a professional read-only users list for roles with `users.view`. It supports safe search, server-side pagination, desktop table presentation, and mobile cards. User creation, editing, deletion, password reset, role assignment editing, and organization assignment editing are intentionally deferred.
 
+`/admin/org-units` and `/admin/positions` are professional read-only organization structure lists for roles with `org_units.view` and `positions.view`. They support safe search, server-side pagination, ascending order, desktop table presentation, and mobile cards. Create, edit, delete, assignment editing, hierarchy editing, and Automation features are intentionally deferred.
+
 Admin icons use the local `/assets/admin/css/icons.css` icon-font foundation through the reusable `App\Support\AdminIcon` helper. No external CDN icon requests are used.
 
 ## Active Access Switching
@@ -457,7 +459,7 @@ Development-only runtime forensics are available at `/admin/theme/debug` when `A
 - Admin route guards use the active role assignment permission context.
 - Admin sidebar and account dropdown visibility are permission-filtered in v0.4.5.
 - Authenticated users without permission receive a clean Persian 403 page.
-- `/admin/users` and `/admin/org-units` are read-only admin lists with server-side search, pagination, and ascending table order.
+- `/admin/users`, `/admin/org-units`, and `/admin/positions` are read-only admin lists with server-side search, pagination, and ascending table order.
 - `/admin/org-units` displays organization hierarchy safely through parent titles and capped depth indentation without exposing internal paths.
 - Theme updates require `admin.theme.manage`.
 - No password hash is exposed.

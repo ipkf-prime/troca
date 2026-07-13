@@ -376,6 +376,10 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'admin_org_units_search_available' => class_exists(\App\Services\AdminOrgUnitService::class),
         'admin_org_units_pagination_available' => class_exists(\App\Services\AdminOrgUnitService::class),
         'admin_org_units_hierarchy_display_available' => true,
+        'admin_positions_list_available' => class_exists(\App\Services\AdminPositionService::class)
+            && class_exists(\App\Repositories\AdminPositionRepository::class),
+        'admin_positions_search_available' => class_exists(\App\Services\AdminPositionService::class),
+        'admin_positions_pagination_available' => class_exists(\App\Services\AdminPositionService::class),
         'admin_users_organization_foundation_available' => $orgUnitsTableExists
             && $positionsTableExists
             && $userOrgAssignmentsTableExists,
@@ -996,7 +1000,24 @@ $router->get('/admin/org-units', function ($request, $response) use ($adminRende
         'list' => $list,
     ]);
 });
-$router->get('/admin/positions', $adminPlaceholder('/admin/positions', 'سمت‌ها', 'این بخش در حال آماده‌سازی است.'));
+$router->get('/admin/positions', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/positions');
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $list = (new \App\Services\AdminPositionService())->index([
+        'q' => $request->input('q', ''),
+        'page' => $request->input('page', 1),
+    ]);
+
+    return $adminRender($response, 'positions', [
+        'title' => 'سمت‌ها',
+        'context' => $context,
+        'list' => $list,
+    ]);
+});
 $router->get('/admin/pages', $adminPlaceholder('/admin/pages', 'صفحات داخلی', 'مدیریت صفحات داخلی هنوز فعال نشده است.'));
 $router->get('/admin/reports', $adminPlaceholder('/admin/reports', 'گزارش‌ها', 'گزارش‌های مدیریتی در نسخه‌های بعدی اضافه می‌شود.'));
 $router->get('/admin/support', $adminPlaceholder('/admin/support', 'پشتیبانی', 'مسیرهای پشتیبانی و راهنمای داخلی در فاز بعدی تکمیل می‌شود.'));

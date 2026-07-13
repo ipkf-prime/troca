@@ -1485,6 +1485,26 @@ button[type="submit"]:hover,
     font-size: 18px;
 }
 
+.admin-positions-table {
+    min-width: 820px;
+}
+
+.admin-position-title {
+    align-items: center;
+    display: inline-flex;
+    gap: 8px;
+    min-width: 0;
+}
+
+.admin-position-title .admin-icon {
+    color: var(--admin-primary-hover);
+    font-size: 18px;
+}
+
+.admin-position-title strong {
+    overflow-wrap: anywhere;
+}
+
 .admin-users-identity,
 .admin-role-stack {
     align-items: center;

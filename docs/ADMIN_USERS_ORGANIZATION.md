@@ -98,7 +98,23 @@ The page does not expose internal `path` values and hides soft-deleted rows.
 
 Create, edit, delete, drag/drop hierarchy management, user assignment editing, and automation workflows remain deferred.
 
-Full CRUD pages remain deferred. Position links still open guarded placeholders only.
+## Positions list
+
+`GET /admin/positions` is a read-only positions list protected by `positions.view`.
+
+The page includes:
+
+- Persian RTL module-style header and breadcrumb back to `/admin/modules/organization`
+- safe fields from `positions`
+- short truncated description display
+- server-side search with `q` over title, code, and description
+- server-side pagination with `page`
+- responsive desktop table and mobile cards
+- ascending table order by `sort_order` and then `id`
+
+Create, edit, delete, user-position assignment, organizational assignment editing, and automation workflows remain deferred.
+
+Full CRUD pages remain deferred.
 
 ## Tables
 
@@ -160,7 +176,7 @@ The table is designed for future personal and unit cartables, routing work to a 
 - Existing persons/users/RBAC schema remains unchanged.
 - Text columns are utf8mb4-compatible.
 - Migrations are idempotent.
-- Admin pages are placeholders only.
+- Admin users, organization units, and positions pages are read-only list foundations only.
 - Full CRUD remains deferred.
-- Users and organization read-only lists sort from small to large.
+- Users, organization units, and positions read-only lists sort from small to large.
 - No automation features are implemented yet.

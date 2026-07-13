@@ -19,9 +19,9 @@
 - `super_admin` sees `کاربران`, `واحدهای سازمانی`, and `سمت‌ها`.
 - Active base `user` role does not see users organization menu items by default.
 - `/admin/users` as an unauthorized active role returns HTTP 403.
-- `/admin/users` as `super_admin` opens the placeholder.
-- `/admin/org-units` and `/admin/positions` open placeholders for authorized roles.
-- Placeholder pages show `این بخش در حال آماده‌سازی است.`
+- `/admin/users` as `super_admin` opens the read-only users list.
+- `/admin/org-units` opens the read-only organization units list for authorized roles.
+- `/admin/positions` opens the read-only positions list for authorized roles.
 - `/admin/dashboard` opens normally.
 - Dashboard displays visually distinct solid-color module tiles after the statistic cards.
 - Dashboard module tiles no longer contain quick-link lists.
@@ -36,6 +36,16 @@
 - `/admin/users` renders as a table on desktop and cards on mobile.
 - `/admin/users` does not expose password hashes, MFA secrets, recovery codes, login tokens, sessions, CSRF tokens, trusted device secrets, or internal hashes.
 - `/admin/users` does not include create, edit, delete, password reset, role assignment editing, or organization assignment editing actions.
+- `/admin/org-units` opens a read-only organization units list for roles with `org_units.view`.
+- `/admin/org-units` searches title, code, type, and parent title.
+- `/admin/org-units` paginates server-side and preserves `q`.
+- `/admin/org-units` sorts by `sort_order ASC, id ASC`.
+- `/admin/positions` opens a read-only positions list for roles with `positions.view`.
+- `/admin/positions` searches title, code, and description.
+- `/admin/positions` paginates server-side and preserves `q`.
+- `/admin/positions` sorts by `sort_order ASC, id ASC`.
+- `/admin/positions` renders as a table on desktop and cards on mobile.
+- `/admin/positions` does not include create, edit, delete, user-position assignment, organization assignment editing, or Automation actions.
 - `super_admin` sees all authorized dashboard module tiles and hub actions.
 - `province_admin` sees only permitted dashboard module tiles and hub actions.
 - Active base `user` role does not see restricted dashboard modules.
@@ -57,6 +67,9 @@
 - `/_diagnostics` includes `admin_users_search_available=true`.
 - `/_diagnostics` includes `admin_users_pagination_available=true`.
 - `/_diagnostics` includes `admin_users_sensitive_fields_protected=true`.
+- `/_diagnostics` includes `admin_positions_list_available=true`.
+- `/_diagnostics` includes `admin_positions_search_available=true`.
+- `/_diagnostics` includes `admin_positions_pagination_available=true`.
 - Icons come from the local icon-font foundation and no external CDN is used.
 - Sidebar contains module-level links only: dashboard, users management, organization structure, system management, reports, and support.
 - `/admin/users`, `/admin/access`, `/admin/org-units`, `/admin/positions`, `/admin/theme`, `/admin/settings`, and `/admin/pages` do not appear as separate global sidebar links.
@@ -390,11 +403,23 @@ Version: `0.2.0-foundation`
 - `/admin/org-units` resolves parent titles with a join and does not expose internal paths.
 - `/admin/org-units` displays hierarchy with sanitized/capped depth indentation.
 - `/admin/org-units` renders responsive desktop table and mobile cards without horizontal page overflow.
+- `/admin/positions` requires `positions.view`.
+- `/admin/positions` shows a read-only professional positions list.
+- `/admin/positions` supports server-side search with `q`.
+- `/admin/positions` supports server-side pagination with `page`.
+- `/admin/positions` sorts records ascending from small to large by `sort_order` and `id`.
+- `/admin/positions` renders responsive desktop table and mobile cards without horizontal page overflow.
+- `/admin/positions` does not include create, edit, delete, user-position assignment, organization assignment editing, or Automation actions.
 - Empty state says `هنوز واحد سازمانی ثبت نشده است.`
 - No-result state says `واحد سازمانی مطابق جستجو پیدا نشد.`
+- Positions empty state says `هنوز سمتی ثبت نشده است.`
+- Positions no-result state says `سمتی مطابق جستجو پیدا نشد.`
 - Database errors show a safe Persian message without SQL, stack traces, paths, or secrets.
 - `/_diagnostics` includes `admin_org_units_list_available=true`.
 - `/_diagnostics` includes `admin_org_units_search_available=true`.
 - `/_diagnostics` includes `admin_org_units_pagination_available=true`.
 - `/_diagnostics` includes `admin_org_units_hierarchy_display_available=true`.
+- `/_diagnostics` includes `admin_positions_list_available=true`.
+- `/_diagnostics` includes `admin_positions_search_available=true`.
+- `/_diagnostics` includes `admin_positions_pagination_available=true`.
 - Existing login, MFA, dashboard, RBAC navigation, active access switching, and theme routes still work.
