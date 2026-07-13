@@ -87,6 +87,10 @@ The public landing page is static in this milestone. Automation appears only as 
 - `GET /admin/reports`
 - `GET /admin/support`
 - `GET /admin/logout`
+- `GET /admin/users`
+- `GET /admin/users/{id}`
+- `GET /admin/org-units`
+- `GET /admin/positions`
 
 ## Auth Flow
 
@@ -149,6 +153,8 @@ The sidebar contains only module-level navigation: dashboard, users management, 
 Child routes activate their parent module in the sidebar. For example, `/admin/users` and `/admin/access` highlight مدیریت کاربران, `/admin/org-units` and `/admin/positions` highlight ساختار سازمانی, and `/admin/theme`, `/admin/settings`, and `/admin/pages` highlight مدیریت سامانه.
 
 `/admin/users` is now a professional read-only users list for roles with `users.view`. It supports safe search, server-side pagination, desktop table presentation, and mobile cards. User creation, editing, deletion, password reset, role assignment editing, and organization assignment editing are intentionally deferred.
+
+`/admin/users/{id}` is a professional read-only user detail page for roles with `users.view`. It shows safe identity, account, MFA/security, role assignment, and organization assignment summaries with Jalali dates. It returns the standard Persian 403 for unauthorized active roles and a clean Persian 404 for invalid or missing users. It does not select or expose password hashes, MFA secrets, recovery codes, login tokens, session ids, CSRF tokens, trusted device tokens, provider secrets, or internal hashes.
 
 `/admin/org-units` and `/admin/positions` are professional read-only organization structure lists for roles with `org_units.view` and `positions.view`. They support safe search, server-side pagination, ascending order, desktop table presentation, and mobile cards. Create, edit, delete, assignment editing, hierarchy editing, and Automation features are intentionally deferred.
 

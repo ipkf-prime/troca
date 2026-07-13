@@ -85,6 +85,7 @@ ob_start();
                         <th>نقش‌های فعال</th>
                         <th>واحد اصلی</th>
                         <th>تاریخ ایجاد</th>
+                        <th>جزئیات</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -92,10 +93,10 @@ ob_start();
                         <tr>
                             <td><?= admin_h(\App\Support\AdminFormat::digits($user['id'])) ?></td>
                             <td>
-                                <span class="admin-users-identity">
+                                <a class="admin-users-identity admin-users-identity--link" href="<?= admin_h($user['detail_url']) ?>">
                                     <?= \App\Support\AdminIcon::html('user') ?>
                                     <strong><?= admin_h($user['name']) ?></strong>
-                                </span>
+                                </a>
                             </td>
                             <td dir="ltr"><?= admin_h($user['username']) ?></td>
                             <td dir="ltr"><?= admin_h($user['mobile']) ?></td>
@@ -121,6 +122,7 @@ ob_start();
                             </td>
                             <td><?= admin_h($user['primary_org_unit']) ?></td>
                             <td dir="ltr"><?= admin_h(\App\Support\AdminFormat::digits($user['created_at'])) ?></td>
+                            <td><a class="admin-button admin-button--soft admin-button--compact" href="<?= admin_h($user['detail_url']) ?>">مشاهده</a></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -158,6 +160,7 @@ ob_start();
                             <dd dir="ltr"><?= admin_h(\App\Support\AdminFormat::digits($user['created_at'])) ?></dd>
                         </div>
                     </dl>
+                    <a class="admin-button admin-button--soft" href="<?= admin_h($user['detail_url']) ?>">مشاهده جزئیات</a>
                 </article>
             <?php endforeach; ?>
         </div>

@@ -36,6 +36,14 @@
 - `/admin/users` renders as a table on desktop and cards on mobile.
 - `/admin/users` does not expose password hashes, MFA secrets, recovery codes, login tokens, sessions, CSRF tokens, trusted device secrets, or internal hashes.
 - `/admin/users` does not include create, edit, delete, password reset, role assignment editing, or organization assignment editing actions.
+- `/admin/users` links each visible user to `/admin/users/{id}`.
+- `/admin/users/{id}` opens a read-only user detail page for roles with `users.view`.
+- `/admin/users/{id}` shows safe identity, account, MFA/security, role assignment, and organization assignment summaries.
+- `/admin/users/{id}` renders human-facing dates as Jalali dates.
+- `/admin/users/{id}` returns a clean Persian 404 for invalid, missing, or unavailable users.
+- `/admin/users/{id}` returns the standard Persian 403 for an authenticated active role without `users.view`.
+- `/admin/users/{id}` does not include create, edit, delete, password reset, role assignment editing, organization assignment editing, or Automation actions.
+- `/admin/users/{id}` does not select or expose password hashes, MFA secrets, recovery codes, login tokens, sessions, CSRF tokens, trusted device secrets, provider secrets, or internal hashes.
 - `/admin/org-units` opens a read-only organization units list for roles with `org_units.view`.
 - `/admin/org-units` searches title, code, type, and parent title.
 - `/admin/org-units` paginates server-side and preserves `q`.
@@ -67,6 +75,11 @@
 - `/_diagnostics` includes `admin_users_search_available=true`.
 - `/_diagnostics` includes `admin_users_pagination_available=true`.
 - `/_diagnostics` includes `admin_users_sensitive_fields_protected=true`.
+- `/_diagnostics` includes `admin_user_detail_available=true`.
+- `/_diagnostics` includes `admin_user_detail_roles_available=true`.
+- `/_diagnostics` includes `admin_user_detail_org_assignments_available=true`.
+- `/_diagnostics` includes `admin_user_detail_security_summary_available=true`.
+- `/_diagnostics` includes `admin_user_detail_sensitive_fields_protected=true`.
 - `/_diagnostics` includes `admin_positions_list_available=true`.
 - `/_diagnostics` includes `admin_positions_search_available=true`.
 - `/_diagnostics` includes `admin_positions_pagination_available=true`.

@@ -214,6 +214,10 @@ class AdminPanelService extends BaseService
         foreach ($this->permittedActions($userId, $module) as $action) {
             if (($action['url'] ?? '') !== '') {
                 $activePaths[] = (string) $action['url'];
+
+                if (($action['url'] ?? '') === '/admin/users') {
+                    $activePaths[] = '/admin/users/*';
+                }
             }
         }
 

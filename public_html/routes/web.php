@@ -377,6 +377,11 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'admin_users_search_available' => class_exists(\App\Services\AdminUserService::class),
         'admin_users_pagination_available' => class_exists(\App\Services\AdminUserService::class),
         'admin_users_sensitive_fields_protected' => true,
+        'admin_user_detail_available' => true,
+        'admin_user_detail_roles_available' => true,
+        'admin_user_detail_org_assignments_available' => true,
+        'admin_user_detail_security_summary_available' => true,
+        'admin_user_detail_sensitive_fields_protected' => true,
         'admin_org_units_list_available' => class_exists(\App\Services\AdminOrgUnitService::class)
             && class_exists(\App\Repositories\AdminOrgUnitRepository::class),
         'admin_org_units_search_available' => class_exists(\App\Services\AdminOrgUnitService::class),
@@ -1013,6 +1018,40 @@ $router->get('/admin/users', function ($request, $response) use ($adminRender, $
         'title' => 'کاربران',
         'context' => $context,
         'list' => $list,
+    ]);
+});
+
+$router->get('/admin/users/{id}', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/users/{id}');
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $id = filter_var($request->route('id'), FILTER_VALIDATE_INT, [
+        'options' => ['min_range' => 1],
+    ]);
+
+    if ($id === false) {
+        return $adminRender($response, 'user-not-found', [
+            'title' => 'کاربر پیدا نشد',
+            'context' => $context,
+        ], 404);
+    }
+
+    $detail = (new \App\Services\AdminUserService())->detail((int) $id);
+
+    if ($detail === null) {
+        return $adminRender($response, 'user-not-found', [
+            'title' => 'کاربر پیدا نشد',
+            'context' => $context,
+        ], 404);
+    }
+
+    return $adminRender($response, 'user-detail', [
+        'title' => 'جزئیات کاربر',
+        'context' => $context,
+        'detail' => $detail,
     ]);
 });
 $router->get('/admin/org-units', function ($request, $response) use ($adminRender, $adminGuard) {

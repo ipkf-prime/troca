@@ -81,6 +81,26 @@ The page never exposes password hashes, MFA secrets, recovery codes, login token
 
 Create, edit, delete, password reset, role assignment editing, and organizational assignment editing remain deferred.
 
+## User detail
+
+`GET /admin/users/{id}` is a read-only admin user detail page protected by `users.view`.
+
+The page includes:
+
+- Persian RTL module-style header and breadcrumb back to `/admin/modules/users`
+- safe identity fields from `users` and `persons`
+- account status, username, email, mobile, verification status, and Jalali dates
+- MFA/security summary using counts only
+- active role assignments without exposing internal assignment ids or scope ids
+- organization assignments with unit and position summaries
+- responsive desktop tables and mobile-safe overflow containers
+
+Guests are redirected to `/admin/login`. Authenticated users without `users.view` receive the standard Persian 403 page. Missing, invalid, or unavailable users return a clean Persian 404 page without SQL errors or stack traces.
+
+The detail page does not select or render password hashes, MFA secrets, recovery codes, login tokens, session values, CSRF tokens, trusted device secrets, provider secrets, or internal hashes.
+
+Create, edit, delete, password reset, role assignment editing, organizational assignment editing, and Automation actions remain deferred.
+
 ## Organization units list
 
 `GET /admin/org-units` is a read-only organization units list protected by `org_units.view`.

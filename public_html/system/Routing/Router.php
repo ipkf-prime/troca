@@ -68,6 +68,10 @@ class Router
         $route = $this->routes[$method][$uri] ?? null;
 
         if ($route === null) {
+            $route = $this->matchParameterizedRoute($method, $uri, $request);
+        }
+
+        if ($route === null) {
             return $response->status(404)->send("404 - Route not found: {$uri}");
         }
 
@@ -82,5 +86,51 @@ class Router
 
                 return $result instanceof Response ? $result : $response;
             });
+    }
+
+    protected function matchParameterizedRoute(string $method, string $uri, Request $request): ?array
+    {
+        foreach ($this->routes[$method] ?? [] as $routeUri => $route) {
+            if (!str_contains($routeUri, '{')) {
+                continue;
+            }
+
+            $pattern = '#^' . $this->parameterizedPattern($routeUri) . '$#';
+
+            if (preg_match($pattern, $uri, $matches) !== 1) {
+                continue;
+            }
+
+            $params = [];
+
+            foreach ($matches as $key => $value) {
+                if (is_string($key)) {
+                    $params[$key] = urldecode((string) $value);
+                }
+            }
+
+            $request->setRouteParams($params);
+
+            return $route;
+        }
+
+        return null;
+    }
+
+    protected function parameterizedPattern(string $routeUri): string
+    {
+        $parts = preg_split('/(\{[A-Za-z_][A-Za-z0-9_]*\})/', $routeUri, -1, PREG_SPLIT_DELIM_CAPTURE);
+        $pattern = '';
+
+        foreach ($parts ?: [] as $part) {
+            if (preg_match('/^\{([A-Za-z_][A-Za-z0-9_]*)\}$/', $part, $matches) === 1) {
+                $pattern .= '(?P<' . $matches[1] . '>[^/]+)';
+                continue;
+            }
+
+            $pattern .= preg_quote($part, '#');
+        }
+
+        return $pattern;
     }
 }

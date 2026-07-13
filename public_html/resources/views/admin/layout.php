@@ -30,6 +30,10 @@ if (!function_exists('admin_nav_is_active')) {
             if ($currentPath === (string) $path) {
                 return true;
             }
+
+            if (str_ends_with((string) $path, '/*') && str_starts_with($currentPath, rtrim((string) $path, '/*') . '/')) {
+                return true;
+            }
         }
 
         return false;

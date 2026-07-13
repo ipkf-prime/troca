@@ -26,6 +26,7 @@ class AdminNavigationRbacService extends BaseService
             '/admin/my-theme' => 'account.theme.manage',
             '/admin/access' => 'access.manage',
             '/admin/users' => 'users.view',
+            '/admin/users/{id}' => 'users.view',
             '/admin/org-units' => 'org_units.view',
             '/admin/positions' => 'positions.view',
             '/admin/theme' => 'admin.theme.manage',
@@ -42,7 +43,15 @@ class AdminNavigationRbacService extends BaseService
     {
         $path = rtrim($path, '/') ?: '/';
 
-        return $this->routePermissions()[$path] ?? null;
+        if (isset($this->routePermissions()[$path])) {
+            return $this->routePermissions()[$path];
+        }
+
+        if (preg_match('#^/admin/users/[1-9][0-9]*$#', $path) === 1) {
+            return $this->routePermissions()['/admin/users/{id}'] ?? null;
+        }
+
+        return null;
     }
 
     public function canAccessPath(?int $userId, string $path): bool
