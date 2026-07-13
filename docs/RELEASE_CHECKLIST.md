@@ -1,5 +1,24 @@
 # IPKF Release Checklist
 
+## v0.4.6 Dynamic organization core
+
+- [ ] Protected migration reports `dynamic_organization_core` complete.
+- [ ] Existing `organizations` rows and legacy fields remain unchanged.
+- [ ] `organization_classification_schemes` exists.
+- [ ] `organization_classification_terms` exists.
+- [ ] `organization_classifications` exists.
+- [ ] `organization_relation_types` exists.
+- [ ] `organization_relations` exists.
+- [ ] `organization_unit_types` exists.
+- [ ] `org_units.organization_id` and `org_units.unit_type_id` exist and remain nullable.
+- [ ] Existing unscoped `org_units` rows remain valid.
+- [ ] `organization_positions` exists and reuses `positions`.
+- [ ] `organization_appointments` exists and references `persons`, not `users`.
+- [ ] `/_diagnostics` reports all dynamic organization schema flags as `true` after migration.
+- [ ] No business classification terms are seeded.
+- [ ] No UI, CRUD, Automation, governance, ownership, signatory, registration, contact, or address feature is added.
+- [ ] Existing login, MFA, admin navigation, user list, organization-unit list, and positions list still work.
+
 ## v0.4.6 Admin Users Organization Schema Checks
 
 - `/health` returns `0.4.6-admin-users-organization-dev`.

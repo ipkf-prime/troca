@@ -98,6 +98,17 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $personContactsTableExists = \IPKF\Database\Database::tableExists('person_contacts');
     $addressTypesTableExists = \IPKF\Database\Database::tableExists('address_types');
     $personAddressesTableExists = \IPKF\Database\Database::tableExists('person_addresses');
+    $organizationClassificationSchemesTableExists = \IPKF\Database\Database::tableExists('organization_classification_schemes');
+    $organizationClassificationTermsTableExists = \IPKF\Database\Database::tableExists('organization_classification_terms');
+    $organizationClassificationsTableExists = \IPKF\Database\Database::tableExists('organization_classifications');
+    $organizationRelationTypesTableExists = \IPKF\Database\Database::tableExists('organization_relation_types');
+    $organizationRelationsTableExists = \IPKF\Database\Database::tableExists('organization_relations');
+    $organizationUnitTypesTableExists = \IPKF\Database\Database::tableExists('organization_unit_types');
+    $organizationPositionsTableExists = \IPKF\Database\Database::tableExists('organization_positions');
+    $organizationAppointmentsTableExists = \IPKF\Database\Database::tableExists('organization_appointments');
+    $orgUnitsOrganizationScopeAvailable = $orgUnitsTableExists
+        && \IPKF\Database\Database::columnExists('org_units', 'organization_id')
+        && \IPKF\Database\Database::columnExists('org_units', 'unit_type_id');
 
     $mfaSchemaAvailable = \IPKF\Database\Database::tableExists('user_mfa_methods')
         && \IPKF\Database\Database::tableExists('mfa_challenges')
@@ -419,6 +430,24 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
             && $personContactsTableExists
             && $addressTypesTableExists
             && $personAddressesTableExists,
+        'dynamic_organization_core_available' => $organizationClassificationSchemesTableExists
+            && $organizationClassificationTermsTableExists
+            && $organizationClassificationsTableExists
+            && $organizationRelationTypesTableExists
+            && $organizationRelationsTableExists
+            && $organizationUnitTypesTableExists
+            && $orgUnitsOrganizationScopeAvailable
+            && $organizationPositionsTableExists
+            && $organizationAppointmentsTableExists,
+        'organization_classification_schema_available' => $organizationClassificationSchemesTableExists
+            && $organizationClassificationTermsTableExists
+            && $organizationClassificationsTableExists,
+        'organization_relations_schema_available' => $organizationRelationTypesTableExists
+            && $organizationRelationsTableExists,
+        'organization_unit_types_schema_available' => $organizationUnitTypesTableExists,
+        'org_units_organization_scope_available' => $orgUnitsOrganizationScopeAvailable,
+        'organization_positions_schema_available' => $organizationPositionsTableExists,
+        'organization_appointments_schema_available' => $organizationAppointmentsTableExists,
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),

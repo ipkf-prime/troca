@@ -187,7 +187,16 @@ Extended person data foundation:
 - Sensitive person values are excluded from diagnostics and require masking, permissions, and auditing in future UI work.
 - Forms and CRUD remain deferred.
 
-Next phase: Dynamic organization foundation.
+Dynamic organization foundation now includes:
+
+- Configurable organization classification schemes, terms, and assignments.
+- Configurable organization relation types and dated organization relationships.
+- Data-driven organization unit types and optional organization scope for `org_units`.
+- Concrete `organization_positions` built from the reusable `positions` catalog.
+- Person-based `organization_appointments` that do not require a user account.
+- Additive compatibility with existing `organizations` data and legacy hierarchy/type fields.
+
+This remains schema-only. Organization UI/CRUD, registration/contact/address details, governance, ownership, signatory authority, and Automation are deferred.
 
 Future automation readiness:
 

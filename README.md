@@ -107,7 +107,7 @@ The v0.4.4 stable baseline adds the first admin panel shell, simplified built-in
 
 The v0.4.5 stable baseline adds permission-based admin navigation and route guards. Sidebar visibility, account dropdown visibility, and direct URL access now share one route permission map and respect the current active role assignment.
 
-The v0.4.6 development baseline adds the schema foundation for admin user management, organizational units, positions, and user organizational assignments before the Automation module begins.
+The v0.4.6 development baseline adds admin user and organization foundations before Automation. It includes organization-neutral dynamic classifications, configurable organization relationships, organization-specific units, concrete organizational positions, and person-based appointments without adding CRUD or business workflows.
 
 Deferred after v0.4.5:
 
@@ -118,6 +118,8 @@ Deferred after v0.4.5:
 - organization, geography, and fiscal-year scoped UI enforcement beyond the existing foundation
 
 Current v0.4.6 work prepares the data model that Automation needs before adding correspondence, cartable, referrals, attachments, or workflow history.
+
+Dynamic organization architecture is documented in `docs/DYNAMIC_ORGANIZATION_CORE.md`. Existing `organizations` rows and legacy compatibility fields remain intact; no organization type or relationship is hardcoded in PHP.
 
 Planned next work includes automation schema, correspondence and incoming/outgoing letter foundation, inbox/cartable, routing/referrals, attachments, and workflow history.
 

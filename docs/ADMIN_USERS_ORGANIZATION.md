@@ -8,6 +8,8 @@ This phase adds the schema foundation required before Automation. It prepares in
 
 This is schema foundation only. It does not add Automation, letter/correspondence tables, inbox/cartable tables, routing/referral tables, attachments, workflow history, CRM, ERP, Bot modules, or UI.
 
+The milestone also adds the canonical dynamic organization core described in `docs/DYNAMIC_ORGANIZATION_CORE.md`. It keeps the existing `organizations` table, separates reusable position titles from concrete organization posts, and assigns concrete posts to `persons` rather than requiring a `users` login account.
+
 ## Admin permissions
 
 The users organization foundation seeds these permissions idempotently:
@@ -214,6 +216,12 @@ The table is designed for future personal and unit cartables, routing work to a 
 - Reference IDs are never used as the user-facing fallback. Admin pages display Persian semantic titles when lookup/reference data exists.
 - Technical codes may appear only as secondary administrative data, not as the primary label.
 - No automation features are implemented yet.
+- Organization classifications, relation types, and unit types are configurable data rather than PHP enums.
+- Existing `organizations` rows and cooperative-era compatibility fields are preserved without rewrite.
+- `org_units.organization_id` and `org_units.unit_type_id` are optional; no organization is guessed for existing rows.
+- `positions` remains the reusable title catalog; `organization_positions` represents concrete posts.
+- `organization_appointments` references `persons`, so appointments do not require login accounts.
+- Governance, ownership, signatory authority, organization registration/contact/address data, and full organization CRUD remain deferred.
 
 ## Extended person data foundation
 

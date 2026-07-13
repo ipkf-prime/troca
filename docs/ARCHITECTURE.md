@@ -86,3 +86,17 @@ Application services implement service-level business workflows. Application rep
 The framework core lives under `public_html/system/` and should remain reusable. Application-specific behavior lives under `public_html/app/`, `public_html/routes/`, and `public_html/resources/`.
 
 Do not recreate legacy `app/Core`. Do not duplicate core classes under application directories. Do not add Bot, CRM, ERP, Automation, or Marketplace code unless explicitly requested.
+
+## Dynamic Organization Boundary
+
+The existing `organizations` table is the canonical institutional entity. Internal structure, reusable titles, concrete posts, natural persons, and authentication accounts remain separate concerns:
+
+- `organizations`: legal, administrative, commercial, or institutional entities.
+- `org_units`: optional internal units scoped to an organization.
+- `positions`: reusable job-title catalog.
+- `organization_positions`: concrete posts inside an organization or unit.
+- `organization_appointments`: time-bounded person occupancy of concrete posts.
+- `persons`: natural persons, including people without login accounts.
+- `users`: authentication accounts only.
+
+Classification schemes, terms, relation types, and unit types are stored as configurable data. Legacy organization hierarchy/type fields remain compatibility fields and are not rewritten. Future authority, delegation, and signatory rules must refer to concrete appointments and persons rather than only title strings.
