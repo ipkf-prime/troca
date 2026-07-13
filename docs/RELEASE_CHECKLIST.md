@@ -41,7 +41,8 @@
 - `/admin/users/{id}` shows safe identity, account, MFA/security, role assignment, and organization assignment summaries.
 - `/admin/users/{id}` renders human-facing dates as Jalali dates.
 - `/admin/users/{id}` displays username with a visible `نام کاربری` label and never as an ambiguous standalone summary value.
-- `/admin/users/{id}` displays person type, province, county, city, organization scope, roles, organization units, positions, and statuses as Persian semantic labels.
+- `/admin/users/{id}` displays province, county, and city once in the summary card as Persian semantic labels.
+- `/admin/users/{id}` displays person type, organization scope, roles, organization units, positions, and statuses as Persian semantic labels.
 - `/admin/users/{id}` displays county only from a genuine relationship; city is never reused as county.
 - `/admin/users/{id}` displays missing optional lookup values as `—`.
 - `/admin/users/{id}` displays broken lookup references as `نامشخص`.

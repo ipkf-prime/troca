@@ -74,9 +74,6 @@ ob_start();
             <div><span>کد ملی</span><strong dir="ltr"><?= admin_h($user['national_code'] ?? '—') ?></strong></div>
             <div><span>نام پدر</span><strong><?= admin_h($user['father_name'] ?? '—') ?></strong></div>
             <div><span>تاریخ تولد</span><strong><?= admin_h($user['birth_date'] ?? '—') ?></strong></div>
-            <div><span>استان</span><strong><?= admin_h($user['province'] ?? '—') ?></strong></div>
-            <div><span>شهرستان</span><strong><?= admin_h($user['county'] ?? '—') ?></strong></div>
-            <div><span>شهر</span><strong><?= admin_h($user['city'] ?? '—') ?></strong></div>
             <div><span>تاریخ ایجاد</span><strong><?= admin_h($user['created_at'] ?? '—') ?></strong></div>
         </div>
     </article>

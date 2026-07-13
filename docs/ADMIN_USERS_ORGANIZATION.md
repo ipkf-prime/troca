@@ -91,7 +91,7 @@ The page includes:
 - safe identity fields from `users` and `persons`
 - account status, username, email, mobile, verification status, and Jalali dates
 - labeled username in the summary card, always displayed as a username and never as an ambiguous standalone value
-- semantic province, county, and city labels in the summary when real lookup relationships exist
+- semantic province, county, and city labels in the summary when real lookup relationships exist, without repeating them in the identity field list
 - MFA/security summary using counts only
 - active role assignments without exposing internal assignment ids or scope ids
 - organization assignments with unit and position summaries
