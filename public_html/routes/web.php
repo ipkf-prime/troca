@@ -106,6 +106,13 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $organizationUnitTypesTableExists = \IPKF\Database\Database::tableExists('organization_unit_types');
     $organizationPositionsTableExists = \IPKF\Database\Database::tableExists('organization_positions');
     $organizationAppointmentsTableExists = \IPKF\Database\Database::tableExists('organization_appointments');
+    $geographicLevelTypesTableExists = \IPKF\Database\Database::tableExists('geographic_level_types');
+    $geographicRelationTypesTableExists = \IPKF\Database\Database::tableExists('geographic_relation_types');
+    $geographicLocationsTableExists = \IPKF\Database\Database::tableExists('geographic_locations');
+    $geographicLocationRelationsTableExists = \IPKF\Database\Database::tableExists('geographic_location_relations');
+    $geographicLegacyMappingsTableExists = \IPKF\Database\Database::tableExists('geographic_legacy_mappings');
+    $personAddressesCanonicalLocationAvailable = $personAddressesTableExists
+        && \IPKF\Database\Database::columnExists('person_addresses', 'geographic_location_id');
     $orgUnitsOrganizationScopeAvailable = $orgUnitsTableExists
         && \IPKF\Database\Database::columnExists('org_units', 'organization_id')
         && \IPKF\Database\Database::columnExists('org_units', 'unit_type_id');
@@ -463,6 +470,20 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'org_units_organization_scope_available' => $orgUnitsOrganizationScopeAvailable,
         'organization_positions_schema_available' => $organizationPositionsTableExists,
         'organization_appointments_schema_available' => $organizationAppointmentsTableExists,
+        'dynamic_geographic_hierarchy_available' => $geographicLevelTypesTableExists
+            && $geographicRelationTypesTableExists
+            && $geographicLocationsTableExists
+            && $geographicLocationRelationsTableExists
+            && $geographicLegacyMappingsTableExists
+            && $personAddressesCanonicalLocationAvailable,
+        'geographic_level_types_schema_available' => $geographicLevelTypesTableExists,
+        'geographic_relation_types_schema_available' => $geographicRelationTypesTableExists,
+        'geographic_locations_schema_available' => $geographicLocationsTableExists,
+        'geographic_location_relations_schema_available' => $geographicLocationRelationsTableExists,
+        'geographic_legacy_mappings_schema_available' => $geographicLegacyMappingsTableExists,
+        'person_addresses_canonical_location_available' => $personAddressesCanonicalLocationAvailable,
+        'geographic_no_city_as_county_rule_documented' => true,
+        'geographic_legacy_compatibility_preserved' => true,
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),

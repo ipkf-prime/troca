@@ -45,9 +45,11 @@ Existing authentication email/mobile values are not moved. Any future synchroniz
 
 `person_addresses` supports multiple addresses per person. It stores address type, existing province/city references, district, address line, postal code, primary state, and status. Telephone values remain in `person_contacts`.
 
-Province and city relations reuse the existing `provinces` and `cities` lookups when those tables are present and structurally compatible. No duplicate geographic lookup is introduced.
+Province and city relations continue to reuse the existing `provinces` and `cities` lookups when those tables are present and structurally compatible. The dynamic geography foundation adds an independent canonical reference through nullable `person_addresses.geographic_location_id`; it does not replace, rewrite, or infer the legacy values.
 
-County/shahrestan display requires a genuine county relationship and lookup table. Until the dynamic geographic foundation defines that relationship, county values must display as `—`. City must never be copied or inferred as a county fallback.
+County/shahrestan display requires a genuine canonical county relationship. Until an address has a reviewed canonical location and hierarchy, county values must display as `—`. City must never be copied or inferred as a county fallback.
+
+The canonical location identifies the most specific known place. A future resolver derives only ancestors that actually exist through active primary geographic relations. No address row is backfilled automatically from legacy province or city titles.
 
 ## Validation readiness
 
@@ -72,4 +74,4 @@ Read-only identity display hides optional empty fields to avoid repeated dash-on
 
 ## Deferred work
 
-Create/edit forms, permissions for sensitive profile data, masking, audit history, verification workflows, and synchronization remain deferred. The next recorded phase is Dynamic organization foundation.
+Create/edit forms, permissions for sensitive profile data, masking, audit history, verification workflows, and synchronization remain deferred. Dynamic geography UI, reviewed legacy mappings, and hierarchy resolution also remain deferred.

@@ -528,3 +528,23 @@ Version: `0.2.0-foundation`
 - Diagnostics do not expose person values, record counts, column details, or migration SQL.
 - Sensitive-data masking, permissions, audit, and logging requirements are documented.
 - `git diff --check` passes.
+
+## v0.4.6 Dynamic Geography Foundation Checks
+
+- Protected migration creates `geographic_level_types`.
+- Protected migration creates data-driven `geographic_relation_types` without seeded values.
+- Protected migration creates `geographic_locations` without globally unique titles.
+- Protected migration creates dated `geographic_location_relations`.
+- Protected migration creates explicit `geographic_legacy_mappings`.
+- `person_addresses.geographic_location_id` is nullable and indexed.
+- Existing `provinces`, `cities`, province/city columns, rows, indexes, and foreign keys remain unchanged.
+- Existing person, address, bot registration, Auth, MFA, RBAC, and organization behavior remains unchanged.
+- No country, province, county, city, or commercial location data is created or seeded.
+- No title-only mapping or city-as-county substitution occurs.
+- Historical locations, validity periods, and dated parent changes are supported.
+- Multi-country and deployment-defined level types are supported.
+- Future organization addresses can reuse canonical locations.
+- Diagnostics expose only required safe schema and invariant booleans.
+- Diagnostics expose no location rows, hierarchy contents, addresses, postal codes, coordinates, IDs, or record counts.
+- No geography UI, CRUD, seeder, external API, Automation, or access-scope behavior is added.
+- `git diff --check` passes.

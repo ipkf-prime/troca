@@ -249,3 +249,9 @@ This milestone also prepares optional person profile, contact, and address data 
 - Existing people and users remain valid without any new related row.
 
 Sensitive values require future masking, separate permissions, and audit controls. This phase adds no profile forms, CRUD routes, synchronization, or UI output. See `docs/PERSON_DATA_MODEL.md` and `docs/PRIVACY_SECURITY.md`.
+
+## Dynamic geography compatibility
+
+The canonical geography foundation adds configurable level types, canonical locations, dated relations, and explicit legacy mappings. `person_addresses.geographic_location_id` is nullable and additive; existing province/city fields and records remain unchanged.
+
+No geographic records or mappings are seeded in this task. Admin user and organization pages continue using their existing behavior. Future user and organization address screens must show semantic titles, never raw location IDs, and must not use a city as a county substitute. See `docs/DYNAMIC_GEOGRAPHY.md`.

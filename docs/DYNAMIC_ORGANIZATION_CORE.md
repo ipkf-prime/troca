@@ -88,3 +88,9 @@ The migration is additive and idempotent. Existing organizations, units, positio
 - Authorized signatories and delegated legal authority
 - Appointment overlap and hierarchy-cycle validation services
 - Automation, correspondence, cartable, referral, and workflow tables
+
+## Future organization addresses
+
+Future organization address records must reuse the canonical dynamic geography model rather than introduce organization-specific province/city hierarchy tables. An organization address should reference the most specific reviewed `geographic_locations` row through `geographic_location_id`, preserve legacy compatibility only when required, and derive available semantic ancestors from active dated relations.
+
+Only genuine hierarchy levels are displayed. City is never substituted for county, and no parent is inferred from a matching title. Address values and postal codes remain sensitive organization data and are excluded from diagnostics.

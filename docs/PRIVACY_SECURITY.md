@@ -29,3 +29,9 @@ No custom cryptography is introduced by the person data foundation. Field encryp
 ## Deferred controls
 
 Fine-grained permissions, masking policy, audit events, retention/deletion policy, export controls, and breach-response procedures must be defined before person profile CRUD is released.
+
+## Geographic privacy
+
+Canonical geographic reference rows and administrative hierarchy definitions are generally non-sensitive. Linking a person or organization to a specific physical address, postal code, or precise coordinate creates sensitive contextual data.
+
+Diagnostics must expose geography schema booleans only. They must not expose location rows, hierarchy contents, user or organization addresses, postal codes, coordinates, IDs, or record counts. Application logs must not contain address values. Future address access requires permissions, masking, and auditing separate from general geographic-reference viewing.

@@ -208,6 +208,19 @@ Admin entity detail workspace foundation now includes:
 
 The workspace has been polished for compact desktop/mobile display: row numbers replace raw user IDs in the users list, mobile field lists are compact, optional empty identity fields are hidden in read-only mode, technical schema names are hidden from appointments UI, and dashboard incomplete module rows are centered.
 
+Dynamic geographic hierarchy foundation now includes:
+
+- Configurable `geographic_level_types` for multi-country and deployment-defined levels.
+- Data-driven `geographic_relation_types` and dated `geographic_location_relations`.
+- Canonical `geographic_locations` without title-only identity assumptions.
+- Explicit `geographic_legacy_mappings` with no automatic title matching.
+- Optional `person_addresses.geographic_location_id` while legacy province/city compatibility remains intact.
+- Historical status and validity support for renamed locations, boundary changes, and parent changes.
+- A documented resolver contract that never substitutes city for county.
+- Future reuse by organization addresses, reports, access scopes, and routing without implementing those features yet.
+
+This remains schema-only. No geographic data, mapping, seeder, UI, external integration, organization address, Auth/RBAC change, or Automation behavior is added.
+
 Future automation readiness:
 
 - دبیرخانه
