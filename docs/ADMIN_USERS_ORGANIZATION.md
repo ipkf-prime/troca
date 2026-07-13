@@ -79,7 +79,26 @@ The page never exposes password hashes, MFA secrets, recovery codes, login token
 
 Create, edit, delete, password reset, role assignment editing, and organizational assignment editing remain deferred.
 
-Full CRUD pages remain deferred. Organization and position links still open guarded placeholders only.
+## Organization units list
+
+`GET /admin/org-units` is a read-only organization units list protected by `org_units.view`.
+
+The page includes:
+
+- Persian RTL module-style header and breadcrumb back to `/admin/modules/organization`
+- safe fields from `org_units`
+- parent unit title through a single SQL join
+- hierarchy-aware indentation from sanitized `depth`
+- server-side search with `q` over title, code, type, and parent title
+- server-side pagination with `page`
+- responsive desktop table and mobile cards
+- ascending table order by `sort_order` and then `id`
+
+The page does not expose internal `path` values and hides soft-deleted rows.
+
+Create, edit, delete, drag/drop hierarchy management, user assignment editing, and automation workflows remain deferred.
+
+Full CRUD pages remain deferred. Position links still open guarded placeholders only.
 
 ## Tables
 
@@ -143,4 +162,5 @@ The table is designed for future personal and unit cartables, routing work to a 
 - Migrations are idempotent.
 - Admin pages are placeholders only.
 - Full CRUD remains deferred.
+- Users and organization read-only lists sort from small to large.
 - No automation features are implemented yet.

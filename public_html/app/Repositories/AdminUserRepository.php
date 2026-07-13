@@ -70,7 +70,7 @@ class AdminUserRepository extends BaseRepository
                 persons.email,
                 persons.full_name,
                 primary_org.title
-            ORDER BY users.id DESC
+            ORDER BY users.id ASC
             LIMIT :limit OFFSET :offset
         ");
 

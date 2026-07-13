@@ -370,3 +370,31 @@ Version: `0.2.0-foundation`
 - Existing JSON endpoints continue to work.
 - No password hash, session ID, MFA secret, recovery code, provider secret, or business data is exposed.
 - `/_diagnostics` may report `admin_panel_shell_available=true`, `admin_theme_available=true`, `admin_theme_active_preset`, `admin_assets_available=true`, `admin_typography_available=true`, and `admin_theme_persian_ok=true`.
+
+## v0.4.6 Admin Users Organization Checks
+
+- `/health` returns version `0.4.6-admin-users-organization-dev`.
+- Migrations create `org_units`, `positions`, and `user_org_assignments`.
+- No Automation, correspondence, cartable, referral, or workflow tables are created.
+- Users organization permissions are seeded idempotently.
+- `/admin/users` requires `users.view`.
+- `/admin/users` shows a read-only professional users list.
+- `/admin/users` supports server-side search with `q`.
+- `/admin/users` supports server-side pagination with `page`.
+- `/admin/users` sorts records ascending from small to large by user id.
+- `/admin/org-units` requires `org_units.view`.
+- `/admin/org-units` shows a read-only professional organization units list.
+- `/admin/org-units` supports server-side search with `q`.
+- `/admin/org-units` supports server-side pagination with `page`.
+- `/admin/org-units` sorts records ascending from small to large by `sort_order` and `id`.
+- `/admin/org-units` resolves parent titles with a join and does not expose internal paths.
+- `/admin/org-units` displays hierarchy with sanitized/capped depth indentation.
+- `/admin/org-units` renders responsive desktop table and mobile cards without horizontal page overflow.
+- Empty state says `هنوز واحد سازمانی ثبت نشده است.`
+- No-result state says `واحد سازمانی مطابق جستجو پیدا نشد.`
+- Database errors show a safe Persian message without SQL, stack traces, paths, or secrets.
+- `/_diagnostics` includes `admin_org_units_list_available=true`.
+- `/_diagnostics` includes `admin_org_units_search_available=true`.
+- `/_diagnostics` includes `admin_org_units_pagination_available=true`.
+- `/_diagnostics` includes `admin_org_units_hierarchy_display_available=true`.
+- Existing login, MFA, dashboard, RBAC navigation, active access switching, and theme routes still work.

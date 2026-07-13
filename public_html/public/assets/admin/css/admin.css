@@ -1458,6 +1458,33 @@ button[type="submit"]:hover,
     background: var(--admin-surface-muted);
 }
 
+.admin-org-units-table {
+    min-width: 920px;
+}
+
+.admin-org-unit-title {
+    align-items: center;
+    display: inline-flex;
+    gap: 8px;
+    min-width: 0;
+    padding-inline-start: var(--org-indent, 0);
+}
+
+.admin-org-unit-title strong {
+    overflow-wrap: anywhere;
+}
+
+.admin-org-unit-title__branch {
+    color: var(--admin-primary-hover);
+    display: inline-flex;
+    flex: 0 0 auto;
+    opacity: .82;
+}
+
+.admin-org-unit-title__branch .admin-icon {
+    font-size: 18px;
+}
+
 .admin-users-identity,
 .admin-role-stack {
     align-items: center;

@@ -371,6 +371,11 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'admin_users_search_available' => class_exists(\App\Services\AdminUserService::class),
         'admin_users_pagination_available' => class_exists(\App\Services\AdminUserService::class),
         'admin_users_sensitive_fields_protected' => true,
+        'admin_org_units_list_available' => class_exists(\App\Services\AdminOrgUnitService::class)
+            && class_exists(\App\Repositories\AdminOrgUnitRepository::class),
+        'admin_org_units_search_available' => class_exists(\App\Services\AdminOrgUnitService::class),
+        'admin_org_units_pagination_available' => class_exists(\App\Services\AdminOrgUnitService::class),
+        'admin_org_units_hierarchy_display_available' => true,
         'admin_users_organization_foundation_available' => $orgUnitsTableExists
             && $positionsTableExists
             && $userOrgAssignmentsTableExists,
@@ -973,7 +978,24 @@ $router->get('/admin/users', function ($request, $response) use ($adminRender, $
         'list' => $list,
     ]);
 });
-$router->get('/admin/org-units', $adminPlaceholder('/admin/org-units', 'واحدهای سازمانی', 'این بخش در حال آماده‌سازی است.'));
+$router->get('/admin/org-units', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/org-units');
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $list = (new \App\Services\AdminOrgUnitService())->index([
+        'q' => $request->input('q', ''),
+        'page' => $request->input('page', 1),
+    ]);
+
+    return $adminRender($response, 'org-units', [
+        'title' => 'واحدهای سازمانی',
+        'context' => $context,
+        'list' => $list,
+    ]);
+});
 $router->get('/admin/positions', $adminPlaceholder('/admin/positions', 'سمت‌ها', 'این بخش در حال آماده‌سازی است.'));
 $router->get('/admin/pages', $adminPlaceholder('/admin/pages', 'صفحات داخلی', 'مدیریت صفحات داخلی هنوز فعال نشده است.'));
 $router->get('/admin/reports', $adminPlaceholder('/admin/reports', 'گزارش‌ها', 'گزارش‌های مدیریتی در نسخه‌های بعدی اضافه می‌شود.'));
