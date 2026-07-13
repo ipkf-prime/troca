@@ -9,6 +9,13 @@ class AdminUserRepository extends BaseRepository
 {
     public function findDetail(int $userId): ?array
     {
+        $personTypeJoin = $this->lookupCodeJoin('person_types', 'person_type_lookup', 'persons.person_type');
+        $personTypeTitleSelect = $this->lookupCodeTitleSelect('person_types', 'person_type_lookup', 'person_type_title');
+        $personProvinceJoin = $this->lookupIdJoin('provinces', 'person_provinces', 'persons.province_id');
+        $personProvinceTitleSelect = $this->lookupIdTitleSelect('provinces', 'person_provinces', 'province_title');
+        $personCityJoin = $this->lookupIdJoin('cities', 'person_cities', 'persons.city_id');
+        $personCityTitleSelect = $this->lookupIdTitleSelect('cities', 'person_cities', 'city_title');
+
         $statement = $this->connection()->prepare("
             SELECT
                 users.id,
@@ -26,48 +33,45 @@ class AdminUserRepository extends BaseRepository
                 persons.last_name,
                 persons.full_name,
                 persons.avatar,
+                persons.person_type AS person_type_code,
+                persons.province_id IS NOT NULL AS province_reference_exists,
+                persons.city_id IS NOT NULL AS city_reference_exists,
                 persons.status AS person_status,
+                {$personTypeTitleSelect},
+                {$personProvinceTitleSelect},
+                {$personCityTitleSelect},
                 primary_org.title AS primary_org_unit_title,
-                COUNT(DISTINCT active_roles.id) AS active_role_count,
-                GROUP_CONCAT(DISTINCT active_roles.title ORDER BY active_roles.id ASC SEPARATOR '، ') AS active_role_titles
+                COALESCE(active_role_summary.active_role_count, 0) AS active_role_count,
+                active_role_summary.active_role_titles
             FROM users
             LEFT JOIN persons ON persons.id = users.person_id
-            LEFT JOIN user_role_assignments AS active_assignments
-              ON active_assignments.user_id = users.id
-             AND active_assignments.is_active = 1
-             AND (active_assignments.starts_at IS NULL OR active_assignments.starts_at <= CURRENT_TIMESTAMP)
-             AND (active_assignments.ends_at IS NULL OR active_assignments.ends_at >= CURRENT_TIMESTAMP)
-            LEFT JOIN roles AS active_roles
-              ON active_roles.id = active_assignments.role_id
-             AND active_roles.is_active = 1
+            {$personTypeJoin}
+            {$personProvinceJoin}
+            {$personCityJoin}
+            LEFT JOIN (
+                SELECT
+                    active_assignments.user_id,
+                    COUNT(DISTINCT active_roles.id) AS active_role_count,
+                    GROUP_CONCAT(DISTINCT active_roles.title ORDER BY active_roles.id ASC SEPARATOR '، ') AS active_role_titles
+                FROM user_role_assignments AS active_assignments
+                INNER JOIN roles AS active_roles
+                  ON active_roles.id = active_assignments.role_id
+                 AND active_roles.is_active = 1
+                WHERE active_assignments.is_active = 1
+                  AND (active_assignments.starts_at IS NULL OR active_assignments.starts_at <= CURRENT_TIMESTAMP)
+                  AND (active_assignments.ends_at IS NULL OR active_assignments.ends_at >= CURRENT_TIMESTAMP)
+                GROUP BY active_assignments.user_id
+            ) AS active_role_summary
+              ON active_role_summary.user_id = users.id
             LEFT JOIN user_org_assignments AS primary_user_org
               ON primary_user_org.user_id = users.id
              AND primary_user_org.is_primary = 1
              AND primary_user_org.status = 'active'
             LEFT JOIN org_units AS primary_org
               ON primary_org.id = primary_user_org.org_unit_id
+             AND primary_org.deleted_at IS NULL
             WHERE users.id = ?
               AND users.deleted_at IS NULL
-            GROUP BY
-                users.id,
-                users.person_id,
-                users.username,
-                users.mobile,
-                users.email,
-                users.status,
-                users.email_verified_at,
-                users.mobile_verified_at,
-                users.last_login_at,
-                users.created_at,
-                users.updated_at,
-                persons.mobile,
-                persons.email,
-                persons.first_name,
-                persons.last_name,
-                persons.full_name,
-                persons.avatar,
-                persons.status,
-                primary_org.title
             LIMIT 1
         ");
         $statement->execute([$userId]);
@@ -79,18 +83,44 @@ class AdminUserRepository extends BaseRepository
     public function roleAssignmentsForDetail(int $userId): array
     {
         $priority = Database::columnExists('roles', 'priority') ? 'roles.priority' : '100';
+        $assignmentProvinceJoin = $this->lookupIdJoin('provinces', 'assignment_provinces', 'user_role_assignments.province_id');
+        $assignmentProvinceTitleSelect = $this->lookupIdTitleSelect('provinces', 'assignment_provinces', 'province_title');
+        $assignmentCityJoin = $this->lookupIdJoin('cities', 'assignment_cities', 'user_role_assignments.city_id');
+        $assignmentCityTitleSelect = $this->lookupIdTitleSelect('cities', 'assignment_cities', 'city_title');
+        $organizationTypeJoin = $this->lookupIdJoin('org_types', 'assignment_org_types', 'assignment_organizations.org_type_id');
+        $organizationTypeTitleSelect = $this->lookupIdTitleSelect('org_types', 'assignment_org_types', 'organization_type_title');
+        $organizationLevelJoin = $this->lookupIdJoin('org_levels', 'assignment_org_levels', 'assignment_organizations.org_level_id');
+        $organizationLevelTitleSelect = $this->lookupIdTitleSelect('org_levels', 'assignment_org_levels', 'organization_level_title');
+
         $statement = $this->connection()->prepare("
             SELECT
                 roles.title AS role_title,
                 roles.code AS role_code,
                 {$priority} AS priority,
                 user_role_assignments.scope_type,
+                user_role_assignments.organization_id IS NOT NULL AS organization_reference_exists,
+                user_role_assignments.province_id IS NOT NULL AS province_reference_exists,
+                user_role_assignments.city_id IS NOT NULL AS city_reference_exists,
                 user_role_assignments.include_children,
                 user_role_assignments.starts_at,
                 user_role_assignments.ends_at,
-                user_role_assignments.is_active
+                user_role_assignments.is_active,
+                assignment_organizations.title AS organization_title,
+                assignment_organizations.org_type_id IS NOT NULL AS organization_type_reference_exists,
+                assignment_organizations.org_level_id IS NOT NULL AS organization_level_reference_exists,
+                {$organizationTypeTitleSelect},
+                {$organizationLevelTitleSelect},
+                {$assignmentProvinceTitleSelect},
+                {$assignmentCityTitleSelect}
             FROM user_role_assignments
             INNER JOIN roles ON roles.id = user_role_assignments.role_id
+            LEFT JOIN organizations AS assignment_organizations
+              ON assignment_organizations.id = user_role_assignments.organization_id
+             AND assignment_organizations.deleted_at IS NULL
+            {$organizationTypeJoin}
+            {$organizationLevelJoin}
+            {$assignmentProvinceJoin}
+            {$assignmentCityJoin}
             WHERE user_role_assignments.user_id = ?
             ORDER BY
                 CASE WHEN user_role_assignments.is_active = 1 THEN 0 ELSE 1 END ASC,
@@ -111,12 +141,15 @@ class AdminUserRepository extends BaseRepository
                 org_units.code AS org_unit_code,
                 positions.title AS position_title,
                 positions.code AS position_code,
+                user_org_assignments.org_unit_id IS NOT NULL AS org_unit_reference_exists,
+                user_org_assignments.position_id IS NOT NULL AS position_reference_exists,
                 user_org_assignments.is_primary,
                 user_org_assignments.status,
                 user_org_assignments.started_at,
                 user_org_assignments.ended_at
             FROM user_org_assignments
-            INNER JOIN org_units ON org_units.id = user_org_assignments.org_unit_id
+            LEFT JOIN org_units ON org_units.id = user_org_assignments.org_unit_id
+             AND org_units.deleted_at IS NULL
             LEFT JOIN positions ON positions.id = user_org_assignments.position_id
             WHERE user_org_assignments.user_id = ?
             ORDER BY
@@ -220,6 +253,7 @@ class AdminUserRepository extends BaseRepository
              AND primary_user_org.status = 'active'
             LEFT JOIN org_units AS primary_org
               ON primary_org.id = primary_user_org.org_unit_id
+             AND primary_org.deleted_at IS NULL
             {$where}
             GROUP BY
                 users.id,
@@ -248,6 +282,69 @@ class AdminUserRepository extends BaseRepository
             'items' => $statement->fetchAll(),
             'total' => $total,
         ];
+    }
+
+    private function lookupIdTitleSelect(string $table, string $alias, string $selectAlias): string
+    {
+        if (!$this->lookupTableReady($table) || !Database::columnExists($table, 'id')) {
+            return "NULL AS {$selectAlias}";
+        }
+
+        return $this->lookupTitleSelect($table, $alias, $selectAlias);
+    }
+
+    private function lookupCodeTitleSelect(string $table, string $alias, string $selectAlias): string
+    {
+        if (!$this->lookupTableReady($table) || !Database::columnExists($table, 'code')) {
+            return "NULL AS {$selectAlias}";
+        }
+
+        return $this->lookupTitleSelect($table, $alias, $selectAlias);
+    }
+
+    private function lookupTitleSelect(string $table, string $alias, string $selectAlias): string
+    {
+        $column = $this->lookupTitleColumn($table);
+
+        if ($column === null) {
+            return "NULL AS {$selectAlias}";
+        }
+
+        return "{$alias}.`{$column}` AS {$selectAlias}";
+    }
+
+    private function lookupIdJoin(string $table, string $alias, string $sourceColumn): string
+    {
+        if (!$this->lookupTableReady($table) || !Database::columnExists($table, 'id')) {
+            return '';
+        }
+
+        return "LEFT JOIN {$table} AS {$alias} ON {$alias}.id = {$sourceColumn}";
+    }
+
+    private function lookupCodeJoin(string $table, string $alias, string $sourceColumn): string
+    {
+        if (!$this->lookupTableReady($table) || !Database::columnExists($table, 'code')) {
+            return '';
+        }
+
+        return "LEFT JOIN {$table} AS {$alias} ON {$alias}.code = {$sourceColumn}";
+    }
+
+    private function lookupTableReady(string $table): bool
+    {
+        return Database::tableExists($table) && $this->lookupTitleColumn($table) !== null;
+    }
+
+    private function lookupTitleColumn(string $table): ?string
+    {
+        foreach (['title', 'name', 'label'] as $column) {
+            if (Database::columnExists($table, $column)) {
+                return $column;
+            }
+        }
+
+        return null;
     }
 
     private function searchWhere(string $query): string

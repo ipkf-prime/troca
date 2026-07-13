@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Repositories\AdminOrgUnitRepository;
 use App\Support\AdminFormat;
+use App\Support\AdminLookup;
 use Throwable;
 
 class AdminOrgUnitService extends BaseService
@@ -44,6 +45,25 @@ class AdminOrgUnitService extends BaseService
             'q' => $query,
             'items' => array_map(fn (array $row): array => $this->orgUnitViewModel($row), $result['items'] ?? []),
             'pagination' => $this->pagination($total, $page),
+        ];
+    }
+
+    private function orgUnitViewModel(array $row): array
+    {
+        $depth = max(0, min(self::MAX_DISPLAY_DEPTH, (int) ($row['depth'] ?? 0)));
+        $indentDepth = min($depth, self::MAX_INDENT_DEPTH);
+
+        return [
+            'id' => (int) ($row['id'] ?? 0),
+            'title' => $this->value($row['title'] ?? null),
+            'code' => $this->value($row['code'] ?? null),
+            'type' => AdminLookup::orgUnitType($row['type'] ?? null),
+            'parent_title' => $this->value($row['parent_title'] ?? null),
+            'depth' => $depth,
+            'indent' => $indentDepth * 18,
+            'status' => $this->status((string) ($row['status'] ?? '')),
+            'sort_order' => (int) ($row['sort_order'] ?? 0),
+            'created_at' => $this->formatDate($row['created_at'] ?? null),
         ];
     }
 
@@ -89,34 +109,9 @@ class AdminOrgUnitService extends BaseService
         ];
     }
 
-    private function orgUnitViewModel(array $row): array
-    {
-        $depth = max(0, min(self::MAX_DISPLAY_DEPTH, (int) ($row['depth'] ?? 0)));
-        $indentDepth = min($depth, self::MAX_INDENT_DEPTH);
-
-        return [
-            'id' => (int) ($row['id'] ?? 0),
-            'title' => $this->value($row['title'] ?? null),
-            'code' => $this->value($row['code'] ?? null),
-            'type' => $this->value($row['type'] ?? null),
-            'parent_title' => $this->value($row['parent_title'] ?? null),
-            'depth' => $depth,
-            'indent' => $indentDepth * 18,
-            'status' => $this->status((string) ($row['status'] ?? '')),
-            'sort_order' => (int) ($row['sort_order'] ?? 0),
-            'created_at' => $this->formatDate($row['created_at'] ?? null),
-        ];
-    }
-
     private function status(string $status): array
     {
-        $normalized = strtolower(trim($status));
-
-        return match ($normalized) {
-            'active' => ['code' => 'active', 'label' => 'فعال'],
-            'inactive', 'disabled' => ['code' => 'inactive', 'label' => 'غیرفعال'],
-            default => ['code' => 'unknown', 'label' => $this->value($status)],
-        };
+        return AdminLookup::status($status);
     }
 
     private function formatDate(mixed $value): string
@@ -132,8 +127,6 @@ class AdminOrgUnitService extends BaseService
 
     private function value(mixed $value): string
     {
-        $value = trim((string) ($value ?? ''));
-
-        return $value === '' ? '—' : $value;
+        return AdminLookup::value($value);
     }
 }

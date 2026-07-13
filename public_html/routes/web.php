@@ -382,6 +382,9 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'admin_user_detail_org_assignments_available' => true,
         'admin_user_detail_security_summary_available' => true,
         'admin_user_detail_sensitive_fields_protected' => true,
+        'admin_user_detail_semantic_lookups_available' => true,
+        'admin_raw_foreign_keys_hidden_from_ui' => true,
+        'admin_reference_titles_resolved' => true,
         'admin_org_units_list_available' => class_exists(\App\Services\AdminOrgUnitService::class)
             && class_exists(\App\Repositories\AdminOrgUnitRepository::class),
         'admin_org_units_search_available' => class_exists(\App\Services\AdminOrgUnitService::class),

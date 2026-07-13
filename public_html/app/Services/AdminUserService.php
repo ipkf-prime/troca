@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Repositories\AdminUserRepository;
 use App\Support\AdminFormat;
+use App\Support\AdminLookup;
 use Throwable;
 
 class AdminUserService extends BaseService
@@ -42,6 +43,135 @@ class AdminUserService extends BaseService
             'q' => $query,
             'items' => array_map(fn (array $row): array => $this->userViewModel($row), $result['items'] ?? []),
             'pagination' => $this->pagination($total, $page),
+        ];
+    }
+
+    public function detail(int $userId): ?array
+    {
+        if ($userId < 1) {
+            return null;
+        }
+
+        try {
+            $user = $this->users->findDetail($userId);
+
+            if ($user === null) {
+                return null;
+            }
+
+            return [
+                'user' => $this->detailUserViewModel($user),
+                'roles' => array_map(
+                    fn (array $row): array => $this->roleAssignmentViewModel($row),
+                    $this->users->roleAssignmentsForDetail($userId)
+                ),
+                'organization_assignments' => array_map(
+                    fn (array $row): array => $this->organizationAssignmentViewModel($row),
+                    $this->users->organizationAssignmentsForDetail($userId)
+                ),
+                'security' => $this->securityViewModel($this->users->securitySummaryForDetail($userId)),
+            ];
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    private function userViewModel(array $row): array
+    {
+        $roles = $this->splitRoleTitles((string) ($row['active_role_titles'] ?? ''));
+
+        return [
+            'id' => (int) ($row['id'] ?? 0),
+            'name' => $this->value($row['full_name'] ?? null),
+            'username' => $this->value($row['username'] ?? null),
+            'mobile' => $this->value($row['mobile'] ?? null),
+            'email' => $this->value($row['email'] ?? null),
+            'status' => $this->status((string) ($row['status'] ?? '')),
+            'role_count' => (int) ($row['active_role_count'] ?? 0),
+            'roles' => $roles,
+            'role_summary' => $roles !== [] ? implode('، ', $roles) : $this->value(null),
+            'primary_org_unit' => $this->value($row['primary_org_unit_title'] ?? null),
+            'created_at' => $this->formatDate($row['created_at'] ?? null),
+            'detail_url' => '/admin/users/' . (int) ($row['id'] ?? 0),
+        ];
+    }
+
+    private function detailUserViewModel(array $row): array
+    {
+        $roles = $this->splitRoleTitles((string) ($row['active_role_titles'] ?? ''));
+
+        return [
+            'id' => (int) ($row['id'] ?? 0),
+            'full_name' => $this->value($row['full_name'] ?? null),
+            'first_name' => $this->value($row['first_name'] ?? null),
+            'last_name' => $this->value($row['last_name'] ?? null),
+            'person_type' => AdminLookup::personType($row['person_type_title'] ?? null, $row['person_type_code'] ?? null),
+            'province' => AdminLookup::title($row['province_title'] ?? null, (bool) ($row['province_reference_exists'] ?? false)),
+            'city' => AdminLookup::title($row['city_title'] ?? null, (bool) ($row['city_reference_exists'] ?? false)),
+            'display_name' => $this->value($row['full_name'] ?? $row['username'] ?? null),
+            'username' => $this->value($row['username'] ?? null),
+            'mobile' => $this->value($row['mobile'] ?? null),
+            'email' => $this->value($row['email'] ?? null),
+            'status' => $this->status((string) ($row['status'] ?? '')),
+            'person_status' => $this->status((string) ($row['person_status'] ?? '')),
+            'email_verified' => $this->verified((string) ($row['email_verified_at'] ?? '')),
+            'mobile_verified' => $this->verified((string) ($row['mobile_verified_at'] ?? '')),
+            'last_login_at' => $this->formatDate($row['last_login_at'] ?? null),
+            'created_at' => $this->formatDate($row['created_at'] ?? null),
+            'updated_at' => $this->formatDate($row['updated_at'] ?? null),
+            'avatar_url' => $this->safeAvatarPath($row['avatar'] ?? null),
+            'active_role_count' => (int) ($row['active_role_count'] ?? 0),
+            'active_role_count_label' => AdminFormat::digits((int) ($row['active_role_count'] ?? 0)),
+            'active_role_summary' => $roles !== [] ? implode('، ', $roles) : $this->value(null),
+            'primary_org_unit' => $this->value($row['primary_org_unit_title'] ?? null),
+        ];
+    }
+
+    private function roleAssignmentViewModel(array $row): array
+    {
+        return [
+            'role_title' => $this->value($row['role_title'] ?? null),
+            'role_code' => $this->value($row['role_code'] ?? null),
+            'priority' => AdminFormat::digits((int) ($row['priority'] ?? 100)),
+            'status' => $this->assignmentStatus($row),
+            'scope_summary' => AdminLookup::scopeSummary((string) ($row['scope_type'] ?? ''), $row),
+            'organization_title' => AdminLookup::title($row['organization_title'] ?? null, (bool) ($row['organization_reference_exists'] ?? false)),
+            'organization_type_title' => AdminLookup::title($row['organization_type_title'] ?? null, (bool) ($row['organization_type_reference_exists'] ?? false)),
+            'organization_level_title' => AdminLookup::title($row['organization_level_title'] ?? null, (bool) ($row['organization_level_reference_exists'] ?? false)),
+            'include_children' => AdminLookup::booleanYesNo($row['include_children'] ?? 0),
+            'starts_at' => $this->formatDate($row['starts_at'] ?? null),
+            'ends_at' => $this->formatDate($row['ends_at'] ?? null),
+        ];
+    }
+
+    private function organizationAssignmentViewModel(array $row): array
+    {
+        return [
+            'org_unit_title' => AdminLookup::title($row['org_unit_title'] ?? null, (bool) ($row['org_unit_reference_exists'] ?? false)),
+            'org_unit_code' => $this->value($row['org_unit_code'] ?? null),
+            'position_title' => AdminLookup::title($row['position_title'] ?? null, (bool) ($row['position_reference_exists'] ?? false)),
+            'position_code' => $this->value($row['position_code'] ?? null),
+            'is_primary' => AdminLookup::booleanYesNo($row['is_primary'] ?? 0),
+            'status' => $this->status((string) ($row['status'] ?? '')),
+            'started_at' => $this->formatDate($row['started_at'] ?? null),
+            'ended_at' => $this->formatDate($row['ended_at'] ?? null),
+        ];
+    }
+
+    private function securityViewModel(array $summary): array
+    {
+        $enabledMethods = (int) ($summary['enabled_methods_count'] ?? 0);
+        $totpMethods = (int) ($summary['totp_methods_count'] ?? 0);
+        $recoveryCodes = (int) ($summary['recovery_codes_count'] ?? 0);
+        $trustedDevices = (int) ($summary['trusted_devices_count'] ?? 0);
+
+        return [
+            'mfa_enabled' => AdminLookup::booleanYesNo($enabledMethods > 0 ? 1 : 0),
+            'totp_enabled' => AdminLookup::booleanYesNo($totpMethods > 0 ? 1 : 0),
+            'recovery_codes_available' => AdminLookup::booleanYesNo($recoveryCodes > 0 ? 1 : 0),
+            'recovery_codes_count' => AdminFormat::digits($recoveryCodes),
+            'trusted_devices_available' => AdminLookup::booleanYesNo($trustedDevices > 0 ? 1 : 0),
+            'trusted_devices_count' => AdminFormat::digits($trustedDevices),
         ];
     }
 
@@ -87,130 +217,6 @@ class AdminUserService extends BaseService
         ];
     }
 
-    private function userViewModel(array $row): array
-    {
-        $roles = $this->splitRoleTitles((string) ($row['active_role_titles'] ?? ''));
-
-        return [
-            'id' => (int) ($row['id'] ?? 0),
-            'name' => $this->value($row['full_name'] ?? null),
-            'username' => $this->value($row['username'] ?? null),
-            'mobile' => $this->value($row['mobile'] ?? null),
-            'email' => $this->value($row['email'] ?? null),
-            'status' => $this->status((string) ($row['status'] ?? '')),
-            'role_count' => (int) ($row['active_role_count'] ?? 0),
-            'roles' => $roles,
-            'role_summary' => $roles !== [] ? implode('، ', $roles) : $this->value(null),
-            'primary_org_unit' => $this->value($row['primary_org_unit_title'] ?? null),
-            'created_at' => $this->formatDate($row['created_at'] ?? null),
-            'detail_url' => '/admin/users/' . (int) ($row['id'] ?? 0),
-        ];
-    }
-
-    public function detail(int $userId): ?array
-    {
-        if ($userId < 1) {
-            return null;
-        }
-
-        try {
-            $user = $this->users->findDetail($userId);
-
-            if ($user === null) {
-                return null;
-            }
-
-            return [
-                'user' => $this->detailUserViewModel($user),
-                'roles' => array_map(
-                    fn (array $row): array => $this->roleAssignmentViewModel($row),
-                    $this->users->roleAssignmentsForDetail($userId)
-                ),
-                'organization_assignments' => array_map(
-                    fn (array $row): array => $this->organizationAssignmentViewModel($row),
-                    $this->users->organizationAssignmentsForDetail($userId)
-                ),
-                'security' => $this->securityViewModel($this->users->securitySummaryForDetail($userId)),
-            ];
-        } catch (Throwable) {
-            return null;
-        }
-    }
-
-    private function detailUserViewModel(array $row): array
-    {
-        $roles = $this->splitRoleTitles((string) ($row['active_role_titles'] ?? ''));
-
-        return [
-            'id' => (int) ($row['id'] ?? 0),
-            'person_id' => $row['person_id'] === null ? $this->value(null) : \App\Support\AdminFormat::digits((int) $row['person_id']),
-            'full_name' => $this->value($row['full_name'] ?? null),
-            'first_name' => $this->value($row['first_name'] ?? null),
-            'last_name' => $this->value($row['last_name'] ?? null),
-            'display_name' => $this->value($row['full_name'] ?? $row['username'] ?? null),
-            'username' => $this->value($row['username'] ?? null),
-            'mobile' => $this->value($row['mobile'] ?? null),
-            'email' => $this->value($row['email'] ?? null),
-            'status' => $this->status((string) ($row['status'] ?? '')),
-            'person_status' => $this->status((string) ($row['person_status'] ?? '')),
-            'email_verified' => $this->verified((string) ($row['email_verified_at'] ?? '')),
-            'mobile_verified' => $this->verified((string) ($row['mobile_verified_at'] ?? '')),
-            'last_login_at' => $this->formatDate($row['last_login_at'] ?? null),
-            'created_at' => $this->formatDate($row['created_at'] ?? null),
-            'updated_at' => $this->formatDate($row['updated_at'] ?? null),
-            'avatar_url' => $this->safeAvatarPath($row['avatar'] ?? null),
-            'active_role_count' => (int) ($row['active_role_count'] ?? 0),
-            'active_role_count_label' => \App\Support\AdminFormat::digits((int) ($row['active_role_count'] ?? 0)),
-            'active_role_summary' => $roles !== [] ? implode('، ', $roles) : $this->value(null),
-            'primary_org_unit' => $this->value($row['primary_org_unit_title'] ?? null),
-        ];
-    }
-
-    private function roleAssignmentViewModel(array $row): array
-    {
-        return [
-            'role_title' => $this->value($row['role_title'] ?? null),
-            'role_code' => $this->value($row['role_code'] ?? null),
-            'priority' => \App\Support\AdminFormat::digits((int) ($row['priority'] ?? 100)),
-            'status' => $this->assignmentStatus($row),
-            'scope_summary' => $this->scopeSummary((string) ($row['scope_type'] ?? '')),
-            'include_children' => ((int) ($row['include_children'] ?? 0)) === 1 ? 'بله' : 'خیر',
-            'starts_at' => $this->formatDate($row['starts_at'] ?? null),
-            'ends_at' => $this->formatDate($row['ends_at'] ?? null),
-        ];
-    }
-
-    private function organizationAssignmentViewModel(array $row): array
-    {
-        return [
-            'org_unit_title' => $this->value($row['org_unit_title'] ?? null),
-            'org_unit_code' => $this->value($row['org_unit_code'] ?? null),
-            'position_title' => $this->value($row['position_title'] ?? null),
-            'position_code' => $this->value($row['position_code'] ?? null),
-            'is_primary' => ((int) ($row['is_primary'] ?? 0)) === 1 ? 'بله' : 'خیر',
-            'status' => $this->status((string) ($row['status'] ?? '')),
-            'started_at' => $this->formatDate($row['started_at'] ?? null),
-            'ended_at' => $this->formatDate($row['ended_at'] ?? null),
-        ];
-    }
-
-    private function securityViewModel(array $summary): array
-    {
-        $enabledMethods = (int) ($summary['enabled_methods_count'] ?? 0);
-        $totpMethods = (int) ($summary['totp_methods_count'] ?? 0);
-        $recoveryCodes = (int) ($summary['recovery_codes_count'] ?? 0);
-        $trustedDevices = (int) ($summary['trusted_devices_count'] ?? 0);
-
-        return [
-            'mfa_enabled' => $enabledMethods > 0 ? 'بله' : 'خیر',
-            'totp_enabled' => $totpMethods > 0 ? 'بله' : 'خیر',
-            'recovery_codes_available' => $recoveryCodes > 0 ? 'بله' : 'خیر',
-            'recovery_codes_count' => \App\Support\AdminFormat::digits($recoveryCodes),
-            'trusted_devices_available' => $trustedDevices > 0 ? 'بله' : 'خیر',
-            'trusted_devices_count' => \App\Support\AdminFormat::digits($trustedDevices),
-        ];
-    }
-
     private function verified(string $value): array
     {
         return trim($value) === ''
@@ -221,7 +227,7 @@ class AdminUserService extends BaseService
     private function assignmentStatus(array $row): array
     {
         if ((int) ($row['is_active'] ?? 0) !== 1) {
-            return ['code' => 'inactive', 'label' => 'غیرفعال'];
+            return AdminLookup::status('inactive');
         }
 
         $now = time();
@@ -229,22 +235,14 @@ class AdminUserService extends BaseService
         $endsAt = trim((string) ($row['ends_at'] ?? ''));
 
         if ($startsAt !== '' && strtotime($startsAt) > $now) {
-            return ['code' => 'pending', 'label' => 'در انتظار'];
+            return AdminLookup::status('pending');
         }
 
         if ($endsAt !== '' && strtotime($endsAt) < $now) {
-            return ['code' => 'inactive', 'label' => 'منقضی'];
+            return AdminLookup::status('expired');
         }
 
-        return ['code' => 'active', 'label' => 'فعال'];
-    }
-
-    private function scopeSummary(string $scopeType): string
-    {
-        return match (strtolower(trim($scopeType))) {
-            '', 'global' => 'سراسری',
-            default => 'محدوده ' . $this->value($scopeType),
-        };
+        return AdminLookup::status('active');
     }
 
     private function safeAvatarPath(mixed $value): string
@@ -269,15 +267,7 @@ class AdminUserService extends BaseService
 
     private function status(string $status): array
     {
-        $normalized = strtolower(trim($status));
-
-        return match ($normalized) {
-            'active' => ['code' => 'active', 'label' => 'فعال'],
-            'inactive', 'disabled' => ['code' => 'inactive', 'label' => 'غیرفعال'],
-            'blocked', 'locked' => ['code' => 'blocked', 'label' => 'مسدود'],
-            'pending' => ['code' => 'pending', 'label' => 'در انتظار'],
-            default => ['code' => 'unknown', 'label' => $this->value($status)],
-        };
+        return AdminLookup::status($status);
     }
 
     private function formatDate(mixed $value): string
@@ -293,8 +283,6 @@ class AdminUserService extends BaseService
 
     private function value(mixed $value): string
     {
-        $value = trim((string) ($value ?? ''));
-
-        return $value === '' ? '—' : $value;
+        return AdminLookup::value($value);
     }
 }

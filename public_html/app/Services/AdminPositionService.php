@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Repositories\AdminPositionRepository;
 use App\Support\AdminFormat;
+use App\Support\AdminLookup;
 use Throwable;
 
 class AdminPositionService extends BaseService
@@ -105,18 +106,12 @@ class AdminPositionService extends BaseService
 
     private function status(string $status): array
     {
-        $normalized = strtolower(trim($status));
-
-        return match ($normalized) {
-            'active' => ['code' => 'active', 'label' => 'فعال'],
-            'inactive' => ['code' => 'inactive', 'label' => 'غیرفعال'],
-            default => ['code' => 'unknown', 'label' => $this->value($status)],
-        };
+        return AdminLookup::status($status);
     }
 
     private function truncate(string $value): string
     {
-        if ($value === '—') {
+        if ($value === AdminLookup::EMPTY) {
             return $value;
         }
 
@@ -150,6 +145,6 @@ class AdminPositionService extends BaseService
     {
         $value = trim((string) ($value ?? ''));
 
-        return $value === '' ? '—' : $value;
+        return AdminLookup::value($value);
     }
 }

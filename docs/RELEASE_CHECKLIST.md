@@ -40,6 +40,11 @@
 - `/admin/users/{id}` opens a read-only user detail page for roles with `users.view`.
 - `/admin/users/{id}` shows safe identity, account, MFA/security, role assignment, and organization assignment summaries.
 - `/admin/users/{id}` renders human-facing dates as Jalali dates.
+- `/admin/users/{id}` displays person type, province, city, organization scope, roles, organization units, positions, and statuses as Persian semantic labels.
+- `/admin/users/{id}` displays missing optional lookup values as `—`.
+- `/admin/users/{id}` displays broken lookup references as `نامشخص`.
+- `/admin/users/{id}` does not display raw foreign key values as user-facing fallbacks.
+- Role, organization unit, and position codes appear only as secondary administrative data.
 - `/admin/users/{id}` returns a clean Persian 404 for invalid, missing, or unavailable users.
 - `/admin/users/{id}` returns the standard Persian 403 for an authenticated active role without `users.view`.
 - `/admin/users/{id}` does not include create, edit, delete, password reset, role assignment editing, organization assignment editing, or Automation actions.
@@ -80,6 +85,9 @@
 - `/_diagnostics` includes `admin_user_detail_org_assignments_available=true`.
 - `/_diagnostics` includes `admin_user_detail_security_summary_available=true`.
 - `/_diagnostics` includes `admin_user_detail_sensitive_fields_protected=true`.
+- `/_diagnostics` includes `admin_user_detail_semantic_lookups_available=true`.
+- `/_diagnostics` includes `admin_raw_foreign_keys_hidden_from_ui=true`.
+- `/_diagnostics` includes `admin_reference_titles_resolved=true`.
 - `/_diagnostics` includes `admin_positions_list_available=true`.
 - `/_diagnostics` includes `admin_positions_search_available=true`.
 - `/_diagnostics` includes `admin_positions_pagination_available=true`.

@@ -99,6 +99,8 @@ Guests are redirected to `/admin/login`. Authenticated users without `users.view
 
 The detail page does not select or render password hashes, MFA secrets, recovery codes, login tokens, session values, CSRF tokens, trusted device secrets, provider secrets, or internal hashes.
 
+Admin UI uses semantic lookup labels in this page. Reference ids and internal lookup codes are stored internally, but Persian titles are displayed to users. Broken references display `نامشخص`; missing optional values display `—`. Technical codes such as role code, org unit code, or position code may appear only as muted secondary administrative data.
+
 Create, edit, delete, password reset, role assignment editing, organizational assignment editing, and Automation actions remain deferred.
 
 ## Organization units list
@@ -203,4 +205,6 @@ The table is designed for future personal and unit cartables, routing work to a 
 - Users, organization units, and positions read-only lists sort from small to large.
 - Dashboard remains a module launcher only. Account cards, security status, and access summaries are kept under profile/security pages.
 - Human-facing admin UI numbers are rendered with Persian digits where safe; technical identifiers, form values, search terms, emails, usernames, and hidden ids stay canonical.
+- Reference IDs are never used as the user-facing fallback. Admin pages display Persian semantic titles when lookup/reference data exists.
+- Technical codes may appear only as secondary administrative data, not as the primary label.
 - No automation features are implemented yet.

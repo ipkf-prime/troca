@@ -156,6 +156,8 @@ Child routes activate their parent module in the sidebar. For example, `/admin/u
 
 `/admin/users/{id}` is a professional read-only user detail page for roles with `users.view`. It shows safe identity, account, MFA/security, role assignment, and organization assignment summaries with Jalali dates. It returns the standard Persian 403 for unauthorized active roles and a clean Persian 404 for invalid or missing users. It does not select or expose password hashes, MFA secrets, recovery codes, login tokens, session ids, CSRF tokens, trusted device tokens, provider secrets, or internal hashes.
 
+Admin user detail resolves semantic lookup labels for person type, geography, organization scope, role titles, organization units, positions, and statuses. Raw foreign keys are not used as user-facing fallbacks. Missing optional lookup values show `—`; broken references show `نامشخص`. Technical codes may appear only as muted secondary administrative data.
+
 `/admin/org-units` and `/admin/positions` are professional read-only organization structure lists for roles with `org_units.view` and `positions.view`. They support safe search, server-side pagination, ascending order, desktop table presentation, and mobile cards. Create, edit, delete, assignment editing, hierarchy editing, and Automation features are intentionally deferred.
 
 Admin icons use the local `/assets/admin/css/icons.css` icon-font foundation through the reusable `App\Support\AdminIcon` helper. No external CDN icon requests are used.

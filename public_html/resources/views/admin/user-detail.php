@@ -60,10 +60,11 @@ ob_start();
         </div>
         <div class="admin-field-list">
             <div><span>نام کامل</span><strong><?= admin_h($user['full_name'] ?? '—') ?></strong></div>
+            <div><span>نوع شخص</span><strong><?= admin_h($user['person_type'] ?? '—') ?></strong></div>
             <div><span>نام</span><strong><?= admin_h($user['first_name'] ?? '—') ?></strong></div>
             <div><span>نام خانوادگی</span><strong><?= admin_h($user['last_name'] ?? '—') ?></strong></div>
-            <div><span>شناسه کاربر</span><strong><?= admin_h(\App\Support\AdminFormat::digits($user['id'] ?? '')) ?></strong></div>
-            <div><span>شناسه شخص</span><strong><?= admin_h($user['person_id'] ?? '—') ?></strong></div>
+            <div><span>استان</span><strong><?= admin_h($user['province'] ?? '—') ?></strong></div>
+            <div><span>شهر</span><strong><?= admin_h($user['city'] ?? '—') ?></strong></div>
             <div><span>تاریخ ایجاد</span><strong><?= admin_h($user['created_at'] ?? '—') ?></strong></div>
         </div>
     </article>
@@ -119,11 +120,12 @@ ob_start();
             <table class="admin-table admin-user-detail-table">
                 <thead>
                     <tr>
-                        <th>عنوان نقش</th>
-                        <th>کد نقش</th>
+                        <th>نقش</th>
                         <th>اولویت</th>
                         <th>وضعیت</th>
                         <th>محدوده</th>
+                        <th>نوع سازمان</th>
+                        <th>سطح سازمان</th>
                         <th>شروع</th>
                         <th>پایان</th>
                     </tr>
@@ -131,11 +133,15 @@ ob_start();
                 <tbody>
                     <?php foreach ($roles as $role): ?>
                         <tr>
-                            <td><?= admin_h($role['role_title'] ?? '—') ?></td>
-                            <td dir="ltr"><?= admin_h($role['role_code'] ?? '—') ?></td>
+                            <td>
+                                <strong><?= admin_h($role['role_title'] ?? '—') ?></strong>
+                                <small class="admin-user-detail-secondary" dir="ltr"><?= admin_h($role['role_code'] ?? '—') ?></small>
+                            </td>
                             <td><?= admin_h($role['priority'] ?? '—') ?></td>
                             <td><span class="admin-status-badge admin-status-badge--<?= admin_h($role['status']['code'] ?? 'unknown') ?>"><?= admin_h($role['status']['label'] ?? '—') ?></span></td>
                             <td><?= admin_h($role['scope_summary'] ?? '—') ?></td>
+                            <td><?= admin_h($role['organization_type_title'] ?? '—') ?></td>
+                            <td><?= admin_h($role['organization_level_title'] ?? '—') ?></td>
                             <td><?= admin_h($role['starts_at'] ?? '—') ?></td>
                             <td><?= admin_h($role['ends_at'] ?? '—') ?></td>
                         </tr>
@@ -161,7 +167,6 @@ ob_start();
                 <thead>
                     <tr>
                         <th>واحد سازمانی</th>
-                        <th>کد واحد</th>
                         <th>سمت</th>
                         <th>انتساب اصلی</th>
                         <th>وضعیت</th>
@@ -172,9 +177,14 @@ ob_start();
                 <tbody>
                     <?php foreach ($orgAssignments as $assignment): ?>
                         <tr>
-                            <td><?= admin_h($assignment['org_unit_title'] ?? '—') ?></td>
-                            <td dir="ltr"><?= admin_h($assignment['org_unit_code'] ?? '—') ?></td>
-                            <td><?= admin_h($assignment['position_title'] ?? '—') ?></td>
+                            <td>
+                                <strong><?= admin_h($assignment['org_unit_title'] ?? '—') ?></strong>
+                                <small class="admin-user-detail-secondary" dir="ltr"><?= admin_h($assignment['org_unit_code'] ?? '—') ?></small>
+                            </td>
+                            <td>
+                                <strong><?= admin_h($assignment['position_title'] ?? '—') ?></strong>
+                                <small class="admin-user-detail-secondary" dir="ltr"><?= admin_h($assignment['position_code'] ?? '—') ?></small>
+                            </td>
                             <td><?= admin_h($assignment['is_primary'] ?? 'خیر') ?></td>
                             <td><span class="admin-status-badge admin-status-badge--<?= admin_h($assignment['status']['code'] ?? 'unknown') ?>"><?= admin_h($assignment['status']['label'] ?? '—') ?></span></td>
                             <td><?= admin_h($assignment['started_at'] ?? '—') ?></td>

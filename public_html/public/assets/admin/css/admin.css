@@ -1651,6 +1651,14 @@ button[type="submit"]:hover,
     min-width: 760px;
 }
 
+.admin-user-detail-secondary {
+    color: var(--admin-text-muted);
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 4px;
+}
+
 .admin-pill--muted {
     background: var(--admin-surface-muted);
     color: var(--admin-text-muted);
