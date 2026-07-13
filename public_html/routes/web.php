@@ -349,6 +349,12 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'admin_dashboard_modules_active_role_aware' => class_exists(\App\Services\AdminPanelService::class)
             && class_exists(\App\Services\AuthorizationService::class)
             && class_exists(\App\Services\AccessService::class),
+        'admin_visual_module_launcher_available' => class_exists(\App\Services\AdminPanelService::class)
+            && class_exists(\App\Support\AdminIcon::class),
+        'admin_module_hub_pages_available' => true,
+        'admin_local_icon_font_available' => is_readable(BASE_PATH . '/public/assets/admin/css/icons.css'),
+        'admin_module_actions_permission_filtered' => class_exists(\App\Services\AdminPanelService::class)
+            && class_exists(\App\Services\AdminNavigationRbacService::class),
         'admin_active_role_permission_context' => class_exists(\App\Services\AuthorizationService::class)
             && class_exists(\App\Services\AccessService::class),
         'admin_active_access_switch_available' => class_exists(\App\Services\AccessService::class),
@@ -562,6 +568,35 @@ $router->get('/admin/dashboard', function ($request, $response) use ($adminRende
         'context' => $context,
     ]);
 });
+
+$adminModuleHub = function (string $key, string $title) use ($adminRender, $adminContext) {
+    return function ($request, $response) use ($adminRender, $adminContext, $key, $title) {
+        $context = $adminContext();
+
+        if ($context === null) {
+            return $response->redirect('/admin/login');
+        }
+
+        $module = (new \App\Services\AdminPanelService())->moduleHub((int) $context['user_id'], $key);
+
+        if ($module === null) {
+            return $adminRender($response, 'forbidden', [
+                'title' => html_entity_decode('&#x062F;&#x0633;&#x062A;&#x0631;&#x0633;&#x06CC; &#x063A;&#x06CC;&#x0631;&#x0645;&#x062C;&#x0627;&#x0632;', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                'context' => $context,
+            ], 403);
+        }
+
+        return $adminRender($response, 'module-hub', [
+            'title' => $title,
+            'context' => $context,
+            'module' => $module,
+        ]);
+    };
+};
+
+$router->get('/admin/modules/users', $adminModuleHub('users', 'مدیریت کاربران'));
+$router->get('/admin/modules/organization', $adminModuleHub('organization', 'ساختار سازمانی'));
+$router->get('/admin/modules/system', $adminModuleHub('system', 'مدیریت سامانه'));
 
 $router->get('/admin/profile', function ($request, $response) use ($adminRender, $adminGuard) {
     $context = $adminGuard($response, '/admin/profile');

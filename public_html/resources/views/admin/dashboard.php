@@ -42,29 +42,18 @@ ob_start();
                 <p class="admin-muted">&#x062F;&#x0633;&#x062A;&#x0631;&#x0633;&#x06CC; &#x0628;&#x0647; &#x0628;&#x062E;&#x0634;&#x200C;&#x0647;&#x0627; &#x0628;&#x0631; &#x0627;&#x0633;&#x0627;&#x0633; &#x0646;&#x0642;&#x0634; &#x0641;&#x0639;&#x0627;&#x0644; &#x0634;&#x0645;&#x0627; &#x0646;&#x0645;&#x0627;&#x06CC;&#x0634; &#x062F;&#x0627;&#x062F;&#x0647; &#x0645;&#x06CC;&#x200C;&#x0634;&#x0648;&#x062F;.</p>
             </div>
         </div>
-        <div class="admin-module-grid">
+        <div class="admin-module-launcher">
             <?php foreach ($modules as $module): ?>
-                <article class="admin-module-tile admin-module-tile--<?= admin_h($module['key'] ?? 'module') ?>">
-                    <div class="admin-module-tile__head">
-                        <span class="admin-module-tile__icon" aria-hidden="true"><?= admin_h($module['icon_label'] ?? '') ?></span>
-                        <div>
-                            <h3><?= admin_h($module['title'] ?? '') ?></h3>
-                            <p><?= admin_h($module['description'] ?? '') ?></p>
-                        </div>
-                    </div>
-
-                    <?php if (($module['links'] ?? []) !== []): ?>
-                        <div class="admin-module-tile__links">
-                            <?php foreach ($module['links'] as $link): ?>
-                                <a href="<?= admin_h($link['url'] ?? '#') ?>"><?= admin_h($link['title'] ?? '') ?></a>
-                            <?php endforeach; ?>
-                        </div>
-                    <?php elseif (($module['url'] ?? '') !== ''): ?>
-                        <div class="admin-module-tile__links">
-                            <a href="<?= admin_h($module['url']) ?>">&#x0645;&#x0634;&#x0627;&#x0647;&#x062F;&#x0647;</a>
-                        </div>
-                    <?php endif; ?>
-                </article>
+                <a class="admin-module-launcher__tile admin-module-launcher__tile--<?= admin_h($module['color'] ?? 'blue') ?>" href="<?= admin_h($module['url'] ?? '#') ?>">
+                    <span class="admin-module-launcher__icon">
+                        <?= \App\Support\AdminIcon::html((string) ($module['icon'] ?? 'dashboard')) ?>
+                    </span>
+                    <span class="admin-module-launcher__body">
+                        <strong><?= admin_h($module['title'] ?? '') ?></strong>
+                        <small><?= admin_h($module['subtitle'] ?? $module['description'] ?? '') ?></small>
+                    </span>
+                    <span class="admin-module-launcher__enter" aria-hidden="true">&#x2190;</span>
+                </a>
             <?php endforeach; ?>
         </div>
     </section>

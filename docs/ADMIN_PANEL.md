@@ -37,7 +37,7 @@ Deferred after v0.4.5:
 
 v0.4.6 starts the admin users and organization schema foundation before Automation. It adds `org_units`, `positions`, and `user_org_assignments` without adding UI or automation workflows.
 
-v0.4.6 also adds permission-aware dashboard module tiles as the primary entry point for admin modules. The sidebar remains unchanged in this task.
+v0.4.6 also adds a visual permission-aware dashboard module launcher as the primary entry point for admin modules. Multi-action modules open dedicated module hub pages. The sidebar remains unchanged in this task.
 
 ## Production Safety
 
@@ -124,7 +124,7 @@ The page uses the existing `MfaService` pending challenge flow. Valid verificati
 
 It does not show CRM, Bot, ERP, Automation, Marketplace, or business data.
 
-Dashboard module tiles use the current active-role permission context. A tile is rendered only when at least one destination inside it is permitted, and unauthorized quick links are not rendered.
+Dashboard module tiles use the current active-role permission context. A tile is rendered only when at least one destination inside it is permitted.
 
 Current module tiles:
 
@@ -134,7 +134,24 @@ Current module tiles:
 - گزارش‌ها
 - پشتیبانی
 
-The dashboard is the preferred module entry point for this phase. Nested sidebar groups are intentionally not added yet.
+The dashboard is the preferred module entry point for this phase. Dashboard module tiles are large, visual, solid-color full-card links and do not render crowded quick-link lists.
+
+Dedicated module hub pages:
+
+- `/admin/modules/users`
+- `/admin/modules/organization`
+- `/admin/modules/system`
+
+Hub pages render only authorized action tiles. If the active role has no action available for a hub, the page returns the standard Persian 403 response.
+
+Reports and support remain direct destinations for now:
+
+- `/admin/reports`
+- `/admin/support`
+
+Nested sidebar groups are intentionally not added yet. Sidebar simplification remains deferred until the dashboard launcher and hub page experience is accepted.
+
+Admin icons use the local `/assets/admin/css/icons.css` icon-font foundation through the reusable `App\Support\AdminIcon` helper. No external CDN icon requests are used.
 
 ## Active Access Switching
 

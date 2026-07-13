@@ -23,16 +23,27 @@
 - `/admin/org-units` and `/admin/positions` open placeholders for authorized roles.
 - Placeholder pages show `این بخش در حال آماده‌سازی است.`
 - `/admin/dashboard` opens normally.
-- Dashboard module tiles appear after the statistic cards.
-- `super_admin` sees all authorized dashboard module tiles and links.
-- `province_admin` sees only permitted dashboard module tiles and quick links.
+- Dashboard displays visually distinct solid-color module tiles after the statistic cards.
+- Dashboard module tiles no longer contain quick-link lists.
+- Clicking `مدیریت کاربران` opens `/admin/modules/users`.
+- Clicking `ساختار سازمانی` opens `/admin/modules/organization`.
+- Clicking `مدیریت سامانه` opens `/admin/modules/system`.
+- Module hub pages show colorful action tiles.
+- `super_admin` sees all authorized dashboard module tiles and hub actions.
+- `province_admin` sees only permitted dashboard module tiles and hub actions.
 - Active base `user` role does not see restricted dashboard modules.
 - Dashboard tiles are hidden when none of their destinations are permitted.
-- Unauthorized dashboard quick links are not rendered.
+- Unauthorized module hub actions are not rendered.
+- A module hub returns HTTP 403 if no action is available to the active role.
 - Switching active role changes visible dashboard tiles after redirect/refresh.
 - `/_diagnostics` includes `admin_dashboard_module_tiles_available=true`.
 - `/_diagnostics` includes `admin_dashboard_modules_permission_filtered=true`.
 - `/_diagnostics` includes `admin_dashboard_modules_active_role_aware=true`.
+- `/_diagnostics` includes `admin_visual_module_launcher_available=true`.
+- `/_diagnostics` includes `admin_module_hub_pages_available=true`.
+- `/_diagnostics` includes `admin_local_icon_font_available=true`.
+- `/_diagnostics` includes `admin_module_actions_permission_filtered=true`.
+- Icons come from the local icon-font foundation and no external CDN is used.
 - No nested sidebar navigation is added.
 - Existing login, MFA, and admin routes still work.
 - Existing RBAC navigation still works.

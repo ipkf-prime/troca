@@ -8,7 +8,7 @@ This milestone aligns admin navigation visibility with route access checks. The 
 
 No CRM, Bot, ERP, Automation, Marketplace, or business module is added in this phase.
 
-In v0.4.6 the admin dashboard also shows permission-aware module tiles. These tiles use the same active-role permission context as the sidebar and route guards.
+In v0.4.6 the admin dashboard also shows a visual permission-aware module launcher. These module tiles and hub actions use the same active-role permission context as the sidebar and route guards.
 
 ## Final Scope
 
@@ -95,9 +95,22 @@ The dashboard is the primary module entry point in v0.4.6.
 - Tiles are permission filtered.
 - Tiles use the active-role permission context.
 - A tile is hidden when none of its destinations are permitted.
-- Unauthorized quick links are not rendered.
+- Dashboard tiles are full-card links and no longer render quick-link lists.
+- Multi-action modules open dedicated hub pages.
+- Hub pages render only authorized action tiles.
+- A hub page returns the standard Persian 403 response if no action is available to the active role.
 - The sidebar remains unchanged; nested sidebar groups are not implemented in this task.
 - Automation module tiles will be added later only when real Automation routes exist.
+
+Module hub routes:
+
+- `/admin/modules/users`
+- `/admin/modules/organization`
+- `/admin/modules/system`
+
+Reports and support remain direct destinations.
+
+Icons are rendered through the local admin icon-font foundation and `App\Support\AdminIcon`; no external icon CDN is used.
 
 ## Seeded Permissions
 
