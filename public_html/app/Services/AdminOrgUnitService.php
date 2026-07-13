@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Repositories\AdminOrgUnitRepository;
+use App\Support\AdminFormat;
 use Throwable;
 
 class AdminOrgUnitService extends BaseService
@@ -126,7 +127,7 @@ class AdminOrgUnitService extends BaseService
             return $this->value(null);
         }
 
-        return $value;
+        return AdminFormat::jalaliDateTime($value);
     }
 
     private function value(mixed $value): string
