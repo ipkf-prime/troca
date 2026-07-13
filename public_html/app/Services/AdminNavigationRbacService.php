@@ -27,6 +27,11 @@ class AdminNavigationRbacService extends BaseService
             '/admin/access' => 'access.manage',
             '/admin/users' => 'users.view',
             '/admin/users/{id}' => 'users.view',
+            '/admin/users/{id}/identity' => 'users.view',
+            '/admin/users/{id}/contacts' => 'users.view',
+            '/admin/users/{id}/account' => 'users.view',
+            '/admin/users/{id}/access' => 'users.view',
+            '/admin/users/{id}/appointments' => 'users.view',
             '/admin/org-units' => 'org_units.view',
             '/admin/positions' => 'positions.view',
             '/admin/theme' => 'admin.theme.manage',
@@ -49,6 +54,10 @@ class AdminNavigationRbacService extends BaseService
 
         if (preg_match('#^/admin/users/[1-9][0-9]*$#', $path) === 1) {
             return $this->routePermissions()['/admin/users/{id}'] ?? null;
+        }
+
+        if (preg_match('#^/admin/users/[1-9][0-9]*/(identity|contacts|account|access|appointments)$#', $path, $matches) === 1) {
+            return $this->routePermissions()['/admin/users/{id}/' . $matches[1]] ?? null;
         }
 
         return null;

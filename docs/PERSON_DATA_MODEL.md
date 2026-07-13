@@ -64,6 +64,10 @@ This schema task does not add validators, forms, synchronization, or CRUD servic
 
 Foreign keys and technical codes are stored internally. User interfaces must display Persian semantic labels, never raw numeric ids as fallback. Usernames must have a visible label such as `نام کاربری` when shown near identity summaries. Missing optional values display `—`; broken references display `نامشخص`.
 
+## Admin detail workspace
+
+Admin user detail uses the reusable Entity Detail Workspace. Identity fields, contacts, addresses, account/security summaries, access assignments, and organization appointments are loaded per active route tab instead of rendering the full person/account dataset on one long page. Empty contact and address datasets render clean Persian empty states instead of empty tables.
+
 ## Deferred work
 
 Create/edit forms, permissions for sensitive profile data, masking, audit history, verification workflows, and synchronization remain deferred. The next recorded phase is Dynamic organization foundation.

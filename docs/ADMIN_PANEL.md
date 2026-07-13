@@ -158,6 +158,8 @@ Child routes activate their parent module in the sidebar. For example, `/admin/u
 
 Admin user detail resolves semantic lookup labels for person type, geography, organization scope, role titles, organization units, positions, and statuses. Raw foreign keys are not used as user-facing fallbacks. Missing optional lookup values show `—`; broken references show `نامشخص`. Technical codes may appear only as muted secondary administrative data.
 
+Admin user detail now uses the reusable Entity Detail Workspace pattern. The route-based tabs are `/admin/users/{id}`, `/admin/users/{id}/identity`, `/admin/users/{id}/contacts`, `/admin/users/{id}/account`, `/admin/users/{id}/access`, and `/admin/users/{id}/appointments`. Each tab loads only its own required data plus the compact common header. Desktop shows a compact tab bar, while mobile uses a vertical section navigator to avoid full-page horizontal scrolling.
+
 `/admin/org-units` and `/admin/positions` are professional read-only organization structure lists for roles with `org_units.view` and `positions.view`. They support safe search, server-side pagination, ascending order, desktop table presentation, and mobile cards. Create, edit, delete, assignment editing, hierarchy editing, and Automation features are intentionally deferred.
 
 Admin icons use the local `/assets/admin/css/icons.css` icon-font foundation through the reusable `App\Support\AdminIcon` helper. No external CDN icon requests are used.

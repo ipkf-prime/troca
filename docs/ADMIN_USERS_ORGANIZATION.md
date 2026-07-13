@@ -87,6 +87,17 @@ Create, edit, delete, password reset, role assignment editing, and organizationa
 
 `GET /admin/users/{id}` is a read-only admin user detail page protected by `users.view`.
 
+The user detail page is now a tabbed Entity Detail Workspace:
+
+- `/admin/users/{id}` shows the compact overview.
+- `/admin/users/{id}/identity` shows safe identity/profile fields.
+- `/admin/users/{id}/contacts` shows contacts and addresses.
+- `/admin/users/{id}/account` shows account and MFA/security summaries.
+- `/admin/users/{id}/access` shows read-only role assignments for the selected user.
+- `/admin/users/{id}/appointments` shows legacy user organization assignments and canonical organization appointments as separate subsections.
+
+All tabs currently require `users.view`. The workspace is ready for separate per-tab permissions in later phases. The route URL preserves active tab state on refresh and browser back/forward. Mobile uses a vertical section navigator instead of a horizontal scrolling tab bar.
+
 The page includes:
 
 - Persian RTL module-style header and breadcrumb back to `/admin/modules/users`

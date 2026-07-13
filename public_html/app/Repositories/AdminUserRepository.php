@@ -7,6 +7,33 @@ use PDO;
 
 class AdminUserRepository extends BaseRepository
 {
+    public function findHeaderForDetail(int $userId): ?array
+    {
+        $statement = $this->connection()->prepare("
+            SELECT
+                users.id,
+                users.person_id,
+                users.username,
+                users.status,
+                persons.full_name,
+                persons.avatar
+            FROM users
+            LEFT JOIN persons ON persons.id = users.person_id
+            WHERE users.id = ?
+              AND users.deleted_at IS NULL
+            LIMIT 1
+        ");
+        $statement->execute([$userId]);
+        $user = $statement->fetch();
+
+        return $user ?: null;
+    }
+
+    public function findOverviewForDetail(int $userId): ?array
+    {
+        return $this->findDetail($userId);
+    }
+
     public function findDetail(int $userId): ?array
     {
         $personTypeJoin = $this->lookupCodeJoin('person_types', 'person_type_lookup', 'persons.person_type');
@@ -89,6 +116,146 @@ class AdminUserRepository extends BaseRepository
         return $user ?: null;
     }
 
+    public function identityForDetail(int $userId): ?array
+    {
+        $profileJoin = Database::tableExists('person_profiles')
+            ? 'LEFT JOIN person_profiles ON person_profiles.person_id = persons.id'
+            : '';
+        $profileSelect = Database::tableExists('person_profiles')
+            ? 'person_profiles.birth_place, person_profiles.identity_number, person_profiles.identity_serial'
+            : 'NULL AS birth_place, NULL AS identity_number, NULL AS identity_serial';
+        $personTypeJoin = $this->lookupCodeJoin('person_types', 'person_type_lookup', 'persons.person_type');
+        $personTypeTitleSelect = $this->lookupCodeTitleSelect('person_types', 'person_type_lookup', 'person_type_title');
+
+        $statement = $this->connection()->prepare("
+            SELECT
+                users.id,
+                users.person_id,
+                persons.first_name,
+                persons.last_name,
+                persons.full_name,
+                persons.national_code,
+                persons.father_name,
+                persons.birth_date,
+                persons.person_type AS person_type_code,
+                {$profileSelect},
+                {$personTypeTitleSelect}
+            FROM users
+            LEFT JOIN persons ON persons.id = users.person_id
+            {$profileJoin}
+            {$personTypeJoin}
+            WHERE users.id = ?
+              AND users.deleted_at IS NULL
+            LIMIT 1
+        ");
+        $statement->execute([$userId]);
+        $identity = $statement->fetch();
+
+        return $identity ?: null;
+    }
+
+    public function accountForDetail(int $userId): ?array
+    {
+        $statement = $this->connection()->prepare("
+            SELECT
+                users.id,
+                users.username,
+                COALESCE(users.mobile, persons.mobile) AS mobile,
+                COALESCE(users.email, persons.email) AS email,
+                users.status,
+                users.email_verified_at,
+                users.mobile_verified_at,
+                users.last_login_at,
+                users.created_at,
+                users.updated_at
+            FROM users
+            LEFT JOIN persons ON persons.id = users.person_id
+            WHERE users.id = ?
+              AND users.deleted_at IS NULL
+            LIMIT 1
+        ");
+        $statement->execute([$userId]);
+        $account = $statement->fetch();
+
+        return $account ?: null;
+    }
+
+    public function contactsForDetail(int $userId): array
+    {
+        if (!Database::tableExists('person_contacts') || !Database::tableExists('contact_types')) {
+            return [];
+        }
+
+        $statement = $this->connection()->prepare("
+            SELECT
+                contact_types.title AS contact_type_title,
+                person_contacts.contact_type_id IS NOT NULL AS contact_type_reference_exists,
+                person_contacts.value,
+                person_contacts.label,
+                person_contacts.is_primary,
+                person_contacts.is_verified,
+                person_contacts.status,
+                person_contacts.created_at,
+                person_contacts.updated_at
+            FROM person_contacts
+            INNER JOIN users ON users.person_id = person_contacts.person_id
+            LEFT JOIN contact_types ON contact_types.id = person_contacts.contact_type_id
+            WHERE users.id = ?
+              AND users.deleted_at IS NULL
+            ORDER BY
+                person_contacts.is_primary DESC,
+                contact_types.sort_order ASC,
+                person_contacts.id ASC
+        ");
+        $statement->execute([$userId]);
+
+        return $statement->fetchAll();
+    }
+
+    public function addressesForDetail(int $userId): array
+    {
+        if (!Database::tableExists('person_addresses')) {
+            return [];
+        }
+
+        $addressTypeJoin = $this->lookupIdJoin('address_types', 'address_type_lookup', 'person_addresses.address_type_id');
+        $addressTypeTitleSelect = $this->lookupIdTitleSelect('address_types', 'address_type_lookup', 'address_type_title');
+        $provinceJoin = $this->lookupIdJoin('provinces', 'address_provinces', 'person_addresses.province_id');
+        $provinceTitleSelect = $this->lookupIdTitleSelect('provinces', 'address_provinces', 'province_title');
+        $cityJoin = $this->lookupIdJoin('cities', 'address_cities', 'person_addresses.city_id');
+        $cityTitleSelect = $this->lookupIdTitleSelect('cities', 'address_cities', 'city_title');
+
+        $statement = $this->connection()->prepare("
+            SELECT
+                person_addresses.address_type_id IS NOT NULL AS address_type_reference_exists,
+                person_addresses.province_id IS NOT NULL AS province_reference_exists,
+                person_addresses.city_id IS NOT NULL AS city_reference_exists,
+                {$addressTypeTitleSelect},
+                {$provinceTitleSelect},
+                {$cityTitleSelect},
+                person_addresses.district,
+                person_addresses.address_line,
+                person_addresses.postal_code,
+                person_addresses.is_primary,
+                person_addresses.status,
+                person_addresses.created_at,
+                person_addresses.updated_at
+            FROM person_addresses
+            INNER JOIN users ON users.person_id = person_addresses.person_id
+            {$addressTypeJoin}
+            {$provinceJoin}
+            {$cityJoin}
+            WHERE users.id = ?
+              AND users.deleted_at IS NULL
+            ORDER BY
+                person_addresses.is_primary DESC,
+                person_addresses.id ASC
+        ");
+        $statement->execute([$userId]);
+
+        return $statement->fetchAll();
+    }
+
     public function roleAssignmentsForDetail(int $userId): array
     {
         $priority = Database::columnExists('roles', 'priority') ? 'roles.priority' : '100';
@@ -165,6 +332,52 @@ class AdminUserRepository extends BaseRepository
                 user_org_assignments.is_primary DESC,
                 org_units.sort_order ASC,
                 user_org_assignments.id ASC
+        ");
+        $statement->execute([$userId]);
+
+        return $statement->fetchAll();
+    }
+
+    public function canonicalOrganizationAppointmentsForDetail(int $userId): array
+    {
+        if (!Database::tableExists('organization_appointments')
+            || !Database::tableExists('organization_positions')
+        ) {
+            return [];
+        }
+
+        $statement = $this->connection()->prepare("
+            SELECT
+                organizations.title AS organization_title,
+                organization_appointments.organization_id IS NOT NULL AS organization_reference_exists,
+                org_units.title AS org_unit_title,
+                organization_positions.org_unit_id IS NOT NULL AS org_unit_reference_exists,
+                positions.title AS reusable_position_title,
+                organization_positions.position_id IS NOT NULL AS reusable_position_reference_exists,
+                organization_positions.title_override AS organization_position_title,
+                organization_positions.code AS organization_position_code,
+                organization_appointments.appointment_type,
+                organization_appointments.is_primary,
+                organization_appointments.is_acting,
+                organization_appointments.status,
+                organization_appointments.valid_from,
+                organization_appointments.valid_to,
+                organization_appointments.appointment_reference
+            FROM organization_appointments
+            INNER JOIN users ON users.person_id = organization_appointments.person_id
+            LEFT JOIN organizations ON organizations.id = organization_appointments.organization_id
+             AND organizations.deleted_at IS NULL
+            LEFT JOIN organization_positions
+              ON organization_positions.id = organization_appointments.organization_position_id
+            LEFT JOIN positions ON positions.id = organization_positions.position_id
+            LEFT JOIN org_units ON org_units.id = organization_positions.org_unit_id
+             AND org_units.deleted_at IS NULL
+            WHERE users.id = ?
+              AND users.deleted_at IS NULL
+            ORDER BY
+                organization_appointments.is_primary DESC,
+                organization_appointments.valid_from DESC,
+                organization_appointments.id ASC
         ");
         $statement->execute([$userId]);
 

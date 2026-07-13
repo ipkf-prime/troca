@@ -71,6 +71,19 @@
 - `/admin/users/{id}` returns the standard Persian 403 for an authenticated active role without `users.view`.
 - `/admin/users/{id}` does not include create, edit, delete, password reset, role assignment editing, organization assignment editing, or Automation actions.
 - `/admin/users/{id}` does not select or expose password hashes, MFA secrets, recovery codes, login tokens, sessions, CSRF tokens, trusted device secrets, provider secrets, or internal hashes.
+- `/admin/users/{id}` opens the overview tab in the reusable Entity Detail Workspace.
+- `/admin/users/{id}/identity` opens the identity tab.
+- `/admin/users/{id}/contacts` opens the contacts and addresses tab.
+- `/admin/users/{id}/account` opens the account and security tab.
+- `/admin/users/{id}/access` opens the selected user's read-only role assignments tab.
+- `/admin/users/{id}/appointments` opens legacy organization assignments and canonical appointments as separate read-only subsections.
+- User detail active tab is route-based and survives refresh and browser back/forward.
+- User detail mobile navigation uses a vertical section navigator instead of a horizontally scrolling tab strip.
+- User detail tables become cards or vertical lists on mobile.
+- User detail pages do not create full-page horizontal scrolling on mobile.
+- User detail diagnostics include `admin_entity_detail_workspace_available=true`.
+- User detail diagnostics include `admin_user_detail_tabbed_workspace_available=true`.
+- User detail diagnostics include `admin_user_detail_tab_specific_loading=true`.
 - `/admin/org-units` opens a read-only organization units list for roles with `org_units.view`.
 - `/admin/org-units` searches title, code, type, and parent title.
 - `/admin/org-units` paginates server-side and preserves `q`.

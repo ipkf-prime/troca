@@ -399,6 +399,12 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'admin_user_detail_security_summary_available' => true,
         'admin_user_detail_sensitive_fields_protected' => true,
         'admin_user_detail_semantic_lookups_available' => true,
+        'admin_entity_detail_workspace_available' => is_readable(BASE_PATH . '/resources/views/admin/partials/entity-workspace.php'),
+        'admin_entity_detail_route_tabs_available' => true,
+        'admin_entity_detail_mobile_navigation_available' => true,
+        'admin_entity_detail_no_full_page_horizontal_overflow' => true,
+        'admin_user_detail_tabbed_workspace_available' => true,
+        'admin_user_detail_tab_specific_loading' => true,
         'admin_raw_foreign_keys_hidden_from_ui' => true,
         'admin_reference_titles_resolved' => true,
         'admin_user_summary_username_labeled' => true,
@@ -1072,39 +1078,52 @@ $router->get('/admin/users', function ($request, $response) use ($adminRender, $
     ]);
 });
 
-$router->get('/admin/users/{id}', function ($request, $response) use ($adminRender, $adminGuard) {
-    $context = $adminGuard($response, '/admin/users/{id}');
+$adminUserDetailRoute = function (string $routePattern, string $tab) use ($adminRender, $adminGuard) {
+    return function ($request, $response) use ($adminRender, $adminGuard, $routePattern, $tab) {
+        $context = $adminGuard($response, $routePattern);
 
-    if (!is_array($context)) {
-        return $context;
-    }
+        if (!is_array($context)) {
+            return $context;
+        }
 
-    $id = filter_var($request->route('id'), FILTER_VALIDATE_INT, [
-        'options' => ['min_range' => 1],
-    ]);
+        $id = filter_var($request->route('id'), FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1],
+        ]);
 
-    if ($id === false) {
-        return $adminRender($response, 'user-not-found', [
-            'title' => 'کاربر پیدا نشد',
+        if ($id === false) {
+            return $adminRender($response, 'user-not-found', [
+                'title' => 'کاربر پیدا نشد',
+                'context' => $context,
+            ], 404);
+        }
+
+        $detail = (new \App\Services\AdminUserService())->detailWorkspace(
+            (int) $id,
+            $tab,
+            (int) ($context['user_id'] ?? 0)
+        );
+
+        if ($detail === null) {
+            return $adminRender($response, 'user-not-found', [
+                'title' => 'کاربر پیدا نشد',
+                'context' => $context,
+            ], 404);
+        }
+
+        return $adminRender($response, 'user-detail', [
+            'title' => 'جزئیات کاربر',
             'context' => $context,
-        ], 404);
-    }
+            'detail' => $detail,
+        ]);
+    };
+};
 
-    $detail = (new \App\Services\AdminUserService())->detail((int) $id);
-
-    if ($detail === null) {
-        return $adminRender($response, 'user-not-found', [
-            'title' => 'کاربر پیدا نشد',
-            'context' => $context,
-        ], 404);
-    }
-
-    return $adminRender($response, 'user-detail', [
-        'title' => 'جزئیات کاربر',
-        'context' => $context,
-        'detail' => $detail,
-    ]);
-});
+$router->get('/admin/users/{id}', $adminUserDetailRoute('/admin/users/{id}', 'overview'));
+$router->get('/admin/users/{id}/identity', $adminUserDetailRoute('/admin/users/{id}/identity', 'identity'));
+$router->get('/admin/users/{id}/contacts', $adminUserDetailRoute('/admin/users/{id}/contacts', 'contacts'));
+$router->get('/admin/users/{id}/account', $adminUserDetailRoute('/admin/users/{id}/account', 'account'));
+$router->get('/admin/users/{id}/access', $adminUserDetailRoute('/admin/users/{id}/access', 'access'));
+$router->get('/admin/users/{id}/appointments', $adminUserDetailRoute('/admin/users/{id}/appointments', 'appointments'));
 $router->get('/admin/org-units', function ($request, $response) use ($adminRender, $adminGuard) {
     $context = $adminGuard($response, '/admin/org-units');
 

@@ -198,6 +198,14 @@ Dynamic organization foundation now includes:
 
 This remains schema-only. Organization UI/CRUD, registration/contact/address details, governance, ownership, signatory authority, and Automation are deferred.
 
+Admin entity detail workspace foundation now includes:
+
+- Reusable compact entity detail header and route-based tabs.
+- Refactored user detail routes for overview, identity, contacts, account/security, access, and appointments.
+- Tab-specific data loading for admin user detail.
+- Mobile section navigation without a horizontally scrolling tab bar.
+- Future reuse path for organization, unit, position, correspondence, and other entity detail pages.
+
 Future automation readiness:
 
 - دبیرخانه
