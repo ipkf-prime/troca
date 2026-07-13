@@ -13,6 +13,7 @@ $q = (string) ($list['q'] ?? '');
 $ok = (bool) ($list['ok'] ?? false);
 $total = (int) ($pagination['total'] ?? 0);
 $page = (int) ($pagination['page'] ?? 1);
+$perPage = (int) ($pagination['per_page'] ?? 20);
 $lastPage = (int) ($pagination['last_page'] ?? 1);
 
 $pageUrl = static function (int $targetPage) use ($q): string {
@@ -76,7 +77,7 @@ ob_start();
             <table class="admin-table admin-users-table">
                 <thead>
                     <tr>
-                        <th>شناسه</th>
+                        <th>ردیف</th>
                         <th>نام کامل</th>
                         <th>نام کاربری</th>
                         <th>موبایل</th>
@@ -89,9 +90,9 @@ ob_start();
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($items as $user): ?>
+                    <?php foreach ($items as $index => $user): ?>
                         <tr>
-                            <td><?= admin_h(\App\Support\AdminFormat::digits($user['id'])) ?></td>
+                            <td><?= admin_h(\App\Support\AdminFormat::digits((($page - 1) * $perPage) + $index + 1)) ?></td>
                             <td>
                                 <a class="admin-users-identity admin-users-identity--link" href="<?= admin_h($user['detail_url']) ?>">
                                     <?= \App\Support\AdminIcon::html('user') ?>

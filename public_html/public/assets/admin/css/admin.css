@@ -670,11 +670,22 @@ body.admin-sidebar-locked {
     outline-offset: 3px;
 }
 
-.admin-module-launcher,
+.admin-module-launcher {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    justify-content: center;
+}
+
 .admin-action-grid {
     display: grid;
     gap: 14px;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-module-launcher__tile {
+    flex: 1 1 calc((100% - 28px) / 3);
+    max-width: calc((100% - 28px) / 3);
 }
 
 .admin-module-launcher__tile,
@@ -836,6 +847,7 @@ body.admin-sidebar-locked {
     flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 12px;
+    min-width: 0;
 }
 
 .admin-breadcrumb a {
@@ -1387,8 +1399,13 @@ button[type="submit"]:hover,
     border: 1px dashed var(--admin-border);
     border-radius: 12px;
     color: var(--admin-text-muted);
-    padding: 22px;
+    padding: 12px 14px;
     text-align: center;
+}
+
+.admin-empty-state--compact {
+    padding: 10px 12px;
+    text-align: start;
 }
 
 .admin-module-hub__back {
@@ -1693,7 +1710,7 @@ button[type="submit"]:hover,
 
 .entity-workspace {
     display: grid;
-    gap: 14px;
+    gap: 10px;
     max-width: 100%;
 }
 
@@ -1704,21 +1721,21 @@ button[type="submit"]:hover,
     border-radius: var(--admin-radius);
     box-shadow: var(--admin-shadow);
     display: grid;
-    gap: 16px;
+    gap: 12px;
     grid-template-columns: auto minmax(0, 1fr) auto;
-    padding: 16px;
+    padding: 12px 14px;
 }
 
 .entity-workspace__avatar {
     align-items: center;
     background: var(--admin-primary-soft);
-    border-radius: 18px;
+    border-radius: 16px;
     color: var(--admin-primary-hover);
     display: inline-flex;
-    height: 72px;
+    height: 60px;
     justify-content: center;
     overflow: hidden;
-    width: 72px;
+    width: 60px;
 }
 
 .entity-workspace__avatar img {
@@ -1728,17 +1745,19 @@ button[type="submit"]:hover,
 }
 
 .entity-workspace__avatar .admin-icon {
-    font-size: 30px;
+    font-size: 26px;
 }
 
 .entity-workspace__title h2 {
-    font-size: 24px;
-    margin: 0 0 4px;
+    font-size: 22px;
+    margin: 0 0 2px;
     overflow-wrap: anywhere;
 }
 
 .entity-workspace__title p {
     color: var(--admin-text-muted);
+    font-size: var(--admin-font-size-sm);
+    line-height: 1.65;
     margin: 0;
 }
 
@@ -1747,8 +1766,8 @@ button[type="submit"]:hover,
     display: flex;
     flex-wrap: wrap;
     font-size: var(--admin-font-size-sm);
-    gap: 6px 12px;
-    margin-top: 8px;
+    gap: 4px 10px;
+    margin-top: 5px;
 }
 
 .entity-workspace__meta strong {
@@ -1770,8 +1789,8 @@ button[type="submit"]:hover,
     box-shadow: var(--admin-shadow);
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    padding: 8px;
+    gap: 6px;
+    padding: 6px;
 }
 
 .entity-workspace__tab {
@@ -1782,8 +1801,8 @@ button[type="submit"]:hover,
     display: inline-flex;
     font-weight: var(--admin-font-weight-bold);
     gap: 7px;
-    min-height: 40px;
-    padding: 8px 12px;
+    min-height: 36px;
+    padding: 7px 10px;
     text-decoration: none;
 }
 
@@ -1805,7 +1824,7 @@ button[type="submit"]:hover,
 
 .entity-workspace__content {
     display: grid;
-    gap: 14px;
+    gap: 10px;
     max-width: 100%;
 }
 
@@ -1815,14 +1834,14 @@ button[type="submit"]:hover,
     border-radius: var(--admin-radius);
     box-shadow: var(--admin-shadow);
     display: grid;
-    gap: 14px;
+    gap: 12px;
     max-width: 100%;
-    padding: 16px;
+    padding: 14px;
 }
 
 .entity-field-grid {
     display: grid;
-    gap: 10px;
+    gap: 8px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -1831,8 +1850,8 @@ button[type="submit"]:hover,
     border: 1px solid var(--admin-border);
     border-radius: 12px;
     display: grid;
-    gap: 6px;
-    padding: 10px 12px;
+    gap: 4px;
+    padding: 9px 10px;
 }
 
 .entity-field span {
@@ -1843,6 +1862,12 @@ button[type="submit"]:hover,
 
 .entity-field strong {
     overflow-wrap: anywhere;
+}
+
+.entity-split-grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .entity-card-list {
@@ -1856,8 +1881,8 @@ button[type="submit"]:hover,
     border: 1px solid var(--admin-border);
     border-radius: 12px;
     display: grid;
-    gap: 12px;
-    padding: 12px;
+    gap: 10px;
+    padding: 10px;
 }
 
 .entity-info-card header {
@@ -1995,10 +2020,14 @@ button[type="submit"]:hover,
     .admin-grid,
     .admin-mini-grid,
     .admin-module-grid,
-    .admin-module-launcher,
     .admin-action-grid,
     .admin-theme-presets {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-module-launcher__tile {
+        flex-basis: calc((100% - 14px) / 2);
+        max-width: calc((100% - 14px) / 2);
     }
 
     .admin-form-grid,
@@ -2086,6 +2115,25 @@ button[type="submit"]:hover,
         font-size: 19px;
     }
 
+    .admin-breadcrumb {
+        gap: 5px;
+        line-height: 1.6;
+        margin-bottom: 8px;
+    }
+
+    .admin-breadcrumb a:first-of-type,
+    .admin-breadcrumb span[aria-hidden="true"]:first-of-type,
+    .admin-breadcrumb a:nth-of-type(2),
+    .admin-breadcrumb a:nth-of-type(2) + span[aria-hidden="true"] {
+        display: none;
+    }
+
+    .admin-breadcrumb::before {
+        color: var(--admin-text-muted);
+        content: "…";
+        font-weight: var(--admin-font-weight-bold);
+    }
+
     .admin-user-menu__trigger span {
         display: none;
     }
@@ -2093,12 +2141,16 @@ button[type="submit"]:hover,
     .admin-grid,
     .admin-mini-grid,
     .admin-module-grid,
-    .admin-module-launcher,
     .admin-action-grid,
     .admin-form-grid,
     .admin-theme-presets,
     .admin-token-grid {
         grid-template-columns: 1fr;
+    }
+
+    .admin-module-launcher__tile {
+        flex-basis: 100%;
+        max-width: 100%;
     }
 
     .admin-module-launcher__tile {
@@ -2168,7 +2220,19 @@ button[type="submit"]:hover,
     }
 
     .entity-workspace__header {
+        gap: 10px;
         grid-template-columns: auto minmax(0, 1fr);
+        padding: 10px;
+    }
+
+    .entity-workspace__avatar {
+        border-radius: 14px;
+        height: 50px;
+        width: 50px;
+    }
+
+    .entity-workspace__title h2 {
+        font-size: 19px;
     }
 
     .entity-workspace__actions {
@@ -2176,7 +2240,13 @@ button[type="submit"]:hover,
         justify-content: flex-start;
     }
 
-    .entity-card-list {
+    .entity-workspace__actions .admin-button {
+        min-height: 34px;
+        padding: 6px 10px;
+    }
+
+    .entity-card-list,
+    .entity-split-grid {
         grid-template-columns: 1fr;
     }
 
@@ -2220,11 +2290,13 @@ button[type="submit"]:hover,
         box-shadow: var(--admin-shadow);
         display: block;
         max-width: 100%;
-        padding: 8px;
+        padding: 6px;
     }
 
     .entity-workspace__mobile-nav summary {
         align-items: center;
+        background: var(--admin-primary-soft);
+        border-radius: 10px;
         cursor: pointer;
         display: flex;
         flex-wrap: wrap;
@@ -2232,7 +2304,15 @@ button[type="submit"]:hover,
         justify-content: space-between;
         list-style: none;
         min-height: 42px;
-        padding: 4px 6px;
+        padding: 8px 10px;
+    }
+
+    .entity-workspace__mobile-nav summary::after {
+        color: var(--admin-primary-hover);
+        content: "⌄";
+        font-size: 18px;
+        font-weight: 900;
+        line-height: 1;
     }
 
     .entity-workspace__mobile-nav summary::-webkit-details-marker {
@@ -2273,7 +2353,36 @@ button[type="submit"]:hover,
     }
 
     .entity-field-grid {
+        background: var(--admin-surface-muted);
+        border: 1px solid var(--admin-border);
+        border-radius: 12px;
+        gap: 0;
         grid-template-columns: 1fr;
+        overflow: hidden;
+    }
+
+    .entity-field {
+        align-items: start;
+        background: transparent;
+        border: 0;
+        border-bottom: 1px solid var(--admin-border);
+        border-radius: 0;
+        gap: 8px;
+        grid-template-columns: minmax(92px, .8fr) minmax(0, 1.2fr);
+        padding: 9px 10px;
+    }
+
+    .entity-field:last-child {
+        border-bottom: 0;
+    }
+
+    .entity-field span {
+        font-size: 12px;
+    }
+
+    .entity-section {
+        gap: 10px;
+        padding: 12px;
     }
 
     .entity-responsive-table {

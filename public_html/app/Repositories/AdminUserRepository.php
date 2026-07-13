@@ -300,8 +300,8 @@ class AdminUserRepository extends BaseRepository
             WHERE user_role_assignments.user_id = ?
             ORDER BY
                 CASE WHEN user_role_assignments.is_active = 1 THEN 0 ELSE 1 END ASC,
-                CASE WHEN roles.code = 'user' THEN 0 ELSE 1 END ASC,
-                {$priority} ASC,
+                {$priority} DESC,
+                CASE WHEN roles.code = 'user' THEN 1 ELSE 0 END ASC,
                 user_role_assignments.id ASC
         ");
         $statement->execute([$userId]);

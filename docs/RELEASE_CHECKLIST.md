@@ -84,6 +84,17 @@
 - User detail diagnostics include `admin_entity_detail_workspace_available=true`.
 - User detail diagnostics include `admin_user_detail_tabbed_workspace_available=true`.
 - User detail diagnostics include `admin_user_detail_tab_specific_loading=true`.
+- `/admin/users` displays a calculated row number instead of raw `users.id`.
+- User detail compact header is available on desktop and mobile.
+- Mobile user detail fields render as compact label/value rows.
+- Optional empty identity fields are hidden in read-only mode.
+- Account/security summary is deduplicated.
+- Roles/access view uses semantic access scope and validity labels.
+- Appointments UI uses Persian semantic section titles and hides technical table names.
+- Compact empty states are used for missing contacts, addresses, roles, and appointments.
+- Dashboard module launcher centers incomplete desktop rows without placeholder cards.
+- `/_diagnostics` includes `admin_users_list_raw_ids_hidden=true`.
+- `/_diagnostics` includes `admin_user_detail_technical_schema_terms_hidden=true`.
 - `/admin/org-units` opens a read-only organization units list for roles with `org_units.view`.
 - `/admin/org-units` searches title, code, type, and parent title.
 - `/admin/org-units` paginates server-side and preserves `q`.

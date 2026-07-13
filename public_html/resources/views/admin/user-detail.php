@@ -12,6 +12,7 @@ $tabs = $detail['tabs'] ?? [];
 $activeTab = (string) ($detail['active_tab'] ?? 'overview');
 $tabContent = $detail['content'] ?? [];
 $activeTabTitle = '';
+$emptyValue = '—';
 
 foreach ($tabs as $tab) {
     if (($tab['key'] ?? '') === $activeTab) {
@@ -20,10 +21,22 @@ foreach ($tabs as $tab) {
     }
 }
 
-$renderFieldList = function (array $fields): void {
+$isEmptyDisplayValue = static function (mixed $value) use ($emptyValue): bool {
+    return trim((string) ($value ?? '')) === '' || trim((string) $value) === $emptyValue;
+};
+
+$renderFieldList = function (array $fields) use ($isEmptyDisplayValue): void {
+    $visibleFields = array_values(array_filter($fields, function (array $field) use ($isEmptyDisplayValue): bool {
+        return (($field['show_empty'] ?? false) === true) || !$isEmptyDisplayValue($field['value'] ?? null);
+    }));
+
+    if ($visibleFields === []) {
+        return;
+    }
+
     ?>
     <div class="entity-field-grid">
-        <?php foreach ($fields as $field): ?>
+        <?php foreach ($visibleFields as $field): ?>
             <div class="entity-field">
                 <span><?= admin_h($field['label'] ?? '') ?></span>
                 <strong<?= isset($field['dir']) ? ' dir="' . admin_h($field['dir']) . '"' : '' ?>><?= admin_h($field['value'] ?? '—') ?></strong>
@@ -52,6 +65,38 @@ ob_start();
 
 <?php if ($activeTab === 'identity'): ?>
     <?php $identity = $content['identity'] ?? []; ?>
+    <?php
+    $identityFields = [];
+    $fullName = (string) ($identity['full_name'] ?? '—');
+    $firstName = (string) ($identity['first_name'] ?? '—');
+    $lastName = (string) ($identity['last_name'] ?? '—');
+
+    if (!$isEmptyDisplayValue($fullName)) {
+        $identityFields[] = ['label' => 'نام کامل ثبت‌شده', 'value' => $fullName, 'show_empty' => true];
+    }
+
+    if (!$isEmptyDisplayValue($firstName) && $firstName !== $fullName) {
+        $identityFields[] = ['label' => 'نام', 'value' => $firstName];
+    }
+
+    if (!$isEmptyDisplayValue($lastName) && $lastName !== $fullName) {
+        $identityFields[] = ['label' => 'نام خانوادگی', 'value' => $lastName];
+    }
+
+    foreach ([
+        ['label' => 'نوع شخص', 'value' => $identity['person_type'] ?? '—', 'show_empty' => true],
+        ['label' => 'کد ملی', 'value' => $identity['national_code'] ?? '—', 'dir' => 'ltr'],
+        ['label' => 'نام پدر', 'value' => $identity['father_name'] ?? '—'],
+        ['label' => 'تاریخ تولد', 'value' => $identity['birth_date'] ?? '—'],
+        ['label' => 'محل تولد', 'value' => $identity['birth_place'] ?? '—'],
+        ['label' => 'شماره شناسنامه', 'value' => $identity['identity_number'] ?? '—', 'dir' => 'ltr'],
+        ['label' => 'سریال شناسنامه', 'value' => $identity['identity_serial'] ?? '—', 'dir' => 'ltr'],
+    ] as $field) {
+        $identityFields[] = $field;
+    }
+
+    $hiddenIdentityFields = count(array_filter($identityFields, fn (array $field): bool => (($field['show_empty'] ?? false) !== true) && $isEmptyDisplayValue($field['value'] ?? null)));
+    ?>
     <section class="entity-section">
         <div class="admin-section__header">
             <div>
@@ -59,22 +104,15 @@ ob_start();
                 <p class="admin-muted">مشخصات پایه شخص بدون نمایش داده‌های حساس خام.</p>
             </div>
         </div>
-        <?php $renderFieldList([
-            ['label' => 'نام کامل', 'value' => $identity['full_name'] ?? '—'],
-            ['label' => 'نام', 'value' => $identity['first_name'] ?? '—'],
-            ['label' => 'نام خانوادگی', 'value' => $identity['last_name'] ?? '—'],
-            ['label' => 'نوع شخص', 'value' => $identity['person_type'] ?? '—'],
-            ['label' => 'کد ملی', 'value' => $identity['national_code'] ?? '—', 'dir' => 'ltr'],
-            ['label' => 'نام پدر', 'value' => $identity['father_name'] ?? '—'],
-            ['label' => 'تاریخ تولد', 'value' => $identity['birth_date'] ?? '—'],
-            ['label' => 'محل تولد', 'value' => $identity['birth_place'] ?? '—'],
-            ['label' => 'شماره شناسنامه', 'value' => $identity['identity_number'] ?? '—', 'dir' => 'ltr'],
-            ['label' => 'سریال شناسنامه', 'value' => $identity['identity_serial'] ?? '—', 'dir' => 'ltr'],
-        ]); ?>
+        <?php $renderFieldList($identityFields); ?>
+        <?php if ($hiddenIdentityFields > 0): ?>
+            <div class="admin-empty-state admin-empty-state--compact">برخی اطلاعات هویتی این شخص هنوز تکمیل نشده است.</div>
+        <?php endif; ?>
     </section>
 <?php elseif ($activeTab === 'contacts'): ?>
     <?php $contacts = $content['contacts'] ?? []; ?>
     <?php $addresses = $content['addresses'] ?? []; ?>
+    <div class="entity-split-grid">
     <section class="entity-section">
         <div class="admin-section__header">
             <div>
@@ -108,7 +146,7 @@ ob_start();
         <div class="admin-section__header">
             <div>
                 <h2>نشانی‌ها</h2>
-                <p class="admin-muted">آدرس‌های ثبت‌شده بدون نمایش شناسه‌های داخلی.</p>
+                <p class="admin-muted">نشانی‌های ثبت‌شده با عنوان‌های قابل فهم و بدون جزئیات داخلی.</p>
             </div>
         </div>
         <?php if ($addresses === []): ?>
@@ -134,6 +172,7 @@ ob_start();
             </div>
         <?php endif; ?>
     </section>
+    </div>
 <?php elseif ($activeTab === 'account'): ?>
     <?php $account = $content['account'] ?? []; ?>
     <?php $security = $content['security'] ?? []; ?>
@@ -163,14 +202,12 @@ ob_start();
                 <p class="admin-muted">رازها، کدها و توکن‌ها در این بخش نمایش داده نمی‌شوند.</p>
             </div>
         </div>
-        <div class="admin-mini-grid">
-            <article class="admin-card"><span>MFA فعال</span><strong><?= admin_h($security['mfa_enabled'] ?? 'خیر') ?></strong></article>
-            <article class="admin-card"><span>TOTP فعال</span><strong><?= admin_h($security['totp_enabled'] ?? 'خیر') ?></strong></article>
-            <article class="admin-card"><span>کد بازیابی</span><strong><?= admin_h($security['recovery_codes_available'] ?? 'خیر') ?></strong></article>
-            <article class="admin-card"><span>تعداد کدهای بازیابی</span><strong><?= admin_h($security['recovery_codes_count'] ?? '۰') ?></strong></article>
-            <article class="admin-card"><span>دستگاه مورد اعتماد</span><strong><?= admin_h($security['trusted_devices_available'] ?? 'خیر') ?></strong></article>
-            <article class="admin-card"><span>تعداد دستگاه‌های فعال</span><strong><?= admin_h($security['trusted_devices_count'] ?? '۰') ?></strong></article>
-        </div>
+        <?php $renderFieldList([
+            ['label' => 'MFA', 'value' => $security['mfa_enabled'] ?? 'خیر', 'show_empty' => true],
+            ['label' => 'TOTP', 'value' => $security['totp_enabled'] ?? 'خیر', 'show_empty' => true],
+            ['label' => 'کدهای بازیابی باقی‌مانده', 'value' => $security['recovery_codes_count'] ?? '۰', 'show_empty' => true],
+            ['label' => 'دستگاه‌های مورد اعتماد', 'value' => $security['trusted_devices_count'] ?? '۰', 'show_empty' => true],
+        ]); ?>
     </section>
 <?php elseif ($activeTab === 'access'): ?>
     <?php $roles = $content['roles'] ?? []; ?>
@@ -191,11 +228,8 @@ ob_start();
                             <th>نقش</th>
                             <th>اولویت</th>
                             <th>وضعیت</th>
-                            <th>محدوده</th>
-                            <th>نوع سازمان</th>
-                            <th>سطح سازمان</th>
-                            <th>شروع</th>
-                            <th>پایان</th>
+                            <th>محدوده دسترسی</th>
+                            <th>اعتبار</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -208,10 +242,7 @@ ob_start();
                                 <td><?= admin_h($role['priority'] ?? '—') ?></td>
                                 <td><span class="admin-status-badge admin-status-badge--<?= admin_h($role['status']['code'] ?? 'unknown') ?>"><?= admin_h($role['status']['label'] ?? '—') ?></span></td>
                                 <td><?= admin_h($role['scope_summary'] ?? '—') ?></td>
-                                <td><?= admin_h($role['organization_type_title'] ?? '—') ?></td>
-                                <td><?= admin_h($role['organization_level_title'] ?? '—') ?></td>
-                                <td><?= admin_h($role['starts_at'] ?? '—') ?></td>
-                                <td><?= admin_h($role['ends_at'] ?? '—') ?></td>
+                                <td><?= admin_h($role['validity'] ?? 'بدون محدودیت') ?></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -228,10 +259,7 @@ ob_start();
                             ['label' => 'کد نقش', 'value' => $role['role_code'] ?? '—', 'dir' => 'ltr'],
                             ['label' => 'اولویت', 'value' => $role['priority'] ?? '—'],
                             ['label' => 'محدوده', 'value' => $role['scope_summary'] ?? '—'],
-                            ['label' => 'نوع سازمان', 'value' => $role['organization_type_title'] ?? '—'],
-                            ['label' => 'سطح سازمان', 'value' => $role['organization_level_title'] ?? '—'],
-                            ['label' => 'شروع', 'value' => $role['starts_at'] ?? '—'],
-                            ['label' => 'پایان', 'value' => $role['ends_at'] ?? '—'],
+                            ['label' => 'اعتبار', 'value' => $role['validity'] ?? 'بدون محدودیت', 'show_empty' => true],
                         ]); ?>
                     </article>
                 <?php endforeach; ?>
@@ -244,12 +272,12 @@ ob_start();
     <section class="entity-section">
         <div class="admin-section__header">
             <div>
-                <h2>انتساب‌های سازمانی داخلی</h2>
-                <p class="admin-muted">داده‌های موجود در user_org_assignments بدون ادغام حدسی.</p>
+                <h2>وابستگی‌های سازمانی</h2>
+                <p class="admin-muted">سوابق واحد، سمت و وابستگی‌های سازمانی ثبت‌شده برای این شخص.</p>
             </div>
         </div>
         <?php if ($legacy === []): ?>
-            <div class="admin-empty-state">انتساب سازمانی برای این شخص ثبت نشده است.</div>
+            <div class="admin-empty-state">وابستگی سازمانی برای این شخص ثبت نشده است.</div>
         <?php else: ?>
             <div class="entity-card-list">
                 <?php foreach ($legacy as $assignment): ?>
@@ -274,12 +302,12 @@ ob_start();
     <section class="entity-section">
         <div class="admin-section__header">
             <div>
-                <h2>انتصاب‌های رسمی سازمان</h2>
-                <p class="admin-muted">داده‌های canonical در organization_appointments در صورت وجود.</p>
+                <h2>انتصاب‌های رسمی سازمانی</h2>
+                <p class="admin-muted">انتصاب‌های رسمی این شخص در پست‌های سازمانی.</p>
             </div>
         </div>
         <?php if ($canonical === []): ?>
-            <div class="admin-empty-state">انتصاب canonical برای این شخص ثبت نشده است.</div>
+            <div class="admin-empty-state">انتصاب رسمی سازمانی برای این شخص ثبت نشده است.</div>
         <?php else: ?>
             <div class="entity-card-list">
                 <?php foreach ($canonical as $appointment): ?>
@@ -295,7 +323,7 @@ ob_start();
                             ['label' => 'کد جایگاه', 'value' => $appointment['organization_position_code'] ?? '—', 'dir' => 'ltr'],
                             ['label' => 'نوع انتصاب', 'value' => $appointment['appointment_type'] ?? '—'],
                             ['label' => 'اصلی', 'value' => $appointment['is_primary'] ?? 'خیر'],
-                            ['label' => 'سرپرست/acting', 'value' => $appointment['is_acting'] ?? 'خیر'],
+                            ['label' => 'سرپرست موقت', 'value' => $appointment['is_acting'] ?? 'خیر'],
                             ['label' => 'شروع', 'value' => $appointment['valid_from'] ?? '—'],
                             ['label' => 'پایان', 'value' => $appointment['valid_to'] ?? '—'],
                             ['label' => 'مرجع انتصاب', 'value' => $appointment['appointment_reference'] ?? '—', 'dir' => 'ltr'],
@@ -315,20 +343,20 @@ ob_start();
                 <p class="admin-muted">نمای فشرده از مهم‌ترین اطلاعات، بدون تکرار همه فیلدها.</p>
             </div>
         </div>
-        <div class="admin-mini-grid">
-            <article class="admin-card"><span>نام نمایشی</span><strong><?= admin_h($overview['display_name'] ?? '—') ?></strong></article>
-            <article class="admin-card"><span>نام کاربری</span><strong dir="ltr"><?= admin_h($overview['username'] ?? '—') ?></strong></article>
-            <article class="admin-card"><span>وضعیت حساب</span><strong><?= admin_h($overview['status']['label'] ?? '—') ?></strong></article>
-            <article class="admin-card"><span>نوع شخص</span><strong><?= admin_h($overview['person_type'] ?? '—') ?></strong></article>
-            <article class="admin-card"><span>استان</span><strong><?= admin_h($overview['province'] ?? '—') ?></strong></article>
-            <article class="admin-card"><span>شهرستان</span><strong><?= admin_h($overview['county'] ?? '—') ?></strong></article>
-            <article class="admin-card"><span>شهر</span><strong><?= admin_h($overview['city'] ?? '—') ?></strong></article>
-            <article class="admin-card"><span>نقش‌های فعال</span><strong><?= admin_h($overview['active_role_count_label'] ?? '۰') ?></strong></article>
-            <article class="admin-card"><span>واحد اصلی</span><strong><?= admin_h($overview['primary_org_unit'] ?? '—') ?></strong></article>
-            <article class="admin-card"><span>MFA</span><strong><?= admin_h($security['mfa_enabled'] ?? 'خیر') ?></strong></article>
-            <article class="admin-card"><span>ایجاد</span><strong><?= admin_h($overview['created_at'] ?? '—') ?></strong></article>
-            <article class="admin-card"><span>آخرین ورود</span><strong><?= admin_h($overview['last_login_at'] ?? '—') ?></strong></article>
-        </div>
+        <?php $renderFieldList([
+            ['label' => 'نام نمایشی', 'value' => $overview['display_name'] ?? '—', 'show_empty' => true],
+            ['label' => 'نام کاربری', 'value' => $overview['username'] ?? '—', 'dir' => 'ltr', 'show_empty' => true],
+            ['label' => 'وضعیت حساب', 'value' => $overview['status']['label'] ?? '—', 'show_empty' => true],
+            ['label' => 'نوع شخص', 'value' => $overview['person_type'] ?? '—', 'show_empty' => true],
+            ['label' => 'استان', 'value' => $overview['province'] ?? '—', 'show_empty' => true],
+            ['label' => 'شهرستان', 'value' => $overview['county'] ?? '—', 'show_empty' => true],
+            ['label' => 'شهر', 'value' => $overview['city'] ?? '—', 'show_empty' => true],
+            ['label' => 'نقش‌های فعال', 'value' => $overview['active_role_count_label'] ?? '۰', 'show_empty' => true],
+            ['label' => 'واحد اصلی', 'value' => $overview['primary_org_unit'] ?? '—', 'show_empty' => true],
+            ['label' => 'MFA', 'value' => $security['mfa_enabled'] ?? 'خیر', 'show_empty' => true],
+            ['label' => 'ایجاد', 'value' => $overview['created_at'] ?? '—', 'show_empty' => true],
+            ['label' => 'آخرین ورود', 'value' => $overview['last_login_at'] ?? '—'],
+        ]); ?>
     </section>
     <section class="entity-section">
         <div class="admin-section__header">
@@ -337,11 +365,10 @@ ob_start();
                 <p class="admin-muted">خلاصه کوتاه؛ جزئیات کامل در تب‌های نقش‌ها و انتصاب‌ها قرار دارد.</p>
             </div>
         </div>
-        <div class="admin-mini-grid">
-            <article class="admin-card"><span>نقش‌ها</span><strong><?= admin_h($overview['active_role_summary'] ?? '—') ?></strong></article>
-            <article class="admin-card"><span>انتساب سازمانی</span><strong><?= admin_h($overview['primary_org_unit'] ?? '—') ?></strong></article>
-            <article class="admin-card"><span>کد بازیابی MFA</span><strong><?= admin_h($security['recovery_codes_available'] ?? 'خیر') ?></strong></article>
-        </div>
+        <?php $renderFieldList([
+            ['label' => 'نقش‌ها', 'value' => $overview['active_role_summary'] ?? '—', 'show_empty' => true],
+            ['label' => 'وابستگی سازمانی', 'value' => $overview['primary_org_unit'] ?? '—', 'show_empty' => true],
+        ]); ?>
     </section>
 <?php endif; ?>
 

@@ -13,6 +13,17 @@ It provides:
 - Mobile section navigator using a vertical disclosure menu, not a horizontal tab strip.
 - No full-page horizontal overflow on mobile.
 
+## Presentation Rules
+
+- Compact headers are preferred over hero-style detail cards.
+- Mobile fields use a compact label/value list instead of one oversized card per field.
+- Optional empty fields are hidden in read-only mode when they add visual noise.
+- A concise incomplete-information notice may be shown when optional profile data is not complete.
+- Forms may still show all editable fields later; this rule is for read-only detail display.
+- Empty states must be content-driven and compact.
+- Raw IDs and technical schema/table names must never be visible in the user-facing UI.
+- Access scopes must be displayed semantically, such as global, organization, province, city, unit, or organization/unit summaries.
+
 ## User Detail Routes
 
 Current user detail routes are:

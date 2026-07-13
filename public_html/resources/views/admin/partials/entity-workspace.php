@@ -68,7 +68,7 @@ foreach ($tabs as $tab) {
 
         <details class="entity-workspace__mobile-nav">
             <summary>
-                <span>بخش‌های صفحه</span>
+                <span>بخش فعلی</span>
                 <strong><?= admin_h($activeTitle !== '' ? $activeTitle : 'انتخاب بخش') ?></strong>
             </summary>
             <nav aria-label="بخش‌های صفحه">

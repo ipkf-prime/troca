@@ -398,6 +398,7 @@ class AdminUserService extends BaseService
             'include_children' => AdminLookup::booleanYesNo($row['include_children'] ?? 0),
             'starts_at' => $this->formatDate($row['starts_at'] ?? null),
             'ends_at' => $this->formatDate($row['ends_at'] ?? null),
+            'validity' => $this->validityLabel($row['starts_at'] ?? null, $row['ends_at'] ?? null),
         ];
     }
 
@@ -618,6 +619,27 @@ class AdminUserService extends BaseService
             'representative' => 'نمایندگی',
             default => AdminLookup::UNKNOWN,
         };
+    }
+
+    private function validityLabel(mixed $startsAt, mixed $endsAt): string
+    {
+        $start = $this->formatDateOnly($startsAt);
+        $end = $this->formatDateOnly($endsAt);
+        $empty = $this->value(null);
+
+        if ($start === $empty && $end === $empty) {
+            return 'بدون محدودیت';
+        }
+
+        if ($start !== $empty && $end !== $empty) {
+            return $start . ' تا ' . $end;
+        }
+
+        if ($start !== $empty) {
+            return 'از ' . $start;
+        }
+
+        return 'تا ' . $end;
     }
 
     private function value(mixed $value): string

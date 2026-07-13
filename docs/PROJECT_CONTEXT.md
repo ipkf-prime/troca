@@ -206,6 +206,8 @@ Admin entity detail workspace foundation now includes:
 - Mobile section navigation without a horizontally scrolling tab bar.
 - Future reuse path for organization, unit, position, correspondence, and other entity detail pages.
 
+The workspace has been polished for compact desktop/mobile display: row numbers replace raw user IDs in the users list, mobile field lists are compact, optional empty identity fields are hidden in read-only mode, technical schema names are hidden from appointments UI, and dashboard incomplete module rows are centered.
+
 Future automation readiness:
 
 - دبیرخانه

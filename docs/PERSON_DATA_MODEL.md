@@ -68,6 +68,8 @@ Foreign keys and technical codes are stored internally. User interfaces must dis
 
 Admin user detail uses the reusable Entity Detail Workspace. Identity fields, contacts, addresses, account/security summaries, access assignments, and organization appointments are loaded per active route tab instead of rendering the full person/account dataset on one long page. Empty contact and address datasets render clean Persian empty states instead of empty tables.
 
+Read-only identity display hides optional empty fields to avoid repeated dash-only rows. A compact incomplete-information notice may be shown when profile data is not complete. Future create/edit forms may still show all editable fields with validation and help text.
+
 ## Deferred work
 
 Create/edit forms, permissions for sensitive profile data, masking, audit history, verification workflows, and synchronization remain deferred. The next recorded phase is Dynamic organization foundation.

@@ -98,6 +98,8 @@ The user detail page is now a tabbed Entity Detail Workspace:
 
 All tabs currently require `users.view`. The workspace is ready for separate per-tab permissions in later phases. The route URL preserves active tab state on refresh and browser back/forward. Mobile uses a vertical section navigator instead of a horizontal scrolling tab bar.
 
+Visible user lists and detail pages must not expose raw internal user IDs. The users list displays a calculated row number, while detail links may continue to use the internal ID in the URL. Appointments and organization assignment tabs use Persian semantic titles and never expose table names such as `user_org_assignments` or `organization_appointments`.
+
 The page includes:
 
 - Persian RTL module-style header and breadcrumb back to `/admin/modules/users`
