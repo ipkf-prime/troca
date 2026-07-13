@@ -462,3 +462,23 @@ Version: `0.2.0-foundation`
 - `/_diagnostics` includes `admin_profile_self_service_role_switch_available=true`.
 - `/_diagnostics` includes `admin_profile_security_status_available=true`.
 - `/_diagnostics` includes `admin_runtime_version_in_footer=true`.
+
+## v0.4.6 Extended Person Data Foundation Checks
+
+- Migration creates `person_profiles`, `contact_types`, `person_contacts`, `address_types`, and `person_addresses`.
+- Existing `persons` and `users` records remain valid without related profile/contact/address rows.
+- Extended identity fields are not added to `users`.
+- Existing `persons.national_code`, `father_name`, and `birth_date` remain canonical and are not duplicated.
+- `persons.birth_date` remains a standard database `DATE`; Jalali conversion stays in the UI/application layer.
+- Nullable national-code uniqueness is added only when existing data makes it safe.
+- `person_profiles.person_id` is unique.
+- Contacts and addresses support multiple rows per person.
+- Contact and address types remain configurable data rather than PHP enums.
+- Address province/city fields reuse existing lookup tables where compatible.
+- No mandatory business lookup seed data is added.
+- No person/profile CRUD UI is added.
+- No organization schema change or Automation feature is added.
+- Diagnostics report only the six safe person-data schema booleans.
+- Diagnostics do not expose person values, record counts, column details, or migration SQL.
+- Sensitive-data masking, permissions, audit, and logging requirements are documented.
+- `git diff --check` passes.

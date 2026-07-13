@@ -93,6 +93,11 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $orgUnitsTableExists = \IPKF\Database\Database::tableExists('org_units');
     $positionsTableExists = \IPKF\Database\Database::tableExists('positions');
     $userOrgAssignmentsTableExists = \IPKF\Database\Database::tableExists('user_org_assignments');
+    $personProfilesTableExists = \IPKF\Database\Database::tableExists('person_profiles');
+    $contactTypesTableExists = \IPKF\Database\Database::tableExists('contact_types');
+    $personContactsTableExists = \IPKF\Database\Database::tableExists('person_contacts');
+    $addressTypesTableExists = \IPKF\Database\Database::tableExists('address_types');
+    $personAddressesTableExists = \IPKF\Database\Database::tableExists('person_addresses');
 
     $mfaSchemaAvailable = \IPKF\Database\Database::tableExists('user_mfa_methods')
         && \IPKF\Database\Database::tableExists('mfa_challenges')
@@ -400,6 +405,16 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'org_units_schema_available' => $orgUnitsTableExists,
         'positions_schema_available' => $positionsTableExists,
         'user_org_assignments_schema_available' => $userOrgAssignmentsTableExists,
+        'person_extended_profile_schema_available' => $personProfilesTableExists,
+        'person_contacts_schema_available' => $personContactsTableExists,
+        'person_addresses_schema_available' => $personAddressesTableExists,
+        'person_contact_types_schema_available' => $contactTypesTableExists,
+        'person_address_types_schema_available' => $addressTypesTableExists,
+        'person_sensitive_data_foundation_available' => $personProfilesTableExists
+            && $contactTypesTableExists
+            && $personContactsTableExists
+            && $addressTypesTableExists
+            && $personAddressesTableExists,
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),

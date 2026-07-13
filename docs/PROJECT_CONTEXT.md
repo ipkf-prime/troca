@@ -178,6 +178,17 @@ Scope:
 - Safe diagnostics for the organization schema foundation.
 - No Automation tables, correspondence tables, UI, CRM, ERP, Bot, or business workflows are added.
 
+Extended person data foundation:
+
+- `person_profiles` adds optional one-to-one complementary identity attributes while existing `persons` fields remain canonical.
+- `contact_types` and `address_types` provide configurable semantic lookups.
+- `person_contacts` and `person_addresses` support multiple optional records per person.
+- Existing authentication behavior and `users` schema remain unchanged.
+- Sensitive person values are excluded from diagnostics and require masking, permissions, and auditing in future UI work.
+- Forms and CRUD remain deferred.
+
+Next phase: Dynamic organization foundation.
+
 Future automation readiness:
 
 - دبیرخانه

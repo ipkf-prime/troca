@@ -208,3 +208,17 @@ The table is designed for future personal and unit cartables, routing work to a 
 - Reference IDs are never used as the user-facing fallback. Admin pages display Persian semantic titles when lookup/reference data exists.
 - Technical codes may appear only as secondary administrative data, not as the primary label.
 - No automation features are implemented yet.
+
+## Extended person data foundation
+
+This milestone also prepares optional person profile, contact, and address data before user creation/editing workflows are introduced.
+
+- `persons` remains the core real-world identity.
+- `users` remains authentication-account data only.
+- `person_profiles` contains complementary one-to-one identity details without duplicating existing `persons` fields.
+- `contact_types` and `address_types` are configurable lookups without hardcoded business values.
+- `person_contacts` and `person_addresses` support multiple optional rows per person.
+- Existing `provinces` and `cities` lookups are reused for addresses.
+- Existing people and users remain valid without any new related row.
+
+Sensitive values require future masking, separate permissions, and audit controls. This phase adds no profile forms, CRUD routes, synchronization, or UI output. See `docs/PERSON_DATA_MODEL.md` and `docs/PRIVACY_SECURITY.md`.

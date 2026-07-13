@@ -22,12 +22,13 @@ try {
         new \IPKF\Database\Migrations\CreateAdminPanelShellTables(),
         new \IPKF\Database\Migrations\AddScopedAdminThemeSettings(),
         new \IPKF\Database\Migrations\CreateAdminUsersOrganizationTables(),
+        new \IPKF\Database\Migrations\CreateExtendedPersonDataTables(),
     ]);
 
     $manager->migrate();
 
     header('Content-Type: text/plain; charset=UTF-8');
-    echo "MIGRATION DONE: ipkf_runtime_checks, auth_rbac_schema, identity_access_foundation, admin_panel_shell, scoped_admin_theme_settings, admin_users_organization";
+    echo "MIGRATION DONE: ipkf_runtime_checks, auth_rbac_schema, identity_access_foundation, admin_panel_shell, scoped_admin_theme_settings, admin_users_organization, extended_person_data";
 } catch (Throwable $exception) {
     http_response_code(500);
     echo "MIGRATION FAILED";
