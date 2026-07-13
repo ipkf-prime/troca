@@ -113,16 +113,11 @@ The page uses the existing `MfaService` pending challenge flow. Valid verificati
 
 ## Dashboard
 
-`/admin/dashboard` requires authentication and shows only shell-level operational data:
-
-- current auth status
-- active role
-- MFA status
-- framework version
-- available role assignments
-- permission-filtered module tiles
+`/admin/dashboard` requires authentication and shows the permission-filtered module launcher.
 
 It does not show CRM, Bot, ERP, Automation, Marketplace, or business data.
+
+The dashboard no longer renders account summary cards, runtime version cards, MFA/login status cards, assignment tables, or role switching controls. Runtime version is shown discreetly in the admin footer. User access details live under `/admin/profile/access`, and login/MFA status lives under `/admin/security`.
 
 Dashboard module tiles use the current active-role permission context. A tile is rendered only when at least one destination inside it is permitted.
 
@@ -161,13 +156,15 @@ Admin icons use the local `/assets/admin/css/icons.css` icon-font foundation thr
 
 ## Active Access Switching
 
-`/admin/access` lists the current user's active assignments and uses the existing `AccessService::switchTo()` method.
+`/admin/profile/access` lists the current user's own active assignments and uses the existing `AccessService::switchTo()` method for self-service switching.
 
 After switching, `active_role_assignment_id` is updated in the session. Permission-sensitive checks such as `/admin-check` continue to depend on the active role.
 
 The default active role remains the lowest-privilege assignment selected by the Auth foundation.
 
-In v0.4.5, `/admin/access` remains an admin management page and requires `access.manage`, but switching the authenticated user's own active assignment is self-service. The dashboard assignment table posts to the same switch action and does not require the current active role to have `access.manage`.
+`/admin/access` remains an administrative access page and requires `access.manage`. It is not used as the normal self-service account switcher.
+
+The dashboard assignment table has been removed. The authenticated user's own assignment switching now happens from `/admin/profile/access` and does not require `access.manage`.
 
 ## Profile Shell
 
@@ -180,6 +177,10 @@ In v0.4.5, `/admin/access` remains an admin management page and requires `access
 - active role
 - MFA status
 
+`/admin/profile/access` displays the current user's available assignments, current active role, and self-service switch controls. It does not expose other users' assignments.
+
+`/admin/security` displays login/session and MFA status that used to appear on the dashboard.
+
 Profile editing is intentionally not implemented in this phase. Future profile edits should reuse the existing identity change verification flow.
 
 ## Account Pages
@@ -189,6 +190,7 @@ The shell includes account-focused pages:
 - `/admin/profile`
 - `/admin/account`
 - `/admin/security`
+- `/admin/profile/access`
 - `/admin/password`
 - `/admin/my-theme`
 
@@ -457,6 +459,10 @@ Development-only runtime forensics are available at `/admin/theme/debug` when `A
 - Admin POST forms are CSRF protected.
 - Existing Auth, MFA, and Access services are reused.
 - Admin route guards use the active role assignment permission context.
+- Dashboard account cards and assignment switching are intentionally removed from `/admin/dashboard`.
+- `/admin/profile/access` is authenticated self-service and shows only the current user's assignments.
+- `/admin/security` owns login and MFA status display.
+- Admin UI display numbers use Persian digits where they are human-facing; technical values such as emails, usernames, query parameters, hidden ids, and stored form values stay canonical.
 - Admin sidebar and account dropdown visibility are permission-filtered in v0.4.5.
 - Authenticated users without permission receive a clean Persian 403 page.
 - `/admin/users`, `/admin/org-units`, and `/admin/positions` are read-only admin lists with server-side search, pagination, and ascending table order.

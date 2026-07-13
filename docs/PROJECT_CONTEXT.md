@@ -134,8 +134,8 @@ Scope:
 
 - Admin login page using the existing AuthService login resolution for email, mobile, and username.
 - MFA verification page using the existing MfaService pending challenge flow.
-- Dashboard shell with auth status, active role, MFA status, version, and assignment summary.
-- Access switch UI using the existing AccessService.
+- Dashboard shell as a module launcher; account status cards and assignment summary are kept out of the dashboard.
+- Self-service access switch UI under `/admin/profile/access` using the existing AccessService.
 - Profile display shell with safe user identity fields.
 - Built-in admin theme preset selection, system/personal theme scope, and `/admin/theme`.
 - Reusable RTL admin layout and local CSS.

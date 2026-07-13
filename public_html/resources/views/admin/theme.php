@@ -161,7 +161,7 @@ ob_start();
                 <span>گردی گوشه‌ها</span>
                 <select name="token_radius" <?= $canManageTheme ? '' : 'disabled' ?>>
                     <?php foreach ($radiusOptions as $radius): ?>
-                        <option value="<?= admin_h($radius) ?>" <?= $theme['tokens']['radius'] === $radius ? 'selected' : '' ?>><?= admin_h($radius) ?></option>
+                        <option value="<?= admin_h($radius) ?>" <?= $theme['tokens']['radius'] === $radius ? 'selected' : '' ?>><?= admin_h(\App\Support\AdminFormat::digits($radius)) ?></option>
                     <?php endforeach; ?>
                 </select>
             </label>
@@ -193,7 +193,7 @@ ob_start();
                 <span>اندازه پایه فونت</span>
                 <select name="token_font_size_base" <?= $canManageTheme ? '' : 'disabled' ?>>
                     <?php foreach ($fontSizeOptions as $size): ?>
-                        <option value="<?= admin_h($size) ?>" <?= $theme['tokens']['font_size_base'] === $size ? 'selected' : '' ?>><?= admin_h($size) ?></option>
+                        <option value="<?= admin_h($size) ?>" <?= $theme['tokens']['font_size_base'] === $size ? 'selected' : '' ?>><?= admin_h(\App\Support\AdminFormat::digits($size)) ?></option>
                     <?php endforeach; ?>
                 </select>
             </label>
@@ -201,7 +201,7 @@ ob_start();
                 <span>فاصله خطوط</span>
                 <select name="token_line_height_base" <?= $canManageTheme ? '' : 'disabled' ?>>
                     <?php foreach ($lineHeightOptions as $lineHeight): ?>
-                        <option value="<?= admin_h($lineHeight) ?>" <?= $theme['tokens']['line_height_base'] === $lineHeight ? 'selected' : '' ?>><?= admin_h($lineHeight) ?></option>
+                        <option value="<?= admin_h($lineHeight) ?>" <?= $theme['tokens']['line_height_base'] === $lineHeight ? 'selected' : '' ?>><?= admin_h(\App\Support\AdminFormat::digits($lineHeight)) ?></option>
                     <?php endforeach; ?>
                 </select>
             </label>

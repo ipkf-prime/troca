@@ -19,6 +19,7 @@ class AdminNavigationRbacService extends BaseService
         return [
             '/admin/dashboard' => 'admin.dashboard.view',
             '/admin/profile' => 'account.profile.view',
+            '/admin/profile/access' => 'account.profile.view',
             '/admin/account' => 'account.profile.view',
             '/admin/security' => 'account.security.view',
             '/admin/password' => 'account.password.change',
@@ -82,6 +83,7 @@ class AdminNavigationRbacService extends BaseService
             ['key' => 'profile', 'title' => $this->fa('&#x067E;&#x0631;&#x0648;&#x0641;&#x0627;&#x06CC;&#x0644; &#x06A9;&#x0627;&#x0631;&#x0628;&#x0631;&#x06CC;'), 'url' => '/admin/profile', 'permission' => 'account.profile.view'],
             ['key' => 'account', 'title' => $this->fa('&#x0627;&#x0637;&#x0644;&#x0627;&#x0639;&#x0627;&#x062A; &#x062D;&#x0633;&#x0627;&#x0628;'), 'url' => '/admin/account', 'permission' => 'account.profile.view'],
             ['key' => 'security', 'title' => $this->fa('&#x0627;&#x0645;&#x0646;&#x06CC;&#x062A; &#x0648; &#x0648;&#x0631;&#x0648;&#x062F;'), 'url' => '/admin/security', 'permission' => 'account.security.view'],
+            ['key' => 'profile-access', 'title' => 'نقش‌ها و دسترسی‌های من', 'url' => '/admin/profile/access', 'permission' => 'account.profile.view'],
             ['key' => 'password', 'title' => $this->fa('&#x062A;&#x063A;&#x06CC;&#x06CC;&#x0631; &#x06A9;&#x0644;&#x0645;&#x0647; &#x0639;&#x0628;&#x0648;&#x0631;'), 'url' => '/admin/password', 'permission' => 'account.password.change'],
             ['key' => 'my-theme', 'title' => $this->fa('&#x067E;&#x0648;&#x0633;&#x062A;&#x0647; &#x0646;&#x0645;&#x0627;&#x06CC;&#x0634;&#x06CC; &#x0645;&#x0646;'), 'url' => '/admin/my-theme', 'permission' => 'account.theme.manage'],
             ['key' => 'logout', 'title' => $this->fa('&#x062E;&#x0631;&#x0648;&#x062C;'), 'url' => '/admin/logout', 'permission' => null],

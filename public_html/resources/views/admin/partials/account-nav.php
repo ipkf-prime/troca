@@ -4,6 +4,7 @@ $accountLinks = [
     '/admin/profile' => 'پروفایل کاربری',
     '/admin/account' => 'اطلاعات حساب',
     '/admin/security' => 'امنیت و ورود',
+    '/admin/profile/access' => 'نقش‌ها و دسترسی‌های من',
     '/admin/password' => 'تغییر کلمه عبور',
     '/admin/my-theme' => 'پوسته نمایشی من',
 ];

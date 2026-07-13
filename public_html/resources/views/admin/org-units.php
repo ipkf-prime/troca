@@ -61,7 +61,7 @@ ob_start();
         </form>
         <div class="admin-users-total">
             <span>تعداد کل</span>
-            <strong><?= admin_h($total) ?></strong>
+            <strong><?= admin_h(\App\Support\AdminFormat::digits($total)) ?></strong>
         </div>
     </div>
 
@@ -90,7 +90,7 @@ ob_start();
                 <tbody>
                     <?php foreach ($items as $unit): ?>
                         <tr>
-                            <td><?= admin_h($unit['id']) ?></td>
+                            <td><?= admin_h(\App\Support\AdminFormat::digits($unit['id'])) ?></td>
                             <td>
                                 <span class="admin-org-unit-title" style="--org-indent: <?= (int) $unit['indent'] ?>px">
                                     <span class="admin-org-unit-title__branch"><?= \App\Support\AdminIcon::html('sitemap') ?></span>
@@ -100,14 +100,14 @@ ob_start();
                             <td dir="ltr"><?= admin_h($unit['code']) ?></td>
                             <td><?= admin_h($unit['type']) ?></td>
                             <td><?= admin_h($unit['parent_title']) ?></td>
-                            <td><?= admin_h($unit['depth']) ?></td>
+                            <td><?= admin_h(\App\Support\AdminFormat::digits($unit['depth'])) ?></td>
                             <td>
                                 <span class="admin-status-badge admin-status-badge--<?= admin_h($unit['status']['code']) ?>">
                                     <?= admin_h($unit['status']['label']) ?>
                                 </span>
                             </td>
-                            <td><?= admin_h($unit['sort_order']) ?></td>
-                            <td dir="ltr"><?= admin_h($unit['created_at']) ?></td>
+                            <td><?= admin_h(\App\Support\AdminFormat::digits($unit['sort_order'])) ?></td>
+                            <td dir="ltr"><?= admin_h(\App\Support\AdminFormat::digits($unit['created_at'])) ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -138,11 +138,11 @@ ob_start();
                         </div>
                         <div>
                             <dt><?= \App\Support\AdminIcon::html('sliders') ?> سطح و ترتیب</dt>
-                            <dd><?= admin_h($unit['depth']) ?> / <?= admin_h($unit['sort_order']) ?></dd>
+                            <dd><?= admin_h(\App\Support\AdminFormat::digits($unit['depth'])) ?> / <?= admin_h(\App\Support\AdminFormat::digits($unit['sort_order'])) ?></dd>
                         </div>
                         <div>
                             <dt><?= \App\Support\AdminIcon::html('calendar') ?> تاریخ ایجاد</dt>
-                            <dd dir="ltr"><?= admin_h($unit['created_at']) ?></dd>
+                            <dd dir="ltr"><?= admin_h(\App\Support\AdminFormat::digits($unit['created_at'])) ?></dd>
                         </div>
                     </dl>
                 </article>
@@ -152,7 +152,7 @@ ob_start();
 
     <?php if ($ok && $total > 0): ?>
         <div class="admin-pagination">
-            <span>صفحه <?= admin_h($page) ?> از <?= admin_h($lastPage) ?></span>
+            <span>صفحه <?= admin_h(\App\Support\AdminFormat::digits($page)) ?> از <?= admin_h(\App\Support\AdminFormat::digits($lastPage)) ?></span>
             <div>
                 <?php if (($pagination['has_previous'] ?? false) === true): ?>
                     <a class="admin-button admin-button--soft" href="<?= admin_h($pageUrl((int) $pagination['previous_page'])) ?>">قبلی</a>

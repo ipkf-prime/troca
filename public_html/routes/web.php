@@ -362,6 +362,12 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
             && class_exists(\App\Services\AccessService::class),
         'admin_active_access_switch_available' => class_exists(\App\Services\AccessService::class),
         'admin_active_access_switch_self_service' => true,
+        'admin_dashboard_account_cards_removed' => true,
+        'admin_dashboard_access_summary_removed' => true,
+        'admin_profile_access_page_available' => true,
+        'admin_profile_self_service_role_switch_available' => true,
+        'admin_profile_security_status_available' => true,
+        'admin_runtime_version_in_footer' => true,
         'admin_users_menu_available' => true,
         'admin_org_units_menu_available' => true,
         'admin_positions_menu_available' => true,
@@ -625,6 +631,20 @@ $router->get('/admin/profile', function ($request, $response) use ($adminRender,
     return $adminRender($response, 'profile', [
         'title' => 'پروفایل کاربر',
         'context' => $context,
+    ]);
+});
+
+$router->get('/admin/profile/access', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/profile/access');
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    return $adminRender($response, 'profile-access', [
+        'title' => 'نقش‌ها و دسترسی‌های من',
+        'context' => $context,
+        'status' => trim((string) $request->input('status', '')),
     ]);
 });
 
@@ -944,7 +964,20 @@ $router->post('/admin/access', function ($request, $response) {
 
     $assignment = (new \App\Services\AccessService())->switchTo($userId, (int) $request->input('role_assignment_id', 0));
 
-    return $response->redirect('/admin/dashboard?access_status=' . ($assignment === null ? 'forbidden' : 'switched'));
+    return $response->redirect('/admin/access?status=' . ($assignment === null ? 'forbidden' : 'switched'));
+});
+
+$router->post('/admin/profile/access', function ($request, $response) {
+    $auth = new \App\Services\AuthService();
+    $userId = $auth->currentUserId();
+
+    if ($userId === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    $assignment = (new \App\Services\AccessService())->switchTo($userId, (int) $request->input('role_assignment_id', 0));
+
+    return $response->redirect('/admin/profile/access?status=' . ($assignment === null ? 'forbidden' : 'switched'));
 });
 
 $adminPlaceholder = function ($path, $title, $message) use ($adminRender, $adminGuard) {

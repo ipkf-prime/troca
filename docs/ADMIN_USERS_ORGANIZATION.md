@@ -41,6 +41,8 @@ Guests are redirected to `/admin/login`. Authenticated users without the require
 
 Direct route access remains permission guarded. The sidebar is module-level only, so users and organization child routes are reached through their module hub actions instead of appearing as separate global menu items.
 
+Account access switching is not part of the organization management pages. The self-service role assignment page is `/admin/profile/access`; `/admin/access` remains an administrative page protected by `access.manage`.
+
 ## Dashboard module tiles
 
 The admin dashboard is the primary visual entry point for users and organization management in this phase.
@@ -179,4 +181,6 @@ The table is designed for future personal and unit cartables, routing work to a 
 - Admin users, organization units, and positions pages are read-only list foundations only.
 - Full CRUD remains deferred.
 - Users, organization units, and positions read-only lists sort from small to large.
+- Dashboard remains a module launcher only. Account cards, security status, and access summaries are kept under profile/security pages.
+- Human-facing admin UI numbers are rendered with Persian digits where safe; technical identifiers, form values, search terms, emails, usernames, and hidden ids stay canonical.
 - No automation features are implemented yet.

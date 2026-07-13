@@ -45,6 +45,7 @@ Planned next work:
 
 - `/admin/dashboard` -> `admin.dashboard.view`
 - `/admin/profile` -> `account.profile.view`
+- `/admin/profile/access` -> `account.profile.view`
 - `/admin/account` -> `account.profile.view`
 - `/admin/security` -> `account.security.view`
 - `/admin/password` -> `account.password.change`
@@ -80,13 +81,15 @@ Permission checks use `AuthorizationService`, which reads the active assignment 
 There are two separate concepts:
 
 - `/admin/access` is the access management page and requires `access.manage`.
-- `/admin/access` POST and `/access/switch` switch the authenticated user's own active assignment and do not require `access.manage`.
+- `/admin/profile/access` is the account self-service page for the authenticated user's own active assignments.
 
 Switching active access is self-service because a limited active role must still be able to switch back to another assigned role. The switch action can only target assignments that belong to the current authenticated user and are active, enabled, and unexpired.
 
 After a successful switch, the session `active_role_assignment_id` changes, permissions are recalculated from the new active assignment, and the sidebar updates on the next page load.
 
 Dashboard module tiles also update after the redirect/refresh. They do not aggregate permissions from inactive assignments.
+
+The dashboard no longer contains the assignment table or role switch forms. Use `/admin/profile/access` for self-service role switching. `/admin/access` remains an administrative page and direct access still requires `access.manage`.
 
 ## Dashboard Module Tiles
 
@@ -176,7 +179,7 @@ It returns safe route and menu metadata only. It does not expose secrets, sessio
 - Switch active access to the base `user` role; verify access, theme, settings, pages, and reports disappear.
 - Open `/admin/access` with the base role; verify HTTP 403.
 - Open `/admin/theme` with the base role; verify HTTP 403.
-- Use the dashboard assignment table to switch from `user` back to `super_admin`.
+- Use `/admin/profile/access` to switch from `user` back to `super_admin`.
 - Verify the header active role badge updates and the sidebar expands after switching.
 - Verify profile, account, security, password, and my-theme remain available when their account permissions exist.
 - Switch back to `super_admin`; verify restricted items return.

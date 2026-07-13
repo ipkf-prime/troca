@@ -116,8 +116,8 @@ Active user role:
 
 Active access switch:
 
-- Dashboard assignment table shows the active row as active and other rows with a role selection button.
-- Active role `user` can switch to the user's own `super_admin` assignment from the dashboard.
+- `/admin/profile/access` shows the active row as active and other rows with a role selection button.
+- Active role `user` can switch to the user's own `super_admin` assignment from `/admin/profile/access`.
 - Active role switching does not require `access.manage`.
 - `/access/switch` cannot switch to another user's assignment.
 - `/access/switch` cannot switch to inactive, revoked, or expired assignments.
@@ -353,9 +353,9 @@ Version: `0.2.0-foundation`
 - Valid TOTP completes admin login.
 - Recovery code fallback is available through `/admin/mfa`.
 - `/admin/dashboard` requires authentication.
-- `/admin/dashboard` shows auth status, active role, MFA status, and version.
-- `/admin/access` lists role assignments.
-- `/admin/access` can switch active role with CSRF protection.
+- `/admin/dashboard` is a module launcher; account status and assignment summary are not rendered there.
+- `/admin/profile/access` lists the authenticated user's own role assignments.
+- `/admin/profile/access` can switch the authenticated user's own active role with CSRF protection.
 - `/admin/profile` displays safe user profile fields.
 - `/admin/theme` loads the dynamic admin theme page.
 - `/admin/theme` shows preset, branding, footer, and advanced placeholder sections only.
@@ -423,3 +423,21 @@ Version: `0.2.0-foundation`
 - `/_diagnostics` includes `admin_positions_search_available=true`.
 - `/_diagnostics` includes `admin_positions_pagination_available=true`.
 - Existing login, MFA, dashboard, RBAC navigation, active access switching, and theme routes still work.
+
+## v0.4.6 Dashboard/Profile Access Checks
+
+- `/admin/dashboard` no longer shows login status, active role, MFA status, runtime version cards, or the access summary table.
+- `/admin/dashboard` remains a module launcher only.
+- `/admin/profile/access` opens for authenticated users with account profile access.
+- `/admin/profile/access` lists only the current user's assignments.
+- `/admin/profile/access` switches the authenticated user's own active assignment.
+- `/admin/security` shows login/session and MFA status.
+- Runtime version appears in the admin footer instead of the dashboard cards.
+- Human-facing admin UI numbers use Persian digits where safe.
+- Technical values such as emails, usernames, query parameters, hidden ids, and stored form values remain canonical.
+- `/_diagnostics` includes `admin_dashboard_account_cards_removed=true`.
+- `/_diagnostics` includes `admin_dashboard_access_summary_removed=true`.
+- `/_diagnostics` includes `admin_profile_access_page_available=true`.
+- `/_diagnostics` includes `admin_profile_self_service_role_switch_available=true`.
+- `/_diagnostics` includes `admin_profile_security_status_available=true`.
+- `/_diagnostics` includes `admin_runtime_version_in_footer=true`.

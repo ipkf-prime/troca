@@ -572,6 +572,18 @@ body.admin-sidebar-locked {
     margin-top: 8px;
 }
 
+.admin-card--link {
+    color: inherit;
+    text-decoration: none;
+    transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.admin-card--link:hover {
+    border-color: var(--admin-primary);
+    box-shadow: var(--admin-shadow);
+    transform: translateY(-1px);
+}
+
 .admin-module-grid {
     display: grid;
     gap: 12px;
@@ -1138,6 +1150,14 @@ button[type="submit"]:hover,
     padding: 12px 14px;
 }
 
+.admin-footer__meta {
+    align-items: center;
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
 .admin-auth-page {
     background: linear-gradient(135deg, #eef7f2, #f8fbf7);
 }
@@ -1505,6 +1525,18 @@ button[type="submit"]:hover,
     overflow-wrap: anywhere;
 }
 
+.admin-profile-access-table {
+    min-width: 760px;
+}
+
+.admin-profile-access-cards {
+    display: none;
+}
+
+.admin-profile-access-card__form {
+    margin-top: 12px;
+}
+
 .admin-users-identity,
 .admin-role-stack {
     align-items: center;
@@ -1789,11 +1821,13 @@ button[type="submit"]:hover,
         display: none;
     }
 
-    .admin-users-table-wrap {
+    .admin-users-table-wrap,
+    .admin-profile-access-table-wrap {
         display: none;
     }
 
-    .admin-users-cards {
+    .admin-users-cards,
+    .admin-profile-access-cards {
         display: grid;
         gap: 12px;
     }

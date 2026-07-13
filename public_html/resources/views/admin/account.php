@@ -15,7 +15,7 @@ ob_start();
     <h2>اطلاعات حساب</h2>
     <p class="admin-muted">در این نسخه، اطلاعات حساب فقط نمایش داده می‌شود. تغییر ایمیل، موبایل و نام کاربری از جریان تایید هویت انجام خواهد شد.</p>
     <div class="admin-field-list">
-        <div><span>شناسه کاربر</span><strong><?= admin_h($user['id'] ?? '-') ?></strong></div>
+        <div><span>شناسه کاربر</span><strong><?= admin_h(\App\Support\AdminFormat::digits($user['id'] ?? '-')) ?></strong></div>
         <div><span>نام کاربری</span><strong><?= admin_h($user['username'] ?? '-') ?></strong></div>
         <div><span>ایمیل</span><strong><?= admin_h($user['email'] ?? '-') ?></strong></div>
         <div><span>موبایل</span><strong><?= admin_h($user['mobile'] ?? '-') ?></strong></div>

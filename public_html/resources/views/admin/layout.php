@@ -9,7 +9,8 @@ $themeUserId = isset($context['user_id']) ? (int) $context['user_id'] : null;
 $theme = $themeService->theme($themeUserId);
 $avatarUrl = (string) ($user['avatar_url'] ?? $theme['default_avatar_url'] ?? '');
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
-$year = date('Y');
+$year = \App\Support\AdminFormat::digits(date('Y'));
+$runtimeVersion = \App\Support\AdminFormat::digits(\IPKF\Support\Version::CURRENT);
 $themeAssets = $themeService->assetUrls();
 $themeSource = $themeService->resolvedPresetSource($themeUserId);
 
@@ -127,7 +128,10 @@ $accountNav = $context['navigation']['account'] ?? [];
             <?php if (($theme['footer_enabled'] ?? true) === true): ?>
                 <footer class="admin-footer">
                     <span><?= admin_h($theme['footer_text'] ?? 'کلیه حقوق این سامانه متعلق به سامانه هوشمند تروکا می‌باشد.') ?></span>
-                    <span><?= admin_h($year) ?></span>
+                    <span class="admin-footer__meta">
+                        <span>نسخه <?= admin_h($runtimeVersion) ?></span>
+                        <span><?= admin_h($year) ?></span>
+                    </span>
                 </footer>
             <?php endif; ?>
         </div>
