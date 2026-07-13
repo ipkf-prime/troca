@@ -777,6 +777,7 @@ body.admin-sidebar-locked {
 .admin-module-launcher__body {
     display: grid;
     gap: 8px;
+    padding-inline-start: 82px;
     position: relative;
     z-index: 1;
 }
@@ -1468,6 +1469,10 @@ button[type="submit"]:hover,
 
     .admin-module-launcher__tile {
         min-height: 178px;
+    }
+
+    .admin-module-launcher__body {
+        padding-inline-start: 64px;
     }
 
     .admin-module-hub,
