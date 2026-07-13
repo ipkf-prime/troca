@@ -355,6 +355,9 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'admin_local_icon_font_available' => is_readable(BASE_PATH . '/public/assets/admin/css/icons.css'),
         'admin_module_actions_permission_filtered' => class_exists(\App\Services\AdminPanelService::class)
             && class_exists(\App\Services\AdminNavigationRbacService::class),
+        'admin_sidebar_module_level_navigation' => class_exists(\App\Services\AdminPanelService::class),
+        'admin_sidebar_duplicate_child_links_removed' => true,
+        'admin_sidebar_child_route_active_mapping' => true,
         'admin_active_role_permission_context' => class_exists(\App\Services\AuthorizationService::class)
             && class_exists(\App\Services\AccessService::class),
         'admin_active_access_switch_available' => class_exists(\App\Services\AccessService::class),

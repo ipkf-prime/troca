@@ -324,18 +324,22 @@ body.admin-sidebar-locked {
     border-radius: 10px;
     color: var(--admin-sidebar-text-muted);
     display: flex;
-    gap: 10px;
-    min-height: 40px;
-    padding: 9px 10px;
+    gap: 11px;
+    min-height: 44px;
+    padding: 10px 11px;
 }
 
-.admin-nav a::before {
-    background: currentColor;
-    border-radius: 999px;
-    content: "";
-    flex: 0 0 7px;
-    height: 7px;
-    opacity: .7;
+.admin-nav__icon {
+    align-items: center;
+    background: rgba(255, 255, 255, .1);
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-radius: 10px;
+    display: inline-flex;
+    flex: 0 0 34px;
+    font-size: 19px;
+    height: 34px;
+    justify-content: center;
+    width: 34px;
 }
 
 .admin-nav a:hover {
@@ -347,6 +351,11 @@ body.admin-sidebar-locked {
     background: var(--admin-sidebar-active-bg);
     color: var(--admin-sidebar-active-text);
     font-weight: var(--admin-font-weight-bold);
+}
+
+.admin-nav a.is-active .admin-nav__icon {
+    background: rgba(255, 255, 255, .22);
+    border-color: rgba(255, 255, 255, .24);
 }
 
 .admin-nav__badge {

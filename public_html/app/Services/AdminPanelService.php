@@ -45,12 +45,40 @@ class AdminPanelService extends BaseService
                 'recovery_codes_available' => $this->mfa->recoveryCodesAvailable($userId),
             ],
             'navigation' => [
-                'system' => $this->navigation->systemNavigation($userId),
+                'system' => $this->moduleNavigation($userId),
                 'account' => $this->navigation->accountNavigation($userId),
             ],
             'dashboard_modules' => $this->dashboardModules($userId),
             'version' => Version::CURRENT,
         ];
+    }
+
+    public function moduleNavigation(int $userId): array
+    {
+        $items = [];
+
+        if ($this->navigation->can($userId, 'admin.dashboard.view')) {
+            $items[] = [
+                'key' => 'dashboard',
+                'title' => $this->fa('&#x062F;&#x0627;&#x0634;&#x0628;&#x0648;&#x0631;&#x062F;'),
+                'url' => '/admin/dashboard',
+                'icon' => 'dashboard',
+                'sort_order' => 0,
+                'active_paths' => ['/admin/dashboard'],
+            ];
+        }
+
+        foreach ($this->moduleDefinitions() as $module) {
+            $navItem = $this->resolveModuleNavigationItem($userId, $module);
+
+            if ($navItem !== null) {
+                $items[] = $navItem;
+            }
+        }
+
+        usort($items, fn (array $a, array $b): int => (int) ($a['sort_order'] ?? 0) <=> (int) ($b['sort_order'] ?? 0));
+
+        return $items;
     }
 
     public function dashboardModules(int $userId): array
@@ -171,6 +199,33 @@ class AdminPanelService extends BaseService
         unset($module['actions'], $module['permission']);
 
         return $module;
+    }
+
+    private function resolveModuleNavigationItem(int $userId, array $module): ?array
+    {
+        $resolved = $this->resolveDashboardModule($userId, $module);
+
+        if ($resolved === null) {
+            return null;
+        }
+
+        $activePaths = [(string) ($resolved['url'] ?? '#')];
+
+        foreach ($this->permittedActions($userId, $module) as $action) {
+            if (($action['url'] ?? '') !== '') {
+                $activePaths[] = (string) $action['url'];
+            }
+        }
+
+        return [
+            'key' => $resolved['key'] ?? '',
+            'title' => $resolved['title'] ?? '',
+            'url' => $resolved['url'] ?? '#',
+            'icon' => $resolved['icon'] ?? 'dashboard',
+            'color' => $resolved['color'] ?? 'blue',
+            'sort_order' => $resolved['sort_order'] ?? 0,
+            'active_paths' => array_values(array_unique($activePaths)),
+        ];
     }
 
     private function permittedActions(int $userId, array $module): array

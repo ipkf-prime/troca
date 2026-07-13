@@ -43,8 +43,16 @@
 - `/_diagnostics` includes `admin_module_hub_pages_available=true`.
 - `/_diagnostics` includes `admin_local_icon_font_available=true`.
 - `/_diagnostics` includes `admin_module_actions_permission_filtered=true`.
+- `/_diagnostics` includes `admin_sidebar_module_level_navigation=true`.
+- `/_diagnostics` includes `admin_sidebar_duplicate_child_links_removed=true`.
+- `/_diagnostics` includes `admin_sidebar_child_route_active_mapping=true`.
 - Icons come from the local icon-font foundation and no external CDN is used.
-- No nested sidebar navigation is added.
+- Sidebar contains module-level links only: dashboard, users management, organization structure, system management, reports, and support.
+- `/admin/users`, `/admin/access`, `/admin/org-units`, `/admin/positions`, `/admin/theme`, `/admin/settings`, and `/admin/pages` do not appear as separate global sidebar links.
+- Child routes still open for authorized users through hub actions.
+- `/admin/users` and `/admin/access` highlight the users management module.
+- `/admin/org-units` and `/admin/positions` highlight the organization structure module.
+- `/admin/theme`, `/admin/settings`, and `/admin/pages` highlight the system management module.
 - Existing login, MFA, and admin routes still work.
 - Existing RBAC navigation still works.
 - Public landing page still works.

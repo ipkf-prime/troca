@@ -8,7 +8,7 @@ This milestone aligns admin navigation visibility with route access checks. The 
 
 No CRM, Bot, ERP, Automation, Marketplace, or business module is added in this phase.
 
-In v0.4.6 the admin dashboard also shows a visual permission-aware module launcher. These module tiles and hub actions use the same active-role permission context as the sidebar and route guards.
+In v0.4.6 the admin dashboard also shows a visual permission-aware module launcher. These module tiles, hub actions, and module-level sidebar entries use the same active-role permission context as the route guards.
 
 ## Final Scope
 
@@ -99,7 +99,8 @@ The dashboard is the primary module entry point in v0.4.6.
 - Multi-action modules open dedicated hub pages.
 - Hub pages render only authorized action tiles.
 - A hub page returns the standard Persian 403 response if no action is available to the active role.
-- The sidebar remains unchanged; nested sidebar groups are not implemented in this task.
+- The sidebar is module-level only and does not list child routes individually.
+- Child routes stay directly accessible when authorized, but their parent module is highlighted in the sidebar.
 - Automation module tiles will be added later only when real Automation routes exist.
 
 Module hub routes:
@@ -109,6 +110,31 @@ Module hub routes:
 - `/admin/modules/system`
 
 Reports and support remain direct destinations.
+
+## Module-Level Sidebar
+
+The sidebar contains only:
+
+- dashboard
+- users management
+- organization structure
+- system management
+- reports
+- support
+
+The users module is visible when the active role can access at least one of `users.view` or `access.manage`.
+
+The organization module is visible when the active role can access at least one of `org_units.view` or `positions.view`.
+
+The system module is visible when the active role can access at least one of `admin.theme.manage`, `admin.settings.manage`, or `admin.pages.manage`.
+
+The child routes `/admin/users`, `/admin/access`, `/admin/org-units`, `/admin/positions`, `/admin/theme`, `/admin/settings`, and `/admin/pages` are no longer shown as global sidebar items. They remain guarded routes and are linked from module hub actions.
+
+Active sidebar mapping:
+
+- `/admin/users` and `/admin/access` highlight the users management module.
+- `/admin/org-units` and `/admin/positions` highlight the organization structure module.
+- `/admin/theme`, `/admin/settings`, and `/admin/pages` highlight the system management module.
 
 Icons are rendered through the local admin icon-font foundation and `App\Support\AdminIcon`; no external icon CDN is used.
 

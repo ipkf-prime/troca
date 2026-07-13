@@ -20,6 +20,21 @@ if (!function_exists('admin_h')) {
     }
 }
 
+if (!function_exists('admin_nav_is_active')) {
+    function admin_nav_is_active(array $item, string $currentPath): bool
+    {
+        $paths = $item['active_paths'] ?? [$item['url'] ?? '#'];
+
+        foreach ($paths as $path) {
+            if ($currentPath === (string) $path) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
 $systemNav = $context['navigation']['system'] ?? [];
 $accountNav = $context['navigation']['account'] ?? [];
 ?>
@@ -55,7 +70,10 @@ $accountNav = $context['navigation']['account'] ?? [];
             <nav class="admin-nav" aria-label="منوی سامانه">
                 <?php foreach ($systemNav as $item): ?>
                     <?php $href = (string) ($item['url'] ?? '#'); ?>
-                    <a class="<?= $currentPath === $href ? 'is-active' : '' ?>" href="<?= admin_h($href) ?>">
+                    <a class="<?= admin_nav_is_active($item, $currentPath) ? 'is-active' : '' ?>" href="<?= admin_h($href) ?>">
+                        <span class="admin-nav__icon">
+                            <?= \App\Support\AdminIcon::html((string) ($item['icon'] ?? 'dashboard')) ?>
+                        </span>
                         <span><?= admin_h($item['title'] ?? '') ?></span>
                         <?php if (($item['badge'] ?? '') !== ''): ?>
                             <small class="admin-nav__badge"><?= admin_h($item['badge']) ?></small>

@@ -37,7 +37,7 @@ Deferred after v0.4.5:
 
 v0.4.6 starts the admin users and organization schema foundation before Automation. It adds `org_units`, `positions`, and `user_org_assignments` without adding UI or automation workflows.
 
-v0.4.6 also adds a visual permission-aware dashboard module launcher as the primary entry point for admin modules. Multi-action modules open dedicated module hub pages. The sidebar remains unchanged in this task.
+v0.4.6 also adds a visual permission-aware dashboard module launcher as the primary entry point for admin modules. Multi-action modules open dedicated module hub pages, and the global sidebar is simplified to module-level navigation.
 
 ## Production Safety
 
@@ -149,7 +149,9 @@ Reports and support remain direct destinations for now:
 - `/admin/reports`
 - `/admin/support`
 
-Nested sidebar groups are intentionally not added yet. Sidebar simplification remains deferred until the dashboard launcher and hub page experience is accepted.
+The sidebar contains only module-level navigation: dashboard, users management, organization structure, system management, reports, and support. Child routes such as `/admin/users`, `/admin/access`, `/admin/org-units`, `/admin/positions`, `/admin/theme`, `/admin/settings`, and `/admin/pages` are still guarded and reachable through their module hub actions, but they no longer appear as separate global sidebar entries.
+
+Child routes activate their parent module in the sidebar. For example, `/admin/users` and `/admin/access` highlight مدیریت کاربران, `/admin/org-units` and `/admin/positions` highlight ساختار سازمانی, and `/admin/theme`, `/admin/settings`, and `/admin/pages` highlight مدیریت سامانه.
 
 Admin icons use the local `/assets/admin/css/icons.css` icon-font foundation through the reusable `App\Support\AdminIcon` helper. No external CDN icon requests are used.
 
@@ -192,12 +194,12 @@ The shell includes account-focused pages:
 
 Navigation is split intentionally:
 
-- The right sidebar contains only system sections: dashboard, access, admin theme, settings, internal pages, reports, and support.
+- The right sidebar contains only module-level system sections: dashboard, users management, organization structure, system management, reports, and support.
 - User and account actions live in the avatar/name dropdown: profile, account, security, one-time password, password change, personal display theme, and logout.
 
 The dropdown closes on outside click and Escape. On mobile, the sidebar opens with a hamburger button and closes with the overlay, close button, or Escape.
 
-Some sidebar items are marked `(به‌زودی)` because they are safe placeholders. In v0.4.5, those items are visible only when the active role has the matching permission, and direct URL access uses the same guard.
+Sidebar module visibility is based on the current active role. A module is hidden when none of its child actions are permitted. Personal account actions remain in the user dropdown and are not duplicated in the sidebar.
 
 ## Theme Page UX
 

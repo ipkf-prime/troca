@@ -39,7 +39,7 @@ The admin panel includes permission-filtered placeholder routes:
 
 Guests are redirected to `/admin/login`. Authenticated users without the required permission receive the standard Persian 403 page.
 
-The sidebar menu and direct route access use the same permission map.
+Direct route access remains permission guarded. The sidebar is module-level only, so users and organization child routes are reached through their module hub actions instead of appearing as separate global menu items.
 
 ## Dashboard module tiles
 
@@ -59,7 +59,7 @@ Hub routes:
 
 Hub pages render only authorized action tiles. If no action is available, the standard Persian 403 page is returned.
 
-The existing sidebar remains operational and is not converted into nested groups in this task.
+The sidebar shows مدیریت کاربران when the active role can access `users.view` or `access.manage`. It shows ساختار سازمانی when the active role can access `org_units.view` or `positions.view`. Child routes such as `/admin/users`, `/admin/access`, `/admin/org-units`, and `/admin/positions` activate their parent module in the sidebar.
 
 Full CRUD pages remain deferred. The current links open guarded placeholders only.
 
