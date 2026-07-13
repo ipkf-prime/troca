@@ -90,6 +90,8 @@ The page includes:
 - Persian RTL module-style header and breadcrumb back to `/admin/modules/users`
 - safe identity fields from `users` and `persons`
 - account status, username, email, mobile, verification status, and Jalali dates
+- labeled username in the summary card, always displayed as a username and never as an ambiguous standalone value
+- semantic province, county, and city labels in the summary when real lookup relationships exist
 - MFA/security summary using counts only
 - active role assignments without exposing internal assignment ids or scope ids
 - organization assignments with unit and position summaries
@@ -99,7 +101,11 @@ Guests are redirected to `/admin/login`. Authenticated users without `users.view
 
 The detail page does not select or render password hashes, MFA secrets, recovery codes, login tokens, session values, CSRF tokens, trusted device secrets, provider secrets, or internal hashes.
 
+National code is displayed only in the identity section and is masked in the UI.
+
 Admin UI uses semantic lookup labels in this page. Reference ids and internal lookup codes are stored internally, but Persian titles are displayed to users. Broken references display `نامشخص`; missing optional values display `—`. Technical codes such as role code, org unit code, or position code may appear only as muted secondary administrative data.
+
+Province, county, and city display must use real semantic lookup titles. City must never be substituted for county. When a genuine county/shahrestan relationship is not present in the current schema, county displays `—` and is deferred to the future dynamic geographic foundation.
 
 Create, edit, delete, password reset, role assignment editing, organizational assignment editing, and Automation actions remain deferred.
 

@@ -15,6 +15,9 @@ class AdminUserRepository extends BaseRepository
         $personProvinceTitleSelect = $this->lookupIdTitleSelect('provinces', 'person_provinces', 'province_title');
         $personCityJoin = $this->lookupIdJoin('cities', 'person_cities', 'persons.city_id');
         $personCityTitleSelect = $this->lookupIdTitleSelect('cities', 'person_cities', 'city_title');
+        $personCountyJoin = $this->personCountyJoin();
+        $personCountyTitleSelect = $this->personCountyTitleSelect();
+        $personCountyReferenceSelect = $this->personCountyReferenceSelect();
 
         $statement = $this->connection()->prepare("
             SELECT
@@ -32,13 +35,18 @@ class AdminUserRepository extends BaseRepository
                 persons.first_name,
                 persons.last_name,
                 persons.full_name,
+                persons.national_code,
+                persons.father_name,
+                persons.birth_date,
                 persons.avatar,
                 persons.person_type AS person_type_code,
                 persons.province_id IS NOT NULL AS province_reference_exists,
+                {$personCountyReferenceSelect},
                 persons.city_id IS NOT NULL AS city_reference_exists,
                 persons.status AS person_status,
                 {$personTypeTitleSelect},
                 {$personProvinceTitleSelect},
+                {$personCountyTitleSelect},
                 {$personCityTitleSelect},
                 primary_org.title AS primary_org_unit_title,
                 COALESCE(active_role_summary.active_role_count, 0) AS active_role_count,
@@ -47,6 +55,7 @@ class AdminUserRepository extends BaseRepository
             LEFT JOIN persons ON persons.id = users.person_id
             {$personTypeJoin}
             {$personProvinceJoin}
+            {$personCountyJoin}
             {$personCityJoin}
             LEFT JOIN (
                 SELECT
@@ -320,6 +329,45 @@ class AdminUserRepository extends BaseRepository
         }
 
         return "LEFT JOIN {$table} AS {$alias} ON {$alias}.id = {$sourceColumn}";
+    }
+
+    private function personCountyJoin(): string
+    {
+        if (!Database::columnExists('persons', 'county_id')) {
+            return '';
+        }
+
+        foreach (['counties', 'shahrestans'] as $table) {
+            if ($this->lookupTableReady($table) && Database::columnExists($table, 'id')) {
+                return $this->lookupIdJoin($table, 'person_counties', 'persons.county_id');
+            }
+        }
+
+        return '';
+    }
+
+    private function personCountyTitleSelect(): string
+    {
+        if (!Database::columnExists('persons', 'county_id')) {
+            return 'NULL AS county_title';
+        }
+
+        foreach (['counties', 'shahrestans'] as $table) {
+            if ($this->lookupTableReady($table) && Database::columnExists($table, 'id')) {
+                return $this->lookupIdTitleSelect($table, 'person_counties', 'county_title');
+            }
+        }
+
+        return 'NULL AS county_title';
+    }
+
+    private function personCountyReferenceSelect(): string
+    {
+        if (!Database::columnExists('persons', 'county_id')) {
+            return '0 AS county_reference_exists';
+        }
+
+        return 'persons.county_id IS NOT NULL AS county_reference_exists';
     }
 
     private function lookupCodeJoin(string $table, string $alias, string $sourceColumn): string

@@ -41,7 +41,15 @@ ob_start();
     <div class="admin-user-detail-summary__body">
         <span class="admin-muted">کاربر</span>
         <h2><?= admin_h($user['display_name'] ?? '—') ?></h2>
-        <p dir="ltr"><?= admin_h($user['username'] ?? '—') ?></p>
+        <p class="admin-user-detail-summary__username">
+            <span>نام کاربری:</span>
+            <strong dir="ltr"><?= admin_h($user['username'] ?? '—') ?></strong>
+        </p>
+        <div class="admin-user-detail-summary__geo" aria-label="خلاصه جغرافیایی">
+            <span>استان: <strong><?= admin_h($user['province'] ?? '—') ?></strong></span>
+            <span>شهرستان: <strong><?= admin_h($user['county'] ?? '—') ?></strong></span>
+            <span>شهر: <strong><?= admin_h($user['city'] ?? '—') ?></strong></span>
+        </div>
     </div>
     <div class="admin-user-detail-summary__meta">
         <span class="admin-status-badge admin-status-badge--<?= admin_h($user['status']['code'] ?? 'unknown') ?>"><?= admin_h($user['status']['label'] ?? '—') ?></span>
@@ -63,7 +71,11 @@ ob_start();
             <div><span>نوع شخص</span><strong><?= admin_h($user['person_type'] ?? '—') ?></strong></div>
             <div><span>نام</span><strong><?= admin_h($user['first_name'] ?? '—') ?></strong></div>
             <div><span>نام خانوادگی</span><strong><?= admin_h($user['last_name'] ?? '—') ?></strong></div>
+            <div><span>کد ملی</span><strong dir="ltr"><?= admin_h($user['national_code'] ?? '—') ?></strong></div>
+            <div><span>نام پدر</span><strong><?= admin_h($user['father_name'] ?? '—') ?></strong></div>
+            <div><span>تاریخ تولد</span><strong><?= admin_h($user['birth_date'] ?? '—') ?></strong></div>
             <div><span>استان</span><strong><?= admin_h($user['province'] ?? '—') ?></strong></div>
+            <div><span>شهرستان</span><strong><?= admin_h($user['county'] ?? '—') ?></strong></div>
             <div><span>شهر</span><strong><?= admin_h($user['city'] ?? '—') ?></strong></div>
             <div><span>تاریخ ایجاد</span><strong><?= admin_h($user['created_at'] ?? '—') ?></strong></div>
         </div>

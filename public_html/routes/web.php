@@ -390,6 +390,10 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'admin_user_detail_semantic_lookups_available' => true,
         'admin_raw_foreign_keys_hidden_from_ui' => true,
         'admin_reference_titles_resolved' => true,
+        'admin_user_summary_username_labeled' => true,
+        'admin_user_summary_geography_available' => true,
+        'admin_user_summary_raw_geo_ids_hidden' => true,
+        'admin_user_identity_labels_semantic' => true,
         'admin_org_units_list_available' => class_exists(\App\Services\AdminOrgUnitService::class)
             && class_exists(\App\Repositories\AdminOrgUnitRepository::class),
         'admin_org_units_search_available' => class_exists(\App\Services\AdminOrgUnitService::class),

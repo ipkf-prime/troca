@@ -107,8 +107,12 @@ class AdminUserService extends BaseService
             'last_name' => $this->value($row['last_name'] ?? null),
             'person_type' => AdminLookup::personType($row['person_type_title'] ?? null, $row['person_type_code'] ?? null),
             'province' => AdminLookup::title($row['province_title'] ?? null, (bool) ($row['province_reference_exists'] ?? false)),
+            'county' => AdminLookup::title($row['county_title'] ?? null, (bool) ($row['county_reference_exists'] ?? false)),
             'city' => AdminLookup::title($row['city_title'] ?? null, (bool) ($row['city_reference_exists'] ?? false)),
             'display_name' => $this->value($row['full_name'] ?? $row['username'] ?? null),
+            'national_code' => $this->maskedNationalCode($row['national_code'] ?? null),
+            'father_name' => $this->value($row['father_name'] ?? null),
+            'birth_date' => $this->formatDateOnly($row['birth_date'] ?? null),
             'username' => $this->value($row['username'] ?? null),
             'mobile' => $this->value($row['mobile'] ?? null),
             'email' => $this->value($row['email'] ?? null),
@@ -279,6 +283,37 @@ class AdminUserService extends BaseService
         }
 
         return AdminFormat::jalaliDateTime($value);
+    }
+
+    private function formatDateOnly(mixed $value): string
+    {
+        $value = trim((string) ($value ?? ''));
+
+        if ($value === '') {
+            return $this->value(null);
+        }
+
+        return AdminFormat::jalaliDate($value);
+    }
+
+    private function maskedNationalCode(mixed $value): string
+    {
+        $value = trim((string) ($value ?? ''));
+
+        if ($value === '') {
+            return $this->value(null);
+        }
+
+        $length = function_exists('mb_strlen') ? mb_strlen($value, 'UTF-8') : strlen($value);
+
+        if ($length <= 4) {
+            return str_repeat('*', max(3, $length));
+        }
+
+        $prefix = function_exists('mb_substr') ? mb_substr($value, 0, 3, 'UTF-8') : substr($value, 0, 3);
+        $suffix = function_exists('mb_substr') ? mb_substr($value, -3, null, 'UTF-8') : substr($value, -3);
+
+        return $prefix . '****' . $suffix;
     }
 
     private function value(mixed $value): string

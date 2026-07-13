@@ -47,6 +47,8 @@ Existing authentication email/mobile values are not moved. Any future synchroniz
 
 Province and city relations reuse the existing `provinces` and `cities` lookups when those tables are present and structurally compatible. No duplicate geographic lookup is introduced.
 
+County/shahrestan display requires a genuine county relationship and lookup table. Until the dynamic geographic foundation defines that relationship, county values must display as `—`. City must never be copied or inferred as a county fallback.
+
 ## Validation readiness
 
 Future application validation must include:
@@ -60,7 +62,7 @@ This schema task does not add validators, forms, synchronization, or CRUD servic
 
 ## Semantic display rule
 
-Foreign keys and technical codes are stored internally. User interfaces must display Persian semantic labels, never raw numeric ids as fallback. Missing optional values display `—`; broken references display `نامشخص`.
+Foreign keys and technical codes are stored internally. User interfaces must display Persian semantic labels, never raw numeric ids as fallback. Usernames must have a visible label such as `نام کاربری` when shown near identity summaries. Missing optional values display `—`; broken references display `نامشخص`.
 
 ## Deferred work
 

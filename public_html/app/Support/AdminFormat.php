@@ -44,6 +44,30 @@ class AdminFormat
         }
     }
 
+    public static function jalaliDate(mixed $value): string
+    {
+        $value = trim((string) ($value ?? ''));
+
+        if ($value === '') {
+            return '';
+        }
+
+        try {
+            $timezoneName = trim((string) \IPKF\Support\Env::get('APP_TIMEZONE', 'Asia/Tehran'));
+            $timezone = new \DateTimeZone($timezoneName !== '' ? $timezoneName : 'Asia/Tehran');
+            $date = (new \DateTimeImmutable($value))->setTimezone($timezone);
+            [$year, $month, $day] = self::gregorianToJalali(
+                (int) $date->format('Y'),
+                (int) $date->format('n'),
+                (int) $date->format('j')
+            );
+
+            return self::digits(sprintf('%04d/%02d/%02d', $year, $month, $day));
+        } catch (\Throwable) {
+            return self::digits($value);
+        }
+    }
+
     /**
      * @return array{0:int,1:int,2:int}
      */
