@@ -153,6 +153,8 @@ The sidebar contains only module-level navigation: dashboard, users management, 
 
 Child routes activate their parent module in the sidebar. For example, `/admin/users` and `/admin/access` highlight مدیریت کاربران, `/admin/org-units` and `/admin/positions` highlight ساختار سازمانی, and `/admin/theme`, `/admin/settings`, and `/admin/pages` highlight مدیریت سامانه.
 
+`/admin/users` is now a professional read-only users list for roles with `users.view`. It supports safe search, server-side pagination, desktop table presentation, and mobile cards. User creation, editing, deletion, password reset, role assignment editing, and organization assignment editing are intentionally deferred.
+
 Admin icons use the local `/assets/admin/css/icons.css` icon-font foundation through the reusable `App\Support\AdminIcon` helper. No external CDN icon requests are used.
 
 ## Active Access Switching

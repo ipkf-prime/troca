@@ -366,6 +366,11 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'admin_org_units_menu_available' => true,
         'admin_positions_menu_available' => true,
         'admin_users_permissions_seeded' => $adminUsersPermissionsSeeded,
+        'admin_users_list_available' => class_exists(\App\Services\AdminUserService::class)
+            && class_exists(\App\Repositories\AdminUserRepository::class),
+        'admin_users_search_available' => class_exists(\App\Services\AdminUserService::class),
+        'admin_users_pagination_available' => class_exists(\App\Services\AdminUserService::class),
+        'admin_users_sensitive_fields_protected' => true,
         'admin_users_organization_foundation_available' => $orgUnitsTableExists
             && $positionsTableExists
             && $userOrgAssignmentsTableExists,
@@ -950,7 +955,24 @@ $adminPlaceholder = function ($path, $title, $message) use ($adminRender, $admin
 };
 
 $router->get('/admin/settings', $adminPlaceholder('/admin/settings', 'تنظیمات', 'تنظیمات سامانه در فازهای بعدی تکمیل می‌شود.'));
-$router->get('/admin/users', $adminPlaceholder('/admin/users', 'کاربران', 'این بخش در حال آماده‌سازی است.'));
+$router->get('/admin/users', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/users');
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $list = (new \App\Services\AdminUserService())->index([
+        'q' => $request->input('q', ''),
+        'page' => $request->input('page', 1),
+    ]);
+
+    return $adminRender($response, 'users', [
+        'title' => 'کاربران',
+        'context' => $context,
+        'list' => $list,
+    ]);
+});
 $router->get('/admin/org-units', $adminPlaceholder('/admin/org-units', 'واحدهای سازمانی', 'این بخش در حال آماده‌سازی است.'));
 $router->get('/admin/positions', $adminPlaceholder('/admin/positions', 'سمت‌ها', 'این بخش در حال آماده‌سازی است.'));
 $router->get('/admin/pages', $adminPlaceholder('/admin/pages', 'صفحات داخلی', 'مدیریت صفحات داخلی هنوز فعال نشده است.'));

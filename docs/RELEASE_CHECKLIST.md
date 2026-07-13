@@ -29,6 +29,13 @@
 - Clicking `ساختار سازمانی` opens `/admin/modules/organization`.
 - Clicking `مدیریت سامانه` opens `/admin/modules/system`.
 - Module hub pages show colorful action tiles.
+- `/admin/users` opens a read-only users list for roles with `users.view`.
+- `/admin/users` shows safe identity, status, role summary, primary org unit when available, and created date.
+- `/admin/users?q=...` searches username, name, mobile, and email.
+- `/admin/users?page=2` paginates server-side and preserves `q`.
+- `/admin/users` renders as a table on desktop and cards on mobile.
+- `/admin/users` does not expose password hashes, MFA secrets, recovery codes, login tokens, sessions, CSRF tokens, trusted device secrets, or internal hashes.
+- `/admin/users` does not include create, edit, delete, password reset, role assignment editing, or organization assignment editing actions.
 - `super_admin` sees all authorized dashboard module tiles and hub actions.
 - `province_admin` sees only permitted dashboard module tiles and hub actions.
 - Active base `user` role does not see restricted dashboard modules.
@@ -46,6 +53,10 @@
 - `/_diagnostics` includes `admin_sidebar_module_level_navigation=true`.
 - `/_diagnostics` includes `admin_sidebar_duplicate_child_links_removed=true`.
 - `/_diagnostics` includes `admin_sidebar_child_route_active_mapping=true`.
+- `/_diagnostics` includes `admin_users_list_available=true`.
+- `/_diagnostics` includes `admin_users_search_available=true`.
+- `/_diagnostics` includes `admin_users_pagination_available=true`.
+- `/_diagnostics` includes `admin_users_sensitive_fields_protected=true`.
 - Icons come from the local icon-font foundation and no external CDN is used.
 - Sidebar contains module-level links only: dashboard, users management, organization structure, system management, reports, and support.
 - `/admin/users`, `/admin/access`, `/admin/org-units`, `/admin/positions`, `/admin/theme`, `/admin/settings`, and `/admin/pages` do not appear as separate global sidebar links.

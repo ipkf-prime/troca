@@ -9,6 +9,7 @@ class AdminIcon
         'users' => 'users',
         'user-group' => 'user-group',
         'user-shield' => 'user-shield',
+        'roles' => 'user-shield',
         'organization' => 'sitemap',
         'sitemap' => 'sitemap',
         'building' => 'building',
@@ -22,6 +23,17 @@ class AdminIcon
         'chart-column' => 'chart-column',
         'support' => 'headset',
         'headset' => 'headset',
+        'search' => 'magnifying-glass',
+        'magnifying-glass' => 'magnifying-glass',
+        'user' => 'user',
+        'mobile' => 'mobile-screen',
+        'mobile-screen' => 'mobile-screen',
+        'email' => 'envelope',
+        'envelope' => 'envelope',
+        'status' => 'circle-check',
+        'circle-check' => 'circle-check',
+        'circle-xmark' => 'circle-xmark',
+        'calendar' => 'calendar',
     ];
 
     private const SVG_PATHS = [
@@ -115,6 +127,37 @@ class AdminIcon
             '<path d="M4 13h3v5H4z" />',
             '<path d="M17 13h3v5h-3z" />',
             '<path d="M17 20h-3" />',
+        ],
+        'magnifying-glass' => [
+            '<path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14Z" />',
+            '<path d="m20 20-4.2-4.2" />',
+        ],
+        'user' => [
+            '<path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />',
+            '<path d="M4 21a8 8 0 0 1 16 0" />',
+        ],
+        'mobile-screen' => [
+            '<path d="M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z" />',
+            '<path d="M11 18h2" />',
+        ],
+        'envelope' => [
+            '<path d="M4 6h16v12H4z" />',
+            '<path d="m4 7 8 6 8-6" />',
+        ],
+        'circle-check' => [
+            '<path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" />',
+            '<path d="m8 12 2.5 2.5L16 9" />',
+        ],
+        'circle-xmark' => [
+            '<path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" />',
+            '<path d="m9 9 6 6" />',
+            '<path d="m15 9-6 6" />',
+        ],
+        'calendar' => [
+            '<path d="M7 2v4" />',
+            '<path d="M17 2v4" />',
+            '<path d="M4 7h16" />',
+            '<path d="M5 4h14a1 1 0 0 1 1 1v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a1 1 0 0 1 1-1Z" />',
         ],
     ];
 

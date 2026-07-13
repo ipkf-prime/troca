@@ -61,7 +61,25 @@ Hub pages render only authorized action tiles. If no action is available, the st
 
 The sidebar shows مدیریت کاربران when the active role can access `users.view` or `access.manage`. It shows ساختار سازمانی when the active role can access `org_units.view` or `positions.view`. Child routes such as `/admin/users`, `/admin/access`, `/admin/org-units`, and `/admin/positions` activate their parent module in the sidebar.
 
-Full CRUD pages remain deferred. The current links open guarded placeholders only.
+## Users list
+
+`GET /admin/users` is a read-only admin users list protected by `users.view`.
+
+The page includes:
+
+- Persian RTL module-style header and breadcrumb back to `/admin/modules/users`
+- safe user identity fields from `users` and `persons`
+- active role summary without duplicate user rows
+- primary organization unit when available
+- server-side search with `q`
+- server-side pagination with `page`
+- responsive desktop table and mobile cards
+
+The page never exposes password hashes, MFA secrets, recovery codes, login tokens, session values, CSRF tokens, trusted device secrets, or internal hashes.
+
+Create, edit, delete, password reset, role assignment editing, and organizational assignment editing remain deferred.
+
+Full CRUD pages remain deferred. Organization and position links still open guarded placeholders only.
 
 ## Tables
 
