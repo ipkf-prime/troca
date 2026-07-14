@@ -4,7 +4,7 @@ Current milestone: `0.4.6-admin-users-organization-dev`
 
 ## Purpose
 
-The dynamic geography foundation provides a canonical, configurable, multi-country hierarchy for people, organizations, access scopes, reporting, and future routing. This phase is schema, diagnostics, and documentation only. It adds no geography UI, commercial dataset, external integration, automatic mapping, or seeder.
+The dynamic geography foundation provides a canonical, configurable, multi-country hierarchy for people, organizations, access scopes, reporting, and future routing. This phase is schema, diagnostics, and documentation only. It adds no geography UI, commercial dataset, file parser, automatic mapping, or geographic record seeder. A later provenance extension seeds only system reference metadata.
 
 The hierarchy is data-driven. PHP does not assume that every deployment or country has the same administrative levels.
 
@@ -91,7 +91,7 @@ The migration is additive and idempotent. It creates no seed data and performs n
 
 ## Deferred work
 
-- Controlled level/relation-type seed or administration tools
+- Additional controlled level/relation-type administration tools
 - Reviewed official geographic dataset import
 - Legacy mapping review tools
 - Hierarchy resolver and cycle validation services
@@ -99,3 +99,11 @@ The migration is additive and idempotent. It creates no seed data and performs n
 - Organization addresses
 - Geographic RBAC scopes
 - Aliases and historical names
+
+## Multi-source provenance extension
+
+The canonical geography model is now complemented by source provenance, immutable snapshots, external coding dictionaries, hierarchy contexts, reviewed mappings, and import staging. These structures do not replace `geographic_locations`, `geographic_location_relations`, or `geographic_legacy_mappings`.
+
+Official, statistical, and operational parent relationships coexist through `geographic_hierarchy_types`. Existing relations remain unclassified compatibility relations until explicitly reviewed; the migration does not guess or backfill their source/hierarchy.
+
+Ministry of Interior data is authoritative for official administrative hierarchy. SCI is supplementary for settlements and statistical geography. Rural Cooperation operational regions remain separate from official administrative geography. See `MULTI_SOURCE_DATA_PROVENANCE.md`, `EXTERNAL_CODING_SYSTEMS.md`, and `GEOGRAPHIC_HIERARCHY_CONTEXTS.md`.

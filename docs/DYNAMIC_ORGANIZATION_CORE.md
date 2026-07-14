@@ -89,6 +89,12 @@ The migration is additive and idempotent. Existing organizations, units, positio
 - Appointment overlap and hierarchy-cycle validation services
 - Automation, correspondence, cartable, referral, and workflow tables
 
+## External registry compatibility
+
+The multi-source registry deliberately stops at geography and generic external coding metadata in this phase. Rural Cooperation organization codes are registered as an external code-set contract only. No bot row creates or updates a canonical `organizations`, `org_units`, classification, position, or appointment record.
+
+Future organization registry staging must preserve source snapshots and external codes, then use explicit reviewed mappings. Existing bot organization IDs, codes, classification IDs, filters, and selection behavior remain unchanged.
+
 ## Future organization addresses
 
 Future organization address records must reuse the canonical dynamic geography model rather than introduce organization-specific province/city hierarchy tables. An organization address should reference the most specific reviewed `geographic_locations` row through `geographic_location_id`, preserve legacy compatibility only when required, and derive available semantic ancestors from active dated relations.

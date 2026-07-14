@@ -219,7 +219,20 @@ Dynamic geographic hierarchy foundation now includes:
 - A documented resolver contract that never substitutes city for county.
 - Future reuse by organization addresses, reports, access scopes, and routing without implementing those features yet.
 
-This remains schema-only. No geographic data, mapping, seeder, UI, external integration, organization address, Auth/RBAC change, or Automation behavior is added.
+This remains schema-only. No geographic records, reviewed mappings, UI, file parser, organization address, Auth/RBAC change, or Automation behavior is added. The only seeding is system reference metadata for the provenance/coding contracts below.
+
+Multi-source provenance foundation now adds:
+
+- Data-driven source registry and domain-specific authority scopes for Ministry of Interior, SCI, and Rural Cooperation operational data.
+- Immutable source snapshot metadata without storing files in the public web root.
+- External coding systems, code sets, fixed-width segment definitions, and version-aware code values.
+- Explicit official, statistical, operational, and custom geographic hierarchy contexts.
+- Nullable source/hierarchy/review context on canonical geographic relations without backfill.
+- Multiple external identifiers and reviewable external-to-canonical mapping history.
+- Generic geography import staging that never writes canonical locations automatically.
+- Rural Cooperation 3/5/8-character string-code contract while preserving all active bot data and behavior.
+
+This extension imports no Ministry, SCI, bot, geographic, organization, or source-file records. South Kerman remains a documented operational-region use case and is not inserted as canonical data.
 
 Future automation readiness:
 

@@ -35,3 +35,8 @@ Fine-grained permissions, masking policy, audit events, retention/deletion polic
 Canonical geographic reference rows and administrative hierarchy definitions are generally non-sensitive. Linking a person or organization to a specific physical address, postal code, or precise coordinate creates sensitive contextual data.
 
 Diagnostics must expose geography schema booleans only. They must not expose location rows, hierarchy contents, user or organization addresses, postal codes, coordinates, IDs, or record counts. Application logs must not contain address values. Future address access requires permissions, masking, and auditing separate from general geographic-reference viewing.
+## Multi-source import and provenance
+
+Source files and import artifacts are administrative maintenance data and must remain outside the public web root. Sanitized filenames may be stored in snapshot metadata, but diagnostics must not expose filenames, hashes, paths, record counts, code values, locations, or source rows.
+
+Raw metadata and staging payloads must not contain credentials, secrets, or personal information. Future source upload, import, review, and mapping UI requires dedicated permissions, CSRF protection, audit records, size/type validation, and controlled retention. Canonical writes require explicit reviewed workflows; title-only automatic matching is forbidden.

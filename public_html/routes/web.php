@@ -111,11 +111,95 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $geographicLocationsTableExists = \IPKF\Database\Database::tableExists('geographic_locations');
     $geographicLocationRelationsTableExists = \IPKF\Database\Database::tableExists('geographic_location_relations');
     $geographicLegacyMappingsTableExists = \IPKF\Database\Database::tableExists('geographic_legacy_mappings');
+    $dataSourcesTableExists = \IPKF\Database\Database::tableExists('data_sources');
+    $dataSourceAuthorityScopesTableExists = \IPKF\Database\Database::tableExists('data_source_authority_scopes');
+    $dataSourceSnapshotsTableExists = \IPKF\Database\Database::tableExists('data_source_snapshots');
+    $externalCodingSystemsTableExists = \IPKF\Database\Database::tableExists('external_coding_systems');
+    $externalCodeSetsTableExists = \IPKF\Database\Database::tableExists('external_code_sets');
+    $externalCodeSegmentsTableExists = \IPKF\Database\Database::tableExists('external_code_segments');
+    $externalCodeValuesTableExists = \IPKF\Database\Database::tableExists('external_code_values');
+    $geographicHierarchyTypesTableExists = \IPKF\Database\Database::tableExists('geographic_hierarchy_types');
+    $geographicExternalIdentifiersTableExists = \IPKF\Database\Database::tableExists('geographic_external_identifiers');
+    $geographicExternalMappingsTableExists = \IPKF\Database\Database::tableExists('geographic_external_code_mappings');
+    $geographicImportBatchesTableExists = \IPKF\Database\Database::tableExists('geographic_import_batches');
+    $geographicImportRowsTableExists = \IPKF\Database\Database::tableExists('geographic_import_rows');
+    $geographicImportIssuesTableExists = \IPKF\Database\Database::tableExists('geographic_import_issues');
+    $geographicImportCandidatesTableExists = \IPKF\Database\Database::tableExists('geographic_import_match_candidates');
+    $geographicRelationsHierarchyContextAvailable = $geographicLocationRelationsTableExists
+        && \IPKF\Database\Database::columnExists('geographic_location_relations', 'hierarchy_type_id')
+        && \IPKF\Database\Database::columnExists('geographic_location_relations', 'source_id')
+        && \IPKF\Database\Database::columnExists('geographic_location_relations', 'source_snapshot_id')
+        && \IPKF\Database\Database::columnExists('geographic_location_relations', 'review_status');
     $personAddressesCanonicalLocationAvailable = $personAddressesTableExists
         && \IPKF\Database\Database::columnExists('person_addresses', 'geographic_location_id');
     $orgUnitsOrganizationScopeAvailable = $orgUnitsTableExists
         && \IPKF\Database\Database::columnExists('org_units', 'organization_id')
         && \IPKF\Database\Database::columnExists('org_units', 'unit_type_id');
+    $operationalGeographicRegionSupportAvailable = false;
+    $ruralCooperationCodeContractAvailable = false;
+
+    if ($databaseConnectionAvailable
+        && $geographicHierarchyTypesTableExists
+        && $geographicLevelTypesTableExists
+    ) {
+        try {
+            $db = \IPKF\Database\Database::connect();
+            $hierarchyStatement = $db->query("
+                SELECT
+                    EXISTS(
+                        SELECT 1 FROM geographic_hierarchy_types
+                        WHERE code = 'rural_cooperation_operational' AND status = 'active'
+                    )
+                    AND EXISTS(
+                        SELECT 1 FROM geographic_level_types
+                        WHERE code = 'operational_region' AND status = 'active'
+                    )
+            ");
+            $operationalGeographicRegionSupportAvailable = (bool) $hierarchyStatement->fetchColumn();
+        } catch (\Throwable $exception) {
+            $operationalGeographicRegionSupportAvailable = false;
+        }
+    }
+
+    if ($databaseConnectionAvailable
+        && $externalCodingSystemsTableExists
+        && $externalCodeSetsTableExists
+        && $externalCodeSegmentsTableExists
+    ) {
+        try {
+            $db = \IPKF\Database\Database::connect();
+            $codeSetStatement = $db->query("
+                SELECT COUNT(DISTINCT code_sets.code)
+                FROM external_code_sets code_sets
+                INNER JOIN external_coding_systems systems
+                    ON systems.id = code_sets.coding_system_id
+                WHERE systems.code = 'rural_cooperation_operational'
+                  AND code_sets.status = 'active'
+                  AND code_sets.code IN (
+                      'province_code', 'county_code', 'organization_code',
+                      'geographic_level', 'organization_level', 'organization_kind',
+                      'organization_type', 'organization_subtype'
+                  )
+            ");
+            $segmentStatement = $db->query("
+                SELECT COUNT(*)
+                FROM external_code_segments segments
+                INNER JOIN external_code_sets code_sets ON code_sets.id = segments.code_set_id
+                INNER JOIN external_coding_systems systems ON systems.id = code_sets.coding_system_id
+                WHERE systems.code = 'rural_cooperation_operational'
+                  AND segments.status = 'active'
+                  AND (
+                      (code_sets.code = 'province_code' AND segments.segment_code = 'province_code')
+                      OR (code_sets.code = 'county_code' AND segments.segment_code IN ('province_code', 'county_sequence'))
+                      OR (code_sets.code = 'organization_code' AND segments.segment_code IN ('county_code', 'organization_sequence'))
+                  )
+            ");
+            $ruralCooperationCodeContractAvailable = (int) $codeSetStatement->fetchColumn() === 8
+                && (int) $segmentStatement->fetchColumn() === 5;
+        } catch (\Throwable $exception) {
+            $ruralCooperationCodeContractAvailable = false;
+        }
+    }
 
     $mfaSchemaAvailable = \IPKF\Database\Database::tableExists('user_mfa_methods')
         && \IPKF\Database\Database::tableExists('mfa_challenges')
@@ -484,6 +568,27 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'person_addresses_canonical_location_available' => $personAddressesCanonicalLocationAvailable,
         'geographic_no_city_as_county_rule_documented' => true,
         'geographic_legacy_compatibility_preserved' => true,
+        'multi_source_data_registry_available' => $dataSourcesTableExists
+            && $dataSourceAuthorityScopesTableExists
+            && $dataSourceSnapshotsTableExists,
+        'data_source_snapshots_available' => $dataSourceSnapshotsTableExists,
+        'source_authority_scopes_available' => $dataSourceAuthorityScopesTableExists,
+        'external_coding_systems_available' => $externalCodingSystemsTableExists,
+        'external_code_sets_available' => $externalCodeSetsTableExists,
+        'external_code_segments_available' => $externalCodeSegmentsTableExists,
+        'external_code_values_available' => $externalCodeValuesTableExists,
+        'geographic_hierarchy_types_available' => $geographicHierarchyTypesTableExists,
+        'geographic_relations_hierarchy_context_available' => $geographicRelationsHierarchyContextAvailable,
+        'geographic_external_identifiers_available' => $geographicExternalIdentifiersTableExists,
+        'geographic_external_mapping_available' => $geographicExternalMappingsTableExists,
+        'geographic_import_staging_available' => $geographicImportBatchesTableExists
+            && $geographicImportRowsTableExists
+            && $geographicImportIssuesTableExists
+            && $geographicImportCandidatesTableExists,
+        'operational_geographic_region_support_available' => $operationalGeographicRegionSupportAvailable,
+        'rural_cooperation_code_contract_available' => $ruralCooperationCodeContractAvailable,
+        'bot_geography_compatibility_preserved' => true,
+        'multi_source_no_canonical_auto_write' => true,
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),

@@ -546,5 +546,23 @@ Version: `0.2.0-foundation`
 - Future organization addresses can reuse canonical locations.
 - Diagnostics expose only required safe schema and invariant booleans.
 - Diagnostics expose no location rows, hierarchy contents, addresses, postal codes, coordinates, IDs, or record counts.
-- No geography UI, CRUD, seeder, external API, Automation, or access-scope behavior is added.
+- No geography UI, CRUD, geographic record seeder, external API, Automation, or access-scope behavior is added.
+- `git diff --check` passes.
+
+## v0.4.6 Multi-Source Coding and Geography Provenance Checks
+
+- Protected migration creates data-source, authority-scope, immutable snapshot, coding-system, code-set, segment, and versioned code-value tables.
+- Protected migration creates hierarchy-context, external geographic identifier, reviewed mapping, and generic geography staging tables.
+- `geographic_location_relations` receives only nullable hierarchy/source/review columns; existing relations are not guessed or backfilled.
+- Metadata seed registers Ministry, SCI, and Rural Cooperation sources and their domain authority scopes idempotently.
+- Metadata seed registers official, statistical, operational, and custom hierarchy types.
+- Metadata seed registers `operational_region` but creates no South Kerman location.
+- Rural Cooperation 3/5/8 code lengths and one-based segments are seeded as metadata.
+- All external codes are stored as strings and preserve leading zeroes.
+- No external code values, source snapshots, real geography rows, mappings, organizations, or source-file contents are seeded.
+- Existing bot tables, IDs, codes, filters, and selection flow are untouched.
+- Ministry official-parent authority, SCI supplementary role, and operational hierarchy separation are documented.
+- Staging cannot write canonical geography automatically; ambiguous/title-only matches remain review work.
+- Diagnostics expose only required safe booleans and no source data, filenames, hashes, counts, codes, names, IDs, or paths.
+- No UI, CRUD, parser, organization address, ownership, governance, signatory, facility, or Automation schema is added.
 - `git diff --check` passes.

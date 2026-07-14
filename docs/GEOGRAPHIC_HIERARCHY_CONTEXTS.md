@@ -1,0 +1,43 @@
+# Geographic Hierarchy Contexts
+
+Current milestone: `0.4.6-admin-users-organization-dev`
+
+## Coexisting hierarchies
+
+`geographic_hierarchy_types` distinguishes parent relationships that have different meaning:
+
+- `official_administrative`: authoritative Ministry hierarchy.
+- `statistical`: SCI census/statistical context.
+- `rural_cooperation_operational`: Rural Cooperation network geography.
+- `custom`: explicitly configured deployment hierarchy.
+
+The migration extends `geographic_location_relations` with nullable hierarchy, source, source-snapshot, and review context. Existing relations remain valid compatibility relations and are not classified by guesswork. A canonical county may therefore have an official administrative parent and a separate operational parent at the same time.
+
+## South Kerman model
+
+South Kerman is the motivating operational-region use case. It may group Jiroft, Kahnuj, and other network-member counties for Rural Cooperation operations while each county retains its Ministry-defined official parent.
+
+`operational_region` is a data-driven geographic level titled `منطقه عملیاتی`. It is not an official province. This phase seeds only the level/hierarchy metadata; it does not create a South Kerman location or assign any county to it.
+
+## Source precedence
+
+- Ministry wins conflicts about the canonical official administrative parent.
+- SCI may supplement villages, settlements, statistical points, and census identifiers.
+- SCI `CODEREC=5` or unfamiliar DIAG/type values do not automatically establish an official city.
+- Statistical urban subdivisions do not become official cities by inference.
+- Rural Cooperation operational parents are stored only in the operational hierarchy.
+- A matching title never merges records automatically.
+- Missing or virtual parents are reported as issues, not fabricated.
+- Source removal never automatically deletes a canonical location.
+
+Validity periods and history apply within each hierarchy context. Future services must prevent cycles per hierarchy, enforce source/domain conflict policy, and retain historical relationships.
+
+## External identifiers and mappings
+
+`geographic_external_identifiers` allows one canonical location to retain Ministry codes, Ministry national identifiers, SCI identifiers, and Rural Cooperation codes independently. Identifier values are strings and are not globally unique without source/type context.
+
+`geographic_external_code_mappings` records reviewable links from versioned external values to canonical locations. Supported workflow states include `proposed`, `exact`, `review_required`, `confirmed`, `ambiguous`, `rejected`, and `superseded`. No mapping is created in this phase.
+
+## Legacy and bot compatibility
+
+Existing canonical geography, `geographic_legacy_mappings`, legacy province/city fields, optional lookup tables, and bot data remain untouched. A bot table named `cities` may semantically represent counties; it is mapped through an explicit source contract rather than renamed or rewritten. City is never substituted for county.
