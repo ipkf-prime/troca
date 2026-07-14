@@ -45,3 +45,11 @@ Existing canonical geography, `geographic_legacy_mappings`, legacy province/city
 ## Ministry validation hierarchy
 
 The validate-only Ministry adapter derives official source parents from configured hierarchy-code prefixes: county to province, district to county, and rural district/city to district. The configured Iran root is used only as the province parent reference. Missing, virtual, duplicate, malformed, or level-incompatible source parents become staging issues; they do not create canonical locations or relations.
+
+## SCI validation hierarchy
+
+SCI parent and duplicate checks use complete source context rather than globally
+unique component codes. A settlement uses its province, county, district, optional
+rural/statistical unit, and settlement code. Missing parents become issues; no
+parent is fabricated. SCI hierarchy observations never replace Ministry official
+parents, and a statistical urban unit is not substituted for an official city.

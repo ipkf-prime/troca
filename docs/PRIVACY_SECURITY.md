@@ -46,3 +46,9 @@ Source files and import artifacts are administrative maintenance data and must r
 Raw metadata and staging payloads must not contain credentials, secrets, or personal information. Future source upload, import, review, and mapping UI requires dedicated permissions, CSRF protection, audit records, size/type validation, and controlled retention. Canonical writes require explicit reviewed workflows; title-only automatic matching is forbidden.
 
 The Ministry runner is development-only, maintenance-key protected, basename-only, and bound to `storage/imports/geography/ministry`. It performs no upload and no canonical write. Its public response omits filenames, source rows, location names, identifiers, full codes/hashes, paths, SQL, and internal database IDs. Real CSV/XLSX datasets are ignored by Git.
+
+The SCI adapter follows the same boundary under
+`storage/imports/geography/statistical-center`. It preserves source codes and opaque
+DIAG metadata only in private staging. Public responses and diagnostics remain
+aggregate/boolean-only and do not expose filenames, hashes, paths, codes, titles,
+DIAG values, source rows, or database identifiers.

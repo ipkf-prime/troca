@@ -12,6 +12,9 @@
 /public_html/storage/imports/geography/ministry/*.csv
 /public_html/storage/imports/geography/ministry/*.xlsx
 /public_html/storage/imports/geography/ministry/*.xls
+/public_html/storage/imports/geography/statistical-center/*.csv
+/public_html/storage/imports/geography/statistical-center/*.xlsx
+/public_html/storage/imports/geography/statistical-center/*.xls
 
 error_log
 */error_log

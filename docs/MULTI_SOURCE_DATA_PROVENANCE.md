@@ -54,7 +54,7 @@ Title-only matches cannot become confirmed automatically. Ambiguous rows remain 
 
 Future Ministry parsers may observe provinces, counties (shahrestan), districts (bakhsh), rural districts (dehestan), and official cities. Hierarchy codes and national identifiers remain separate. Repeated identifiers, missing parents, virtual parents, and administrative changes become review/history events rather than fabricated rows.
 
-Future SCI parsers preserve raw `CODEREC`, DIAG, and other type indicators. `CODEREC=5` does not automatically mean canonical official city; statistical urban subdivisions, villages, settlements, and statistical points remain semantically distinct. Unfamiliar type values are reported rather than guessed, and official-parent conflicts are reviewed against Ministry observations.
+The SCI adapter preserves raw `CODEREC`, DIAG, and other type indicators. `CODEREC=5` does not automatically mean canonical official city; statistical urban subdivisions, villages, settlements, and statistical points remain semantically distinct. Unfamiliar type values are reported rather than guessed, and official-parent conflicts are reviewed against Ministry observations.
 
 Future Rural Cooperation parsers preserve province, county, organization, level, type, and classification codes exactly. A source table named `cities` may semantically represent counties. Operational regions such as South Kerman remain separate from official provinces, and the active bot filtering/selection workflow is never rewritten by an import.
 
@@ -64,7 +64,7 @@ Source metadata contains no personal data or credentials. Raw payload JSON must 
 
 ## Deferred work
 
-- SCI and Rural Cooperation file-specific parsers
+- Rural Cooperation file-specific parser
 - Snapshot upload/storage service outside the public web root
 - Review and mapping services/UI
 - Canonical geography writes after explicit review
@@ -73,3 +73,13 @@ Source metadata contains no personal data or credentials. Raw payload JSON must 
 ## Ministry validate-only adapter
 
 The first concrete adapter validates Ministry of Interior UTF-8 CSV snapshots from `storage/imports/geography/ministry`. Source types and parent-prefix rules come from `geographic_source_level_mappings`; source placeholders and limits come from `data_source_import_settings`. Identical source/hash snapshots are idempotent. Every nonblank source row is staged and issues are recorded without canonical writes. See `MINISTRY_GEOGRAPHY_IMPORT.md`.
+
+## SCI validate-only adapter
+
+The SCI adapter reuses the same protected endpoint, file guard, snapshot lifecycle,
+batch staging, issue persistence, normalizer, and Clock. It streams private UTF-8
+CSV rows and resolves `CODEREC` through data-driven record mappings. Full hierarchy
+context scopes parent and duplicate validation. `CODEREC=5` remains a review-only
+statistical urban unit, while `CODEREC=6`, `CODEREC=8`, and opaque `DIAG` values are
+preserved as source observations. No Ministry hierarchy or canonical geography is
+changed. See `STATISTICAL_CENTER_GEOGRAPHY_IMPORT.md`.

@@ -111,3 +111,11 @@ Ministry of Interior data is authoritative for official administrative hierarchy
 ## Ministry dry-run boundary
 
 The Ministry adapter adds source level/configuration metadata and validates private UTF-8 CSV snapshots into existing staging tables. It does not alter this canonical model, create geographic records, create relations, create South Kerman, or produce external-to-canonical mappings. See `MINISTRY_GEOGRAPHY_IMPORT.md`.
+
+## Statistical geography dry-run boundary
+
+SCI observations are staged with source-local and full composite hierarchy keys.
+The adapter validates source parents and duplicate observations without forcing
+statistical units into the official hierarchy. Ministry authority remains unchanged,
+and `CODEREC=5` cannot create or imply an official city. See
+`STATISTICAL_CENTER_GEOGRAPHY_IMPORT.md`.

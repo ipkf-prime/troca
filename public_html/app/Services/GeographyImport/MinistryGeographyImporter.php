@@ -7,18 +7,18 @@ use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
 
-class MinistryGeographyImporter
+class MinistryGeographyImporter implements GeographyImportAdapterInterface
 {
     public const SOURCE_CODE = 'iran_ministry_of_interior';
     public const MODE = 'validate';
 
-    private const DEFAULT_MAX_FILE_SIZE = 26214400;
     private const COMPLETED_STATUSES = ['validated', 'ready_for_review'];
 
     public function __construct(
         private readonly GeographyImportRepository $repository = new GeographyImportRepository(),
         private readonly ?MinistryGeographyCsvParser $csvParser = null,
-        private readonly ?MinistryGeographyValidator $validator = null
+        private readonly ?MinistryGeographyValidator $validator = null,
+        private readonly ?GeographyImportRunService $runService = null
     ) {
     }
 
@@ -27,30 +27,20 @@ class MinistryGeographyImporter
         return false;
     }
 
+    public function sourceCode(): string
+    {
+        return self::SOURCE_CODE;
+    }
+
     public function validateFile(string $filename): array
     {
-        $sourceId = $this->repository->sourceId(self::SOURCE_CODE);
-        $settings = $this->repository->settings($sourceId);
-        $path = $this->validatedPath($filename, $settings);
-        $fileSize = filesize($path);
-
-        if ($fileSize === false) {
-            throw new RuntimeException('Source file size could not be read.');
-        }
-
-        $sha256 = hash_file('sha256', $path);
-
-        if (!is_string($sha256) || strlen($sha256) !== 64) {
-            throw new RuntimeException('Source file hash could not be calculated.');
-        }
-
-        $snapshotId = $this->repository->createOrReuseSnapshot(
-            $sourceId,
-            $filename,
-            $sha256,
-            $fileSize
-        );
-        $reusable = $this->repository->reusableSummary($snapshotId);
+        $run = $this->runs()->prepare(self::SOURCE_CODE, $filename, self::xlsxAvailable());
+        $sourceId = $run['source_id'];
+        $settings = $run['settings'];
+        $path = $run['path'];
+        $sha256 = $run['sha256'];
+        $snapshotId = $run['snapshot_id'];
+        $reusable = $run['reusable_summary'];
 
         if ($reusable !== null
             && in_array($reusable['final_batch_status'] ?? null, self::COMPLETED_STATUSES, true)
@@ -58,7 +48,7 @@ class MinistryGeographyImporter
             return $reusable;
         }
 
-        $batchId = $this->repository->prepareBatch($sourceId, $snapshotId);
+        $batchId = (int) $run['batch_id'];
 
         try {
             $parsed = $this->parser()->parse($path);
@@ -149,77 +139,6 @@ class MinistryGeographyImporter
         return $summary;
     }
 
-    private function validatedPath(string $filename, array $settings): string
-    {
-        $filename = trim($filename);
-
-        if ($filename === ''
-            || basename($filename) !== $filename
-            || str_contains($filename, '/')
-            || str_contains($filename, '\\')
-            || preg_match('/\A[\pL\pN][\pL\pN._ -]*\.(csv|xlsx)\z/ui', $filename) !== 1
-        ) {
-            throw new InvalidArgumentException('Invalid source filename.');
-        }
-
-        $extension = strtolower((string) pathinfo($filename, PATHINFO_EXTENSION));
-        $allowedExtensions = $settings['geography.allowed_extensions'] ?? ['csv'];
-        $allowedExtensions = is_array($allowedExtensions)
-            ? array_map(static fn ($value): string => strtolower(trim((string) $value)), $allowedExtensions)
-            : ['csv'];
-
-        if (!in_array($extension, $allowedExtensions, true)) {
-            throw new InvalidArgumentException('Unsupported source file type.');
-        }
-
-        if ($extension === 'xlsx') {
-            throw new InvalidArgumentException('XLSX parsing is not available in this deployment.');
-        }
-
-        if ($extension !== 'csv') {
-            throw new InvalidArgumentException('Unsupported source file type.');
-        }
-
-        $directory = BASE_PATH . '/storage/imports/geography/ministry';
-        $path = $directory . DIRECTORY_SEPARATOR . $filename;
-
-        if (!is_file($path) || !is_readable($path)) {
-            throw new InvalidArgumentException('Source file is unavailable.');
-        }
-
-        $directoryReal = realpath($directory);
-        $pathReal = realpath($path);
-
-        if ($directoryReal === false
-            || $pathReal === false
-            || dirname($pathReal) !== $directoryReal
-        ) {
-            throw new InvalidArgumentException('Source file location is invalid.');
-        }
-
-        $maxFileSize = (int) ($settings['geography.max_file_size_bytes'] ?? self::DEFAULT_MAX_FILE_SIZE);
-        $maxFileSize = $maxFileSize > 0 ? $maxFileSize : self::DEFAULT_MAX_FILE_SIZE;
-        $fileSize = filesize($pathReal);
-
-        if ($fileSize === false || $fileSize < 1 || $fileSize > $maxFileSize) {
-            throw new InvalidArgumentException('Source file size is invalid.');
-        }
-
-        if (class_exists(\finfo::class)) {
-            $mime = (new \finfo(FILEINFO_MIME_TYPE))->file($pathReal);
-            $allowedMimes = [
-                'text/plain', 'text/csv', 'application/csv',
-                'application/vnd.ms-excel', 'application/octet-stream',
-            ];
-
-            if (is_string($mime) && !in_array($mime, $allowedMimes, true)) {
-                throw new InvalidArgumentException('Source file MIME type is invalid.');
-            }
-        }
-
-        return $pathReal;
-    }
-
     private function parser(): MinistryGeographyCsvParser
     {
         return $this->csvParser
@@ -230,5 +149,10 @@ class MinistryGeographyImporter
     {
         return $this->validator
             ?? new MinistryGeographyValidator(new PersianTextNormalizer());
+    }
+
+    private function runs(): GeographyImportRunService
+    {
+        return $this->runService ?? new GeographyImportRunService($this->repository);
     }
 }

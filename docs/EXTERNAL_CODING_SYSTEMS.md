@@ -43,3 +43,11 @@ Bot organization mapping is explicitly deferred. No canonical organization is cr
 ## Ministry staging contract
 
 The Ministry CSV adapter keeps hierarchy code and national identifier as separate strings. It stages observations and review issues only; it does not populate external code values or mappings in the dry-run phase. Level recognition and code lengths are source metadata, not hardcoded canonical entity rules. Repeated national identifiers remain review observations rather than uniqueness violations.
+
+## SCI staging contract
+
+SCI component codes, `CODEREC`, and `DIAG` are preserved as strings. Comparison
+fields normalize digit shapes without removing meaningful leading zeroes. CODEREC
+interpretation comes from `geographic_source_record_type_mappings`, not a controller
+enum. The dry-run does not populate external code values or reviewed mappings;
+cross-source Ministry/SCI matching is deferred.

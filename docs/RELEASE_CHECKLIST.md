@@ -538,6 +538,27 @@ Version: `0.2.0-foundation`
 - Sensitive-data masking, permissions, audit, and logging requirements are documented.
 - `git diff --check` passes.
 
+## v0.4.6 Statistical Center Geography Dry-Run Checks
+
+- Protected migration adds only CODEREC mapping metadata and additive staging columns/indexes.
+- Metadata seed registers SCI import settings, authority scope, and CODEREC `1,2,3,4,5,6,8` idempotently.
+- Real source files remain private and ignored by Git.
+- Basename, extension, MIME, file size, private source directory, UTF-8 headers, and SHA-256 are validated.
+- The synthetic fixture covers all observed CODEREC values, leading zeroes, Persian digits, unknown records, DIAG, missing parent context, and exact/conflicting duplicates.
+- CSV parsing is streaming and staging transactions are bounded.
+- All nonblank rows are staged; no unknown CODEREC row is discarded.
+- Source component codes, CODEREC, and DIAG remain strings.
+- Full source hierarchy context scopes parent and duplicate checks.
+- `CODEREC=5` remains a review-only statistical urban unit and never implies an official city.
+- `CODEREC=6` and `CODEREC=8` remain distinguishable source observations.
+- DIAG remains opaque and no legal meaning is inferred.
+- Identical source/hash reruns reuse the completed summary without duplicate staging.
+- The Ministry dry-run endpoint and source-specific private directory remain operational.
+- Endpoint output is aggregate-only and sets `canonical_write_performed=false`.
+- No canonical geography, relation, external mapping, match candidate, organization, address, or bot row is written.
+- Diagnostics expose only safe availability booleans.
+- `git diff --check` passes.
+
 ## v0.4.6 Ministry Geography Dry-Run Checks
 
 - Protected migration creates only `geographic_source_level_mappings` and `data_source_import_settings` as missing metadata structures.

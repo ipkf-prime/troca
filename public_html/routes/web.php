@@ -126,6 +126,7 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $geographicImportIssuesTableExists = \IPKF\Database\Database::tableExists('geographic_import_issues');
     $geographicImportCandidatesTableExists = \IPKF\Database\Database::tableExists('geographic_import_match_candidates');
     $geographicSourceLevelMappingsTableExists = \IPKF\Database\Database::tableExists('geographic_source_level_mappings');
+    $geographicSourceRecordTypeMappingsTableExists = \IPKF\Database\Database::tableExists('geographic_source_record_type_mappings');
     $dataSourceImportSettingsTableExists = \IPKF\Database\Database::tableExists('data_source_import_settings');
     $geographicRelationsHierarchyContextAvailable = $geographicLocationRelationsTableExists
         && \IPKF\Database\Database::columnExists('geographic_location_relations', 'hierarchy_type_id')
@@ -140,6 +141,7 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $operationalGeographicRegionSupportAvailable = false;
     $ruralCooperationCodeContractAvailable = false;
     $ministryGeographyLevelMappingAvailable = false;
+    $statisticalCenterCoderecMappingAvailable = false;
 
     if ($databaseConnectionAvailable
         && $geographicSourceLevelMappingsTableExists
@@ -172,6 +174,25 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
             $ministryGeographyLevelMappingAvailable = (bool) $statement->fetchColumn();
         } catch (\Throwable $exception) {
             $ministryGeographyLevelMappingAvailable = false;
+        }
+    }
+
+    if ($databaseConnectionAvailable
+        && $geographicSourceRecordTypeMappingsTableExists
+        && $dataSourcesTableExists
+    ) {
+        try {
+            $statement = \IPKF\Database\Database::connect()->query("
+                SELECT COUNT(DISTINCT mappings.source_record_type) = 7
+                FROM geographic_source_record_type_mappings mappings
+                INNER JOIN data_sources sources ON sources.id = mappings.source_id
+                WHERE sources.code = 'iran_statistical_center'
+                  AND mappings.status = 'active'
+                  AND mappings.source_record_type IN ('1', '2', '3', '4', '5', '6', '8')
+            ");
+            $statisticalCenterCoderecMappingAvailable = (bool) $statement->fetchColumn();
+        } catch (\Throwable $exception) {
+            $statisticalCenterCoderecMappingAvailable = false;
         }
     }
 
@@ -651,6 +672,20 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
             && class_exists(\App\Repositories\GeographyImportRepository::class),
         'ministry_geography_validate_only_available' => class_exists(\App\Services\GeographyImport\MinistryGeographyImporter::class),
         'ministry_geography_no_canonical_write' => true,
+        'statistical_center_geography_import_available' => class_exists(\App\Services\GeographyImport\StatisticalCenterGeographyImporter::class),
+        'statistical_center_geography_csv_parser_available' => class_exists(\App\Services\GeographyImport\StatisticalCenterGeographyCsvParser::class),
+        'statistical_center_geography_xlsx_parser_available' => \App\Services\GeographyImport\StatisticalCenterGeographyImporter::xlsxAvailable(),
+        'statistical_center_coderec_mapping_available' => $statisticalCenterCoderecMappingAvailable,
+        'statistical_center_diag_preservation_available' => class_exists(\App\Services\GeographyImport\StatisticalCenterGeographyValidator::class),
+        'statistical_center_statistical_urban_unit_guard_available' => class_exists(\App\Services\GeographyImport\StatisticalCenterGeographyValidator::class),
+        'statistical_center_settlement_staging_available' => $geographicImportRowsTableExists
+            && \IPKF\Database\Database::columnExists('geographic_import_rows', 'source_entity_kind'),
+        'statistical_center_composite_hierarchy_keys_available' => $geographicImportRowsTableExists
+            && \IPKF\Database\Database::columnExists('geographic_import_rows', 'source_composite_key'),
+        'statistical_center_import_idempotency_available' => $dataSourceSnapshotsTableExists
+            && class_exists(\App\Repositories\GeographyImportRepository::class),
+        'statistical_center_import_no_canonical_write' => true,
+        'statistical_center_streaming_validation_available' => class_exists(\App\Services\GeographyImport\StatisticalCenterGeographyCsvParser::class),
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),

@@ -31,6 +31,14 @@ class MultiSourceMetadataSeeder extends Seeder
             $this->seedMinistryGeographyLevelMappings();
             $this->seedMinistryImportSettings();
         }
+
+        if ($this->tableExists('data_source_import_settings')) {
+            $this->seedStatisticalCenterImportSettings();
+        }
+
+        if ($this->tableExists('geographic_source_record_type_mappings')) {
+            $this->seedStatisticalCenterRecordTypeMappings();
+        }
     }
 
     private function seedDataSources(): void
@@ -102,6 +110,7 @@ class MultiSourceMetadataSeeder extends Seeder
             ['iran_statistical_center', 'statistical_geography', 'Statistical geography', 10, 1, 'supplement'],
             ['iran_statistical_center', 'village_and_settlement_data', 'Village and settlement data', 10, 1, 'supplement'],
             ['iran_statistical_center', 'census_identifiers', 'Census identifiers', 10, 1, 'preserve_all'],
+            ['iran_statistical_center', 'statistical_urban_units', 'Statistical urban units', 10, 1, 'review_only'],
             ['rural_cooperation_statistical_system', 'rural_cooperation_operational_geography', 'Rural Cooperation operational geography', 10, 1, 'separate_hierarchy'],
             ['rural_cooperation_statistical_system', 'rural_cooperation_organization_codes', 'Rural Cooperation organization codes', 10, 1, 'preserve_exact'],
             ['rural_cooperation_statistical_system', 'rural_cooperation_classification_codes', 'Rural Cooperation classification codes', 10, 1, 'preserve_exact'],
@@ -376,6 +385,10 @@ class MultiSourceMetadataSeeder extends Seeder
             ['geography.country_root_code', 'IR', 'string'],
             ['geography.max_file_size_bytes', '26214400', 'integer'],
             ['geography.allowed_extensions', '["csv"]', 'json'],
+            ['geography.source_folder', 'ministry', 'string'],
+            ['geography.delimiter', ',', 'string'],
+            ['geography.encoding', 'UTF-8', 'string'],
+            ['geography.validate_only', 'true', 'boolean'],
         ];
         $statement = $this->db->prepare("
             INSERT INTO data_source_import_settings (
@@ -391,6 +404,111 @@ class MultiSourceMetadataSeeder extends Seeder
 
         foreach ($settings as $setting) {
             $statement->execute([$sourceId, ...$setting]);
+        }
+    }
+
+    private function seedStatisticalCenterImportSettings(): void
+    {
+        $sourceId = $this->sourceId('iran_statistical_center');
+
+        if ($sourceId === null) {
+            return;
+        }
+
+        $headerAliases = [
+            'province_code' => ['کد استان'],
+            'province_title' => ['نام استان'],
+            'county_code' => ['کد شهرستان'],
+            'county_title' => ['نام شهرستان'],
+            'district_code' => ['کد بخش'],
+            'district_title' => ['نام بخش'],
+            'rural_or_city_code' => ['کد دهستان/ شهر', 'کد دهستان/شهر'],
+            'rural_district_title' => ['نام دهستان'],
+            'settlement_code' => ['کد آبادی'],
+            'source_title' => ['نام'],
+            'coderec' => ['CODEREC'],
+            'diag' => ['DIAG'],
+        ];
+        $settings = [
+            ['geography.allowed_extensions', '["csv"]', 'json'],
+            ['geography.max_file_size_bytes', '52428800', 'integer'],
+            ['geography.delimiter', ',', 'string'],
+            ['geography.encoding', 'UTF-8', 'string'],
+            ['geography.expected_headers', json_encode($headerAliases, JSON_UNESCAPED_UNICODE), 'json'],
+            ['geography.supported_record_types', '["1","2","3","4","5","6","8"]', 'json'],
+            ['geography.source_folder', 'statistical-center', 'string'],
+            ['geography.validate_only', 'true', 'boolean'],
+            ['geography.country_root_code', 'IR-STAT', 'string'],
+            ['geography.staging_chunk_size', '500', 'integer'],
+        ];
+        $statement = $this->db->prepare("
+            INSERT INTO data_source_import_settings (
+                source_id, setting_key, setting_value, value_type,
+                status, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON DUPLICATE KEY UPDATE
+                setting_value = VALUES(setting_value),
+                value_type = VALUES(value_type),
+                status = 'active',
+                updated_at = CURRENT_TIMESTAMP
+        ");
+
+        foreach ($settings as $setting) {
+            $statement->execute([$sourceId, ...$setting]);
+        }
+    }
+
+    private function seedStatisticalCenterRecordTypeMappings(): void
+    {
+        $sourceId = $this->sourceId('iran_statistical_center');
+
+        if ($sourceId === null) {
+            return;
+        }
+
+        $mappings = [
+            ['1', 'مشاهده استان', 'province', 'province_observation', null, 'province_code', [], 'SCI province observation.', 10],
+            ['2', 'مشاهده شهرستان', 'county', 'county_observation', '1', 'county_code', ['province_code'], 'SCI county observation scoped by province.', 20],
+            ['3', 'مشاهده بخش', 'district', 'district_observation', '2', 'district_code', ['province_code', 'county_code'], 'SCI district observation scoped by province and county.', 30],
+            ['4', 'مشاهده دهستان', 'rural_district', 'rural_district_observation', '3', 'rural_or_city_code', ['province_code', 'county_code', 'district_code'], 'SCI rural-district observation.', 40],
+            ['5', 'واحد شهری آماری', null, 'statistical_urban_unit', '3', 'rural_or_city_code', ['province_code', 'county_code', 'district_code'], 'Review-only statistical urban unit; never an automatic official city.', 50],
+            ['6', 'مشاهده آبادی', 'settlement', 'settlement_observation', '4,5,3', 'settlement_code', ['province_code', 'county_code', 'district_code', 'rural_or_city_code'], 'SCI settlement observation with source-context parent fallback.', 60],
+            ['8', 'مشاهده آبادی طبقه‌بندی‌شده', 'settlement', 'diag_classified_settlement_observation', '4,5,3', 'settlement_code', ['province_code', 'county_code', 'district_code', 'rural_or_city_code'], 'SCI DIAG-classified observation; DIAG meaning remains opaque.', 80],
+        ];
+        $statement = $this->db->prepare("
+            INSERT INTO geographic_source_record_type_mappings (
+                source_id, source_record_type, source_title, derived_level_code,
+                source_entity_kind, parent_record_type, code_field,
+                parent_code_fields_json, canonical_auto_match_allowed,
+                description, sort_order, status, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON DUPLICATE KEY UPDATE
+                source_title = VALUES(source_title),
+                derived_level_code = VALUES(derived_level_code),
+                source_entity_kind = VALUES(source_entity_kind),
+                parent_record_type = VALUES(parent_record_type),
+                code_field = VALUES(code_field),
+                parent_code_fields_json = VALUES(parent_code_fields_json),
+                canonical_auto_match_allowed = 0,
+                description = VALUES(description),
+                sort_order = VALUES(sort_order),
+                status = 'active',
+                updated_at = CURRENT_TIMESTAMP
+        ");
+
+        foreach ($mappings as [$type, $title, $level, $kind, $parentType, $codeField, $parentFields, $description, $sort]) {
+            $statement->execute([
+                $sourceId,
+                $type,
+                $title,
+                $level,
+                $kind,
+                $parentType,
+                $codeField,
+                json_encode($parentFields, JSON_UNESCAPED_UNICODE),
+                $description,
+                $sort,
+            ]);
         }
     }
 
