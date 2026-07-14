@@ -565,6 +565,32 @@ Version: `0.2.0-foundation`
 - No canonical geography, confirmed external mapping, bot, organization, or Automation write exists.
 - `git diff --check` passes.
 
+## v0.4.6 Ministry Canonical Geography Apply Checks
+
+- Additive migration creates canonicalization run/item audit tables.
+- Metadata seed creates only missing official level/relation definitions; no real location is seeded.
+- `/geography-canonicalize.php` requires debug mode and the maintenance key.
+- Plan requires exact `MOI-XXXXXXXXXXXX`, classifies every staging row, and performs no canonical write.
+- Apply requires exact source batch, plan reference, and 16-character fingerprint prefix.
+- Source row checksum or canonical conflict changes invalidate the plan.
+- Unchanged `MOI-865CA310FC55` is expected to report 6,617 eligible and 2 excluded rows.
+- Iran root resolution is unique and conflict-safe.
+- Apply order is province, county, district, rural district, then city.
+- Only `official_administrative`/`administrative_parent` relations are written.
+- Hierarchy-code identity is exact and snapshot-versioned; leading zeroes remain intact.
+- Confirmed mappings use `authoritative_source_apply`.
+- Repeated national identifiers remain attached to separate locations and never merge them.
+- Title-only reuse, first-result reuse, and national-identifier reuse are blocked.
+- Invalid/missing-parent/duplicate-code rows are excluded.
+- Existing official-parent and trusted-mapping conflicts are not overwritten.
+- Chunked apply is resumable and repeated apply creates no duplicates.
+- No location, relation, identifier, mapping, or code value is automatically deleted or deactivated.
+- No SCI settlement/city candidate, bot geography, organization, South Kerman province, UI, Automation, or Auth/RBAC/MFA write occurs.
+- Endpoint responses are aggregate-only and diagnostics are boolean-only.
+- Synthetic fixtures contain no production records.
+- Migration and seed remain idempotent.
+- `git diff --check` passes.
+
 ## v0.4.6 Statistical Center Geography Dry-Run Checks
 
 - Protected migration adds only CODEREC mapping metadata and additive staging columns/indexes.
@@ -610,14 +636,14 @@ Version: `0.2.0-foundation`
 ## v0.4.6 Dynamic Geography Foundation Checks
 
 - Protected migration creates `geographic_level_types`.
-- Protected migration creates data-driven `geographic_relation_types` without seeded values.
+- Protected migration creates data-driven `geographic_relation_types`; the metadata seeder now defines the official parent relation idempotently.
 - Protected migration creates `geographic_locations` without globally unique titles.
 - Protected migration creates dated `geographic_location_relations`.
 - Protected migration creates explicit `geographic_legacy_mappings`.
 - `person_addresses.geographic_location_id` is nullable and indexed.
 - Existing `provinces`, `cities`, province/city columns, rows, indexes, and foreign keys remain unchanged.
 - Existing person, address, bot registration, Auth, MFA, RBAC, and organization behavior remains unchanged.
-- No country, province, county, city, or commercial location data is created or seeded.
+- Migration and seed create no country, province, county, city, or commercial location records; real Ministry locations require the protected apply workflow.
 - No title-only mapping or city-as-county substitution occurs.
 - Historical locations, validity periods, and dated parent changes are supported.
 - Multi-country and deployment-defined level types are supported.

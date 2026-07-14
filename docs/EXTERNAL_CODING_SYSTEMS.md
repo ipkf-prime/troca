@@ -50,4 +50,15 @@ SCI component codes, `CODEREC`, and `DIAG` are preserved as strings. Comparison
 fields normalize digit shapes without removing meaningful leading zeroes. CODEREC
 interpretation comes from `geographic_source_record_type_mappings`, not a controller
 enum. The dry-run does not populate external code values or reviewed mappings;
-cross-source Ministry/SCI matching is deferred.
+cross-source Ministry/SCI comparison remains candidate-only and never confirms an
+SCI mapping automatically.
+
+## Ministry confirmed hierarchy-code mappings
+
+The protected Ministry canonical apply populates only the
+`administrative_location_code` set for the exact source snapshot. Codes remain
+strings with leading zeroes and source parent-code relationships. Successful
+items create `confirmed` mappings with match method
+`authoritative_source_apply`. National identifiers remain secondary, non-unique
+identifiers and never select a canonical entity. SCI code values and mappings are
+not written by this workflow.

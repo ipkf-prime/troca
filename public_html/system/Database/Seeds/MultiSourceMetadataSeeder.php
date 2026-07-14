@@ -23,6 +23,7 @@ class MultiSourceMetadataSeeder extends Seeder
         $this->seedCodeSets();
         $this->seedCodeSegments();
         $this->seedHierarchyTypes();
+        $this->seedOfficialGeographyMetadata();
         $this->seedOperationalRegionLevel();
 
         if ($this->tableExists('geographic_source_level_mappings')
@@ -317,6 +318,75 @@ class MultiSourceMetadataSeeder extends Seeder
         foreach ($types as $type) {
             $statement->execute($type);
         }
+    }
+
+    private function seedOfficialGeographyMetadata(): void
+    {
+        if (!$this->tableExists('geographic_relation_types')) {
+            return;
+        }
+
+        $levels = [
+            ['country', 'کشور', null, 10, 1, 1, 1],
+            ['province', 'استان', 'country', 20, 1, 1, 1],
+            ['county', 'شهرستان', 'province', 30, 1, 1, 1],
+            ['district', 'بخش', 'county', 40, 1, 1, 1],
+            ['rural_district', 'دهستان', 'district', 50, 1, 1, 1],
+            ['city', 'شهر', 'district', 60, 1, 1, 1],
+        ];
+        $statement = $this->db->prepare("
+            INSERT INTO geographic_level_types (
+                code, title, description, parent_level_type_id,
+                hierarchy_order, is_administrative, is_addressable,
+                is_selectable, is_system, sort_order, status,
+                created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON DUPLICATE KEY UPDATE
+                title = VALUES(title),
+                parent_level_type_id = VALUES(parent_level_type_id),
+                hierarchy_order = VALUES(hierarchy_order),
+                is_administrative = VALUES(is_administrative),
+                is_addressable = VALUES(is_addressable),
+                is_selectable = VALUES(is_selectable),
+                is_system = 1,
+                sort_order = VALUES(sort_order),
+                status = 'active',
+                updated_at = CURRENT_TIMESTAMP
+        ");
+
+        foreach ($levels as [$code, $title, $parentCode, $order, $administrative, $addressable, $selectable]) {
+            $parentId = $parentCode === null ? null : $this->idForCode('geographic_level_types', $parentCode);
+            $statement->execute([
+                $code,
+                $title,
+                'Canonical official administrative level.',
+                $parentId,
+                $order,
+                $administrative,
+                $addressable,
+                $selectable,
+                $order,
+            ]);
+        }
+
+        $this->db->prepare("
+            INSERT INTO geographic_relation_types (
+                code, title, description, is_hierarchical, is_administrative,
+                sort_order, status, created_at, updated_at
+            ) VALUES (
+                'administrative_parent', 'والد اداری رسمی',
+                'Canonical parent relation in the official administrative hierarchy.',
+                1, 1, 10, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            )
+            ON DUPLICATE KEY UPDATE
+                title = VALUES(title),
+                description = VALUES(description),
+                is_hierarchical = 1,
+                is_administrative = 1,
+                sort_order = 10,
+                status = 'active',
+                updated_at = CURRENT_TIMESTAMP
+        ")->execute();
     }
 
     private function seedOperationalRegionLevel(): void

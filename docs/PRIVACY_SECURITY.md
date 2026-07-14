@@ -57,3 +57,11 @@ The protected crosswalk runner accepts only validated batch-reference formats an
 an exact build-candidates mode. Its response is aggregate-only. Candidate pairs,
 source titles/codes, row IDs, paths, SQL, and credentials remain private. The runner
 has no apply mode and cannot write canonical geography or confirmed mappings.
+## Canonical geography maintenance security
+
+`/geography-canonicalize.php` is development-only and requires the exact
+`DEV_MAINTENANCE_KEY`. Plan performs no canonical write. Apply additionally
+requires the exact source batch, immutable plan reference, and fingerprint prefix.
+Responses expose aggregate counts and policy statuses only; full hashes, source
+codes, national identifiers, titles, database IDs, raw issues, file paths, SQL,
+credentials, and maintenance keys are prohibited. Diagnostics remain boolean-only.

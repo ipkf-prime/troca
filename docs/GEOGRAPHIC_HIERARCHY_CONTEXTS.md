@@ -61,3 +61,11 @@ parent candidates into county, district, rural-district, and city comparisons.
 Every lower-level target must belong to the exact matched Ministry parent row.
 Ambiguous or unmatched parents cannot produce exact children. Same-name locations
 under different parents therefore remain distinct.
+## Official Ministry apply
+
+The Ministry canonicalization workflow writes only the
+`official_administrative` hierarchy. It uses `administrative_parent` and applies
+Iran, province, county, district, rural district, and city parent-first. Existing
+statistical, Rural Cooperation operational, custom, and historical relations are
+never modified. A conflicting active official parent becomes review work rather
+than an automatic reparent.

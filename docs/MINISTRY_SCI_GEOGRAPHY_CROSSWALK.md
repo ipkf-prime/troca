@@ -126,9 +126,10 @@ Every response states:
 - canonical_write_performed=false
 - confirmed_mapping_write_performed=false
 
-## Deferred review and apply
+## Separate Ministry canonical apply
 
-Future work may add permission-protected human review, audit history, rejection,
-supersession, and an explicit apply phase. That future phase must revalidate Ministry
-authority and source snapshots before any canonical or external mapping action.
-There is no UI, confirmation, or apply operation in this release.
+The Ministry authoritative snapshot now has a separate protected canonical
+plan/apply workflow. It does not consume, confirm, modify, or apply any SCI
+crosswalk candidate. SCI review, rejection, supersession, settlement apply, and
+city-candidate confirmation remain deferred. See
+`MINISTRY_CANONICAL_GEOGRAPHY_APPLY.md`.

@@ -130,6 +130,8 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $geographicCrosswalkRunsTableExists = \IPKF\Database\Database::tableExists('geographic_crosswalk_runs');
     $geographicCrosswalkCandidatesTableExists = \IPKF\Database\Database::tableExists('geographic_crosswalk_candidates');
     $geographicCrosswalkIssuesTableExists = \IPKF\Database\Database::tableExists('geographic_crosswalk_issues');
+    $geographicCanonicalizationRunsTableExists = \IPKF\Database\Database::tableExists('geographic_canonicalization_runs');
+    $geographicCanonicalizationItemsTableExists = \IPKF\Database\Database::tableExists('geographic_canonicalization_items');
     $dataSourceImportSettingsTableExists = \IPKF\Database\Database::tableExists('data_source_import_settings');
     $geographicRelationsHierarchyContextAvailable = $geographicLocationRelationsTableExists
         && \IPKF\Database\Database::columnExists('geographic_location_relations', 'hierarchy_type_id')
@@ -701,6 +703,20 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
             && class_exists(\App\Repositories\GeographyCrosswalkRepository::class),
         'geographic_crosswalk_no_canonical_write' => true,
         'geographic_crosswalk_no_confirmed_mapping_write' => true,
+        'ministry_canonicalization_available' => $geographicCanonicalizationRunsTableExists
+            && $geographicCanonicalizationItemsTableExists
+            && class_exists(\App\Services\GeographyCanonicalization\MinistryCanonicalGeographyService::class),
+        'ministry_canonicalization_plan_available' => class_exists(\App\Services\GeographyCanonicalization\MinistryCanonicalGeographyService::class),
+        'ministry_canonicalization_apply_available' => class_exists(\App\Repositories\MinistryCanonicalGeographyRepository::class),
+        'ministry_canonicalization_parent_first_available' => true,
+        'ministry_canonicalization_idempotency_available' => $geographicCanonicalizationRunsTableExists
+            && $geographicCanonicalizationItemsTableExists,
+        'ministry_canonicalization_official_hierarchy_only' => true,
+        'ministry_canonicalization_external_code_mapping_available' => $geographicExternalMappingsTableExists,
+        'ministry_canonicalization_duplicate_national_id_merge_blocked' => true,
+        'ministry_canonicalization_no_automatic_deletion' => true,
+        'ministry_canonicalization_sci_write_blocked' => true,
+        'ministry_canonicalization_bot_write_blocked' => true,
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),

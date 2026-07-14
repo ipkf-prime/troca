@@ -92,3 +92,13 @@ matching is forbidden. Ministry remains authoritative. Exact means a determinist
 pair only, not a confirmed canonical mapping. Probable, ambiguous, unmatched, and
 excluded observations remain visible for review. See
 `MINISTRY_SCI_GEOGRAPHY_CROSSWALK.md`.
+
+## Ministry authoritative canonicalization
+
+The Ministry source is the first source allowed to create canonical geography,
+and only through an immutable protected plan followed by an exact confirmed apply.
+Every applied location retains exact snapshot provenance, a hierarchy-code
+identifier, a versioned external code value, and a confirmed mapping. National
+identifier repetition remains preserved and never merges locations. SCI and Rural
+Cooperation observations remain outside this write path. See
+`MINISTRY_CANONICAL_GEOGRAPHY_APPLY.md`.

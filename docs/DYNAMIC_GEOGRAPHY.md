@@ -4,7 +4,7 @@ Current milestone: `0.4.6-admin-users-organization-dev`
 
 ## Purpose
 
-The dynamic geography foundation provides a canonical, configurable, multi-country hierarchy for people, organizations, access scopes, reporting, and future routing. This phase is schema, diagnostics, and documentation only. It adds no geography UI, commercial dataset, file parser, automatic mapping, or geographic record seeder. A later provenance extension seeds only system reference metadata.
+The dynamic geography foundation provides a canonical, configurable, multi-country hierarchy for people, organizations, access scopes, reporting, and future routing. It includes schema, diagnostics, source staging, candidate crosswalk, and one protected Ministry plan/apply path. It adds no geography UI, commercial dataset, public CRUD, automatic title mapping, or geographic record seeder. Reference seeding creates system metadata only.
 
 The hierarchy is data-driven. PHP does not assume that every deployment or country has the same administrative levels.
 
@@ -87,7 +87,10 @@ Run the protected development migration endpoint after deployment:
 
 `/migrate.php?key=DEV_MAINTENANCE_KEY`
 
-The migration is additive and idempotent. It creates no seed data and performs no automatic legacy mapping.
+The migration is additive and idempotent. System metadata now defines official
+country/province/county/district/rural-district/city levels and the
+`administrative_parent` relation type. It creates no geographic records and
+performs no automatic legacy mapping.
 
 ## Deferred work
 
@@ -126,3 +129,12 @@ The Ministry/SCI engine compares completed staging snapshots without modifying
 either source batch. It processes official levels parent-first and stores pending
 candidate/classification records only. No geographic location, relation, external
 identifier, confirmed mapping, organization geography, or address is written.
+
+## Ministry canonical apply boundary
+
+Reviewed Ministry staging may now enter canonical geography only through the
+protected immutable plan/apply workflow. It writes official hierarchy locations,
+official parent relations, exact snapshot code values, source identifiers, and
+confirmed hierarchy-code mappings parent-first. It never reuses by title or
+national identifier, never deletes/deactivates records, and never applies SCI or
+bot geography. See `MINISTRY_CANONICAL_GEOGRAPHY_APPLY.md`.

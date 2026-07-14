@@ -86,6 +86,15 @@ staging rows, never treats repeated national identifiers as globally unique, and
 never modifies this batch. All results remain pending review. See
 `MINISTRY_SCI_GEOGRAPHY_CROSSWALK.md`.
 
+## Canonical apply
+
+The completed Ministry batch can now produce an immutable canonicalization plan.
+Only a second protected request containing the exact plan reference and fingerprint
+prefix can apply eligible observations. Hierarchy code, not national identifier or
+title, controls source identity. Apply is parent-first, official-hierarchy-only,
+audited, resumable, and non-destructive. See
+`MINISTRY_CANONICAL_GEOGRAPHY_APPLY.md`.
+
 ## Deferred Adapters
 
 Rural Cooperation/bot parsing, canonical review/apply, self-hosted mapping UI,

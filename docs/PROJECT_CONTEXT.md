@@ -223,7 +223,10 @@ Dynamic geographic hierarchy foundation now includes:
 - A documented resolver contract that never substitutes city for county.
 - Future reuse by organization addresses, reports, access scopes, and routing without implementing those features yet.
 
-This remains schema-only. No geographic records, reviewed mappings, UI, file parser, organization address, Auth/RBAC change, or Automation behavior is added. The only seeding is system reference metadata for the provenance/coding contracts below.
+The original foundation remains additive and metadata-driven. Geographic records
+and reviewed Ministry mappings can now be created only by the separate protected
+canonical plan/apply workflow. No public CRUD UI, organization address,
+Auth/RBAC change, or Automation behavior is added.
 
 Multi-source provenance foundation now adds:
 
@@ -280,3 +283,13 @@ classifications are stored as pending review records. Numbered statistical urban
 units and SCI settlements are excluded from official Ministry matching. No source
 staging, canonical geography, confirmed external mapping, bot data, organization,
 or address is modified.
+
+## Ministry official canonical geography
+
+Reviewed Ministry staging now supports the first controlled canonical write. A
+protected immutable plan classifies every row before an exact fingerprint-confirmed
+apply creates/reuses the Iran root and applies province, county, district, rural
+district, and city parent-first. Exact hierarchy-code mappings and source
+identifiers retain snapshot provenance. National identifier repetition never
+merges rows; title-only reuse is blocked; no deletion, SCI apply, bot geography,
+organization import, UI, Automation, or Auth/RBAC/MFA change is included.
