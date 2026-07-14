@@ -166,21 +166,25 @@ Scope:
 - Safe APP_DEBUG-only navigation diagnostics.
 - No Automation, CRM, ERP, Bot, Marketplace, or business module is added.
 
-## Active Milestone
+## Stable Baseline
 
-IPKF v0.4.6 Admin Users Organization starts the schema foundation required before Automation.
+IPKF v0.4.6 Admin Users and Organization is the stable foundation required before Automation.
 
-Working version: `0.4.6-admin-users-organization-dev`
+Stable version: `0.4.6-admin-users-organization`
 
 Development branch: `v0.4.6-admin-users-organization-dev`
 
-Scope:
+Stable scope:
 
-- `org_units` table for internal units and departments.
-- `positions` table for job positions and titles.
-- `user_org_assignments` table linking users to units and positions.
-- Safe diagnostics for the organization schema foundation.
-- No Automation tables, correspondence tables, UI, CRM, ERP, Bot, or business workflows are added.
+- Person and user separation plus extended person-profile foundations.
+- Admin user management foundations with multi-role and active-access behavior.
+- Organization units, positions, and user organization assignments.
+- Dynamic legal-entity classifications, relations, units, posts, and appointments.
+- Reusable tabbed entity workspace and responsive users/organization views.
+- Canonical official geography with Ministry import, immutable plan, protected apply, status, recovery, telemetry, and idempotency.
+- Multi-source staging, coding, provenance, and crosswalk infrastructure.
+- Privacy-safe diagnostics and development-only maintenance endpoints.
+- No Automation/correspondence, CRM, ERP, Marketplace, or Bot business module is included.
 
 Extended person data foundation:
 
@@ -200,7 +204,7 @@ Dynamic organization foundation now includes:
 - Person-based `organization_appointments` that do not require a user account.
 - Additive compatibility with existing `organizations` data and legacy hierarchy/type fields.
 
-This remains schema-only. Organization UI/CRUD, registration/contact/address details, governance, ownership, signatory authority, and Automation are deferred.
+Organization CRUD and business workflows, registration/contact/address editing, governance, ownership, signatory authority, and Automation remain deferred. Current users and organization views are read-only foundations.
 
 Admin entity detail workspace foundation now includes:
 
@@ -239,17 +243,23 @@ Multi-source provenance foundation now adds:
 - Generic geography import staging that never writes canonical locations automatically.
 - Rural Cooperation 3/5/8-character string-code contract while preserving all active bot data and behavior.
 
-This extension imports no Ministry, SCI, bot, geographic, organization, or source-file records. South Kerman remains a documented operational-region use case and is not inserted as canonical data.
+The stable baseline applies only the reviewed official Ministry hierarchy to the canonical geography model. SCI and Rural Cooperation staging remain non-operational source/audit infrastructure. No SCI or Rural Cooperation hierarchy is applied, and South Kerman is not inserted as a canonical province.
 
-Future automation readiness:
+Next development milestone: `v0.4.7-automation-foundation-dev`
+
+Planned scope:
 
 - دبیرخانه
-- مدیر
-- کارشناس
-- ارجاع نامه به کاربر
-- ارجاع نامه به واحد
-- کارتابل شخصی
-- کارتابل واحد
+- نامه وارده
+- نامه صادره
+- پیش‌نویس و شماره‌گذاری
+- کارتابل
+- ارجاع
+- گردش کار
+- پیوست‌ها
+- نسخه‌ها
+- تاریخچه اقدامات
+- رهگیری مکاتبات
 
 ## Future Milestones
 
@@ -299,3 +309,13 @@ safe operation-stage tracking, private exception logging, strict single-level
 chunks, aggregate status mode, and same-plan failed-run resume. Committed artifact
 counters are reconciled from database state, preventing retry inflation while
 preserving the existing plan, staging rows, audit items, and Iran root.
+
+Stable canonical verification for plan `CAN-F0637B652432` completed with status
+`applied`: 6,619 source rows, 6,617 applied items, 2 excluded audit items, no
+conflicts, 6,617 canonical locations, 6,617 official relations, 13,234 external
+identifiers, and 6,617 confirmed mappings. Repeating apply did not change any
+counter. SCI and bot writes remained disabled.
+
+Rural Cooperation provinces, operational regions, counties, and organizations are
+deferred to a future extension layered on top of Ministry canonical geography.
+They are not a replacement or a parallel canonical hierarchy in this release.

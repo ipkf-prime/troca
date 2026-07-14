@@ -1,6 +1,6 @@
 # IPKF Admin Panel Shell
 
-Current version: `0.4.6-admin-users-organization-dev`
+Current version: `0.4.6-admin-users-organization`
 
 ## Datetime Display
 

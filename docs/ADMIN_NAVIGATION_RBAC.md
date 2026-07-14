@@ -1,6 +1,6 @@
 # IPKF Admin Navigation RBAC
 
-Current version: `0.4.6-admin-users-organization-dev`
+Current version: `0.4.6-admin-users-organization`
 
 ## Purpose
 
@@ -31,7 +31,7 @@ Deferred after v0.4.5:
 - CRM, ERP, and Bot modules
 - organization, geography, and fiscal-year scoped UI enforcement beyond the existing foundation
 
-Next phase: `v0.4.6-admin-users-organization-dev`
+Completed next phase: `v0.4.6-admin-users-organization`.
 
 Planned next work:
 

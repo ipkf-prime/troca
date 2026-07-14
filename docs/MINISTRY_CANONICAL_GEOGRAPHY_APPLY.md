@@ -1,6 +1,6 @@
 # Ministry Canonical Geography Apply
 
-Current milestone: `0.4.6-admin-users-organization-dev`
+Current milestone: `0.4.6-admin-users-organization`
 
 ## Purpose and authority
 
@@ -151,6 +151,21 @@ missing parent, repeated national identifiers, trusted mapping reuse, title-only
 blocking, deterministic fingerprints, first-chunk rollback, private failure
 references, public error privacy, same-plan retry, level-bounded chunks, country
 reuse, counter reconciliation, and repeated apply idempotency.
+
+## Stable release verification
+
+Plan `CAN-F0637B652432` completed with final status `applied` against 6,619 source
+rows. The verified result contains 6,617 applied items, 2 excluded audit items, no
+conflicts, 6,617 canonical locations, 6,617 official relations, 13,234 external
+identifiers, and 6,617 confirmed mappings. Repeating apply left every counter
+unchanged. SCI and bot writes remained disabled.
+
+The official Ministry hierarchy is the only operational canonical geography in
+`0.4.6-admin-users-organization`. SCI and Rural Cooperation source/staging data
+remain non-operational audit infrastructure. Rural Cooperation regions, counties,
+and organizations, including the South Kerman operational-region extension, are
+deferred to a future extension and do not form a replacement or parallel canonical
+hierarchy.
 
 ## Explicit exclusions
 

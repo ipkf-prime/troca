@@ -1,6 +1,6 @@
 # IPKF Dynamic Geography
 
-Current milestone: `0.4.6-admin-users-organization-dev`
+Current milestone: `0.4.6-admin-users-organization`
 
 ## Purpose
 

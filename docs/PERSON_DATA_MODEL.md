@@ -1,6 +1,6 @@
 # IPKF Person Data Model
 
-Current milestone: `0.4.6-admin-users-organization-dev`
+Current milestone: `0.4.6-admin-users-organization`
 
 ## Model boundaries
 

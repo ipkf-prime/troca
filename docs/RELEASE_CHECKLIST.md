@@ -30,7 +30,7 @@
 
 ## v0.4.6 Admin Users Organization Schema Checks
 
-- `/health` returns `0.4.6-admin-users-organization-dev`.
+- `/health` returns `0.4.6-admin-users-organization`.
 - Protected migrations run successfully.
 - `org_units` table exists.
 - `positions` table exists.
@@ -312,7 +312,7 @@ Deferred after v0.4.5:
 - CRM, ERP, Bot, and Marketplace modules.
 - organization, geography, and fiscal-year scoped UI enforcement beyond the existing foundation.
 
-Next phase: `v0.4.6-admin-users-organization-dev`.
+Completed next phase: `v0.4.6-admin-users-organization`.
 
 ## v0.2.0 Foundation Release Checklist
 
@@ -462,7 +462,7 @@ Version: `0.2.0-foundation`
 
 ## v0.4.6 Admin Users Organization Checks
 
-- `/health` returns version `0.4.6-admin-users-organization-dev`.
+- `/health` returns version `0.4.6-admin-users-organization`.
 - Migrations create `org_units`, `positions`, and `user_org_assignments`.
 - No Automation, correspondence, cartable, referral, or workflow tables are created.
 - Users organization permissions are seeded idempotently.
@@ -679,3 +679,79 @@ Version: `0.2.0-foundation`
 - Diagnostics expose only required safe booleans and no source data, filenames, hashes, counts, codes, names, IDs, or paths.
 - No UI, CRUD, parser, organization address, ownership, governance, signatory, facility, or Automation schema is added.
 - `git diff --check` passes.
+
+## v0.4.6 Stable Baseline Closure
+
+Version: `0.4.6-admin-users-organization`
+
+Runtime and admin checks:
+
+- `/health` returns `0.4.6-admin-users-organization`.
+- Admin authentication and MFA remain functional.
+- Active access switching remains functional.
+- RBAC menu filtering and direct route guards remain functional.
+- Users list and tabbed user detail workspace load.
+- Organization units list and organization workspace load.
+- Canonical geography tables are readable.
+- Persian UTF-8 rendering remains correct.
+- Responsive/mobile layouts introduce no horizontal page scrolling.
+
+Canonical Ministry verification:
+
+- Plan `CAN-F0637B652432` reports final status `applied`.
+- Total source rows: `6619`.
+- Applied items: `6617`.
+- Excluded audit items: `2`.
+- Conflict items: `0`.
+- Created canonical locations: `6617`.
+- Created official relations: `6617`.
+- Created external identifiers: `13234`.
+- Created confirmed mappings: `6617`.
+- Repeated apply is idempotent and does not change any counter.
+- SCI writes remain `false`.
+- Bot writes remain `false`.
+
+Security and operational checks:
+
+- Maintenance endpoints remain available only in development/debug mode with the maintenance key.
+- Private canonicalization failure logs remain outside the public document root.
+- Public diagnostics and maintenance responses expose no maintenance key, SQL error, source identifier, stack trace, token, or secret.
+- The official Ministry hierarchy is the only operational canonical geography.
+- SCI and Rural Cooperation staging remain non-operational source/audit infrastructure.
+- Rural Cooperation regions, organizations, and the South Kerman operational-region extension remain deferred.
+
+Relevant diagnostics already implemented by this milestone:
+
+- `admin_users_organization_foundation_available`
+- `org_units_schema_available`
+- `positions_schema_available`
+- `user_org_assignments_schema_available`
+- `person_extended_profile_schema_available`
+- `person_contacts_schema_available`
+- `person_addresses_schema_available`
+- `dynamic_organization_core_available`
+- `organization_classification_schema_available`
+- `organization_relations_schema_available`
+- `organization_positions_schema_available`
+- `organization_appointments_schema_available`
+- `dynamic_geographic_hierarchy_available`
+- `geographic_locations_schema_available`
+- `geographic_location_relations_schema_available`
+- `multi_source_data_registry_available`
+- `geographic_import_staging_available`
+- `ministry_geography_import_adapter_available`
+- `statistical_center_geography_import_available`
+- `ministry_sci_crosswalk_available`
+- `ministry_canonicalization_available`
+- `ministry_canonicalization_plan_available`
+- `ministry_canonicalization_apply_available`
+- `ministry_canonicalization_idempotency_available`
+- `ministry_canonicalization_official_hierarchy_only`
+- `ministry_canonicalization_sci_write_blocked`
+- `ministry_canonicalization_bot_write_blocked`
+- `ministry_canonicalization_failure_telemetry_available`
+- `ministry_canonicalization_status_mode_available`
+- `ministry_canonicalization_private_error_logging_available`
+- `ministry_canonicalization_public_error_details_blocked`
+
+Next development milestone: `v0.4.7-automation-foundation-dev`.

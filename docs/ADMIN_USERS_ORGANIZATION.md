@@ -1,14 +1,26 @@
 # IPKF Admin Users Organization Schema
 
-Current version: `0.4.6-admin-users-organization-dev`
+Current version: `0.4.6-admin-users-organization`
 
 ## Purpose
 
-This phase adds the schema foundation required before Automation. It prepares internal organizational units, job positions, and user organizational assignments so later correspondence and cartable flows can route work to users or units.
+This stable phase provides the users and organization foundation required before Automation. It prepares internal organizational units, job positions, user organizational assignments, dynamic organization metadata, and read-only responsive admin workspaces so later correspondence and cartable flows can route work to users or units.
 
-This is schema foundation only. It does not add Automation, letter/correspondence tables, inbox/cartable tables, routing/referral tables, attachments, workflow history, CRM, ERP, Bot modules, or UI.
+This remains a foundation release. It does not add Automation, letter/correspondence tables, inbox/cartable tables, routing/referral tables, attachments, workflow history, CRM, ERP, Marketplace, Bot business modules, or full organization CRUD/business workflows.
 
 The milestone also adds the canonical dynamic organization core described in `docs/DYNAMIC_ORGANIZATION_CORE.md`. It keeps the existing `organizations` table, separates reusable position titles from concrete organization posts, and assigns concrete posts to `persons` rather than requiring a `users` login account.
+
+## Stable release boundary
+
+The stable baseline also includes the reusable tabbed entity workspace, responsive
+read-only users and organization views, dynamic geography and provenance
+infrastructure, and the protected official Ministry canonicalization workflow.
+The official Ministry hierarchy is the only operational canonical geography.
+
+Rural Cooperation source metadata/staging may remain for audit and future extension
+work, but its 32-region structure, 9,528 organizations, and South Kerman operational
+region are not imported or applied in this release. SCI canonical application and
+all parallel general geography hierarchies are also deferred.
 
 ## Admin permissions
 
