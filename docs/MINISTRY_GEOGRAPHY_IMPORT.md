@@ -78,6 +78,16 @@ The endpoint requires `APP_DEBUG=true` and a non-default valid maintenance key. 
 
 `tests/fixtures/ministry-geography-validation.csv` is synthetic and covers every configured level, placeholder handling, Arabic/Persian normalization, Persian digits, leading zeroes, missing/duplicate/invalid codes, missing parents, identifier repetition, title variation, parent variation, and deterministic repeated validation. It contains no real source or sensitive data.
 
+## Candidate crosswalk
+
+The Ministry staging snapshot can now serve as the authoritative target of a
+separate SCI candidate-only crosswalk. The crosswalk references exact Ministry
+staging rows, never treats repeated national identifiers as globally unique, and
+never modifies this batch. All results remain pending review. See
+`MINISTRY_SCI_GEOGRAPHY_CROSSWALK.md`.
+
 ## Deferred Adapters
 
-SCI parsing, Rural Cooperation/bot parsing, canonical review/apply, self-hosted mapping UI, physical sites, facilities, organization geography, South Kerman, and map UI remain deferred.
+Rural Cooperation/bot parsing, canonical review/apply, self-hosted mapping UI,
+physical sites, facilities, organization geography, South Kerman, and map UI remain
+deferred.

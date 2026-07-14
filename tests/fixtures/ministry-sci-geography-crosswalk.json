@@ -1,0 +1,126 @@
+[
+  {
+    "scenario": "exact_province",
+    "source_kind": "province_observation",
+    "source_path": "استان آزمایشی",
+    "source_title": "استان آزمایشی",
+    "normalized_title": "استان آزمایشی",
+    "parent_status": "exact",
+    "targets": [
+      {"path": "استان آزمایشی", "title": "استان آزمایشی", "normalized_title": "استان آزمایشی"}
+    ],
+    "expected": "exact"
+  },
+  {
+    "scenario": "exact_county_under_matched_province",
+    "source_kind": "county_observation",
+    "source_path": "استان یک/شهرستان مشترک",
+    "source_title": "شهرستان مشترک",
+    "normalized_title": "شهرستان مشترک",
+    "parent_status": "exact",
+    "targets": [
+      {"path": "استان یک/شهرستان مشترک", "title": "شهرستان مشترک", "normalized_title": "شهرستان مشترک"},
+      {"path": "استان دو/شهرستان مشترک", "title": "شهرستان مشترک", "normalized_title": "شهرستان مشترک"}
+    ],
+    "expected": "exact"
+  },
+  {
+    "scenario": "exact_district",
+    "source_kind": "district_observation",
+    "source_path": "استان یک/شهرستان یک/بخش مرکزی",
+    "source_title": "بخش مرکزی",
+    "normalized_title": "بخش مرکزی",
+    "parent_status": "exact",
+    "targets": [
+      {"path": "استان یک/شهرستان یک/بخش مرکزی", "title": "بخش مرکزی", "normalized_title": "بخش مرکزی"}
+    ],
+    "expected": "exact"
+  },
+  {
+    "scenario": "safe_rural_district_title_variation",
+    "source_kind": "rural_district_observation",
+    "source_path": "استان یک/شهرستان یک/بخش یک/دهستان نمونه",
+    "source_title": "دهستان نمونه كي",
+    "normalized_title": "دهستان نمونه کی",
+    "parent_status": "exact",
+    "targets": [
+      {"path": "استان یک/شهرستان یک/بخش یک/دهستان نمونه", "title": "دهستان نمونه کی", "normalized_title": "دهستان نمونه کی"}
+    ],
+    "expected": "probable"
+  },
+  {
+    "scenario": "missing_ministry_target",
+    "source_kind": "district_observation",
+    "source_path": "استان یک/شهرستان یک/بخش بدون هدف",
+    "source_title": "بخش بدون هدف",
+    "normalized_title": "بخش بدون هدف",
+    "parent_status": "exact",
+    "targets": [],
+    "expected": "unmatched"
+  },
+  {
+    "scenario": "multiple_ministry_targets",
+    "source_kind": "province_observation",
+    "source_path": "استان تکراری",
+    "source_title": "استان تکراری",
+    "normalized_title": "استان تکراری",
+    "parent_status": "exact",
+    "targets": [
+      {"path": "استان تکراری", "title": "استان تکراری", "normalized_title": "استان تکراری"},
+      {"path": "استان تکراری", "title": "استان تکراری", "normalized_title": "استان تکراری"}
+    ],
+    "expected": "ambiguous"
+  },
+  {
+    "scenario": "unresolved_parent",
+    "source_kind": "county_observation",
+    "source_path": "استان مبهم/شهرستان نمونه",
+    "source_title": "شهرستان نمونه",
+    "normalized_title": "شهرستان نمونه",
+    "parent_status": "ambiguous",
+    "targets": [],
+    "expected": "ambiguous"
+  },
+  {
+    "scenario": "non_numbered_statistical_city_candidate",
+    "source_kind": "statistical_urban_unit",
+    "source_path": "استان یک/شهرستان یک/بخش یک/شهر نمونه",
+    "source_title": "شهر نمونه",
+    "normalized_title": "شهر نمونه",
+    "parent_status": "exact",
+    "targets": [
+      {"path": "استان یک/شهرستان یک/بخش یک/شهر نمونه", "title": "شهر نمونه", "normalized_title": "شهر نمونه"}
+    ],
+    "expected": "probable"
+  },
+  {
+    "scenario": "numbered_statistical_city_excluded",
+    "source_kind": "statistical_urban_unit",
+    "source_path": "استان یک/شهرستان یک/بخش یک/شهر نمونه 1",
+    "source_title": "شهر نمونه 1",
+    "normalized_title": "شهر نمونه 1",
+    "parent_status": "exact",
+    "targets": [],
+    "expected": "excluded"
+  },
+  {
+    "scenario": "coderec_6_settlement_excluded",
+    "source_kind": "settlement_observation",
+    "source_path": "استان یک/شهرستان یک/بخش یک/دهستان یک/آبادی",
+    "source_title": "آبادی آزمایشی",
+    "normalized_title": "آبادی آزمایشی",
+    "parent_status": "exact",
+    "targets": [],
+    "expected": "excluded"
+  },
+  {
+    "scenario": "coderec_8_diag_settlement_excluded",
+    "source_kind": "diag_classified_settlement_observation",
+    "source_path": "استان یک/شهرستان یک/بخش یک/دهستان یک/نقطه",
+    "source_title": "نقطه آماری",
+    "normalized_title": "نقطه آماری",
+    "parent_status": "exact",
+    "targets": [],
+    "expected": "excluded"
+  }
+]

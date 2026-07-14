@@ -269,5 +269,14 @@ The SCI source adapter extends the same dry-run framework with streaming UTF-8 C
 parsing suitable for more than 105,000 rows, data-driven CODEREC mappings, full
 source-context hierarchy keys, database-backed parent/duplicate validation, and
 opaque DIAG preservation. Statistical urban units and settlements remain source
-observations. Ministry official hierarchy stays authoritative; Ministry-to-SCI
-crosswalk and all canonical writes are deferred.
+observations. Ministry official hierarchy stays authoritative and all canonical
+writes remain deferred.
+
+## Ministry to SCI crosswalk candidates
+
+Completed Ministry and SCI snapshots now support a versioned, idempotent,
+parent-first candidate run. Exact, probable, ambiguous, unmatched, and excluded
+classifications are stored as pending review records. Numbered statistical urban
+units and SCI settlements are excluded from official Ministry matching. No source
+staging, canonical geography, confirmed external mapping, bot data, organization,
+or address is modified.

@@ -28,12 +28,13 @@ try {
         new \IPKF\Database\Migrations\CreateMultiSourceCodingGeographyTables(),
         new \IPKF\Database\Migrations\CreateMinistryGeographyImportMetadata(),
         new \IPKF\Database\Migrations\CreateStatisticalCenterGeographyImportMetadata(),
+        new \IPKF\Database\Migrations\CreateMinistrySciGeographyCrosswalkTables(),
     ]);
 
     $manager->migrate();
 
     header('Content-Type: text/plain; charset=UTF-8');
-    echo "MIGRATION DONE: ipkf_runtime_checks, auth_rbac_schema, identity_access_foundation, admin_panel_shell, scoped_admin_theme_settings, admin_users_organization, extended_person_data, dynamic_organization_core, dynamic_geography, multi_source_coding_geography, ministry_geography_import_metadata, statistical_center_geography_import_metadata";
+    echo "MIGRATION DONE: ipkf_runtime_checks, auth_rbac_schema, identity_access_foundation, admin_panel_shell, scoped_admin_theme_settings, admin_users_organization, extended_person_data, dynamic_organization_core, dynamic_geography, multi_source_coding_geography, ministry_geography_import_metadata, statistical_center_geography_import_metadata, ministry_sci_geography_crosswalk";
 } catch (Throwable $exception) {
     http_response_code(500);
     echo "MIGRATION FAILED";

@@ -127,6 +127,9 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $geographicImportCandidatesTableExists = \IPKF\Database\Database::tableExists('geographic_import_match_candidates');
     $geographicSourceLevelMappingsTableExists = \IPKF\Database\Database::tableExists('geographic_source_level_mappings');
     $geographicSourceRecordTypeMappingsTableExists = \IPKF\Database\Database::tableExists('geographic_source_record_type_mappings');
+    $geographicCrosswalkRunsTableExists = \IPKF\Database\Database::tableExists('geographic_crosswalk_runs');
+    $geographicCrosswalkCandidatesTableExists = \IPKF\Database\Database::tableExists('geographic_crosswalk_candidates');
+    $geographicCrosswalkIssuesTableExists = \IPKF\Database\Database::tableExists('geographic_crosswalk_issues');
     $dataSourceImportSettingsTableExists = \IPKF\Database\Database::tableExists('data_source_import_settings');
     $geographicRelationsHierarchyContextAvailable = $geographicLocationRelationsTableExists
         && \IPKF\Database\Database::columnExists('geographic_location_relations', 'hierarchy_type_id')
@@ -686,6 +689,18 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
             && class_exists(\App\Repositories\GeographyImportRepository::class),
         'statistical_center_import_no_canonical_write' => true,
         'statistical_center_streaming_validation_available' => class_exists(\App\Services\GeographyImport\StatisticalCenterGeographyCsvParser::class),
+        'ministry_sci_crosswalk_available' => class_exists(\App\Services\GeographyCrosswalk\MinistrySciGeographyCrosswalkService::class),
+        'geographic_crosswalk_runs_available' => $geographicCrosswalkRunsTableExists,
+        'geographic_crosswalk_candidates_available' => $geographicCrosswalkCandidatesTableExists
+            && $geographicCrosswalkIssuesTableExists,
+        'geographic_crosswalk_parent_first_matching_available' => class_exists(\App\Services\GeographyCrosswalk\GeographyCrosswalkPolicy::class),
+        'geographic_crosswalk_full_hierarchy_matching_available' => class_exists(\App\Repositories\GeographyCrosswalkRepository::class),
+        'geographic_crosswalk_statistical_urban_guard_available' => class_exists(\App\Services\GeographyCrosswalk\GeographyCrosswalkPolicy::class),
+        'geographic_crosswalk_settlement_exclusion_available' => class_exists(\App\Repositories\GeographyCrosswalkRepository::class),
+        'geographic_crosswalk_idempotency_available' => $geographicCrosswalkRunsTableExists
+            && class_exists(\App\Repositories\GeographyCrosswalkRepository::class),
+        'geographic_crosswalk_no_canonical_write' => true,
+        'geographic_crosswalk_no_confirmed_mapping_write' => true,
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),

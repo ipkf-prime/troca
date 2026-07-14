@@ -83,3 +83,12 @@ context scopes parent and duplicate validation. `CODEREC=5` remains a review-onl
 statistical urban unit, while `CODEREC=6`, `CODEREC=8`, and opaque `DIAG` values are
 preserved as source observations. No Ministry hierarchy or canonical geography is
 changed. See `STATISTICAL_CENTER_GEOGRAPHY_IMPORT.md`.
+
+## Ministry to SCI candidate crosswalk
+
+Completed immutable SCI and Ministry snapshots can now produce versioned pending
+candidate pairs. Matching is parent-first and full-path scoped; title-only global
+matching is forbidden. Ministry remains authoritative. Exact means a deterministic
+pair only, not a confirmed canonical mapping. Probable, ambiguous, unmatched, and
+excluded observations remain visible for review. See
+`MINISTRY_SCI_GEOGRAPHY_CROSSWALK.md`.

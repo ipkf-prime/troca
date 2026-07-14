@@ -52,3 +52,8 @@ The SCI adapter follows the same boundary under
 DIAG metadata only in private staging. Public responses and diagnostics remain
 aggregate/boolean-only and do not expose filenames, hashes, paths, codes, titles,
 DIAG values, source rows, or database identifiers.
+
+The protected crosswalk runner accepts only validated batch-reference formats and
+an exact build-candidates mode. Its response is aggregate-only. Candidate pairs,
+source titles/codes, row IDs, paths, SQL, and credentials remain private. The runner
+has no apply mode and cannot write canonical geography or confirmed mappings.

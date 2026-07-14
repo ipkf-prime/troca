@@ -53,3 +53,11 @@ unique component codes. A settlement uses its province, county, district, option
 rural/statistical unit, and settlement code. Missing parents become issues; no
 parent is fabricated. SCI hierarchy observations never replace Ministry official
 parents, and a statistical urban unit is not substituted for an official city.
+
+## Parent-first crosswalk hierarchy
+
+The candidate engine first resolves province and then carries only deterministic
+parent candidates into county, district, rural-district, and city comparisons.
+Every lower-level target must belong to the exact matched Ministry parent row.
+Ambiguous or unmatched parents cannot produce exact children. Same-name locations
+under different parents therefore remain distinct.

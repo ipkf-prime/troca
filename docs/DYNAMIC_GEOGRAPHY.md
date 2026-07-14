@@ -119,3 +119,10 @@ The adapter validates source parents and duplicate observations without forcing
 statistical units into the official hierarchy. Ministry authority remains unchanged,
 and `CODEREC=5` cannot create or imply an official city. See
 `STATISTICAL_CENTER_GEOGRAPHY_IMPORT.md`.
+
+## Crosswalk candidate boundary
+
+The Ministry/SCI engine compares completed staging snapshots without modifying
+either source batch. It processes official levels parent-first and stores pending
+candidate/classification records only. No geographic location, relation, external
+identifier, confirmed mapping, organization geography, or address is written.

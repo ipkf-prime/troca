@@ -118,8 +118,14 @@ The response contains aggregate validation counts only. It never exposes source
 rows, codes, titles, DIAG values, filenames, paths, full hashes, database IDs, SQL,
 or credentials.
 
-## Deferred crosswalk
+## Candidate crosswalk and deferred apply
 
 A future reviewed Ministry-to-SCI crosswalk may propose candidates within a fully
 scoped hierarchy. This adapter does not populate match candidates or confirmed
 external mappings. Ministry precedence and human review remain mandatory.
+
+The first candidate-only crosswalk is now available as a separate protected run.
+It consumes this immutable staging snapshot, applies parent-first full-hierarchy
+matching, excludes numbered CODEREC 5 units and settlement-only observations from
+official matching, and leaves every result pending. See
+`MINISTRY_SCI_GEOGRAPHY_CROSSWALK.md`.

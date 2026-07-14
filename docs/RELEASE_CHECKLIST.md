@@ -538,6 +538,33 @@ Version: `0.2.0-foundation`
 - Sensitive-data masking, permissions, audit, and logging requirements are documented.
 - `git diff --check` passes.
 
+## v0.4.6 Ministry to SCI Geography Crosswalk Checks
+
+- Protected migration creates additive versioned run, candidate, and issue tables.
+- Existing Ministry and SCI staging rows and snapshots remain unchanged.
+- Runner accepts only `SCI-XXXXXXXXXXXX`, `MOI-XXXXXXXXXXXX`, and `build-candidates`.
+- Same snapshot pair, crosswalk type, and algorithm version reuse the completed run.
+- Failed pending runs clear only their own generated candidates and issues.
+- Non-pending reviewed candidates prevent automatic replacement.
+- Matching order is province, county, district, rural district, then city candidate.
+- County and lower candidates require a deterministic full parent path.
+- Same normalized title under different parents is never globally merged.
+- Ministry national identifiers are not used as globally unique crosswalk identity.
+- Exact means deterministic pending pair, not confirmed mapping.
+- Safe Persian normalization differences produce probable candidates only.
+- Multiple compatible targets remain ambiguous and all useful pairs are retained.
+- Missing or unresolved parents cannot produce exact child candidates.
+- Numbered CODEREC 5 rows are excluded from official-city matching.
+- Non-numbered CODEREC 5 rows can produce probable/ambiguous city candidates only.
+- CODEREC 6 and 8 rows are classified without Ministry target comparison.
+- DIAG remains opaque and is not interpreted.
+- Synthetic fixture covers full-path, duplicate-title, parent, city, and settlement cases.
+- Endpoint response is aggregate-only and exposes no candidate pairs or source data.
+- Diagnostics are boolean-only.
+- `canonical_write_performed=false` and `confirmed_mapping_write_performed=false`.
+- No canonical geography, confirmed external mapping, bot, organization, or Automation write exists.
+- `git diff --check` passes.
+
 ## v0.4.6 Statistical Center Geography Dry-Run Checks
 
 - Protected migration adds only CODEREC mapping metadata and additive staging columns/indexes.
