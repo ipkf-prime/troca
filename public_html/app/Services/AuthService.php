@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Repositories\UserRepository;
+use IPKF\Support\Clock;
 use IPKF\Support\Session;
 
 class AuthService extends BaseService
@@ -52,7 +53,7 @@ class AuthService extends BaseService
     {
         Session::regenerate();
         Session::put('auth_user_id', $userId);
-        Session::put('auth_login_at', date(DATE_ATOM));
+        Session::put('auth_login_at', Clock::isoUtc(Clock::nowUtc()));
         Session::put('auth_mfa_verified', false);
         (new AccessService())->ensureDefaultAssignment($userId);
         (new AccessService())->selectLowest($userId);

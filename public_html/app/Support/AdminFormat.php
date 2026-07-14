@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use IPKF\Support\Clock;
+
 class AdminFormat
 {
     public static function digits(mixed $value): string
@@ -29,9 +31,13 @@ class AdminFormat
         }
 
         try {
-            $timezoneName = trim((string) \IPKF\Support\Env::get('APP_TIMEZONE', 'Asia/Tehran'));
-            $timezone = new \DateTimeZone($timezoneName !== '' ? $timezoneName : 'Asia/Tehran');
-            $date = (new \DateTimeImmutable($value))->setTimezone($timezone);
+            $instant = Clock::parseStoredInstant($value);
+
+            if ($instant === null) {
+                return self::digits($value);
+            }
+
+            $date = Clock::convertToDisplayTimezone($instant);
             [$year, $month, $day] = self::gregorianToJalali(
                 (int) $date->format('Y'),
                 (int) $date->format('n'),
@@ -53,9 +59,12 @@ class AdminFormat
         }
 
         try {
-            $timezoneName = trim((string) \IPKF\Support\Env::get('APP_TIMEZONE', 'Asia/Tehran'));
-            $timezone = new \DateTimeZone($timezoneName !== '' ? $timezoneName : 'Asia/Tehran');
-            $date = (new \DateTimeImmutable($value))->setTimezone($timezone);
+            $date = Clock::parseDateOnly($value);
+
+            if ($date === null) {
+                return self::digits($value);
+            }
+
             [$year, $month, $day] = self::gregorianToJalali(
                 (int) $date->format('Y'),
                 (int) $date->format('n'),

@@ -3,6 +3,7 @@
 namespace IPKF\Database;
 
 use IPKF\Support\Config;
+use IPKF\Support\Clock;
 use PDO;
 use PDOException;
 use RuntimeException;
@@ -57,6 +58,7 @@ class Database
                 PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES {$charset} COLLATE utf8mb4_unicode_ci",
             ]);
             self::$connection->exec("SET NAMES {$charset} COLLATE utf8mb4_unicode_ci");
+            self::$connection->exec("SET time_zone = '" . Clock::DATABASE_SESSION_TIMEZONE . "'");
         } catch (PDOException $exception) {
             throw new RuntimeException('Database connection failed.', 0, $exception);
         }
@@ -105,6 +107,15 @@ class Database
     {
         try {
             return (string) self::connect()->query("SELECT @@character_set_connection")->fetchColumn();
+        } catch (RuntimeException|PDOException) {
+            return null;
+        }
+    }
+
+    public static function sessionTimezone(): ?string
+    {
+        try {
+            return (string) self::connect()->query("SELECT @@session.time_zone")->fetchColumn();
         } catch (RuntimeException|PDOException) {
             return null;
         }

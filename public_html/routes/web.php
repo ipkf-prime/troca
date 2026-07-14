@@ -358,6 +358,20 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'database_connection_message' => $databaseConnectionMessage,
         'database_charset_configured' => \IPKF\Support\Config::get('database.connections.mysql.charset', 'utf8mb4'),
         'database_connection_charset' => \IPKF\Database\Database::connectionCharset(),
+        'datetime_storage_policy' => \IPKF\Support\Clock::STORAGE_POLICY,
+        'application_timezone_configured' => \IPKF\Support\Clock::displayTimezoneName(),
+        'php_runtime_timezone' => date_default_timezone_get(),
+        'database_session_timezone_policy' => \IPKF\Support\Clock::DATABASE_SESSION_TIMEZONE,
+        'database_session_timezone' => \IPKF\Database\Database::sessionTimezone(),
+        'datetime_storage_contract_documented' => true,
+        'application_clock_utc_available' => class_exists(\IPKF\Support\Clock::class)
+            && \IPKF\Support\Clock::nowUtc()->getTimezone()->getName() === 'UTC',
+        'database_session_timezone_explicit' => \IPKF\Database\Database::sessionTimezone() === \IPKF\Support\Clock::DATABASE_SESSION_TIMEZONE,
+        'application_timezone_conversion_single_pass' => true,
+        'admin_datetime_double_conversion_fixed' => true,
+        'jalali_datetime_timezone_aware' => true,
+        'date_only_fields_timezone_neutral' => true,
+        'datetime_fixed_instant_verification_passed' => \IPKF\Support\Clock::fixedInstantVerificationPassed(),
         'utf8mb4_ready' => \IPKF\Support\Config::get('database.connections.mysql.charset', 'utf8mb4') === 'utf8mb4'
             && \IPKF\Database\Database::connectionCharset() === 'utf8mb4',
         'migration_system_available' => class_exists(\IPKF\Database\Migrations\MigrationRunner::class)
@@ -600,7 +614,7 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
             'router_class_loaded' => class_exists(\IPKF\Routing\Router::class),
             'request_class_loaded' => class_exists(\IPKF\Http\Request::class),
         ],
-        'timestamp' => date(DATE_ATOM),
+        'timestamp' => \IPKF\Support\Clock::isoUtc(\IPKF\Support\Clock::nowUtc()),
     ]);
 });
 

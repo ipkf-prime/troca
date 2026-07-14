@@ -4,9 +4,8 @@ namespace App\Services;
 
 use App\Repositories\IdentityChangeRepository;
 use App\Repositories\UserRepository;
-use DateTimeImmutable;
-use DateTimeZone;
 use IPKF\Database\Database;
+use IPKF\Support\Clock;
 use IPKF\Support\Env;
 
 class IdentityChangeService extends BaseService
@@ -75,9 +74,9 @@ class IdentityChangeService extends BaseService
             'pending_verification' => true,
             'delivery_status' => $this->deliveryStatus($field),
             'dev_token' => $this->devExposeToken() ? $token : null,
-            'expires_at' => $this->isoUtc($expiresAt),
-            'expires_at_utc' => $this->isoUtc($expiresAt),
-            'expires_at_local' => $expiresAt->setTimezone(new DateTimeZone($this->timezone()))->format(DATE_ATOM),
+            'expires_at' => Clock::isoUtc($expiresAt),
+            'expires_at_utc' => Clock::isoUtc($expiresAt),
+            'expires_at_local' => Clock::convertToDisplayTimezone($expiresAt)->format(DATE_ATOM),
             'timezone' => $this->timezone(),
             'ttl_seconds' => self::TTL_SECONDS,
         ];
@@ -224,33 +223,23 @@ class IdentityChangeService extends BaseService
 
     private function expired(string $expiresAt): bool
     {
-        return new DateTimeImmutable($expiresAt, new DateTimeZone('UTC')) < $this->nowUtc();
+        $expires = Clock::parseStoredInstant($expiresAt);
+
+        return $expires === null || $expires < $this->nowUtc();
     }
 
-    private function nowUtc(): DateTimeImmutable
+    private function nowUtc(): \DateTimeImmutable
     {
-        return new DateTimeImmutable('now', new DateTimeZone('UTC'));
+        return Clock::nowUtc();
     }
 
-    private function databaseTimestamp(DateTimeImmutable $time): string
+    private function databaseTimestamp(\DateTimeImmutable $time): string
     {
-        return $time->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
-    }
-
-    private function isoUtc(DateTimeImmutable $time): string
-    {
-        return $time->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z');
+        return Clock::databaseTimestamp($time);
     }
 
     private function timezone(): string
     {
-        $timezone = (string) Env::get('APP_TIMEZONE', 'Asia/Tehran');
-
-        try {
-            new DateTimeZone($timezone);
-            return $timezone;
-        } catch (\Throwable) {
-            return 'Asia/Tehran';
-        }
+        return Clock::displayTimezoneName();
     }
 }

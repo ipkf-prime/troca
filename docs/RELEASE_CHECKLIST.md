@@ -1,5 +1,14 @@
 # IPKF Release Checklist
 
+## Datetime Timezone Contract
+
+- UTC persistence contract documented in `docs/DATETIME_TIMEZONE.md`.
+- MySQL session timezone is explicit UTC.
+- Admin Jalali datetime formatting converts stored instants to `APP_TIMEZONE` exactly once.
+- Date-only values remain timezone-neutral.
+- Fixed UTC instant verification passes.
+- No existing timestamp rows are mass-modified.
+
 ## v0.4.6 Dynamic organization core
 
 - [ ] Protected migration reports `dynamic_organization_core` complete.

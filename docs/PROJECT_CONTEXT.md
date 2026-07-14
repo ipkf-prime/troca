@@ -1,5 +1,9 @@
 # IPKF Project Context
 
+## Datetime Timezone Contract
+
+The admin runtime now uses a documented UTC persistence and single-pass display conversion contract. MySQL sessions are set to UTC, `APP_TIMEZONE=Asia/Tehran` is display-only, and Jalali formatting happens after timezone resolution. See `docs/DATETIME_TIMEZONE.md`.
+
 ## Stable Baseline
 
 IPKF v0.1.0 Genesis Core has passed runtime tests on the development hosting environment.

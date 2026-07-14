@@ -1,5 +1,9 @@
 # IPKF Privacy and Security
 
+## Datetime Safety
+
+Runtime diagnostics may expose safe timezone policy names such as `UTC` and `Asia/Tehran`, but must not expose user timestamps, login history, token values, token hashes, session identifiers, CSRF tokens, provider secrets, or database credentials. Persisted instant timestamps use UTC. Display conversion happens once through the shared application clock.
+
 ## Sensitive person data
 
 The following values are sensitive personal data:

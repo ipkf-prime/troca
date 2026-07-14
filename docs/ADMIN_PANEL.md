@@ -2,6 +2,10 @@
 
 Current version: `0.4.6-admin-users-organization-dev`
 
+## Datetime Display
+
+Admin datetime values use the shared `IPKF\Support\Clock` contract. Stored instants are read as UTC, converted once to `APP_TIMEZONE`, and then rendered as Jalali date/time by `App\Support\AdminFormat`. Date-only fields such as `birth_date` remain timezone-neutral.
+
 ## Purpose
 
 This milestone adds the first server-rendered admin panel shell on top of the existing IPKF Auth, MFA, RBAC, session, and active access foundations.

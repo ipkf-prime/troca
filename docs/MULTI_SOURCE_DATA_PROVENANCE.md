@@ -2,6 +2,10 @@
 
 Current milestone: `0.4.6-admin-users-organization-dev`
 
+## Snapshot and Import Timestamps
+
+Future source snapshots and import batches must store instant timestamps in UTC and display them through `APP_TIMEZONE`. Source-provided date-only values must remain timezone-neutral until a reviewed importer maps them to canonical fields.
+
 ## Purpose
 
 IPKF separates stable canonical entities from observations supplied by external authorities and operational systems. This foundation registers sources, authority scopes, immutable snapshots, external dictionaries, reviewable mappings, and import staging. It imports no source file and writes no canonical geography or organization record.
