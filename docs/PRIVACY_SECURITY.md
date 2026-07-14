@@ -65,3 +65,10 @@ requires the exact source batch, immutable plan reference, and fingerprint prefi
 Responses expose aggregate counts and policy statuses only; full hashes, source
 codes, national identifiers, titles, database IDs, raw issues, file paths, SQL,
 credentials, and maintenance keys are prohibited. Diagnostics remain boolean-only.
+
+Canonical apply failures expose only an opaque failure reference, a safe stage,
+run status, resume safety, and aggregate committed-item state. Exception messages,
+SQLSTATE, driver codes, constraints, stack traces, source values, and hashes remain
+private. The original exception chain is written only under `storage/logs`, which
+must remain outside the public document root and protected by deployment
+permissions. Status mode follows the same aggregate-only contract.

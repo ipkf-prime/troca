@@ -584,6 +584,15 @@ Version: `0.2.0-foundation`
 - Invalid/missing-parent/duplicate-code rows are excluded.
 - Existing official-parent and trusted-mapping conflicts are not overwritten.
 - Chunked apply is resumable and repeated apply creates no duplicates.
+- Apply chunks contain exactly one hierarchy level and levels advance parent-first.
+- A forced first-province failure rolls back the first chunk without applying an item.
+- Failed runs retain the same plan reference, source fingerprint, and stored items.
+- Retry reuses an existing Iran root and skips already committed items.
+- Run counters are reconciled from committed artifacts and cannot double on retry.
+- Failure responses expose only opaque reference, safe stage, and aggregate state.
+- Original exception details are written only to the private canonicalization log.
+- Protected `mode=status` works with exact batch/plan and no fingerprint.
+- Status mode exposes aggregate recovery state and no source or database details.
 - No location, relation, identifier, mapping, or code value is automatically deleted or deactivated.
 - No SCI settlement/city candidate, bot geography, organization, South Kerman province, UI, Automation, or Auth/RBAC/MFA write occurs.
 - Endpoint responses are aggregate-only and diagnostics are boolean-only.

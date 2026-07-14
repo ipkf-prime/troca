@@ -35,6 +35,9 @@ Source staging rows are never edited by planning or applying.
 Both modes require development/debug mode and the exact
 `DEV_MAINTENANCE_KEY`.
 
+Run the protected migration endpoint after deployment before using apply or
+status mode so the additive failure-telemetry columns are available.
+
 Plan:
 
     /geography-canonicalize.php?key=DEV_MAINTENANCE_KEY&source_batch=MOI-865CA310FC55&mode=plan
@@ -107,11 +110,31 @@ No SCI external code value or mapping is created by this workflow.
 
 ## Recovery and idempotency
 
-Apply uses parent-first chunks of 250 rows. Completed item status survives later
-chunk failures. A failed run may be retried: applied items are reused, exact
-relations/identifiers/mappings are not duplicated, and remaining rows continue
-from their stored plan. A run reports `applied` only when every eligible safe item
-is applied and no conflict remains.
+Apply uses parent-first chunks of 250 rows bounded to one level. Province, county,
+district, rural district, and city chunks are never mixed. A level must finish
+without pending safe items or unresolved parents before the next level starts.
+Excluded and conflict items are not loaded into apply chunks.
+
+Completed item status survives later chunk failures. A failed run may be retried
+with the same source batch, plan reference, and fingerprint. Applied items and an
+existing Iran root are reused; exact relations, identifiers, code values, and
+mappings are not duplicated. Run counters are reconciled from committed database
+state instead of incremented again during retry. A run reports `applied` only when
+every eligible safe item is applied and no conflict remains.
+
+Each failure receives an opaque `failure_reference` and a safe operation stage.
+The public response is aggregate-only. The original exception chain is written to
+the private `storage/logs/ministry-canonicalization.log`; database diagnostics,
+source values, SQL details, paths, and identifiers are never returned over HTTP.
+
+Recovery status can be inspected without a fingerprint:
+
+    /geography-canonicalize.php?key=DEV_MAINTENANCE_KEY&source_batch=MOI-865CA310FC55&mode=status&plan_reference=CAN-F0637B652432
+
+Status mode still requires development/debug mode, the maintenance key, the exact
+source batch, and the exact plan reference. It returns aggregate item/artifact
+counts, the latest opaque failure reference/stage, and whether same-plan resume is
+safe.
 
 This workflow never deletes, deactivates, expires, reparents, or infers abolition
 from absence in a snapshot. Snapshot diff, historical succession, and legal
@@ -125,9 +148,9 @@ not hardcoded production rules.
 
 Synthetic tests use no production records and cover parent order, missing code,
 missing parent, repeated national identifiers, trusted mapping reuse, title-only
-blocking, deterministic fingerprints, and repeated immutable planning. Runtime
-verification must also exercise interrupted apply/retry, official-parent conflict,
-and repeated apply against the protected development database.
+blocking, deterministic fingerprints, first-chunk rollback, private failure
+references, public error privacy, same-plan retry, level-bounded chunks, country
+reuse, counter reconciliation, and repeated apply idempotency.
 
 ## Explicit exclusions
 

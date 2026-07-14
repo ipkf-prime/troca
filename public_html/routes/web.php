@@ -717,6 +717,16 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'ministry_canonicalization_no_automatic_deletion' => true,
         'ministry_canonicalization_sci_write_blocked' => true,
         'ministry_canonicalization_bot_write_blocked' => true,
+        'ministry_canonicalization_failure_telemetry_available' => $geographicCanonicalizationRunsTableExists
+            && \IPKF\Database\Database::columnExists('geographic_canonicalization_runs', 'failure_reference')
+            && \IPKF\Database\Database::columnExists('geographic_canonicalization_runs', 'failure_stage')
+            && \IPKF\Database\Database::columnExists('geographic_canonicalization_runs', 'failed_at'),
+        'ministry_canonicalization_stage_tracking_available' => class_exists(\App\Services\GeographyCanonicalization\MinistryCanonicalizationApplyException::class),
+        'ministry_canonicalization_level_bounded_chunks_available' => true,
+        'ministry_canonicalization_failed_run_resume_available' => true,
+        'ministry_canonicalization_status_mode_available' => true,
+        'ministry_canonicalization_private_error_logging_available' => class_exists(\App\Services\GeographyCanonicalization\MinistryCanonicalizationFailureLogger::class),
+        'ministry_canonicalization_public_error_details_blocked' => true,
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),

@@ -4,7 +4,9 @@ namespace App\Services\GeographyCanonicalization;
 
 use App\Repositories\MinistryCanonicalGeographyRepository;
 use App\Services\GeographyImport\PersianTextNormalizer;
+use IPKF\Support\Clock;
 use InvalidArgumentException;
+use PDOException;
 use RuntimeException;
 use Throwable;
 
@@ -12,10 +14,12 @@ class MinistryCanonicalGeographyService
 {
     public const PLAN_MODE = 'plan';
     public const APPLY_MODE = 'apply';
+    public const STATUS_MODE = 'status';
 
     public function __construct(
         private readonly MinistryCanonicalGeographyRepository $repository = new MinistryCanonicalGeographyRepository(),
-        private readonly PersianTextNormalizer $normalizer = new PersianTextNormalizer()
+        private readonly PersianTextNormalizer $normalizer = new PersianTextNormalizer(),
+        private readonly MinistryCanonicalizationFailureLogger $failureLogger = new MinistryCanonicalizationFailureLogger()
     ) {
     }
 
@@ -27,9 +31,15 @@ class MinistryCanonicalGeographyService
     ): array {
         $this->validateRequest($sourceBatchReference, $mode, $planReference, $fingerprintPrefix);
 
-        return $mode === self::PLAN_MODE
-            ? $this->plan($sourceBatchReference)
-            : $this->apply($sourceBatchReference, (string) $planReference, (string) $fingerprintPrefix);
+        return match ($mode) {
+            self::PLAN_MODE => $this->plan($sourceBatchReference),
+            self::STATUS_MODE => $this->status($sourceBatchReference, (string) $planReference),
+            default => $this->apply(
+                $sourceBatchReference,
+                (string) $planReference,
+                (string) $fingerprintPrefix
+            ),
+        };
     }
 
     public function plan(string $sourceBatchReference): array
@@ -67,6 +77,9 @@ class MinistryCanonicalGeographyService
         string $planReference,
         string $fingerprintPrefix
     ): array {
+        $stage = 'validate_plan';
+        $level = null;
+        $chunkNumber = null;
         $batch = $this->repository->completedBatch($sourceBatchReference);
         $metadata = $this->repository->metadata();
         $run = $this->repository->runByReference($planReference);
@@ -107,56 +120,73 @@ class MinistryCanonicalGeographyService
             }
         }
 
-        $country = $this->repository->resolveCountry($metadata['level_ids']['country']);
-
-        if ($country['status'] === 'conflict') {
-            throw new RuntimeException('Iran country root requires review.');
-        }
-
         $runId = (int) $run['id'];
-
+        $stage = 'acquire_lock';
         if (!$this->repository->acquireApplyLock($runId)) {
             throw new RuntimeException('Canonical geography apply is already running.');
         }
 
         try {
+            $stage = 'begin_apply';
             $this->repository->beginApply($runId);
+            $stage = 'resolve_country';
             $countryId = $this->repository->transaction(
                 fn (): int => $this->repository->resolveOrCreateCountry($metadata['level_ids']['country'])
             );
 
-            $items = $this->repository->items($runId);
+            foreach (array_keys(MinistryCanonicalizationPolicy::LEVELS) as $currentLevel) {
+                $level = $currentLevel;
+                $stage = 'load_items';
+                $levelItems = $this->repository->pendingItemsForLevel($runId, $currentLevel);
 
-            foreach (array_chunk($items, MinistryCanonicalizationPolicy::APPLY_CHUNK_SIZE) as $chunk) {
-                $this->repository->transaction(function () use (
-                    $chunk,
-                    $runId,
-                    $countryId,
-                    $batch,
-                    $metadata
-                ): void {
-                    $state = $this->repository->canonicalState($batch, $metadata);
-                    $counts = ['relations' => 0, 'identifiers' => 0, 'mappings' => 0];
+                foreach (array_chunk($levelItems, MinistryCanonicalizationPolicy::APPLY_CHUNK_SIZE) as $index => $chunk) {
+                    $chunkNumber = $index + 1;
+                    $this->repository->transaction(function () use (
+                        $chunk,
+                        $runId,
+                        $countryId,
+                        $batch,
+                        $metadata,
+                        &$stage
+                    ): void {
+                        $stage = 'load_canonical_state';
+                        $state = $this->repository->canonicalState($batch, $metadata);
+                        $setStage = static function (string $value) use (&$stage): void {
+                            $stage = $value;
+                        };
 
-                    foreach ($chunk as $item) {
-                        $itemCounts = $this->applyItem($item, $runId, $countryId, $batch, $metadata, $state);
-
-                        foreach ($counts as $key => $value) {
-                            $counts[$key] += $itemCounts[$key];
+                        foreach ($chunk as $item) {
+                            $setStage('verify_item_fingerprint');
+                            $this->applyItem(
+                                $item,
+                                $runId,
+                                $countryId,
+                                $batch,
+                                $metadata,
+                                $state,
+                                $setStage
+                            );
                         }
-                    }
 
-                    if (array_sum($counts) > 0) {
-                        $this->repository->addApplyCounts(
-                            $runId,
-                            $counts['relations'],
-                            $counts['identifiers'],
-                            $counts['mappings']
-                        );
-                    }
-                });
+                        $stage = 'update_run_counts';
+                        $this->repository->reconcileApplyCounts($runId, $batch, $metadata);
+                    });
+                }
+
+                $chunkNumber = null;
+                $stage = 'aggregate_state';
+                $levelState = $this->repository->levelApplyState($runId, $currentLevel);
+
+                if ($levelState['pending_safe_items'] > 0 || $levelState['unresolved_parent_items'] > 0) {
+                    throw new RuntimeException('Canonical geography level did not complete safely.');
+                }
             }
+
+            $level = null;
+            $chunkNumber = null;
+            $stage = 'aggregate_state';
             $state = $this->repository->aggregateApplyState($runId);
+            $artifactCounts = $this->repository->reconcileApplyCounts($runId, $batch, $metadata);
             $finalStatus = $state['conflict_count'] === 0 && $state['pending_safe_items'] === 0
                 ? 'applied'
                 : 'ready_for_review';
@@ -168,24 +198,97 @@ class MinistryCanonicalGeographyService
                 'final_status' => $finalStatus,
                 'created_locations' => $state['created_locations'],
                 'reused_locations' => $state['reused_locations'],
-                'created_relations' => (int) $currentRun['relation_create_count'],
-                'created_identifiers' => (int) $currentRun['identifier_create_count'],
-                'created_confirmed_mappings' => (int) $currentRun['mapping_create_count'],
+                'created_relations' => $artifactCounts['relations'],
+                'created_identifiers' => $artifactCounts['identifiers'],
+                'created_confirmed_mappings' => $artifactCounts['mappings'],
                 'excluded_rows' => $state['excluded_rows'],
                 'conflict_count' => $state['conflict_count'],
-                'canonical_write_performed' => true,
+                'canonical_write_performed' => ($state['created_locations'] + $state['reused_locations']) > 0,
                 'sci_write_performed' => false,
                 'bot_write_performed' => false,
             ];
+            $stage = 'finish_apply';
             $this->repository->finishApply($runId, $summary, $finalStatus);
 
             return $summary['apply'];
         } catch (Throwable $exception) {
-            $this->repository->failApply($runId);
-            throw new RuntimeException('Canonical geography apply failed safely and may be resumed.', 0, $exception);
+            $failure = $this->failureData($stage, $level, $chunkNumber, $exception);
+            $this->failureLogger->log(
+                $failure['reference'],
+                $stage,
+                $level,
+                $chunkNumber,
+                $exception
+            );
+
+            try {
+                $this->repository->failApply($runId, $failure);
+                $status = $this->repository->statusSummary($runId, $batch, $metadata);
+                $appliedItemCount = $status['applied_items'];
+            } catch (Throwable $telemetryException) {
+                $this->failureLogger->log(
+                    $failure['reference'],
+                    'update_run_counts',
+                    $level,
+                    $chunkNumber,
+                    $telemetryException
+                );
+                $appliedItemCount = 0;
+            }
+
+            throw new MinistryCanonicalizationApplyException(
+                $failure['reference'],
+                $stage,
+                $appliedItemCount,
+                $exception
+            );
         } finally {
-            $this->repository->releaseApplyLock($runId);
+            try {
+                $stage = 'release_lock';
+                $this->repository->releaseApplyLock($runId);
+            } catch (Throwable $releaseException) {
+                $this->failureLogger->log(
+                    'GEO-' . strtoupper(bin2hex(random_bytes(8))),
+                    $stage,
+                    $level,
+                    $chunkNumber,
+                    $releaseException
+                );
+            }
         }
+    }
+
+    public function status(string $sourceBatchReference, string $planReference): array
+    {
+        $batch = $this->repository->completedBatch($sourceBatchReference);
+        $run = $this->repository->runByReference($planReference);
+
+        if (!is_array($run)
+            || (int) $run['source_batch_id'] !== $batch['id']
+            || (int) $run['source_snapshot_id'] !== $batch['snapshot_id']
+        ) {
+            throw new InvalidArgumentException('Canonicalization status request is invalid.');
+        }
+
+        $metadata = $this->repository->metadata();
+        $summary = $this->repository->statusSummary((int) $run['id'], $batch, $metadata);
+
+        return [
+            'success' => true,
+            'plan_reference' => (string) $run['plan_reference'],
+            'run_status' => (string) $run['status'],
+            ...$summary,
+            'last_failure_reference' => $run['failure_reference'] ?: null,
+            'last_failure_stage' => $run['failure_stage'] ?: null,
+            'resume_safe' => in_array(
+                $run['status'],
+                ['planned', 'applying', 'failed', 'ready_for_review'],
+                true
+            ),
+            'canonical_write_performed' => $summary['applied_items'] > 0,
+            'sci_write_performed' => false,
+            'bot_write_performed' => false,
+        ];
     }
 
     private function classify(array $batch, array $metadata, ?array $sourceRows = null): array
@@ -347,7 +450,8 @@ class MinistryCanonicalGeographyService
         int $countryId,
         array $batch,
         array $metadata,
-        array $canonical
+        array $canonical,
+        callable $setStage
     ): array {
         if ($item['item_status'] === 'applied'
             || in_array($item['action_type'], ['exclude', 'conflict', 'no_change'], true)
@@ -355,24 +459,27 @@ class MinistryCanonicalGeographyService
             return ['relations' => 0, 'identifiers' => 0, 'mappings' => 0];
         }
 
+        $setStage('verify_item_fingerprint');
+
         if (!hash_equals((string) $item['source_fingerprint'], $this->rowFingerprint($item))) {
             throw new RuntimeException('Canonicalization source item changed after planning.');
         }
 
         $level = (string) $item['derived_level_code'];
+        $setStage('resolve_parent');
         $parentId = $level === 'province'
             ? $countryId
             : $this->repository->parentLocation($runId, (int) $item['parent_import_row_id']);
 
         if ($parentId === null) {
-            $this->repository->markItemConflict((int) $item['id'], 'PARENT_NOT_APPLIED');
-
-            return ['relations' => 0, 'identifiers' => 0, 'mappings' => 0];
+            throw new RuntimeException('Canonical parent has not been applied.');
         }
 
         $locationId = $item['existing_geographic_location_id'] !== null
             ? (int) $item['existing_geographic_location_id']
             : null;
+
+        $setStage('resolve_trusted_mapping');
 
         if ($locationId === null) {
             $trusted = $this->trustedMatch((string) $item['source_code'], $level, $canonical);
@@ -400,6 +507,7 @@ class MinistryCanonicalGeographyService
         }
 
         if ($locationId === null) {
+            $setStage('create_location');
             $locationId = $this->repository->createLocation(
                 $item,
                 $metadata['level_ids'][$level],
@@ -412,6 +520,7 @@ class MinistryCanonicalGeographyService
             return ['relations' => 0, 'identifiers' => 0, 'mappings' => 0];
         }
 
+        $setStage('resolve_parent_code_value');
         $parentCodeValueId = $level === 'province'
             ? null
             : $this->repository->codeValueId(
@@ -435,12 +544,14 @@ class MinistryCanonicalGeographyService
             return ['relations' => 0, 'identifiers' => 0, 'mappings' => 0];
         }
 
+        $setStage('create_code_value');
         $codeValueId = $this->repository->codeValue(
             $metadata['code_set_id'],
             $batch['snapshot_id'],
             $item,
             $parentCodeValueId
         );
+        $setStage('create_official_relation');
         $relations = $this->repository->ensureOfficialRelation(
             $parentId,
             $locationId,
@@ -449,6 +560,7 @@ class MinistryCanonicalGeographyService
             $batch['source_id'],
             $batch['snapshot_id']
         ) ? 1 : 0;
+        $setStage('create_hierarchy_identifier');
         $identifiers = $this->repository->ensureIdentifier(
             $locationId,
             $batch['source_id'],
@@ -462,6 +574,7 @@ class MinistryCanonicalGeographyService
         $nationalIdentifier = $this->nationalIdentifier($item['raw_payload_json'] ?? null);
 
         if ($nationalIdentifier !== '') {
+            $setStage('create_national_identifier');
             $identifiers += $this->repository->ensureIdentifier(
                 $locationId,
                 $batch['source_id'],
@@ -474,7 +587,9 @@ class MinistryCanonicalGeographyService
             ) ? 1 : 0;
         }
 
+        $setStage('create_confirmed_mapping');
         $mappings = $this->repository->ensureConfirmedMapping($codeValueId, $locationId) ? 1 : 0;
+        $setStage('mark_item_applied');
         $this->repository->markItemApplied((int) $item['id'], $locationId, $parentId);
         return [
             'relations' => $relations,
@@ -630,7 +745,7 @@ class MinistryCanonicalGeographyService
         ?string $fingerprintPrefix
     ): void {
         if (preg_match('/\AMOI-[A-F0-9]{12}\z/D', $sourceBatchReference) !== 1
-            || !in_array($mode, [self::PLAN_MODE, self::APPLY_MODE], true)
+            || !in_array($mode, [self::PLAN_MODE, self::APPLY_MODE, self::STATUS_MODE], true)
         ) {
             throw new InvalidArgumentException('Unsupported canonicalization request.');
         }
@@ -641,5 +756,65 @@ class MinistryCanonicalGeographyService
         ) {
             throw new InvalidArgumentException('Canonicalization confirmation is incomplete.');
         }
+
+        if ($mode === self::STATUS_MODE
+            && preg_match('/\ACAN-[A-F0-9]{12}\z/D', (string) $planReference) !== 1
+        ) {
+            throw new InvalidArgumentException('Canonicalization status request is incomplete.');
+        }
+    }
+
+    private function failureData(
+        string $stage,
+        ?string $level,
+        ?int $chunkNumber,
+        Throwable $exception
+    ): array {
+        $pdoException = $this->pdoException($exception);
+        $errorInfo = $pdoException?->errorInfo;
+
+        return [
+            'reference' => 'GEO-' . strtoupper(bin2hex(random_bytes(8))),
+            'stage' => $stage,
+            'exception_class' => $exception::class,
+            'sqlstate' => is_array($errorInfo) && isset($errorInfo[0]) ? (string) $errorInfo[0] : null,
+            'driver_code' => is_array($errorInfo) && isset($errorInfo[1]) ? (string) $errorInfo[1] : null,
+            'message_hash' => hash('sha256', $exception->getMessage()),
+            'level' => $level,
+            'chunk_number' => $chunkNumber,
+            'failed_at' => Clock::databaseTimestamp(),
+            'private_context' => [
+                'algorithm_version' => MinistryCanonicalizationPolicy::ALGORITHM_VERSION,
+                'exception_chain_depth' => $this->exceptionChainDepth($exception),
+            ],
+        ];
+    }
+
+    private function pdoException(Throwable $exception): ?PDOException
+    {
+        $current = $exception;
+
+        do {
+            if ($current instanceof PDOException) {
+                return $current;
+            }
+
+            $current = $current->getPrevious();
+        } while ($current instanceof Throwable);
+
+        return null;
+    }
+
+    private function exceptionChainDepth(Throwable $exception): int
+    {
+        $depth = 0;
+        $current = $exception;
+
+        do {
+            $depth++;
+            $current = $current->getPrevious();
+        } while ($current instanceof Throwable);
+
+        return $depth;
     }
 }

@@ -34,6 +34,12 @@ try {
         'sci_write_performed' => false,
         'bot_write_performed' => false,
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+} catch (\App\Services\GeographyCanonicalization\MinistryCanonicalizationApplyException $exception) {
+    http_response_code(409);
+    echo json_encode(
+        $exception->safeResponse(),
+        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+    );
 } catch (Throwable $exception) {
     http_response_code(409);
     $response = [

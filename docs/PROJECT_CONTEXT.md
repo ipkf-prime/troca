@@ -293,3 +293,9 @@ district, and city parent-first. Exact hierarchy-code mappings and source
 identifiers retain snapshot provenance. National identifier repetition never
 merges rows; title-only reuse is blocked; no deletion, SCI apply, bot geography,
 organization import, UI, Automation, or Auth/RBAC/MFA change is included.
+
+Canonical apply recovery is now hardened with additive private failure telemetry,
+safe operation-stage tracking, private exception logging, strict single-level
+chunks, aggregate status mode, and same-plan failed-run resume. Committed artifact
+counters are reconciled from database state, preventing retry inflation while
+preserving the existing plan, staging rows, audit items, and Iran root.

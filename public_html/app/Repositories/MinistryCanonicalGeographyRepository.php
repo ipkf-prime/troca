@@ -367,12 +367,32 @@ class MinistryCanonicalGeographyRepository
         return $statement->fetchAll();
     }
 
+    public function pendingItemsForLevel(int $runId, string $level): array
+    {
+        $statement = $this->db->prepare("
+            SELECT items.*, rows.source_code, rows.source_title,
+                   rows.normalized_title, rows.derived_level_code,
+                   rows.derived_parent_code, rows.row_checksum,
+                   rows.validation_status, rows.raw_payload_json
+            FROM geographic_canonicalization_items items
+            INNER JOIN geographic_import_rows rows ON rows.id = items.import_row_id
+            WHERE items.canonicalization_run_id = ?
+              AND rows.derived_level_code = ?
+              AND items.action_type IN ('create', 'reuse')
+              AND items.item_status <> 'applied'
+            ORDER BY rows.source_code, rows.id
+        ");
+        $statement->execute([$runId, $level]);
+
+        return $statement->fetchAll();
+    }
+
     public function beginApply(int $runId): void
     {
         $this->db->prepare("
             UPDATE geographic_canonicalization_runs
             SET status = 'applying', updated_at = ?
-            WHERE id = ? AND status IN ('planned', 'failed', 'ready_for_review')
+            WHERE id = ? AND status IN ('planned', 'applying', 'failed', 'ready_for_review')
         ")->execute([Clock::databaseTimestamp(), $runId]);
     }
 
@@ -784,6 +804,25 @@ class MinistryCanonicalGeographyRepository
         ")->execute([$relations, $identifiers, $mappings, Clock::databaseTimestamp(), $runId]);
     }
 
+    public function reconcileApplyCounts(int $runId, array $batch, array $metadata): array
+    {
+        $counts = $this->canonicalArtifactCounts($runId, $batch, $metadata);
+        $this->db->prepare("
+            UPDATE geographic_canonicalization_runs
+            SET relation_create_count = ?, identifier_create_count = ?,
+                mapping_create_count = ?, updated_at = ?
+            WHERE id = ?
+        ")->execute([
+            $counts['relations'],
+            $counts['identifiers'],
+            $counts['mappings'],
+            Clock::databaseTimestamp(),
+            $runId,
+        ]);
+
+        return $counts;
+    }
+
     public function finishApply(int $runId, array $summary, string $status): void
     {
         $now = Clock::databaseTimestamp();
@@ -807,13 +846,30 @@ class MinistryCanonicalGeographyRepository
         ]);
     }
 
-    public function failApply(int $runId): void
+    public function failApply(int $runId, array $failure): void
     {
         $this->db->prepare("
             UPDATE geographic_canonicalization_runs
-            SET status = 'failed', updated_at = ?
+            SET status = 'failed', failure_reference = ?, failure_stage = ?,
+                failure_exception_class = ?, failure_sqlstate = ?,
+                failure_driver_code = ?, failure_message_hash = ?,
+                failed_level_code = ?, failed_chunk_number = ?, failed_at = ?,
+                private_failure_context_json = ?, updated_at = ?
             WHERE id = ? AND status <> 'applied'
-        ")->execute([Clock::databaseTimestamp(), $runId]);
+        ")->execute([
+            $failure['reference'],
+            $failure['stage'],
+            $failure['exception_class'],
+            $failure['sqlstate'],
+            $failure['driver_code'],
+            $failure['message_hash'],
+            $failure['level'],
+            $failure['chunk_number'],
+            $failure['failed_at'],
+            json_encode($failure['private_context'], JSON_UNESCAPED_SLASHES),
+            Clock::databaseTimestamp(),
+            $runId,
+        ]);
     }
 
     public function markPlanStale(int $runId): void
@@ -843,6 +899,60 @@ class MinistryCanonicalGeographyRepository
         return array_map('intval', $row);
     }
 
+    public function levelApplyState(int $runId, string $level): array
+    {
+        $statement = $this->db->prepare("
+            SELECT
+                COALESCE(SUM(items.action_type IN ('create', 'reuse')
+                    AND items.item_status <> 'applied'), 0) AS pending_safe_items,
+                COALESCE(SUM(items.item_status = 'applied'
+                    AND items.resulting_parent_location_id IS NULL), 0) AS unresolved_parent_items
+            FROM geographic_canonicalization_items items
+            INNER JOIN geographic_import_rows rows ON rows.id = items.import_row_id
+            WHERE items.canonicalization_run_id = ?
+              AND rows.derived_level_code = ?
+        ");
+        $statement->execute([$runId, $level]);
+        $row = $statement->fetch() ?: [];
+
+        return [
+            'pending_safe_items' => (int) ($row['pending_safe_items'] ?? 0),
+            'unresolved_parent_items' => (int) ($row['unresolved_parent_items'] ?? 0),
+        ];
+    }
+
+    public function statusSummary(int $runId, array $batch, array $metadata): array
+    {
+        $statement = $this->db->prepare("
+            SELECT
+                COUNT(*) AS total_items,
+                COALESCE(SUM(item_status = 'applied'), 0) AS applied_items,
+                COALESCE(SUM(item_status = 'planned'), 0) AS planned_items,
+                COALESCE(SUM(item_status = 'blocked'), 0) AS blocked_items,
+                COALESCE(SUM(action_type = 'exclude'), 0) AS excluded_items,
+                COALESCE(SUM(action_type = 'conflict'), 0) AS conflict_items,
+                COALESCE(SUM(action_type = 'create' AND item_status = 'applied'), 0) AS created_locations
+            FROM geographic_canonicalization_items
+            WHERE canonicalization_run_id = ?
+        ");
+        $statement->execute([$runId]);
+        $items = $statement->fetch() ?: [];
+        $artifacts = $this->canonicalArtifactCounts($runId, $batch, $metadata);
+
+        return [
+            'total_items' => (int) ($items['total_items'] ?? 0),
+            'applied_items' => (int) ($items['applied_items'] ?? 0),
+            'planned_items' => (int) ($items['planned_items'] ?? 0),
+            'blocked_items' => (int) ($items['blocked_items'] ?? 0),
+            'excluded_items' => (int) ($items['excluded_items'] ?? 0),
+            'conflict_items' => (int) ($items['conflict_items'] ?? 0),
+            'created_locations' => (int) ($items['created_locations'] ?? 0),
+            'created_relations' => $artifacts['relations'],
+            'created_identifiers' => $artifacts['identifiers'],
+            'created_confirmed_mappings' => $artifacts['mappings'],
+        ];
+    }
+
     public function transaction(callable $callback): mixed
     {
         $this->db->beginTransaction();
@@ -859,6 +969,73 @@ class MinistryCanonicalGeographyRepository
 
             throw $exception;
         }
+    }
+
+    private function canonicalArtifactCounts(int $runId, array $batch, array $metadata): array
+    {
+        $statement = $this->db->prepare("
+            SELECT COUNT(DISTINCT relations.id)
+            FROM geographic_canonicalization_items items
+            INNER JOIN geographic_location_relations relations
+                ON relations.child_location_id = items.resulting_geographic_location_id
+               AND relations.parent_location_id = items.resulting_parent_location_id
+               AND relations.relation_type_id = ?
+               AND relations.hierarchy_type_id = ?
+               AND relations.source_id = ?
+               AND relations.source_snapshot_id = ?
+               AND relations.status = 'active'
+            WHERE items.canonicalization_run_id = ? AND items.item_status = 'applied'
+        ");
+        $statement->execute([
+            $metadata['relation_type_id'],
+            $metadata['hierarchy_type_id'],
+            $batch['source_id'],
+            $batch['snapshot_id'],
+            $runId,
+        ]);
+        $relations = (int) $statement->fetchColumn();
+
+        $statement = $this->db->prepare("
+            SELECT COUNT(DISTINCT identifiers.id)
+            FROM geographic_canonicalization_items items
+            INNER JOIN geographic_external_identifiers identifiers
+                ON identifiers.geographic_location_id = items.resulting_geographic_location_id
+               AND identifiers.source_id = ?
+               AND identifiers.source_snapshot_id = ?
+               AND identifiers.status = 'active'
+            WHERE items.canonicalization_run_id = ? AND items.item_status = 'applied'
+              AND identifiers.identifier_type IN (?, ?)
+        ");
+        $statement->execute([
+            $batch['source_id'],
+            $batch['snapshot_id'],
+            $runId,
+            Policy::HIERARCHY_IDENTIFIER,
+            Policy::NATIONAL_IDENTIFIER,
+        ]);
+        $identifiers = (int) $statement->fetchColumn();
+
+        $statement = $this->db->prepare("
+            SELECT COUNT(DISTINCT mappings.id)
+            FROM geographic_canonicalization_items items
+            INNER JOIN geographic_import_rows rows ON rows.id = items.import_row_id
+            INNER JOIN external_code_values values_table
+                ON values_table.code_set_id = ?
+               AND values_table.source_snapshot_id = ?
+               AND values_table.code = rows.source_code
+            INNER JOIN geographic_external_code_mappings mappings
+                ON mappings.external_code_value_id = values_table.id
+               AND mappings.geographic_location_id = items.resulting_geographic_location_id
+               AND mappings.mapping_status = 'confirmed'
+            WHERE items.canonicalization_run_id = ? AND items.item_status = 'applied'
+        ");
+        $statement->execute([$metadata['code_set_id'], $batch['snapshot_id'], $runId]);
+
+        return [
+            'relations' => $relations,
+            'identifiers' => $identifiers,
+            'mappings' => (int) $statement->fetchColumn(),
+        ];
     }
 
     private function planCounts(array $items): array
