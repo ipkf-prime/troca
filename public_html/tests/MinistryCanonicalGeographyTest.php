@@ -618,4 +618,15 @@ expect($countsAfterRetry === [
 ], 'Repeated apply must not double counters.');
 expect($repeat['sci_write_performed'] === false && $repeat['bot_write_performed'] === false, 'SCI and bot writes must remain blocked.');
 
+$repositorySql = file_get_contents(BASE_PATH . '/app/Repositories/MinistryCanonicalGeographyRepository.php');
+expect($repositorySql !== false, 'Repository SQL source must be readable.');
+expect(
+    preg_match('/\bgeographic_import_rows\s+rows\b/i', $repositorySql) === 0,
+    'Canonicalization SQL must not use MariaDB reserved ROWS as a table alias.'
+);
+expect(
+    preg_match('/\brows\.(source_code|source_title|normalized_title|derived_level_code|derived_parent_code|row_checksum|validation_status|raw_payload_json|id)\b/i', $repositorySql) === 0,
+    'Canonicalization SQL must not reference a reserved ROWS alias.'
+);
+
 echo "Ministry canonical geography synthetic tests passed.\n";

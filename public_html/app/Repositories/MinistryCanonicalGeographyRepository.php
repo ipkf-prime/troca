@@ -346,21 +346,21 @@ class MinistryCanonicalGeographyRepository
     public function items(int $runId): array
     {
         $statement = $this->db->prepare("
-            SELECT items.*, rows.source_code, rows.source_title,
-                   rows.normalized_title, rows.derived_level_code,
-                   rows.derived_parent_code, rows.row_checksum,
-                   rows.validation_status, rows.raw_payload_json
+            SELECT items.*, import_rows.source_code, import_rows.source_title,
+                   import_rows.normalized_title, import_rows.derived_level_code,
+                   import_rows.derived_parent_code, import_rows.row_checksum,
+                   import_rows.validation_status, import_rows.raw_payload_json
             FROM geographic_canonicalization_items items
-            INNER JOIN geographic_import_rows rows ON rows.id = items.import_row_id
+            INNER JOIN geographic_import_rows import_rows ON import_rows.id = items.import_row_id
             WHERE items.canonicalization_run_id = ?
-            ORDER BY CASE rows.derived_level_code
+            ORDER BY CASE import_rows.derived_level_code
                 WHEN 'province' THEN 20
                 WHEN 'county' THEN 30
                 WHEN 'district' THEN 40
                 WHEN 'rural_district' THEN 50
                 WHEN 'city' THEN 60
                 ELSE 999
-            END, rows.source_code, rows.id
+            END, import_rows.source_code, import_rows.id
         ");
         $statement->execute([$runId]);
 
@@ -370,17 +370,17 @@ class MinistryCanonicalGeographyRepository
     public function pendingItemsForLevel(int $runId, string $level): array
     {
         $statement = $this->db->prepare("
-            SELECT items.*, rows.source_code, rows.source_title,
-                   rows.normalized_title, rows.derived_level_code,
-                   rows.derived_parent_code, rows.row_checksum,
-                   rows.validation_status, rows.raw_payload_json
+            SELECT items.*, import_rows.source_code, import_rows.source_title,
+                   import_rows.normalized_title, import_rows.derived_level_code,
+                   import_rows.derived_parent_code, import_rows.row_checksum,
+                   import_rows.validation_status, import_rows.raw_payload_json
             FROM geographic_canonicalization_items items
-            INNER JOIN geographic_import_rows rows ON rows.id = items.import_row_id
+            INNER JOIN geographic_import_rows import_rows ON import_rows.id = items.import_row_id
             WHERE items.canonicalization_run_id = ?
-              AND rows.derived_level_code = ?
+              AND import_rows.derived_level_code = ?
               AND items.action_type IN ('create', 'reuse')
               AND items.item_status <> 'applied'
-            ORDER BY rows.source_code, rows.id
+            ORDER BY import_rows.source_code, import_rows.id
         ");
         $statement->execute([$runId, $level]);
 
@@ -908,9 +908,9 @@ class MinistryCanonicalGeographyRepository
                 COALESCE(SUM(items.item_status = 'applied'
                     AND items.resulting_parent_location_id IS NULL), 0) AS unresolved_parent_items
             FROM geographic_canonicalization_items items
-            INNER JOIN geographic_import_rows rows ON rows.id = items.import_row_id
+            INNER JOIN geographic_import_rows import_rows ON import_rows.id = items.import_row_id
             WHERE items.canonicalization_run_id = ?
-              AND rows.derived_level_code = ?
+              AND import_rows.derived_level_code = ?
         ");
         $statement->execute([$runId, $level]);
         $row = $statement->fetch() ?: [];
@@ -1018,11 +1018,11 @@ class MinistryCanonicalGeographyRepository
         $statement = $this->db->prepare("
             SELECT COUNT(DISTINCT mappings.id)
             FROM geographic_canonicalization_items items
-            INNER JOIN geographic_import_rows rows ON rows.id = items.import_row_id
+            INNER JOIN geographic_import_rows import_rows ON import_rows.id = items.import_row_id
             INNER JOIN external_code_values values_table
                 ON values_table.code_set_id = ?
                AND values_table.source_snapshot_id = ?
-               AND values_table.code = rows.source_code
+               AND values_table.code = import_rows.source_code
             INNER JOIN geographic_external_code_mappings mappings
                 ON mappings.external_code_value_id = values_table.id
                AND mappings.geographic_location_id = items.resulting_geographic_location_id
