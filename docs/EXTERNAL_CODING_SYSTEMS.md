@@ -39,3 +39,7 @@ Bot organization mapping is explicitly deferred. No canonical organization is cr
 ## Version and history
 
 `external_code_values` permits a code to recur in different source snapshots. Parent links are source observations, not canonical hierarchy. Code changes, removals, and renamed titles remain historically visible. Raw metadata may retain non-sensitive source fields but must never include credentials or personal information.
+
+## Ministry staging contract
+
+The Ministry CSV adapter keeps hierarchy code and national identifier as separate strings. It stages observations and review issues only; it does not populate external code values or mappings in the dry-run phase. Level recognition and code lengths are source metadata, not hardcoded canonical entity rules. Repeated national identifiers remain review observations rather than uniqueness violations.

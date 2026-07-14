@@ -77,3 +77,7 @@ The deterministic verification uses:
 - date-only input: `2026-07-13`
 
 The date-only value must remain the same Gregorian calendar date before Jalali conversion.
+
+## Import timestamps
+
+Ministry source snapshot and dry-run import timestamps use `Clock::databaseTimestamp()`. Snapshot observation, batch start/completion, staging creation, and issue creation are persisted as UTC instants under the explicit MySQL `+00:00` session contract. Source date-only values are not converted by the adapter.

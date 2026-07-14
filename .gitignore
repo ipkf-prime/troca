@@ -9,6 +9,9 @@
 /public_html/storage/cache/*
 /public_html/storage/sessions/*
 /public_html/storage/uploads/*
+/public_html/storage/imports/geography/ministry/*.csv
+/public_html/storage/imports/geography/ministry/*.xlsx
+/public_html/storage/imports/geography/ministry/*.xls
 
 error_log
 */error_log

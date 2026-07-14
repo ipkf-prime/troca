@@ -41,3 +41,7 @@ Validity periods and history apply within each hierarchy context. Future service
 ## Legacy and bot compatibility
 
 Existing canonical geography, `geographic_legacy_mappings`, legacy province/city fields, optional lookup tables, and bot data remain untouched. A bot table named `cities` may semantically represent counties; it is mapped through an explicit source contract rather than renamed or rewritten. City is never substituted for county.
+
+## Ministry validation hierarchy
+
+The validate-only Ministry adapter derives official source parents from configured hierarchy-code prefixes: county to province, district to county, and rural district/city to district. The configured Iran root is used only as the province parent reference. Missing, virtual, duplicate, malformed, or level-incompatible source parents become staging issues; they do not create canonical locations or relations.

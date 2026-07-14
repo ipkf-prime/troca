@@ -107,3 +107,7 @@ The canonical geography model is now complemented by source provenance, immutabl
 Official, statistical, and operational parent relationships coexist through `geographic_hierarchy_types`. Existing relations remain unclassified compatibility relations until explicitly reviewed; the migration does not guess or backfill their source/hierarchy.
 
 Ministry of Interior data is authoritative for official administrative hierarchy. SCI is supplementary for settlements and statistical geography. Rural Cooperation operational regions remain separate from official administrative geography. See `MULTI_SOURCE_DATA_PROVENANCE.md`, `EXTERNAL_CODING_SYSTEMS.md`, and `GEOGRAPHIC_HIERARCHY_CONTEXTS.md`.
+
+## Ministry dry-run boundary
+
+The Ministry adapter adds source level/configuration metadata and validates private UTF-8 CSV snapshots into existing staging tables. It does not alter this canonical model, create geographic records, create relations, create South Kerman, or produce external-to-canonical mappings. See `MINISTRY_GEOGRAPHY_IMPORT.md`.

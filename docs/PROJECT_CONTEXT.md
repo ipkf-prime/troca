@@ -258,3 +258,7 @@ Future automation readiness:
 - CRM
 - Automation
 - ERP Foundation
+
+## Ministry geography validation adapter
+
+The first concrete source adapter accepts private UTF-8 Ministry CSV files, resolves Persian source types through seeded metadata, stages every nonblank row, validates code-derived hierarchy and repeated national identifiers, reuses identical source/hash snapshots, and returns aggregate-only summaries. It remains validate-only and performs no canonical geography, relation, mapping, organization, address, SCI, or bot write. XLSX remains unavailable until a compatible reviewed dependency/deployment path exists.

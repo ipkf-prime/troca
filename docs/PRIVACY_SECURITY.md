@@ -44,3 +44,5 @@ Diagnostics must expose geography schema booleans only. They must not expose loc
 Source files and import artifacts are administrative maintenance data and must remain outside the public web root. Sanitized filenames may be stored in snapshot metadata, but diagnostics must not expose filenames, hashes, paths, record counts, code values, locations, or source rows.
 
 Raw metadata and staging payloads must not contain credentials, secrets, or personal information. Future source upload, import, review, and mapping UI requires dedicated permissions, CSRF protection, audit records, size/type validation, and controlled retention. Canonical writes require explicit reviewed workflows; title-only automatic matching is forbidden.
+
+The Ministry runner is development-only, maintenance-key protected, basename-only, and bound to `storage/imports/geography/ministry`. It performs no upload and no canonical write. Its public response omits filenames, source rows, location names, identifiers, full codes/hashes, paths, SQL, and internal database IDs. Real CSV/XLSX datasets are ignored by Git.

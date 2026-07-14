@@ -64,8 +64,12 @@ Source metadata contains no personal data or credentials. Raw payload JSON must 
 
 ## Deferred work
 
-- File-specific Ministry, SCI, and Rural Cooperation parsers
+- SCI and Rural Cooperation file-specific parsers
 - Snapshot upload/storage service outside the public web root
 - Review and mapping services/UI
 - Canonical geography writes after explicit review
 - Organization registry staging and external organization mappings
+
+## Ministry validate-only adapter
+
+The first concrete adapter validates Ministry of Interior UTF-8 CSV snapshots from `storage/imports/geography/ministry`. Source types and parent-prefix rules come from `geographic_source_level_mappings`; source placeholders and limits come from `data_source_import_settings`. Identical source/hash snapshots are idempotent. Every nonblank source row is staged and issues are recorded without canonical writes. See `MINISTRY_GEOGRAPHY_IMPORT.md`.

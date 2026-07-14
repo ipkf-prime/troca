@@ -125,6 +125,8 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $geographicImportRowsTableExists = \IPKF\Database\Database::tableExists('geographic_import_rows');
     $geographicImportIssuesTableExists = \IPKF\Database\Database::tableExists('geographic_import_issues');
     $geographicImportCandidatesTableExists = \IPKF\Database\Database::tableExists('geographic_import_match_candidates');
+    $geographicSourceLevelMappingsTableExists = \IPKF\Database\Database::tableExists('geographic_source_level_mappings');
+    $dataSourceImportSettingsTableExists = \IPKF\Database\Database::tableExists('data_source_import_settings');
     $geographicRelationsHierarchyContextAvailable = $geographicLocationRelationsTableExists
         && \IPKF\Database\Database::columnExists('geographic_location_relations', 'hierarchy_type_id')
         && \IPKF\Database\Database::columnExists('geographic_location_relations', 'source_id')
@@ -137,6 +139,41 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         && \IPKF\Database\Database::columnExists('org_units', 'unit_type_id');
     $operationalGeographicRegionSupportAvailable = false;
     $ruralCooperationCodeContractAvailable = false;
+    $ministryGeographyLevelMappingAvailable = false;
+
+    if ($databaseConnectionAvailable
+        && $geographicSourceLevelMappingsTableExists
+        && $dataSourceImportSettingsTableExists
+        && $dataSourcesTableExists
+    ) {
+        try {
+            $statement = \IPKF\Database\Database::connect()->query("
+                SELECT
+                    (SELECT COUNT(DISTINCT mappings.geographic_level_code)
+                     FROM geographic_source_level_mappings mappings
+                     INNER JOIN data_sources sources ON sources.id = mappings.source_id
+                     WHERE sources.code = 'iran_ministry_of_interior'
+                       AND mappings.status = 'active'
+                       AND mappings.geographic_level_code IN (
+                           'province', 'county', 'district', 'rural_district', 'city'
+                       )) = 5
+                    AND
+                    (SELECT COUNT(DISTINCT settings.setting_key)
+                     FROM data_source_import_settings settings
+                     INNER JOIN data_sources sources ON sources.id = settings.source_id
+                     WHERE sources.code = 'iran_ministry_of_interior'
+                       AND settings.status = 'active'
+                       AND settings.setting_key IN (
+                           'geography.placeholder_values',
+                           'geography.country_root_code',
+                           'geography.max_file_size_bytes'
+                       )) = 3
+            ");
+            $ministryGeographyLevelMappingAvailable = (bool) $statement->fetchColumn();
+        } catch (\Throwable $exception) {
+            $ministryGeographyLevelMappingAvailable = false;
+        }
+    }
 
     if ($databaseConnectionAvailable
         && $geographicHierarchyTypesTableExists
@@ -603,6 +640,17 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'rural_cooperation_code_contract_available' => $ruralCooperationCodeContractAvailable,
         'bot_geography_compatibility_preserved' => true,
         'multi_source_no_canonical_auto_write' => true,
+        'ministry_geography_import_adapter_available' => class_exists(\App\Services\GeographyImport\MinistryGeographyImporter::class),
+        'ministry_geography_csv_parser_available' => class_exists(\App\Services\GeographyImport\MinistryGeographyCsvParser::class),
+        'ministry_geography_xlsx_parser_available' => \App\Services\GeographyImport\MinistryGeographyImporter::xlsxAvailable(),
+        'ministry_geography_level_mapping_available' => $ministryGeographyLevelMappingAvailable,
+        'ministry_geography_parent_derivation_available' => class_exists(\App\Services\GeographyImport\MinistryGeographyValidator::class),
+        'ministry_geography_duplicate_code_validation_available' => class_exists(\App\Services\GeographyImport\MinistryGeographyValidator::class),
+        'ministry_geography_identifier_review_available' => class_exists(\App\Services\GeographyImport\MinistryGeographyValidator::class),
+        'ministry_geography_snapshot_idempotency_available' => $dataSourceSnapshotsTableExists
+            && class_exists(\App\Repositories\GeographyImportRepository::class),
+        'ministry_geography_validate_only_available' => class_exists(\App\Services\GeographyImport\MinistryGeographyImporter::class),
+        'ministry_geography_no_canonical_write' => true,
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),

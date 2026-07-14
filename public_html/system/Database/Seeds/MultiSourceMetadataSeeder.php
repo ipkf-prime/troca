@@ -24,6 +24,13 @@ class MultiSourceMetadataSeeder extends Seeder
         $this->seedCodeSegments();
         $this->seedHierarchyTypes();
         $this->seedOperationalRegionLevel();
+
+        if ($this->tableExists('geographic_source_level_mappings')
+            && $this->tableExists('data_source_import_settings')
+        ) {
+            $this->seedMinistryGeographyLevelMappings();
+            $this->seedMinistryImportSettings();
+        }
     }
 
     private function seedDataSources(): void
@@ -318,6 +325,73 @@ class MultiSourceMetadataSeeder extends Seeder
             )
             ON DUPLICATE KEY UPDATE code = code
         ")->execute();
+    }
+
+    private function seedMinistryGeographyLevelMappings(): void
+    {
+        $sourceId = $this->sourceId('iran_ministry_of_interior');
+
+        if ($sourceId === null) {
+            return;
+        }
+
+        $mappings = [
+            ['استان', 'province', null, 2, null, 10],
+            ['شهرستان', 'county', 'province', 4, 2, 20],
+            ['بخش', 'district', 'county', 6, 4, 30],
+            ['دهستان', 'rural_district', 'district', 8, 6, 40],
+            ['شهر', 'city', 'district', 9, 6, 50],
+        ];
+        $statement = $this->db->prepare("
+            INSERT INTO geographic_source_level_mappings (
+                source_id, source_type_value, geographic_level_code,
+                parent_geographic_level_code, expected_code_length,
+                parent_prefix_length, sort_order, status, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON DUPLICATE KEY UPDATE
+                geographic_level_code = VALUES(geographic_level_code),
+                parent_geographic_level_code = VALUES(parent_geographic_level_code),
+                expected_code_length = VALUES(expected_code_length),
+                parent_prefix_length = VALUES(parent_prefix_length),
+                sort_order = VALUES(sort_order),
+                status = 'active',
+                updated_at = CURRENT_TIMESTAMP
+        ");
+
+        foreach ($mappings as $mapping) {
+            $statement->execute([$sourceId, ...$mapping]);
+        }
+    }
+
+    private function seedMinistryImportSettings(): void
+    {
+        $sourceId = $this->sourceId('iran_ministry_of_interior');
+
+        if ($sourceId === null) {
+            return;
+        }
+
+        $settings = [
+            ['geography.placeholder_values', '["11"]', 'json'],
+            ['geography.country_root_code', 'IR', 'string'],
+            ['geography.max_file_size_bytes', '26214400', 'integer'],
+            ['geography.allowed_extensions', '["csv"]', 'json'],
+        ];
+        $statement = $this->db->prepare("
+            INSERT INTO data_source_import_settings (
+                source_id, setting_key, setting_value, value_type,
+                status, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON DUPLICATE KEY UPDATE
+                setting_value = VALUES(setting_value),
+                value_type = VALUES(value_type),
+                status = 'active',
+                updated_at = CURRENT_TIMESTAMP
+        ");
+
+        foreach ($settings as $setting) {
+            $statement->execute([$sourceId, ...$setting]);
+        }
     }
 
     private function sourceId(string $code): ?int

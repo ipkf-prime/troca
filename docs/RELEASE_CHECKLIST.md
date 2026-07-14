@@ -538,6 +538,27 @@ Version: `0.2.0-foundation`
 - Sensitive-data masking, permissions, audit, and logging requirements are documented.
 - `git diff --check` passes.
 
+## v0.4.6 Ministry Geography Dry-Run Checks
+
+- Protected migration creates only `geographic_source_level_mappings` and `data_source_import_settings` as missing metadata structures.
+- Metadata seed idempotently registers Persian Ministry source types, code lengths, parent prefixes, country root, placeholder `11`, CSV extension, and size limit.
+- UTF-8 CSV headers are detected semantically rather than by fixed column position.
+- Arabic/Persian characters, digits, whitespace, and zero-width variants normalize for comparison while raw values remain preserved.
+- Codes and identifiers remain strings and leading zeroes are retained.
+- Every nonblank row is staged; blank formatting rows are counted.
+- Missing, malformed, wrong-length, duplicate, and orphaned hierarchy codes create issues without failing the whole parsed batch.
+- Parent codes come only from mapping metadata and must exist at the compatible source level.
+- Repeated national identifiers and title/parent variations remain review warnings and never merge rows.
+- Exact source/hash reruns reuse completed snapshot results without duplicating staging rows.
+- Source snapshot and import timestamps use the shared UTC `Clock`.
+- `/geography-import.php` requires debug mode, `DEV_MAINTENANCE_KEY`, exact source, safe basename, and `mode=validate`.
+- CSV source files stay under private `storage/imports/geography/ministry` and are ignored by Git.
+- XLSX diagnostics accurately report unavailable while PhpSpreadsheet is absent.
+- Public summary exposes only aggregate counts, safe reference/status, and hash prefix.
+- No canonical location, relation, identifier, mapping, match candidate, address, organization, SCI, bot, map, facility, Auth/RBAC, or Automation write occurs.
+- Synthetic deterministic fixture covers all configured levels and validation edge cases.
+- `git diff --check` passes.
+
 ## v0.4.6 Dynamic Geography Foundation Checks
 
 - Protected migration creates `geographic_level_types`.
