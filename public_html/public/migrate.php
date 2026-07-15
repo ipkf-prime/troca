@@ -31,13 +31,30 @@ try {
         new \IPKF\Database\Migrations\CreateMinistrySciGeographyCrosswalkTables(),
         new \IPKF\Database\Migrations\CreateMinistryCanonicalGeographyTables(),
         new \IPKF\Database\Migrations\HardenMinistryCanonicalGeographyApply(),
+        new \IPKF\Database\Migrations\CreateAutomationCorrespondenceFoundationTables(),
     ]);
 
     $manager->migrate();
 
     header('Content-Type: text/plain; charset=UTF-8');
-    echo "MIGRATION DONE: ipkf_runtime_checks, auth_rbac_schema, identity_access_foundation, admin_panel_shell, scoped_admin_theme_settings, admin_users_organization, extended_person_data, dynamic_organization_core, dynamic_geography, multi_source_coding_geography, ministry_geography_import_metadata, statistical_center_geography_import_metadata, ministry_sci_geography_crosswalk, ministry_canonical_geography, ministry_canonical_geography_apply_recovery";
+    echo "MIGRATION DONE: ipkf_runtime_checks, auth_rbac_schema, identity_access_foundation, admin_panel_shell, scoped_admin_theme_settings, admin_users_organization, extended_person_data, dynamic_organization_core, dynamic_geography, multi_source_coding_geography, ministry_geography_import_metadata, statistical_center_geography_import_metadata, ministry_sci_geography_crosswalk, ministry_canonical_geography, ministry_canonical_geography_apply_recovery, automation_correspondence_foundation";
 } catch (Throwable $exception) {
+    $failedMigrationClass = 'unknown';
+    $failedMigrationName = 'unknown';
+    $privateException = $exception;
+
+    if ($exception instanceof \IPKF\Database\Migrations\MigrationExecutionException) {
+        $failedMigrationClass = $exception->migrationClass();
+        $failedMigrationName = $exception->migrationBasename();
+        $privateException = $exception->getPrevious() ?? $exception;
+    }
+
+    $failureReference = (new \IPKF\Database\Migrations\MigrationFailureLogger())
+        ->log($failedMigrationClass, $privateException);
+
     http_response_code(500);
-    echo "MIGRATION FAILED";
+    header('Content-Type: text/plain; charset=UTF-8');
+    echo "MIGRATION FAILED\n";
+    echo "failure_reference={$failureReference}\n";
+    echo "failed_migration={$failedMigrationName}";
 }

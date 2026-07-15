@@ -245,22 +245,13 @@ Multi-source provenance foundation now adds:
 
 The stable baseline applies only the reviewed official Ministry hierarchy to the canonical geography model. SCI and Rural Cooperation staging remain non-operational source/audit infrastructure. No SCI or Rural Cooperation hierarchy is applied, and South Kerman is not inserted as a canonical province.
 
-Next development milestone: `v0.4.7-automation-foundation-dev`
+Deferred Automation Implementation Scope:
 
-Planned scope:
-
-- دبیرخانه
-- نامه وارده
-- نامه صادره
-- پیش‌نویس و شماره‌گذاری
-- کارتابل
-- ارجاع
-- گردش کار
-- پیوست‌ها
-- نسخه‌ها
-- تاریخچه اقدامات
-- رهگیری مکاتبات
-
+- Inbox and cartable pages.
+- Operational registry and numbering UI.
+- Referral UI and workflow commands.
+- Correspondence CRUD, editor, and version operations.
+- Tracking UI, notifications, upload/download, signature/seal, OCR, PDF/document conversion, and external APIs.
 ## Future Milestones
 
 - MFA stabilization
@@ -319,3 +310,40 @@ counter. SCI and bot writes remained disabled.
 Rural Cooperation provinces, operational regions, counties, and organizations are
 deferred to a future extension layered on top of Ministry canonical geography.
 They are not a replacement or a parallel canonical hierarchy in this release.
+
+## Stable Baseline
+
+IPKF v0.4.7 Automation Foundation is the stable additive correspondence database foundation for دبیرخانه and organizational correspondence.
+
+Stable version: `0.4.7-automation-foundation`
+
+Development branch: `v0.4.7-automation-foundation-dev`
+
+Delivered stable scope:
+
+- Generic lookup registry.
+- Correspondence aggregate roots.
+- Immutable correspondence versions.
+- Internal and external parties.
+- Registry books and registrations.
+- Correspondence relations.
+- Referral hierarchy.
+- Event history.
+- Private file metadata.
+- Version-aware attachments.
+- RBAC permissions.
+- Migration failure telemetry.
+- MariaDB-safe CHECK and FK rules.
+- Partial-migration convergence.
+- No operational UI or records.
+
+Deferred implementation scope:
+
+- Inbox and cartable pages.
+- Operational registry UI.
+- Referral UI.
+- Workflow commands.
+- Tracking UI.
+- Correspondence CRUD, editor, upload/download, notifications, digital signature/seal, OCR, PDF/document conversion, and external APIs.
+
+The Ministry hierarchy remains the only operational canonical geography. This milestone writes no geography, SCI, Rural Cooperation, or bot data.

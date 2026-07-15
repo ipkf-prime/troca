@@ -72,3 +72,22 @@ SQLSTATE, driver codes, constraints, stack traces, source values, and hashes rem
 private. The original exception chain is written only under `storage/logs`, which
 must remain outside the public document root and protected by deployment
 permissions. Status mode follows the same aggregate-only contract.
+
+## Correspondence and private files
+
+Correspondence subjects, body versions, parties, referral instructions, event
+metadata, and attachments may contain sensitive organizational or personal data.
+Access must be permission-checked against the active role and future organization
+scope before any operational UI or API is released.
+
+Correspondence versions and event history are immutable/append-only application
+records. Registered correspondence, registrations, completed referrals, relations,
+and attachment links must not be physically deleted by normal application behavior.
+Cancellation creates historical metadata rather than removing a registration.
+
+Private file metadata stores an opaque public reference and a private storage key;
+it never stores binary content or a public/download URL. Physical storage keys,
+checksums, filenames, MIME details, event metadata, correspondence contents, IDs,
+and record counts must not appear in diagnostics. Upload/download authorization,
+malware scanning integration, retention, legal hold, and secure disposal remain
+deferred.

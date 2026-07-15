@@ -4,6 +4,7 @@ namespace IPKF\Database\Migrations;
 
 use IPKF\Database\Database;
 use PDO;
+use Throwable;
 
 class MigrationRunner
 {
@@ -53,10 +54,18 @@ class MigrationRunner
                 continue;
             }
 
-            $migration->up();
+            try {
+                $migration->up();
+            } catch (Throwable $exception) {
+                throw new MigrationExecutionException($name, $exception);
+            }
 
-            $insert = $this->connection()->prepare("INSERT INTO migrations (migration) VALUES (?)");
-            $insert->execute([$name]);
+            try {
+                $insert = $this->connection()->prepare("INSERT INTO migrations (migration) VALUES (?)");
+                $insert->execute([$name]);
+            } catch (Throwable $exception) {
+                throw new MigrationExecutionException($name, $exception);
+            }
         }
     }
 

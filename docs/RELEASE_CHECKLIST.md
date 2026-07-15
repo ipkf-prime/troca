@@ -754,4 +754,70 @@ Relevant diagnostics already implemented by this milestone:
 - `ministry_canonicalization_private_error_logging_available`
 - `ministry_canonicalization_public_error_details_blocked`
 
-Next development milestone: `v0.4.7-automation-foundation-dev`.
+## v0.4.7 Automation Correspondence Foundation Checks
+
+Version: `0.4.7-automation-foundation`
+
+Runtime verification:
+
+- `/health` returns `0.4.7-automation-foundation`.
+- PHP 8.4.21 verified on development hosting.
+- Database connection is available.
+- Protected migration completed successfully.
+- Protected seeder completed successfully.
+- `/_diagnostics` reports the automation correspondence foundation booleans as `true`.
+
+Migration and schema:
+
+- `CreateAutomationCorrespondenceFoundationTables` is registered exactly once.
+- Migration is additive, idempotent, utf8mb4, InnoDB, and MariaDB-compatible.
+- `lookup_domains` and `lookup_values` provide the reusable dynamic lookup registry.
+- `correspondences` has an opaque public reference, organization/unit/fiscal-year scope, lifecycle codes, current version, and optimistic lock counter.
+- `correspondence_versions` has unique `(correspondence_id, version_number)` and no mutable update timestamp.
+- `correspondence_parties` enforces one target matching person, organization, unit, or external kind.
+- `registry_books` stores configuration and next sequence only; no real book or number is seeded.
+- `correspondence_registrations` enforces unique sequence and formatted numbers per book.
+- Only one uncancelled registration exists per correspondence and registration role.
+- Registration cancellation preserves historical rows.
+- `correspondence_relations` rejects self-reference and duplicate identical relations.
+- `correspondence_referrals` enforces exactly one user/unit/position target.
+- Forwarding uses `parent_referral_id` and does not overwrite the parent.
+- Completed referrals remain historical.
+- Personal and unit cartables are derived from active referrals; no second inbox table exists.
+- `correspondence_events` is append-only and stores safe metadata only.
+- `private_files` stores no binary content or public URL.
+- `correspondence_attachments` links private metadata to correspondence/version rows.
+
+Lookup and permission seed:
+
+- `AutomationCorrespondenceSeeder` is registered exactly once and is idempotent.
+- All required lookup domains have canonical machine codes and Persian UTF-8 labels.
+- Nine `automation.*` permissions are created idempotently.
+- New permissions are granted only to `super_admin` by default.
+- No sidebar link, page route, operational UI, or correspondence record is seeded.
+
+Diagnostics expose booleans only:
+
+- `automation_foundation_available`
+- `correspondence_schema_available`
+- `correspondence_versions_available`
+- `correspondence_parties_available`
+- `correspondence_registry_books_available`
+- `correspondence_registrations_available`
+- `correspondence_relations_available`
+- `correspondence_referrals_available`
+- `correspondence_event_history_available`
+- `correspondence_attachment_metadata_available`
+- `correspondence_permissions_available`
+- `correspondence_no_operational_ui`
+
+Security and regression:
+
+- Future numbering allocation is documented as transaction and row-lock protected.
+- Diagnostics expose no table names, counts, IDs, paths, SQL, keys, or records.
+- No upload/download, notification, delivery, signature, OCR, PDF, workflow, tracking, or external API is added.
+- Ministry canonical geography remains the only operational canonical geography.
+- No canonical geography, SCI, Rural Cooperation, or bot data is written.
+- No reserved `ROWS` SQL alias exists.
+- Persian UTF-8 lookup labels remain valid.
+- `git diff --check` passes.
