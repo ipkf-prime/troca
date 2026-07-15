@@ -80,6 +80,7 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
                 status_code VARCHAR(100) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'draft',
                 subject VARCHAR(500) NOT NULL,
                 summary TEXT NULL,
+                current_version_id BIGINT UNSIGNED NULL,
                 current_version_number INT UNSIGNED NOT NULL DEFAULT 0,
                 priority_code VARCHAR(100) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'normal',
                 confidentiality_code VARCHAR(100) CHARACTER SET ascii COLLATE ascii_bin NOT NULL DEFAULT 'normal',
@@ -105,8 +106,12 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
                 INDEX correspondences_channel_index (channel_code),
                 INDEX correspondences_registered_at_index (registered_at),
                 INDEX correspondences_created_by_index (created_by_user_id),
+                INDEX correspondences_current_version_index (id, current_version_id, current_version_number),
                 INDEX correspondences_org_status_index (organization_id, status_code),
-                CONSTRAINT correspondences_current_version_check CHECK (current_version_number >= 0)
+                CONSTRAINT correspondences_current_version_check CHECK (
+                    (current_version_id IS NULL AND current_version_number = 0)
+                    OR (current_version_id IS NOT NULL AND current_version_number > 0)
+                )
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
 
@@ -129,6 +134,8 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
                 created_by_user_id {$userType} NOT NULL,
                 created_at TIMESTAMP NULL,
                 UNIQUE KEY corr_versions_number_unique (correspondence_id, version_number),
+                UNIQUE KEY corr_versions_corr_id_unique (correspondence_id, id),
+                UNIQUE KEY corr_versions_current_selection_unique (correspondence_id, id, version_number),
                 INDEX corr_versions_corr_index (correspondence_id),
                 INDEX corr_versions_created_by_index (created_by_user_id),
                 INDEX corr_versions_checksum_index (content_checksum),
@@ -165,10 +172,33 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
                 INDEX corr_parties_organization_index (organization_id),
                 INDEX corr_parties_org_unit_index (org_unit_id),
                 CONSTRAINT corr_parties_target_check CHECK (
-                    (target_kind_code = 'person' AND person_id IS NOT NULL AND organization_id IS NULL AND org_unit_id IS NULL AND external_display_name IS NULL)
-                    OR (target_kind_code = 'organization' AND person_id IS NULL AND organization_id IS NOT NULL AND org_unit_id IS NULL AND external_display_name IS NULL)
-                    OR (target_kind_code = 'org_unit' AND person_id IS NULL AND organization_id IS NULL AND org_unit_id IS NOT NULL AND external_display_name IS NULL)
-                    OR (target_kind_code = 'external' AND person_id IS NULL AND organization_id IS NULL AND org_unit_id IS NULL AND external_display_name IS NOT NULL)
+                    (target_kind_code = 'person'
+                        AND person_id IS NOT NULL
+                        AND organization_id IS NULL
+                        AND org_unit_id IS NULL
+                        AND external_display_name IS NULL
+                        AND external_organization_name IS NULL
+                        AND external_contact_or_address IS NULL)
+                    OR (target_kind_code = 'organization'
+                        AND person_id IS NULL
+                        AND organization_id IS NOT NULL
+                        AND org_unit_id IS NULL
+                        AND external_display_name IS NULL
+                        AND external_organization_name IS NULL
+                        AND external_contact_or_address IS NULL)
+                    OR (target_kind_code = 'org_unit'
+                        AND person_id IS NULL
+                        AND organization_id IS NULL
+                        AND org_unit_id IS NOT NULL
+                        AND external_display_name IS NULL
+                        AND external_organization_name IS NULL
+                        AND external_contact_or_address IS NULL)
+                    OR (target_kind_code = 'external'
+                        AND person_id IS NULL
+                        AND organization_id IS NULL
+                        AND org_unit_id IS NULL
+                        AND external_display_name IS NOT NULL
+                        AND CHAR_LENGTH(TRIM(external_display_name)) > 0)
                 )
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
@@ -187,6 +217,12 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
                 organization_id {$organizationType} NOT NULL,
                 fiscal_year_id {$fiscalYearType} NULL,
                 org_unit_id {$orgUnitType} NULL,
+                fiscal_year_scope_key {$fiscalYearType} GENERATED ALWAYS AS (
+                    COALESCE(fiscal_year_id, 0)
+                ) PERSISTENT,
+                org_unit_scope_key {$orgUnitType} GENERATED ALWAYS AS (
+                    COALESCE(org_unit_id, 0)
+                ) PERSISTENT,
                 scope_code VARCHAR(100) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
                 code VARCHAR(100) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
                 title VARCHAR(255) NOT NULL,
@@ -197,7 +233,12 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
                 status VARCHAR(30) NOT NULL DEFAULT 'active',
                 created_at TIMESTAMP NULL,
                 updated_at TIMESTAMP NULL,
-                UNIQUE KEY registry_books_scope_code_unique (organization_id, fiscal_year_id, org_unit_id, code),
+                UNIQUE KEY registry_books_scope_code_unique (
+                    organization_id,
+                    fiscal_year_scope_key,
+                    org_unit_scope_key,
+                    code
+                ),
                 INDEX registry_books_organization_index (organization_id),
                 INDEX registry_books_fiscal_year_index (fiscal_year_id),
                 INDEX registry_books_org_unit_index (org_unit_id),
@@ -300,8 +341,9 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
                 result_note TEXT NULL,
                 created_at TIMESTAMP NULL,
                 updated_at TIMESTAMP NULL,
+                UNIQUE KEY corr_referrals_corr_id_unique (correspondence_id, id),
                 INDEX corr_referrals_corr_index (correspondence_id),
-                INDEX corr_referrals_parent_index (parent_referral_id),
+                INDEX corr_referrals_corr_parent_index (correspondence_id, parent_referral_id),
                 INDEX corr_referrals_referred_by_index (referred_by_user_id),
                 INDEX corr_referrals_source_unit_index (source_org_unit_id),
                 INDEX corr_referrals_target_user_index (target_user_id),
@@ -341,6 +383,7 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
                 created_at TIMESTAMP NULL,
                 INDEX corr_events_corr_index (correspondence_id),
                 INDEX corr_events_referral_index (referral_id),
+                INDEX corr_events_corr_referral_index (correspondence_id, referral_id),
                 INDEX corr_events_type_index (event_type_code),
                 INDEX corr_events_actor_user_index (actor_user_id),
                 INDEX corr_events_actor_unit_index (actor_org_unit_id),
@@ -400,6 +443,7 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
                 linked_at TIMESTAMP NOT NULL,
                 INDEX corr_attachments_corr_index (correspondence_id),
                 INDEX corr_attachments_version_index (correspondence_version_id),
+                INDEX corr_attachments_corr_version_index (correspondence_id, correspondence_version_id),
                 INDEX corr_attachments_file_index (file_id),
                 INDEX corr_attachments_role_index (attachment_role_code),
                 INDEX corr_attachments_order_index (correspondence_id, display_order)
@@ -420,6 +464,14 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
 
         $this->addForeignKeyIfPossible('correspondence_versions', 'corr_versions_corr_fk', 'correspondence_id', 'correspondences', 'id', 'RESTRICT');
         $this->addForeignKeyIfPossible('correspondence_versions', 'corr_versions_user_fk', 'created_by_user_id', 'users', 'id', 'RESTRICT');
+        $this->addCompositeForeignKeyIfPossible(
+            'correspondences',
+            'corr_current_version_fk',
+            ['id', 'current_version_id', 'current_version_number'],
+            'correspondence_versions',
+            ['correspondence_id', 'id', 'version_number'],
+            'RESTRICT'
+        );
 
         $this->addForeignKeyIfPossible('correspondence_parties', 'corr_parties_corr_fk', 'correspondence_id', 'correspondences', 'id', 'RESTRICT');
         $this->addForeignKeyIfPossible('correspondence_parties', 'corr_parties_person_fk', 'person_id', 'persons', 'id', 'RESTRICT');
@@ -440,7 +492,14 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
         $this->addForeignKeyIfPossible('correspondence_relations', 'corr_rel_user_fk', 'created_by_user_id', 'users', 'id', 'RESTRICT');
 
         $this->addForeignKeyIfPossible('correspondence_referrals', 'corr_ref_corr_fk', 'correspondence_id', 'correspondences', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondence_referrals', 'corr_ref_parent_fk', 'parent_referral_id', 'correspondence_referrals', 'id', 'RESTRICT');
+        $this->addCompositeForeignKeyIfPossible(
+            'correspondence_referrals',
+            'corr_ref_parent_fk',
+            ['correspondence_id', 'parent_referral_id'],
+            'correspondence_referrals',
+            ['correspondence_id', 'id'],
+            'RESTRICT'
+        );
         $this->addForeignKeyIfPossible('correspondence_referrals', 'corr_ref_by_user_fk', 'referred_by_user_id', 'users', 'id', 'RESTRICT');
         $this->addForeignKeyIfPossible('correspondence_referrals', 'corr_ref_source_unit_fk', 'source_org_unit_id', 'org_units', 'id', 'RESTRICT');
         $this->addForeignKeyIfPossible('correspondence_referrals', 'corr_ref_target_user_fk', 'target_user_id', 'users', 'id', 'RESTRICT');
@@ -450,14 +509,28 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
         $this->addForeignKeyIfPossible('correspondence_referrals', 'corr_ref_completed_user_fk', 'completed_by_user_id', 'users', 'id', 'RESTRICT');
 
         $this->addForeignKeyIfPossible('correspondence_events', 'corr_events_corr_fk', 'correspondence_id', 'correspondences', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondence_events', 'corr_events_referral_fk', 'referral_id', 'correspondence_referrals', 'id', 'RESTRICT');
+        $this->addCompositeForeignKeyIfPossible(
+            'correspondence_events',
+            'corr_events_referral_fk',
+            ['correspondence_id', 'referral_id'],
+            'correspondence_referrals',
+            ['correspondence_id', 'id'],
+            'RESTRICT'
+        );
         $this->addForeignKeyIfPossible('correspondence_events', 'corr_events_user_fk', 'actor_user_id', 'users', 'id', 'RESTRICT');
         $this->addForeignKeyIfPossible('correspondence_events', 'corr_events_unit_fk', 'actor_org_unit_id', 'org_units', 'id', 'RESTRICT');
 
         $this->addForeignKeyIfPossible('private_files', 'private_files_user_fk', 'uploaded_by_user_id', 'users', 'id', 'RESTRICT');
 
         $this->addForeignKeyIfPossible('correspondence_attachments', 'corr_attach_corr_fk', 'correspondence_id', 'correspondences', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondence_attachments', 'corr_attach_version_fk', 'correspondence_version_id', 'correspondence_versions', 'id', 'RESTRICT');
+        $this->addCompositeForeignKeyIfPossible(
+            'correspondence_attachments',
+            'corr_attach_version_fk',
+            ['correspondence_id', 'correspondence_version_id'],
+            'correspondence_versions',
+            ['correspondence_id', 'id'],
+            'RESTRICT'
+        );
         $this->addForeignKeyIfPossible('correspondence_attachments', 'corr_attach_file_fk', 'file_id', 'private_files', 'id', 'RESTRICT');
         $this->addForeignKeyIfPossible('correspondence_attachments', 'corr_attach_user_fk', 'linked_by_user_id', 'users', 'id', 'RESTRICT');
     }
@@ -509,6 +582,47 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
             ADD CONSTRAINT {$constraint}
             FOREIGN KEY ({$column}) REFERENCES {$referenceTable} ({$referenceColumn})
             ON UPDATE CASCADE ON DELETE {$onDelete}
+        ");
+    }
+
+    private function addCompositeForeignKeyIfPossible(
+        string $table,
+        string $constraint,
+        array $columns,
+        string $referenceTable,
+        array $referenceColumns,
+        string $onDelete
+    ): void {
+        if (count($columns) === 0
+            || count($columns) !== count($referenceColumns)
+            || !$this->tableExists($table)
+            || !$this->tableExists($referenceTable)
+            || $this->foreignKeyExists($table, $constraint)
+            || !$this->supportsForeignKeys($table)
+            || !$this->supportsForeignKeys($referenceTable)
+        ) {
+            return;
+        }
+
+        foreach ($columns as $index => $column) {
+            $referenceColumn = $referenceColumns[$index];
+
+            if (!$this->columnExists($table, $column)
+                || !$this->columnExists($referenceTable, $referenceColumn)
+                || $this->columnType($table, $column) !== $this->columnType($referenceTable, $referenceColumn)
+            ) {
+                return;
+            }
+        }
+
+        $columnList = implode(', ', $columns);
+        $referenceColumnList = implode(', ', $referenceColumns);
+
+        $this->db->exec("
+            ALTER TABLE {$table}
+            ADD CONSTRAINT {$constraint}
+            FOREIGN KEY ({$columnList}) REFERENCES {$referenceTable} ({$referenceColumnList})
+            ON UPDATE RESTRICT ON DELETE {$onDelete}
         ");
     }
 

@@ -32,6 +32,31 @@ function tableFragment(string $migration, string $table): string
     return substr($migration, $start, $end - $start);
 }
 
+function compositeForeignKeyFragment(string $migration, string $constraint): string
+{
+    $constraintPosition = strpos($migration, "'{$constraint}'");
+    expectAutomation($constraintPosition !== false, "Missing composite foreign key: {$constraint}");
+    $prefix = substr($migration, 0, $constraintPosition);
+    $start = strrpos($prefix, '$this->addCompositeForeignKeyIfPossible(');
+    expectAutomation($start !== false, "Composite helper not used for: {$constraint}");
+    $end = strpos($migration, ');', $constraintPosition);
+    expectAutomation($end !== false, "Incomplete composite foreign key: {$constraint}");
+
+    return substr($migration, $start, $end - $start + 2);
+}
+
+function partyTargetFragment(string $parties, string $kind): string
+{
+    $start = strpos($parties, "target_kind_code = '{$kind}'");
+    expectAutomation($start !== false, "Missing party target kind: {$kind}");
+    $fragment = substr($parties, $start);
+    $nextArm = strpos($fragment, "\n                    OR (");
+    $end = $nextArm === false ? strpos($fragment, "\n                )") : $nextArm;
+    expectAutomation($end !== false, "Incomplete party target kind: {$kind}");
+
+    return substr($fragment, 0, $end);
+}
+
 expectAutomation(is_string($migration), 'Automation migration source must be readable.');
 expectAutomation(is_string($seeder), 'Automation seeder source must be readable.');
 expectAutomation(is_string($migrateRunner), 'Migration runner source must be readable.');
@@ -74,7 +99,46 @@ expectAutomation(
     str_contains($versions, 'UNIQUE KEY corr_versions_number_unique (correspondence_id, version_number)'),
     'Correspondence version numbers must be unique per correspondence.'
 );
+expectAutomation(
+    str_contains($versions, 'UNIQUE KEY corr_versions_corr_id_unique (correspondence_id, id)'),
+    'Correspondence versions must expose the aggregate candidate key in correspondence/id order.'
+);
+expectAutomation(
+    str_contains($versions, 'UNIQUE KEY corr_versions_current_selection_unique (correspondence_id, id, version_number)'),
+    'Current-version selection must expose an exact aggregate/id/number candidate key.'
+);
 expectAutomation(!str_contains($versions, 'updated_at'), 'Immutable versions must not have updated_at.');
+
+$correspondences = tableFragment($migration, 'correspondences');
+expectAutomation(
+    str_contains($correspondences, 'current_version_id BIGINT UNSIGNED NULL')
+        && str_contains($correspondences, 'current_version_id IS NULL AND current_version_number = 0')
+        && str_contains($correspondences, 'current_version_id IS NOT NULL AND current_version_number > 0')
+        && str_contains($correspondences, 'INDEX correspondences_current_version_index (id, current_version_id, current_version_number)'),
+    'Initial drafts and selected current versions must use a consistent nullable current-version contract.'
+);
+$currentVersionForeignKey = compositeForeignKeyFragment($migration, 'corr_current_version_fk');
+expectAutomation(
+    str_contains($currentVersionForeignKey, "['id', 'current_version_id', 'current_version_number']")
+        && str_contains($currentVersionForeignKey, "['correspondence_id', 'id', 'version_number']"),
+    'The selected current version must belong to the same correspondence aggregate.'
+);
+
+$registryBooks = tableFragment($migration, 'registry_books');
+expectAutomation(
+    str_contains($registryBooks, 'fiscal_year_scope_key {$fiscalYearType} GENERATED ALWAYS AS')
+        && str_contains($registryBooks, 'COALESCE(fiscal_year_id, 0)')
+        && str_contains($registryBooks, 'org_unit_scope_key {$orgUnitType} GENERATED ALWAYS AS')
+        && str_contains($registryBooks, 'COALESCE(org_unit_id, 0)'),
+    'Nullable registry-book scopes must be normalized with type-compatible generated columns.'
+);
+expectAutomation(
+    preg_match(
+        '/UNIQUE KEY registry_books_scope_code_unique\s*\(\s*organization_id,\s*fiscal_year_scope_key,\s*org_unit_scope_key,\s*code\s*\)/s',
+        $registryBooks
+    ) === 1,
+    'Registry books must reject duplicate codes even when fiscal year or unit scope is null.'
+);
 
 $registrations = tableFragment($migration, 'correspondence_registrations');
 expectAutomation(
@@ -108,6 +172,29 @@ expectAutomation(
         && str_contains($parties, "target_kind_code = 'external'"),
     'Correspondence party targets must match their target kind.'
 );
+$personParty = partyTargetFragment($parties, 'person');
+$organizationParty = partyTargetFragment($parties, 'organization');
+$orgUnitParty = partyTargetFragment($parties, 'org_unit');
+$externalParty = partyTargetFragment($parties, 'external');
+expectAutomation(
+    str_contains($personParty, 'external_display_name IS NULL')
+        && str_contains($personParty, 'external_organization_name IS NULL')
+        && str_contains($personParty, 'external_contact_or_address IS NULL')
+        && str_contains($organizationParty, 'external_display_name IS NULL')
+        && str_contains($organizationParty, 'external_organization_name IS NULL')
+        && str_contains($organizationParty, 'external_contact_or_address IS NULL')
+        && str_contains($orgUnitParty, 'external_display_name IS NULL')
+        && str_contains($orgUnitParty, 'external_organization_name IS NULL')
+        && str_contains($orgUnitParty, 'external_contact_or_address IS NULL'),
+    'Internal parties must not carry external snapshot data.'
+);
+expectAutomation(
+    str_contains($externalParty, 'person_id IS NULL')
+        && str_contains($externalParty, 'organization_id IS NULL')
+        && str_contains($externalParty, 'org_unit_id IS NULL')
+        && str_contains($externalParty, 'CHAR_LENGTH(TRIM(external_display_name)) > 0'),
+    'External parties must reject internal targets and blank display names.'
+);
 
 $referrals = tableFragment($migration, 'correspondence_referrals');
 expectAutomation(
@@ -116,9 +203,15 @@ expectAutomation(
 );
 expectAutomation(
     str_contains($referrals, 'parent_referral_id BIGINT UNSIGNED NULL')
-        && str_contains($migration, "'corr_ref_parent_fk'")
-        && str_contains($migration, "'parent_referral_id', 'correspondence_referrals', 'id', 'RESTRICT'"),
+        && str_contains($referrals, 'UNIQUE KEY corr_referrals_corr_id_unique (correspondence_id, id)')
+        && str_contains($referrals, 'INDEX corr_referrals_corr_parent_index (correspondence_id, parent_referral_id)'),
     'Forwarding must create a preserved child referral.'
+);
+$parentReferralForeignKey = compositeForeignKeyFragment($migration, 'corr_ref_parent_fk');
+expectAutomation(
+    str_contains($parentReferralForeignKey, "['correspondence_id', 'parent_referral_id']")
+        && str_contains($parentReferralForeignKey, "['correspondence_id', 'id']"),
+    'Referral parent foreign-key columns must match the aggregate candidate-key order.'
 );
 expectAutomation(
     str_contains($referrals, 'completed_by_user_id')
@@ -130,11 +223,32 @@ expectAutomation(
 $events = tableFragment($migration, 'correspondence_events');
 expectAutomation(str_contains($events, 'safe_metadata_json LONGTEXT NULL'), 'Event metadata must remain safe JSON metadata.');
 expectAutomation(!str_contains($events, 'updated_at'), 'Append-only events must not have updated_at.');
+$eventReferralForeignKey = compositeForeignKeyFragment($migration, 'corr_events_referral_fk');
+expectAutomation(
+    str_contains($events, 'INDEX corr_events_corr_referral_index (correspondence_id, referral_id)')
+        && str_contains($eventReferralForeignKey, "['correspondence_id', 'referral_id']")
+        && str_contains($eventReferralForeignKey, "['correspondence_id', 'id']"),
+    'Referral events must reference a referral from the same correspondence.'
+);
 
 $files = tableFragment($migration, 'private_files');
 expectAutomation(str_contains($files, 'storage_key VARCHAR(1000)'), 'Private file storage keys are required.');
 expectAutomation(str_contains($files, 'sha256_checksum CHAR(64)'), 'Private file checksums are required.');
 expectAutomation(!preg_match('/\b(public_url|download_url|file_blob|LONGBLOB|MEDIUMBLOB|BLOB)\b/i', $files), 'Private files must not expose URLs or store binaries.');
+
+$attachments = tableFragment($migration, 'correspondence_attachments');
+$attachmentVersionForeignKey = compositeForeignKeyFragment($migration, 'corr_attach_version_fk');
+expectAutomation(
+    str_contains($attachments, 'INDEX corr_attachments_corr_version_index (correspondence_id, correspondence_version_id)')
+        && str_contains($attachmentVersionForeignKey, "['correspondence_id', 'correspondence_version_id']")
+        && str_contains($attachmentVersionForeignKey, "['correspondence_id', 'id']"),
+    'Version attachments must reference a version from the same correspondence.'
+);
+expectAutomation(
+    str_contains($migration, 'private function addCompositeForeignKeyIfPossible(')
+        && str_contains($migration, 'ON UPDATE RESTRICT ON DELETE {$onDelete}'),
+    'Composite aggregate foreign keys must use the idempotent migration helper.'
+);
 
 $domains = [
     'correspondence_direction',
