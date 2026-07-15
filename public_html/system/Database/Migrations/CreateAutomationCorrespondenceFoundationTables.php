@@ -2,6 +2,8 @@
 
 namespace IPKF\Database\Migrations;
 
+use PDO;
+
 class CreateAutomationCorrespondenceFoundationTables extends Migration
 {
     public function up(): void

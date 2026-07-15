@@ -262,6 +262,11 @@ expectAutomation(
     'Existing automation foreign-key update and delete rules must be inspected privately.'
 );
 expectAutomation(
+    preg_match('/namespace IPKF\\\\Database\\\\Migrations;\s+use PDO;/', $migration) === 1
+        || str_contains($migration, '\\PDO::FETCH_NUM'),
+    'PDO::FETCH_NUM must resolve to the global PDO class inside the migration namespace.'
+);
+expectAutomation(
     str_contains($migration, 'private function reconcileForeignKeyRules(')
         && str_contains($migration, "if (\$this->foreignKeyRulesMatch(\$rules, 'RESTRICT', \$expectedDeleteRule))")
         && str_contains($migration, 'DROP FOREIGN KEY {$constraint}')
