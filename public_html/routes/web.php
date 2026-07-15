@@ -132,6 +132,18 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $geographicCrosswalkIssuesTableExists = \IPKF\Database\Database::tableExists('geographic_crosswalk_issues');
     $geographicCanonicalizationRunsTableExists = \IPKF\Database\Database::tableExists('geographic_canonicalization_runs');
     $geographicCanonicalizationItemsTableExists = \IPKF\Database\Database::tableExists('geographic_canonicalization_items');
+    $lookupDomainsTableExists = \IPKF\Database\Database::tableExists('lookup_domains');
+    $lookupValuesTableExists = \IPKF\Database\Database::tableExists('lookup_values');
+    $correspondencesTableExists = \IPKF\Database\Database::tableExists('correspondences');
+    $correspondenceVersionsTableExists = \IPKF\Database\Database::tableExists('correspondence_versions');
+    $correspondencePartiesTableExists = \IPKF\Database\Database::tableExists('correspondence_parties');
+    $registryBooksTableExists = \IPKF\Database\Database::tableExists('registry_books');
+    $correspondenceRegistrationsTableExists = \IPKF\Database\Database::tableExists('correspondence_registrations');
+    $correspondenceRelationsTableExists = \IPKF\Database\Database::tableExists('correspondence_relations');
+    $correspondenceReferralsTableExists = \IPKF\Database\Database::tableExists('correspondence_referrals');
+    $correspondenceEventsTableExists = \IPKF\Database\Database::tableExists('correspondence_events');
+    $privateFilesTableExists = \IPKF\Database\Database::tableExists('private_files');
+    $correspondenceAttachmentsTableExists = \IPKF\Database\Database::tableExists('correspondence_attachments');
     $dataSourceImportSettingsTableExists = \IPKF\Database\Database::tableExists('data_source_import_settings');
     $geographicRelationsHierarchyContextAvailable = $geographicLocationRelationsTableExists
         && \IPKF\Database\Database::columnExists('geographic_location_relations', 'hierarchy_type_id')
@@ -278,6 +290,7 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $superAdminRoleExists = false;
     $superAdminAssignmentExists = false;
     $adminUsersPermissionsSeeded = false;
+    $correspondencePermissionsAvailable = false;
 
     if ($databaseConnectionAvailable) {
         try {
@@ -370,12 +383,35 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
                         break;
                     }
                 }
+
+                $statement = $db->query("
+                    SELECT COUNT(DISTINCT permissions.code)
+                    FROM role_permissions
+                    INNER JOIN roles ON roles.id = role_permissions.role_id
+                    INNER JOIN permissions ON permissions.id = role_permissions.permission_id
+                    WHERE roles.code = 'super_admin'
+                      AND roles.is_active = 1
+                      AND permissions.is_active = 1
+                      AND permissions.code IN (
+                          'automation.correspondence.view',
+                          'automation.correspondence.create',
+                          'automation.correspondence.edit_draft',
+                          'automation.correspondence.register',
+                          'automation.correspondence.route',
+                          'automation.correspondence.cartable.view',
+                          'automation.correspondence.close',
+                          'automation.registry.manage',
+                          'automation.audit.view'
+                      )
+                ");
+                $correspondencePermissionsAvailable = (int) $statement->fetchColumn() === 9;
             }
         } catch (\Throwable $exception) {
             $adminUserExists = false;
             $superAdminRoleExists = false;
             $superAdminAssignmentExists = false;
             $adminUsersPermissionsSeeded = false;
+            $correspondencePermissionsAvailable = false;
         }
     }
 
@@ -727,6 +763,31 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'ministry_canonicalization_status_mode_available' => true,
         'ministry_canonicalization_private_error_logging_available' => class_exists(\App\Services\GeographyCanonicalization\MinistryCanonicalizationFailureLogger::class),
         'ministry_canonicalization_public_error_details_blocked' => true,
+        'automation_foundation_available' => $lookupDomainsTableExists
+            && $lookupValuesTableExists
+            && $correspondencesTableExists
+            && $correspondenceVersionsTableExists
+            && $correspondencePartiesTableExists
+            && $registryBooksTableExists
+            && $correspondenceRegistrationsTableExists
+            && $correspondenceRelationsTableExists
+            && $correspondenceReferralsTableExists
+            && $correspondenceEventsTableExists
+            && $privateFilesTableExists
+            && $correspondenceAttachmentsTableExists
+            && $correspondencePermissionsAvailable,
+        'correspondence_schema_available' => $correspondencesTableExists,
+        'correspondence_versions_available' => $correspondenceVersionsTableExists,
+        'correspondence_parties_available' => $correspondencePartiesTableExists,
+        'correspondence_registry_books_available' => $registryBooksTableExists,
+        'correspondence_registrations_available' => $correspondenceRegistrationsTableExists,
+        'correspondence_relations_available' => $correspondenceRelationsTableExists,
+        'correspondence_referrals_available' => $correspondenceReferralsTableExists,
+        'correspondence_event_history_available' => $correspondenceEventsTableExists,
+        'correspondence_attachment_metadata_available' => $privateFilesTableExists
+            && $correspondenceAttachmentsTableExists,
+        'correspondence_permissions_available' => $correspondencePermissionsAvailable,
+        'correspondence_no_operational_ui' => true,
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),

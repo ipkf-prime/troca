@@ -319,3 +319,34 @@ counter. SCI and bot writes remained disabled.
 Rural Cooperation provinces, operational regions, counties, and organizations are
 deferred to a future extension layered on top of Ministry canonical geography.
 They are not a replacement or a parallel canonical hierarchy in this release.
+
+## Active Milestone
+
+IPKF v0.4.7 Automation Correspondence Foundation starts the additive domain and
+database foundation required for دبیرخانه and organizational correspondence.
+
+Working version: `0.4.7-automation-foundation-dev`
+
+Development branch: `v0.4.7-automation-foundation-dev`
+
+Scope:
+
+- `correspondences` as the aggregate root for incoming, outgoing, and internal correspondence.
+- Immutable version snapshots with Persian UTF-8 content checksums.
+- Normalized internal and external correspondence parties.
+- Registry books and historical registrations without allocating real numbers.
+- Typed correspondence relations without self-reference or cascade history deletion.
+- Parent-child referrals as the authoritative personal/unit cartable source.
+- Append-only event history.
+- Generic private file metadata and correspondence attachment linkage.
+- Dynamic lookup metadata and nine permissions granted only to `super_admin` by default.
+- Development-only boolean diagnostics.
+
+Drafting and official registration are separate. The future number allocator must
+use a transaction and row-level locking. Operational UI, editor, cartable pages,
+upload/download, notifications, digital signature/seal, OCR, PDF/document
+conversion, workflow/SLA engines, public tracking, external APIs, and real
+correspondence records remain deferred.
+
+The Ministry hierarchy remains the only operational canonical geography. This
+milestone writes no geography, SCI, Rural Cooperation, or bot data.
