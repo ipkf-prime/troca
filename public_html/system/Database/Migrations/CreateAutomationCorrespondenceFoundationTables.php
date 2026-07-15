@@ -569,7 +569,6 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
             || !$this->tableExists($referenceTable)
             || !$this->columnExists($table, $column)
             || !$this->columnExists($referenceTable, $referenceColumn)
-            || $this->foreignKeyExists($table, $constraint)
             || !$this->supportsForeignKeys($table)
             || !$this->supportsForeignKeys($referenceTable)
             || $this->columnType($table, $column) !== $this->columnType($referenceTable, $referenceColumn)
@@ -577,11 +576,15 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
             return;
         }
 
+        if (!$this->reconcileForeignKeyRules($table, $constraint, $onDelete)) {
+            return;
+        }
+
         $this->db->exec("
             ALTER TABLE {$table}
             ADD CONSTRAINT {$constraint}
             FOREIGN KEY ({$column}) REFERENCES {$referenceTable} ({$referenceColumn})
-            ON UPDATE CASCADE ON DELETE {$onDelete}
+            ON UPDATE RESTRICT ON DELETE {$onDelete}
         ");
     }
 
@@ -597,7 +600,6 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
             || count($columns) !== count($referenceColumns)
             || !$this->tableExists($table)
             || !$this->tableExists($referenceTable)
-            || $this->foreignKeyExists($table, $constraint)
             || !$this->supportsForeignKeys($table)
             || !$this->supportsForeignKeys($referenceTable)
         ) {
@@ -617,6 +619,10 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
 
         $columnList = implode(', ', $columns);
         $referenceColumnList = implode(', ', $referenceColumns);
+
+        if (!$this->reconcileForeignKeyRules($table, $constraint, $onDelete)) {
+            return;
+        }
 
         $this->db->exec("
             ALTER TABLE {$table}
@@ -682,18 +688,53 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
         return strtolower((string) $statement->fetchColumn()) === 'innodb';
     }
 
-    private function foreignKeyExists(string $table, string $constraint): bool
+    private function reconcileForeignKeyRules(string $table, string $constraint, string $onDelete): bool
+    {
+        $expectedDeleteRule = strtoupper(trim($onDelete));
+        $rules = $this->foreignKeyRules($table, $constraint);
+
+        if ($rules === null) {
+            return true;
+        }
+
+        if ($this->foreignKeyRulesMatch($rules, 'RESTRICT', $expectedDeleteRule)) {
+            return false;
+        }
+
+        $this->db->exec("
+            ALTER TABLE {$table}
+            DROP FOREIGN KEY {$constraint}
+        ");
+
+        return true;
+    }
+
+    private function foreignKeyRules(string $table, string $constraint): ?array
     {
         $statement = $this->db->prepare("
-            SELECT COUNT(*)
-            FROM information_schema.table_constraints
+            SELECT UPPER(UPDATE_RULE), UPPER(DELETE_RULE)
+            FROM information_schema.referential_constraints
             WHERE constraint_schema = DATABASE()
               AND table_name = ?
               AND constraint_name = ?
-              AND constraint_type = 'FOREIGN KEY'
+            LIMIT 1
         ");
         $statement->execute([$table, $constraint]);
+        $rules = $statement->fetch(PDO::FETCH_NUM);
 
-        return (int) $statement->fetchColumn() > 0;
+        if (!is_array($rules)) {
+            return null;
+        }
+
+        return [
+            'update_rule' => (string) ($rules[0] ?? ''),
+            'delete_rule' => (string) ($rules[1] ?? ''),
+        ];
+    }
+
+    private function foreignKeyRulesMatch(array $rules, string $onUpdate, string $onDelete): bool
+    {
+        return ($rules['update_rule'] ?? '') === strtoupper($onUpdate)
+            && ($rules['delete_rule'] ?? '') === strtoupper($onDelete);
     }
 }

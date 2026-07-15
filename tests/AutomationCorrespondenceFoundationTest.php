@@ -250,6 +250,60 @@ expectAutomation(
     'Composite aggregate foreign keys must use the idempotent migration helper.'
 );
 
+expectAutomation(
+    !str_contains($migration, 'ON UPDATE CASCADE')
+        && substr_count($migration, 'ON UPDATE RESTRICT ON DELETE {$onDelete}') === 2,
+    'Every single-column and composite automation foreign key must use ON UPDATE RESTRICT.'
+);
+expectAutomation(
+    str_contains($migration, 'FROM information_schema.referential_constraints')
+        && str_contains($migration, 'SELECT UPPER(UPDATE_RULE), UPPER(DELETE_RULE)')
+        && str_contains($migration, 'private function foreignKeyRules('),
+    'Existing automation foreign-key update and delete rules must be inspected privately.'
+);
+expectAutomation(
+    str_contains($migration, 'private function reconcileForeignKeyRules(')
+        && str_contains($migration, "if (\$this->foreignKeyRulesMatch(\$rules, 'RESTRICT', \$expectedDeleteRule))")
+        && str_contains($migration, 'DROP FOREIGN KEY {$constraint}')
+        && substr_count($migration, 'if (!$this->reconcileForeignKeyRules($table, $constraint, $onDelete))') === 2,
+    'Matching constraints must be preserved while mismatched named constraints are recreated.'
+);
+expectAutomation(
+    str_contains($migration, "'corr_rel_source_fk', 'source_correspondence_id', 'correspondences', 'id', 'RESTRICT'")
+        && str_contains($migration, "'corr_rel_target_fk', 'target_correspondence_id', 'correspondences', 'id', 'RESTRICT'")
+        && str_contains($relations, 'CONSTRAINT corr_relations_no_self_check CHECK (source_correspondence_id <> target_correspondence_id)'),
+    'Correspondence relation source and target FKs must retain the MariaDB-safe self-relation check.'
+);
+expectAutomation(
+    !preg_match('/\bDROP\s+(?:TABLE|COLUMN|CHECK|CONSTRAINT|INDEX|KEY)\b/i', $migration)
+        && !preg_match('/\b(?:DELETE\s+FROM|TRUNCATE\s+TABLE)\b/i', $migration)
+        && !str_contains($migration, 'FOREIGN_KEY_CHECKS'),
+    'Foreign-key reconciliation must not remove schema objects or data or disable FK enforcement.'
+);
+
+$shouldRecreateForeignKey = static function (?array $rules, string $onDelete): bool {
+    if ($rules === null) {
+        return true;
+    }
+
+    return ($rules['update_rule'] ?? '') !== 'RESTRICT'
+        || ($rules['delete_rule'] ?? '') !== strtoupper($onDelete);
+};
+
+expectAutomation($shouldRecreateForeignKey(null, 'RESTRICT'), 'A missing FK must be created.');
+expectAutomation(
+    !$shouldRecreateForeignKey(['update_rule' => 'RESTRICT', 'delete_rule' => 'RESTRICT'], 'RESTRICT'),
+    'A matching FK must not be recreated.'
+);
+expectAutomation(
+    $shouldRecreateForeignKey(['update_rule' => 'CASCADE', 'delete_rule' => 'RESTRICT'], 'RESTRICT'),
+    'A legacy ON UPDATE CASCADE FK must be recreated.'
+);
+expectAutomation(
+    $shouldRecreateForeignKey(['update_rule' => 'RESTRICT', 'delete_rule' => 'CASCADE'], 'RESTRICT'),
+    'A mismatched ON DELETE rule must be recreated without changing the requested rule.'
+);
+
 $domains = [
     'correspondence_direction',
     'correspondence_status',
