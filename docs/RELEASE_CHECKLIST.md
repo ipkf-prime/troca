@@ -754,15 +754,21 @@ Relevant diagnostics already implemented by this milestone:
 - `ministry_canonicalization_private_error_logging_available`
 - `ministry_canonicalization_public_error_details_blocked`
 
-Next development milestone: `v0.4.7-automation-foundation-dev`.
-
 ## v0.4.7 Automation Correspondence Foundation Checks
 
-Version: `0.4.7-automation-foundation-dev`
+Version: `0.4.7-automation-foundation`
+
+Runtime verification:
+
+- `/health` returns `0.4.7-automation-foundation`.
+- PHP 8.4.21 verified on development hosting.
+- Database connection is available.
+- Protected migration completed successfully.
+- Protected seeder completed successfully.
+- `/_diagnostics` reports the automation correspondence foundation booleans as `true`.
 
 Migration and schema:
 
-- `/health` returns `0.4.7-automation-foundation-dev` after deployment.
 - `CreateAutomationCorrespondenceFoundationTables` is registered exactly once.
 - Migration is additive, idempotent, utf8mb4, InnoDB, and MariaDB-compatible.
 - `lookup_domains` and `lookup_values` provide the reusable dynamic lookup registry.

@@ -245,22 +245,13 @@ Multi-source provenance foundation now adds:
 
 The stable baseline applies only the reviewed official Ministry hierarchy to the canonical geography model. SCI and Rural Cooperation staging remain non-operational source/audit infrastructure. No SCI or Rural Cooperation hierarchy is applied, and South Kerman is not inserted as a canonical province.
 
-Next development milestone: `v0.4.7-automation-foundation-dev`
+Deferred Automation Implementation Scope:
 
-Planned scope:
-
-- دبیرخانه
-- نامه وارده
-- نامه صادره
-- پیش‌نویس و شماره‌گذاری
-- کارتابل
-- ارجاع
-- گردش کار
-- پیوست‌ها
-- نسخه‌ها
-- تاریخچه اقدامات
-- رهگیری مکاتبات
-
+- Inbox and cartable pages.
+- Operational registry and numbering UI.
+- Referral UI and workflow commands.
+- Correspondence CRUD, editor, and version operations.
+- Tracking UI, notifications, upload/download, signature/seal, OCR, PDF/document conversion, and external APIs.
 ## Future Milestones
 
 - MFA stabilization
@@ -320,33 +311,39 @@ Rural Cooperation provinces, operational regions, counties, and organizations ar
 deferred to a future extension layered on top of Ministry canonical geography.
 They are not a replacement or a parallel canonical hierarchy in this release.
 
-## Active Milestone
+## Stable Baseline
 
-IPKF v0.4.7 Automation Correspondence Foundation starts the additive domain and
-database foundation required for دبیرخانه and organizational correspondence.
+IPKF v0.4.7 Automation Foundation is the stable additive correspondence database foundation for دبیرخانه and organizational correspondence.
 
-Working version: `0.4.7-automation-foundation-dev`
+Stable version: `0.4.7-automation-foundation`
 
 Development branch: `v0.4.7-automation-foundation-dev`
 
-Scope:
+Delivered stable scope:
 
-- `correspondences` as the aggregate root for incoming, outgoing, and internal correspondence.
-- Immutable version snapshots with Persian UTF-8 content checksums.
-- Normalized internal and external correspondence parties.
-- Registry books and historical registrations without allocating real numbers.
-- Typed correspondence relations without self-reference or cascade history deletion.
-- Parent-child referrals as the authoritative personal/unit cartable source.
-- Append-only event history.
-- Generic private file metadata and correspondence attachment linkage.
-- Dynamic lookup metadata and nine permissions granted only to `super_admin` by default.
-- Development-only boolean diagnostics.
+- Generic lookup registry.
+- Correspondence aggregate roots.
+- Immutable correspondence versions.
+- Internal and external parties.
+- Registry books and registrations.
+- Correspondence relations.
+- Referral hierarchy.
+- Event history.
+- Private file metadata.
+- Version-aware attachments.
+- RBAC permissions.
+- Migration failure telemetry.
+- MariaDB-safe CHECK and FK rules.
+- Partial-migration convergence.
+- No operational UI or records.
 
-Drafting and official registration are separate. The future number allocator must
-use a transaction and row-level locking. Operational UI, editor, cartable pages,
-upload/download, notifications, digital signature/seal, OCR, PDF/document
-conversion, workflow/SLA engines, public tracking, external APIs, and real
-correspondence records remain deferred.
+Deferred implementation scope:
 
-The Ministry hierarchy remains the only operational canonical geography. This
-milestone writes no geography, SCI, Rural Cooperation, or bot data.
+- Inbox and cartable pages.
+- Operational registry UI.
+- Referral UI.
+- Workflow commands.
+- Tracking UI.
+- Correspondence CRUD, editor, upload/download, notifications, digital signature/seal, OCR, PDF/document conversion, and external APIs.
+
+The Ministry hierarchy remains the only operational canonical geography. This milestone writes no geography, SCI, Rural Cooperation, or bot data.

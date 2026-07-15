@@ -6,7 +6,7 @@ business modules.
 
 ## Version
 
-Current version: `0.4.7-automation-foundation-dev`
+Current version: `0.4.7-automation-foundation`
 
 ## Requirements
 
@@ -121,7 +121,7 @@ The only operational canonical geography in this stable baseline is the official
 
 Dynamic organization architecture is documented in `docs/DYNAMIC_ORGANIZATION_CORE.md`. Existing `organizations` rows and legacy compatibility fields remain intact; no organization type or relationship is hardcoded in PHP.
 
-The active development milestone is `v0.4.7-automation-foundation-dev`. It adds the additive correspondence domain foundation for دبیرخانه, incoming/outgoing/internal correspondence, immutable versions, normalized parties, registry books, official registrations, relations, referrals, personal/unit cartable derivation, append-only events, and private attachment metadata.
+The v0.4.7 stable baseline is `0.4.7-automation-foundation`. It adds the additive correspondence domain foundation for دبیرخانه, incoming/outgoing/internal correspondence, immutable versions, normalized parties, registry books, official registrations, relations, referrals, personal/unit cartable derivation, append-only events, and private attachment metadata.
 
 This milestone is schema and metadata only. It adds no operational correspondence UI, editor, upload/download endpoint, notification delivery, numbering API, workflow designer, signature, OCR, PDF generation, public tracking, external API, or operational record. Future official number allocation must use a database transaction and row-level lock on the registry book.
 
