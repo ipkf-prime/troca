@@ -1,5 +1,165 @@
 # IPKF Release Checklist
 
+## Datetime Timezone Contract
+
+- UTC persistence contract documented in `docs/DATETIME_TIMEZONE.md`.
+- MySQL session timezone is explicit UTC.
+- Admin Jalali datetime formatting converts stored instants to `APP_TIMEZONE` exactly once.
+- Date-only values remain timezone-neutral.
+- Fixed UTC instant verification passes.
+- No existing timestamp rows are mass-modified.
+
+## v0.4.6 Dynamic organization core
+
+- [ ] Protected migration reports `dynamic_organization_core` complete.
+- [ ] Existing `organizations` rows and legacy fields remain unchanged.
+- [ ] `organization_classification_schemes` exists.
+- [ ] `organization_classification_terms` exists.
+- [ ] `organization_classifications` exists.
+- [ ] `organization_relation_types` exists.
+- [ ] `organization_relations` exists.
+- [ ] `organization_unit_types` exists.
+- [ ] `org_units.organization_id` and `org_units.unit_type_id` exist and remain nullable.
+- [ ] Existing unscoped `org_units` rows remain valid.
+- [ ] `organization_positions` exists and reuses `positions`.
+- [ ] `organization_appointments` exists and references `persons`, not `users`.
+- [ ] `/_diagnostics` reports all dynamic organization schema flags as `true` after migration.
+- [ ] No business classification terms are seeded.
+- [ ] No UI, CRUD, Automation, governance, ownership, signatory, registration, contact, or address feature is added.
+- [ ] Existing login, MFA, admin navigation, user list, organization-unit list, and positions list still work.
+
+## v0.4.6 Admin Users Organization Schema Checks
+
+- `/health` returns `0.4.6-admin-users-organization`.
+- Protected migrations run successfully.
+- `org_units` table exists.
+- `positions` table exists.
+- `user_org_assignments` table exists.
+- `/_diagnostics` includes `admin_users_organization_foundation_available=true`.
+- `/_diagnostics` includes `org_units_schema_available=true`.
+- `/_diagnostics` includes `positions_schema_available=true`.
+- `/_diagnostics` includes `user_org_assignments_schema_available=true`.
+- Run protected seeders in development.
+- `/_diagnostics` includes `admin_users_menu_available=true`.
+- `/_diagnostics` includes `admin_org_units_menu_available=true`.
+- `/_diagnostics` includes `admin_positions_menu_available=true`.
+- `/_diagnostics` includes `admin_users_permissions_seeded=true`.
+- `super_admin` sees `کاربران`, `واحدهای سازمانی`, and `سمت‌ها`.
+- Active base `user` role does not see users organization menu items by default.
+- `/admin/users` as an unauthorized active role returns HTTP 403.
+- `/admin/users` as `super_admin` opens the read-only users list.
+- `/admin/org-units` opens the read-only organization units list for authorized roles.
+- `/admin/positions` opens the read-only positions list for authorized roles.
+- `/admin/dashboard` opens normally.
+- Dashboard displays visually distinct solid-color module tiles after the statistic cards.
+- Dashboard module tiles no longer contain quick-link lists.
+- Clicking `مدیریت کاربران` opens `/admin/modules/users`.
+- Clicking `ساختار سازمانی` opens `/admin/modules/organization`.
+- Clicking `مدیریت سامانه` opens `/admin/modules/system`.
+- Module hub pages show colorful action tiles.
+- `/admin/users` opens a read-only users list for roles with `users.view`.
+- `/admin/users` shows safe identity, status, role summary, primary org unit when available, and created date.
+- `/admin/users?q=...` searches username, name, mobile, and email.
+- `/admin/users?page=2` paginates server-side and preserves `q`.
+- `/admin/users` renders as a table on desktop and cards on mobile.
+- `/admin/users` does not expose password hashes, MFA secrets, recovery codes, login tokens, sessions, CSRF tokens, trusted device secrets, or internal hashes.
+- `/admin/users` does not include create, edit, delete, password reset, role assignment editing, or organization assignment editing actions.
+- `/admin/users` links each visible user to `/admin/users/{id}`.
+- `/admin/users/{id}` opens a read-only user detail page for roles with `users.view`.
+- `/admin/users/{id}` shows safe identity, account, MFA/security, role assignment, and organization assignment summaries.
+- `/admin/users/{id}` renders human-facing dates as Jalali dates.
+- `/admin/users/{id}` displays username with a visible `نام کاربری` label and never as an ambiguous standalone summary value.
+- `/admin/users/{id}` displays province, county, and city once in the summary card as Persian semantic labels.
+- `/admin/users/{id}` displays person type, organization scope, roles, organization units, positions, and statuses as Persian semantic labels.
+- `/admin/users/{id}` displays county only from a genuine relationship; city is never reused as county.
+- `/admin/users/{id}` displays missing optional lookup values as `—`.
+- `/admin/users/{id}` displays broken lookup references as `نامشخص`.
+- `/admin/users/{id}` does not display raw foreign key values as user-facing fallbacks.
+- Role, organization unit, and position codes appear only as secondary administrative data.
+- `/admin/users/{id}` returns a clean Persian 404 for invalid, missing, or unavailable users.
+- `/admin/users/{id}` returns the standard Persian 403 for an authenticated active role without `users.view`.
+- `/admin/users/{id}` does not include create, edit, delete, password reset, role assignment editing, organization assignment editing, or Automation actions.
+- `/admin/users/{id}` does not select or expose password hashes, MFA secrets, recovery codes, login tokens, sessions, CSRF tokens, trusted device secrets, provider secrets, or internal hashes.
+- `/admin/users/{id}` opens the overview tab in the reusable Entity Detail Workspace.
+- `/admin/users/{id}/identity` opens the identity tab.
+- `/admin/users/{id}/contacts` opens the contacts and addresses tab.
+- `/admin/users/{id}/account` opens the account and security tab.
+- `/admin/users/{id}/access` opens the selected user's read-only role assignments tab.
+- `/admin/users/{id}/appointments` opens legacy organization assignments and canonical appointments as separate read-only subsections.
+- User detail active tab is route-based and survives refresh and browser back/forward.
+- User detail mobile navigation uses a vertical section navigator instead of a horizontally scrolling tab strip.
+- User detail tables become cards or vertical lists on mobile.
+- User detail pages do not create full-page horizontal scrolling on mobile.
+- User detail diagnostics include `admin_entity_detail_workspace_available=true`.
+- User detail diagnostics include `admin_user_detail_tabbed_workspace_available=true`.
+- User detail diagnostics include `admin_user_detail_tab_specific_loading=true`.
+- `/admin/users` displays a calculated row number instead of raw `users.id`.
+- User detail compact header is available on desktop and mobile.
+- Mobile user detail fields render as compact label/value rows.
+- Optional empty identity fields are hidden in read-only mode.
+- Account/security summary is deduplicated.
+- Roles/access view uses semantic access scope and validity labels.
+- Appointments UI uses Persian semantic section titles and hides technical table names.
+- Compact empty states are used for missing contacts, addresses, roles, and appointments.
+- Dashboard module launcher centers incomplete desktop rows without placeholder cards.
+- `/_diagnostics` includes `admin_users_list_raw_ids_hidden=true`.
+- `/_diagnostics` includes `admin_user_detail_technical_schema_terms_hidden=true`.
+- `/admin/org-units` opens a read-only organization units list for roles with `org_units.view`.
+- `/admin/org-units` searches title, code, type, and parent title.
+- `/admin/org-units` paginates server-side and preserves `q`.
+- `/admin/org-units` sorts by `sort_order ASC, id ASC`.
+- `/admin/positions` opens a read-only positions list for roles with `positions.view`.
+- `/admin/positions` searches title, code, and description.
+- `/admin/positions` paginates server-side and preserves `q`.
+- `/admin/positions` sorts by `sort_order ASC, id ASC`.
+- `/admin/positions` renders as a table on desktop and cards on mobile.
+- `/admin/positions` does not include create, edit, delete, user-position assignment, organization assignment editing, or Automation actions.
+- `super_admin` sees all authorized dashboard module tiles and hub actions.
+- `province_admin` sees only permitted dashboard module tiles and hub actions.
+- Active base `user` role does not see restricted dashboard modules.
+- Dashboard tiles are hidden when none of their destinations are permitted.
+- Unauthorized module hub actions are not rendered.
+- A module hub returns HTTP 403 if no action is available to the active role.
+- Switching active role changes visible dashboard tiles after redirect/refresh.
+- `/_diagnostics` includes `admin_dashboard_module_tiles_available=true`.
+- `/_diagnostics` includes `admin_dashboard_modules_permission_filtered=true`.
+- `/_diagnostics` includes `admin_dashboard_modules_active_role_aware=true`.
+- `/_diagnostics` includes `admin_visual_module_launcher_available=true`.
+- `/_diagnostics` includes `admin_module_hub_pages_available=true`.
+- `/_diagnostics` includes `admin_local_icon_font_available=true`.
+- `/_diagnostics` includes `admin_module_actions_permission_filtered=true`.
+- `/_diagnostics` includes `admin_sidebar_module_level_navigation=true`.
+- `/_diagnostics` includes `admin_sidebar_duplicate_child_links_removed=true`.
+- `/_diagnostics` includes `admin_sidebar_child_route_active_mapping=true`.
+- `/_diagnostics` includes `admin_users_list_available=true`.
+- `/_diagnostics` includes `admin_users_search_available=true`.
+- `/_diagnostics` includes `admin_users_pagination_available=true`.
+- `/_diagnostics` includes `admin_users_sensitive_fields_protected=true`.
+- `/_diagnostics` includes `admin_user_detail_available=true`.
+- `/_diagnostics` includes `admin_user_detail_roles_available=true`.
+- `/_diagnostics` includes `admin_user_detail_org_assignments_available=true`.
+- `/_diagnostics` includes `admin_user_detail_security_summary_available=true`.
+- `/_diagnostics` includes `admin_user_detail_sensitive_fields_protected=true`.
+- `/_diagnostics` includes `admin_user_detail_semantic_lookups_available=true`.
+- `/_diagnostics` includes `admin_raw_foreign_keys_hidden_from_ui=true`.
+- `/_diagnostics` includes `admin_reference_titles_resolved=true`.
+- `/_diagnostics` includes `admin_positions_list_available=true`.
+- `/_diagnostics` includes `admin_positions_search_available=true`.
+- `/_diagnostics` includes `admin_positions_pagination_available=true`.
+- Icons come from the local icon-font foundation and no external CDN is used.
+- Sidebar contains module-level links only: dashboard, users management, organization structure, system management, reports, and support.
+- `/admin/users`, `/admin/access`, `/admin/org-units`, `/admin/positions`, `/admin/theme`, `/admin/settings`, and `/admin/pages` do not appear as separate global sidebar links.
+- Child routes still open for authorized users through hub actions.
+- `/admin/users` and `/admin/access` highlight the users management module.
+- `/admin/org-units` and `/admin/positions` highlight the organization structure module.
+- `/admin/theme`, `/admin/settings`, and `/admin/pages` highlight the system management module.
+- Existing login, MFA, and admin routes still work.
+- Existing RBAC navigation still works.
+- Public landing page still works.
+- Full CRUD remains deferred.
+- No automation, correspondence, inbox/cartable, referral, attachment, workflow, CRM, ERP, or Bot tables are created in this phase.
+- No secrets are exposed.
+
 ## v0.4.5 Admin Navigation RBAC Checks
 
 - `/health` returns `0.4.5-admin-navigation-rbac`.
@@ -32,8 +192,8 @@ Active user role:
 
 Active access switch:
 
-- Dashboard assignment table shows the active row as active and other rows with a role selection button.
-- Active role `user` can switch to the user's own `super_admin` assignment from the dashboard.
+- `/admin/profile/access` shows the active row as active and other rows with a role selection button.
+- Active role `user` can switch to the user's own `super_admin` assignment from `/admin/profile/access`.
 - Active role switching does not require `access.manage`.
 - `/access/switch` cannot switch to another user's assignment.
 - `/access/switch` cannot switch to inactive, revoked, or expired assignments.
@@ -152,7 +312,7 @@ Deferred after v0.4.5:
 - CRM, ERP, Bot, and Marketplace modules.
 - organization, geography, and fiscal-year scoped UI enforcement beyond the existing foundation.
 
-Next phase: `v0.4.6-automation-foundation`.
+Completed next phase: `v0.4.6-admin-users-organization`.
 
 ## v0.2.0 Foundation Release Checklist
 
@@ -269,9 +429,9 @@ Version: `0.2.0-foundation`
 - Valid TOTP completes admin login.
 - Recovery code fallback is available through `/admin/mfa`.
 - `/admin/dashboard` requires authentication.
-- `/admin/dashboard` shows auth status, active role, MFA status, and version.
-- `/admin/access` lists role assignments.
-- `/admin/access` can switch active role with CSRF protection.
+- `/admin/dashboard` is a module launcher; account status and assignment summary are not rendered there.
+- `/admin/profile/access` lists the authenticated user's own role assignments.
+- `/admin/profile/access` can switch the authenticated user's own active role with CSRF protection.
 - `/admin/profile` displays safe user profile fields.
 - `/admin/theme` loads the dynamic admin theme page.
 - `/admin/theme` shows preset, branding, footer, and advanced placeholder sections only.
@@ -299,3 +459,299 @@ Version: `0.2.0-foundation`
 - Existing JSON endpoints continue to work.
 - No password hash, session ID, MFA secret, recovery code, provider secret, or business data is exposed.
 - `/_diagnostics` may report `admin_panel_shell_available=true`, `admin_theme_available=true`, `admin_theme_active_preset`, `admin_assets_available=true`, `admin_typography_available=true`, and `admin_theme_persian_ok=true`.
+
+## v0.4.6 Admin Users Organization Checks
+
+- `/health` returns version `0.4.6-admin-users-organization`.
+- Migrations create `org_units`, `positions`, and `user_org_assignments`.
+- No Automation, correspondence, cartable, referral, or workflow tables are created.
+- Users organization permissions are seeded idempotently.
+- `/admin/users` requires `users.view`.
+- `/admin/users` shows a read-only professional users list.
+- `/admin/users` supports server-side search with `q`.
+- `/admin/users` supports server-side pagination with `page`.
+- `/admin/users` sorts records ascending from small to large by user id.
+- `/admin/org-units` requires `org_units.view`.
+- `/admin/org-units` shows a read-only professional organization units list.
+- `/admin/org-units` supports server-side search with `q`.
+- `/admin/org-units` supports server-side pagination with `page`.
+- `/admin/org-units` sorts records ascending from small to large by `sort_order` and `id`.
+- `/admin/org-units` resolves parent titles with a join and does not expose internal paths.
+- `/admin/org-units` displays hierarchy with sanitized/capped depth indentation.
+- `/admin/org-units` renders responsive desktop table and mobile cards without horizontal page overflow.
+- `/admin/positions` requires `positions.view`.
+- `/admin/positions` shows a read-only professional positions list.
+- `/admin/positions` supports server-side search with `q`.
+- `/admin/positions` supports server-side pagination with `page`.
+- `/admin/positions` sorts records ascending from small to large by `sort_order` and `id`.
+- `/admin/positions` renders responsive desktop table and mobile cards without horizontal page overflow.
+- `/admin/positions` does not include create, edit, delete, user-position assignment, organization assignment editing, or Automation actions.
+- Empty state says `هنوز واحد سازمانی ثبت نشده است.`
+- No-result state says `واحد سازمانی مطابق جستجو پیدا نشد.`
+- Positions empty state says `هنوز سمتی ثبت نشده است.`
+- Positions no-result state says `سمتی مطابق جستجو پیدا نشد.`
+- Database errors show a safe Persian message without SQL, stack traces, paths, or secrets.
+- `/_diagnostics` includes `admin_org_units_list_available=true`.
+- `/_diagnostics` includes `admin_org_units_search_available=true`.
+- `/_diagnostics` includes `admin_org_units_pagination_available=true`.
+- `/_diagnostics` includes `admin_org_units_hierarchy_display_available=true`.
+- `/_diagnostics` includes `admin_positions_list_available=true`.
+- `/_diagnostics` includes `admin_positions_search_available=true`.
+- `/_diagnostics` includes `admin_positions_pagination_available=true`.
+- Existing login, MFA, dashboard, RBAC navigation, active access switching, and theme routes still work.
+
+## v0.4.6 Dashboard/Profile Access Checks
+
+- `/admin/dashboard` no longer shows login status, active role, MFA status, runtime version cards, or the access summary table.
+- `/admin/dashboard` remains a module launcher only.
+- `/admin/profile/access` opens for authenticated users with account profile access.
+- `/admin/profile/access` lists only the current user's assignments.
+- `/admin/profile/access` switches the authenticated user's own active assignment.
+- `/admin/security` shows login/session and MFA status.
+- Runtime version appears in the admin footer instead of the dashboard cards.
+- Human-facing admin UI numbers use Persian digits where safe.
+- Technical values such as emails, usernames, query parameters, hidden ids, and stored form values remain canonical.
+- `/_diagnostics` includes `admin_dashboard_account_cards_removed=true`.
+- `/_diagnostics` includes `admin_dashboard_access_summary_removed=true`.
+- `/_diagnostics` includes `admin_profile_access_page_available=true`.
+- `/_diagnostics` includes `admin_profile_self_service_role_switch_available=true`.
+- `/_diagnostics` includes `admin_profile_security_status_available=true`.
+- `/_diagnostics` includes `admin_runtime_version_in_footer=true`.
+
+## v0.4.6 Extended Person Data Foundation Checks
+
+- Migration creates `person_profiles`, `contact_types`, `person_contacts`, `address_types`, and `person_addresses`.
+- Existing `persons` and `users` records remain valid without related profile/contact/address rows.
+- Extended identity fields are not added to `users`.
+- Existing `persons.national_code`, `father_name`, and `birth_date` remain canonical and are not duplicated.
+- `persons.birth_date` remains a standard database `DATE`; Jalali conversion stays in the UI/application layer.
+- Nullable national-code uniqueness is added only when existing data makes it safe.
+- `person_profiles.person_id` is unique.
+- Contacts and addresses support multiple rows per person.
+- Contact and address types remain configurable data rather than PHP enums.
+- Address province/city fields reuse existing lookup tables where compatible.
+- No mandatory business lookup seed data is added.
+- No person/profile CRUD UI is added.
+- No organization schema change or Automation feature is added.
+- Diagnostics report only the six safe person-data schema booleans.
+- Diagnostics do not expose person values, record counts, column details, or migration SQL.
+- Sensitive-data masking, permissions, audit, and logging requirements are documented.
+- `git diff --check` passes.
+
+## v0.4.6 Ministry to SCI Geography Crosswalk Checks
+
+- Protected migration creates additive versioned run, candidate, and issue tables.
+- Existing Ministry and SCI staging rows and snapshots remain unchanged.
+- Runner accepts only `SCI-XXXXXXXXXXXX`, `MOI-XXXXXXXXXXXX`, and `build-candidates`.
+- Same snapshot pair, crosswalk type, and algorithm version reuse the completed run.
+- Failed pending runs clear only their own generated candidates and issues.
+- Non-pending reviewed candidates prevent automatic replacement.
+- Matching order is province, county, district, rural district, then city candidate.
+- County and lower candidates require a deterministic full parent path.
+- Same normalized title under different parents is never globally merged.
+- Ministry national identifiers are not used as globally unique crosswalk identity.
+- Exact means deterministic pending pair, not confirmed mapping.
+- Safe Persian normalization differences produce probable candidates only.
+- Multiple compatible targets remain ambiguous and all useful pairs are retained.
+- Missing or unresolved parents cannot produce exact child candidates.
+- Numbered CODEREC 5 rows are excluded from official-city matching.
+- Non-numbered CODEREC 5 rows can produce probable/ambiguous city candidates only.
+- CODEREC 6 and 8 rows are classified without Ministry target comparison.
+- DIAG remains opaque and is not interpreted.
+- Synthetic fixture covers full-path, duplicate-title, parent, city, and settlement cases.
+- Endpoint response is aggregate-only and exposes no candidate pairs or source data.
+- Diagnostics are boolean-only.
+- `canonical_write_performed=false` and `confirmed_mapping_write_performed=false`.
+- No canonical geography, confirmed external mapping, bot, organization, or Automation write exists.
+- `git diff --check` passes.
+
+## v0.4.6 Ministry Canonical Geography Apply Checks
+
+- Additive migration creates canonicalization run/item audit tables.
+- Metadata seed creates only missing official level/relation definitions; no real location is seeded.
+- `/geography-canonicalize.php` requires debug mode and the maintenance key.
+- Plan requires exact `MOI-XXXXXXXXXXXX`, classifies every staging row, and performs no canonical write.
+- Apply requires exact source batch, plan reference, and 16-character fingerprint prefix.
+- Source row checksum or canonical conflict changes invalidate the plan.
+- Unchanged `MOI-865CA310FC55` is expected to report 6,617 eligible and 2 excluded rows.
+- Iran root resolution is unique and conflict-safe.
+- Apply order is province, county, district, rural district, then city.
+- Only `official_administrative`/`administrative_parent` relations are written.
+- Hierarchy-code identity is exact and snapshot-versioned; leading zeroes remain intact.
+- Confirmed mappings use `authoritative_source_apply`.
+- Repeated national identifiers remain attached to separate locations and never merge them.
+- Title-only reuse, first-result reuse, and national-identifier reuse are blocked.
+- Invalid/missing-parent/duplicate-code rows are excluded.
+- Existing official-parent and trusted-mapping conflicts are not overwritten.
+- Chunked apply is resumable and repeated apply creates no duplicates.
+- Apply chunks contain exactly one hierarchy level and levels advance parent-first.
+- A forced first-province failure rolls back the first chunk without applying an item.
+- Failed runs retain the same plan reference, source fingerprint, and stored items.
+- Retry reuses an existing Iran root and skips already committed items.
+- Run counters are reconciled from committed artifacts and cannot double on retry.
+- Failure responses expose only opaque reference, safe stage, and aggregate state.
+- Original exception details are written only to the private canonicalization log.
+- Protected `mode=status` works with exact batch/plan and no fingerprint.
+- Status mode exposes aggregate recovery state and no source or database details.
+- No location, relation, identifier, mapping, or code value is automatically deleted or deactivated.
+- No SCI settlement/city candidate, bot geography, organization, South Kerman province, UI, Automation, or Auth/RBAC/MFA write occurs.
+- Endpoint responses are aggregate-only and diagnostics are boolean-only.
+- Synthetic fixtures contain no production records.
+- Migration and seed remain idempotent.
+- `git diff --check` passes.
+
+## v0.4.6 Statistical Center Geography Dry-Run Checks
+
+- Protected migration adds only CODEREC mapping metadata and additive staging columns/indexes.
+- Metadata seed registers SCI import settings, authority scope, and CODEREC `1,2,3,4,5,6,8` idempotently.
+- Real source files remain private and ignored by Git.
+- Basename, extension, MIME, file size, private source directory, UTF-8 headers, and SHA-256 are validated.
+- The synthetic fixture covers all observed CODEREC values, leading zeroes, Persian digits, unknown records, DIAG, missing parent context, and exact/conflicting duplicates.
+- CSV parsing is streaming and staging transactions are bounded.
+- All nonblank rows are staged; no unknown CODEREC row is discarded.
+- Source component codes, CODEREC, and DIAG remain strings.
+- Full source hierarchy context scopes parent and duplicate checks.
+- `CODEREC=5` remains a review-only statistical urban unit and never implies an official city.
+- `CODEREC=6` and `CODEREC=8` remain distinguishable source observations.
+- DIAG remains opaque and no legal meaning is inferred.
+- Identical source/hash reruns reuse the completed summary without duplicate staging.
+- The Ministry dry-run endpoint and source-specific private directory remain operational.
+- Endpoint output is aggregate-only and sets `canonical_write_performed=false`.
+- No canonical geography, relation, external mapping, match candidate, organization, address, or bot row is written.
+- Diagnostics expose only safe availability booleans.
+- `git diff --check` passes.
+
+## v0.4.6 Ministry Geography Dry-Run Checks
+
+- Protected migration creates only `geographic_source_level_mappings` and `data_source_import_settings` as missing metadata structures.
+- Metadata seed idempotently registers Persian Ministry source types, code lengths, parent prefixes, country root, placeholder `11`, CSV extension, and size limit.
+- UTF-8 CSV headers are detected semantically rather than by fixed column position.
+- Arabic/Persian characters, digits, whitespace, and zero-width variants normalize for comparison while raw values remain preserved.
+- Codes and identifiers remain strings and leading zeroes are retained.
+- Every nonblank row is staged; blank formatting rows are counted.
+- Missing, malformed, wrong-length, duplicate, and orphaned hierarchy codes create issues without failing the whole parsed batch.
+- Parent codes come only from mapping metadata and must exist at the compatible source level.
+- Repeated national identifiers and title/parent variations remain review warnings and never merge rows.
+- Exact source/hash reruns reuse completed snapshot results without duplicating staging rows.
+- Source snapshot and import timestamps use the shared UTC `Clock`.
+- `/geography-import.php` requires debug mode, `DEV_MAINTENANCE_KEY`, exact source, safe basename, and `mode=validate`.
+- CSV source files stay under private `storage/imports/geography/ministry` and are ignored by Git.
+- XLSX diagnostics accurately report unavailable while PhpSpreadsheet is absent.
+- Public summary exposes only aggregate counts, safe reference/status, and hash prefix.
+- No canonical location, relation, identifier, mapping, match candidate, address, organization, SCI, bot, map, facility, Auth/RBAC, or Automation write occurs.
+- Synthetic deterministic fixture covers all configured levels and validation edge cases.
+- `git diff --check` passes.
+
+## v0.4.6 Dynamic Geography Foundation Checks
+
+- Protected migration creates `geographic_level_types`.
+- Protected migration creates data-driven `geographic_relation_types`; the metadata seeder now defines the official parent relation idempotently.
+- Protected migration creates `geographic_locations` without globally unique titles.
+- Protected migration creates dated `geographic_location_relations`.
+- Protected migration creates explicit `geographic_legacy_mappings`.
+- `person_addresses.geographic_location_id` is nullable and indexed.
+- Existing `provinces`, `cities`, province/city columns, rows, indexes, and foreign keys remain unchanged.
+- Existing person, address, bot registration, Auth, MFA, RBAC, and organization behavior remains unchanged.
+- Migration and seed create no country, province, county, city, or commercial location records; real Ministry locations require the protected apply workflow.
+- No title-only mapping or city-as-county substitution occurs.
+- Historical locations, validity periods, and dated parent changes are supported.
+- Multi-country and deployment-defined level types are supported.
+- Future organization addresses can reuse canonical locations.
+- Diagnostics expose only required safe schema and invariant booleans.
+- Diagnostics expose no location rows, hierarchy contents, addresses, postal codes, coordinates, IDs, or record counts.
+- No geography UI, CRUD, geographic record seeder, external API, Automation, or access-scope behavior is added.
+- `git diff --check` passes.
+
+## v0.4.6 Multi-Source Coding and Geography Provenance Checks
+
+- Protected migration creates data-source, authority-scope, immutable snapshot, coding-system, code-set, segment, and versioned code-value tables.
+- Protected migration creates hierarchy-context, external geographic identifier, reviewed mapping, and generic geography staging tables.
+- `geographic_location_relations` receives only nullable hierarchy/source/review columns; existing relations are not guessed or backfilled.
+- Metadata seed registers Ministry, SCI, and Rural Cooperation sources and their domain authority scopes idempotently.
+- Metadata seed registers official, statistical, operational, and custom hierarchy types.
+- Metadata seed registers `operational_region` but creates no South Kerman location.
+- Rural Cooperation 3/5/8 code lengths and one-based segments are seeded as metadata.
+- All external codes are stored as strings and preserve leading zeroes.
+- No external code values, source snapshots, real geography rows, mappings, organizations, or source-file contents are seeded.
+- Existing bot tables, IDs, codes, filters, and selection flow are untouched.
+- Ministry official-parent authority, SCI supplementary role, and operational hierarchy separation are documented.
+- Staging cannot write canonical geography automatically; ambiguous/title-only matches remain review work.
+- Diagnostics expose only required safe booleans and no source data, filenames, hashes, counts, codes, names, IDs, or paths.
+- No UI, CRUD, parser, organization address, ownership, governance, signatory, facility, or Automation schema is added.
+- `git diff --check` passes.
+
+## v0.4.6 Stable Baseline Closure
+
+Version: `0.4.6-admin-users-organization`
+
+Runtime and admin checks:
+
+- `/health` returns `0.4.6-admin-users-organization`.
+- Admin authentication and MFA remain functional.
+- Active access switching remains functional.
+- RBAC menu filtering and direct route guards remain functional.
+- Users list and tabbed user detail workspace load.
+- Organization units list and organization workspace load.
+- Canonical geography tables are readable.
+- Persian UTF-8 rendering remains correct.
+- Responsive/mobile layouts introduce no horizontal page scrolling.
+
+Canonical Ministry verification:
+
+- Plan `CAN-F0637B652432` reports final status `applied`.
+- Total source rows: `6619`.
+- Applied items: `6617`.
+- Excluded audit items: `2`.
+- Conflict items: `0`.
+- Created canonical locations: `6617`.
+- Created official relations: `6617`.
+- Created external identifiers: `13234`.
+- Created confirmed mappings: `6617`.
+- Repeated apply is idempotent and does not change any counter.
+- SCI writes remain `false`.
+- Bot writes remain `false`.
+
+Security and operational checks:
+
+- Maintenance endpoints remain available only in development/debug mode with the maintenance key.
+- Private canonicalization failure logs remain outside the public document root.
+- Public diagnostics and maintenance responses expose no maintenance key, SQL error, source identifier, stack trace, token, or secret.
+- The official Ministry hierarchy is the only operational canonical geography.
+- SCI and Rural Cooperation staging remain non-operational source/audit infrastructure.
+- Rural Cooperation regions, organizations, and the South Kerman operational-region extension remain deferred.
+
+Relevant diagnostics already implemented by this milestone:
+
+- `admin_users_organization_foundation_available`
+- `org_units_schema_available`
+- `positions_schema_available`
+- `user_org_assignments_schema_available`
+- `person_extended_profile_schema_available`
+- `person_contacts_schema_available`
+- `person_addresses_schema_available`
+- `dynamic_organization_core_available`
+- `organization_classification_schema_available`
+- `organization_relations_schema_available`
+- `organization_positions_schema_available`
+- `organization_appointments_schema_available`
+- `dynamic_geographic_hierarchy_available`
+- `geographic_locations_schema_available`
+- `geographic_location_relations_schema_available`
+- `multi_source_data_registry_available`
+- `geographic_import_staging_available`
+- `ministry_geography_import_adapter_available`
+- `statistical_center_geography_import_available`
+- `ministry_sci_crosswalk_available`
+- `ministry_canonicalization_available`
+- `ministry_canonicalization_plan_available`
+- `ministry_canonicalization_apply_available`
+- `ministry_canonicalization_idempotency_available`
+- `ministry_canonicalization_official_hierarchy_only`
+- `ministry_canonicalization_sci_write_blocked`
+- `ministry_canonicalization_bot_write_blocked`
+- `ministry_canonicalization_failure_telemetry_available`
+- `ministry_canonicalization_status_mode_available`
+- `ministry_canonicalization_private_error_logging_available`
+- `ministry_canonicalization_public_error_details_blocked`
+
+Next development milestone: `v0.4.7-automation-foundation-dev`.

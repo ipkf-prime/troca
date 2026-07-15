@@ -1,6 +1,10 @@
 # IPKF Admin Panel Shell
 
-Current version: `0.4.5-admin-navigation-rbac`
+Current version: `0.4.6-admin-users-organization`
+
+## Datetime Display
+
+Admin datetime values use the shared `IPKF\Support\Clock` contract. Stored instants are read as UTC, converted once to `APP_TIMEZONE`, and then rendered as Jalali date/time by `App\Support\AdminFormat`. Date-only fields such as `birth_date` remain timezone-neutral.
 
 ## Purpose
 
@@ -35,7 +39,9 @@ Deferred after v0.4.5:
 - CRM, ERP, Bot, and Marketplace modules
 - organization, geography, and fiscal-year scoped UI enforcement beyond the existing foundation
 
-Next phase: `v0.4.6-automation-foundation`.
+v0.4.6 starts the admin users and organization schema foundation before Automation. It adds `org_units`, `positions`, and `user_org_assignments` without adding UI or automation workflows.
+
+v0.4.6 also adds a visual permission-aware dashboard module launcher as the primary entry point for admin modules. Multi-action modules open dedicated module hub pages, and the global sidebar is simplified to module-level navigation.
 
 ## Production Safety
 
@@ -85,6 +91,10 @@ The public landing page is static in this milestone. Automation appears only as 
 - `GET /admin/reports`
 - `GET /admin/support`
 - `GET /admin/logout`
+- `GET /admin/users`
+- `GET /admin/users/{id}`
+- `GET /admin/org-units`
+- `GET /admin/positions`
 
 ## Auth Flow
 
@@ -111,25 +121,66 @@ The page uses the existing `MfaService` pending challenge flow. Valid verificati
 
 ## Dashboard
 
-`/admin/dashboard` requires authentication and shows only shell-level operational data:
-
-- current auth status
-- active role
-- MFA status
-- framework version
-- available role assignments
+`/admin/dashboard` requires authentication and shows the permission-filtered module launcher.
 
 It does not show CRM, Bot, ERP, Automation, Marketplace, or business data.
 
+The dashboard no longer renders account summary cards, runtime version cards, MFA/login status cards, assignment tables, or role switching controls. Runtime version is shown discreetly in the admin footer. User access details live under `/admin/profile/access`, and login/MFA status lives under `/admin/security`.
+
+Dashboard module tiles use the current active-role permission context. A tile is rendered only when at least one destination inside it is permitted.
+
+Current module tiles:
+
+- مدیریت کاربران
+- ساختار سازمانی
+- مدیریت سامانه
+- گزارش‌ها
+- پشتیبانی
+
+The dashboard is the preferred module entry point for this phase. Dashboard module tiles are large, visual, solid-color full-card links and do not render crowded quick-link lists.
+
+Dedicated module hub pages:
+
+- `/admin/modules/users`
+- `/admin/modules/organization`
+- `/admin/modules/system`
+
+Hub pages render only authorized action tiles. If the active role has no action available for a hub, the page returns the standard Persian 403 response.
+
+Reports and support remain direct destinations for now:
+
+- `/admin/reports`
+- `/admin/support`
+
+The sidebar contains only module-level navigation: dashboard, users management, organization structure, system management, reports, and support. Child routes such as `/admin/users`, `/admin/access`, `/admin/org-units`, `/admin/positions`, `/admin/theme`, `/admin/settings`, and `/admin/pages` are still guarded and reachable through their module hub actions, but they no longer appear as separate global sidebar entries.
+
+Child routes activate their parent module in the sidebar. For example, `/admin/users` and `/admin/access` highlight مدیریت کاربران, `/admin/org-units` and `/admin/positions` highlight ساختار سازمانی, and `/admin/theme`, `/admin/settings`, and `/admin/pages` highlight مدیریت سامانه.
+
+`/admin/users` is now a professional read-only users list for roles with `users.view`. It supports safe search, server-side pagination, desktop table presentation, and mobile cards. User creation, editing, deletion, password reset, role assignment editing, and organization assignment editing are intentionally deferred.
+
+`/admin/users/{id}` is a professional read-only user detail page for roles with `users.view`. It shows safe identity, account, MFA/security, role assignment, and organization assignment summaries with Jalali dates. It returns the standard Persian 403 for unauthorized active roles and a clean Persian 404 for invalid or missing users. It does not select or expose password hashes, MFA secrets, recovery codes, login tokens, session ids, CSRF tokens, trusted device tokens, provider secrets, or internal hashes.
+
+Admin user detail resolves semantic lookup labels for person type, geography, organization scope, role titles, organization units, positions, and statuses. Raw foreign keys are not used as user-facing fallbacks. Missing optional lookup values show `—`; broken references show `نامشخص`. Technical codes may appear only as muted secondary administrative data.
+
+Admin user detail now uses the reusable Entity Detail Workspace pattern. The route-based tabs are `/admin/users/{id}`, `/admin/users/{id}/identity`, `/admin/users/{id}/contacts`, `/admin/users/{id}/account`, `/admin/users/{id}/access`, and `/admin/users/{id}/appointments`. Each tab loads only its own required data plus the compact common header. Desktop shows a compact tab bar, while mobile uses a vertical section navigator to avoid full-page horizontal scrolling.
+
+The polished workspace keeps headers compact, hides optional empty identity fields in read-only mode, uses compact mobile label/value rows, and keeps contacts/addresses and appointments in semantic sections. The users list shows row numbers instead of raw internal user IDs.
+
+`/admin/org-units` and `/admin/positions` are professional read-only organization structure lists for roles with `org_units.view` and `positions.view`. They support safe search, server-side pagination, ascending order, desktop table presentation, and mobile cards. Create, edit, delete, assignment editing, hierarchy editing, and Automation features are intentionally deferred.
+
+Admin icons use the local `/assets/admin/css/icons.css` icon-font foundation through the reusable `App\Support\AdminIcon` helper. No external CDN icon requests are used.
+
 ## Active Access Switching
 
-`/admin/access` lists the current user's active assignments and uses the existing `AccessService::switchTo()` method.
+`/admin/profile/access` lists the current user's own active assignments and uses the existing `AccessService::switchTo()` method for self-service switching.
 
 After switching, `active_role_assignment_id` is updated in the session. Permission-sensitive checks such as `/admin-check` continue to depend on the active role.
 
 The default active role remains the lowest-privilege assignment selected by the Auth foundation.
 
-In v0.4.5, `/admin/access` remains an admin management page and requires `access.manage`, but switching the authenticated user's own active assignment is self-service. The dashboard assignment table posts to the same switch action and does not require the current active role to have `access.manage`.
+`/admin/access` remains an administrative access page and requires `access.manage`. It is not used as the normal self-service account switcher.
+
+The dashboard assignment table has been removed. The authenticated user's own assignment switching now happens from `/admin/profile/access` and does not require `access.manage`.
 
 ## Profile Shell
 
@@ -142,6 +193,10 @@ In v0.4.5, `/admin/access` remains an admin management page and requires `access
 - active role
 - MFA status
 
+`/admin/profile/access` displays the current user's available assignments, current active role, and self-service switch controls. It does not expose other users' assignments.
+
+`/admin/security` displays login/session and MFA status that used to appear on the dashboard.
+
 Profile editing is intentionally not implemented in this phase. Future profile edits should reuse the existing identity change verification flow.
 
 ## Account Pages
@@ -151,6 +206,7 @@ The shell includes account-focused pages:
 - `/admin/profile`
 - `/admin/account`
 - `/admin/security`
+- `/admin/profile/access`
 - `/admin/password`
 - `/admin/my-theme`
 
@@ -160,12 +216,12 @@ The shell includes account-focused pages:
 
 Navigation is split intentionally:
 
-- The right sidebar contains only system sections: dashboard, access, admin theme, settings, internal pages, reports, and support.
+- The right sidebar contains only module-level system sections: dashboard, users management, organization structure, system management, reports, and support.
 - User and account actions live in the avatar/name dropdown: profile, account, security, one-time password, password change, personal display theme, and logout.
 
 The dropdown closes on outside click and Escape. On mobile, the sidebar opens with a hamburger button and closes with the overlay, close button, or Escape.
 
-Some sidebar items are marked `(به‌زودی)` because they are safe placeholders. In v0.4.5, those items are visible only when the active role has the matching permission, and direct URL access uses the same guard.
+Sidebar module visibility is based on the current active role. A module is hidden when none of its child actions are permitted. Personal account actions remain in the user dropdown and are not duplicated in the sidebar.
 
 ## Theme Page UX
 
@@ -419,8 +475,14 @@ Development-only runtime forensics are available at `/admin/theme/debug` when `A
 - Admin POST forms are CSRF protected.
 - Existing Auth, MFA, and Access services are reused.
 - Admin route guards use the active role assignment permission context.
+- Dashboard account cards and assignment switching are intentionally removed from `/admin/dashboard`.
+- `/admin/profile/access` is authenticated self-service and shows only the current user's assignments.
+- `/admin/security` owns login and MFA status display.
+- Admin UI display numbers use Persian digits where they are human-facing; technical values such as emails, usernames, query parameters, hidden ids, and stored form values stay canonical.
 - Admin sidebar and account dropdown visibility are permission-filtered in v0.4.5.
 - Authenticated users without permission receive a clean Persian 403 page.
+- `/admin/users`, `/admin/org-units`, and `/admin/positions` are read-only admin lists with server-side search, pagination, and ascending table order.
+- `/admin/org-units` displays organization hierarchy safely through parent titles and capped depth indentation without exposing internal paths.
 - Theme updates require `admin.theme.manage`.
 - No password hash is exposed.
 - No session ID is exposed.

@@ -10,5 +10,7 @@ return [
 
     'debug' => Env::isDebug(),
 
+    'timezone' => Env::get('APP_TIMEZONE', 'Asia/Tehran'),
+
 
 ];

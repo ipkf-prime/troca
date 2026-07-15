@@ -1,0 +1,379 @@
+<?php
+if (!function_exists('admin_h')) {
+    function admin_h($value): string
+    {
+        return htmlspecialchars((string) ($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+    }
+}
+
+$user = $detail['user'] ?? [];
+$workspace = $detail['workspace'] ?? [];
+$tabs = $detail['tabs'] ?? [];
+$activeTab = (string) ($detail['active_tab'] ?? 'overview');
+$tabContent = $detail['content'] ?? [];
+$activeTabTitle = '';
+$emptyValue = '—';
+
+foreach ($tabs as $tab) {
+    if (($tab['key'] ?? '') === $activeTab) {
+        $activeTabTitle = (string) ($tab['title'] ?? '');
+        break;
+    }
+}
+
+$isEmptyDisplayValue = static function (mixed $value) use ($emptyValue): bool {
+    return trim((string) ($value ?? '')) === '' || trim((string) $value) === $emptyValue;
+};
+
+$renderFieldList = function (array $fields) use ($isEmptyDisplayValue): void {
+    $visibleFields = array_values(array_filter($fields, function (array $field) use ($isEmptyDisplayValue): bool {
+        return (($field['show_empty'] ?? false) === true) || !$isEmptyDisplayValue($field['value'] ?? null);
+    }));
+
+    if ($visibleFields === []) {
+        return;
+    }
+
+    ?>
+    <div class="entity-field-grid">
+        <?php foreach ($visibleFields as $field): ?>
+            <div class="entity-field">
+                <span><?= admin_h($field['label'] ?? '') ?></span>
+                <strong<?= isset($field['dir']) ? ' dir="' . admin_h($field['dir']) . '"' : '' ?>><?= admin_h($field['value'] ?? '—') ?></strong>
+            </div>
+        <?php endforeach; ?>
+    </div>
+    <?php
+};
+
+ob_start();
+?>
+<nav class="admin-breadcrumb" aria-label="breadcrumb">
+    <a href="/admin/dashboard">داشبورد</a>
+    <span aria-hidden="true">/</span>
+    <a href="/admin/modules/users">مدیریت کاربران</a>
+    <span aria-hidden="true">/</span>
+    <a href="/admin/users">کاربران</a>
+    <span aria-hidden="true">/</span>
+    <span><?= admin_h($activeTabTitle !== '' ? $activeTabTitle : 'جزئیات کاربر') ?></span>
+</nav>
+
+<?php
+$content = $tabContent;
+ob_start();
+?>
+
+<?php if ($activeTab === 'identity'): ?>
+    <?php $identity = $content['identity'] ?? []; ?>
+    <?php
+    $identityFields = [];
+    $fullName = (string) ($identity['full_name'] ?? '—');
+    $firstName = (string) ($identity['first_name'] ?? '—');
+    $lastName = (string) ($identity['last_name'] ?? '—');
+
+    if (!$isEmptyDisplayValue($fullName)) {
+        $identityFields[] = ['label' => 'نام کامل ثبت‌شده', 'value' => $fullName, 'show_empty' => true];
+    }
+
+    if (!$isEmptyDisplayValue($firstName) && $firstName !== $fullName) {
+        $identityFields[] = ['label' => 'نام', 'value' => $firstName];
+    }
+
+    if (!$isEmptyDisplayValue($lastName) && $lastName !== $fullName) {
+        $identityFields[] = ['label' => 'نام خانوادگی', 'value' => $lastName];
+    }
+
+    foreach ([
+        ['label' => 'نوع شخص', 'value' => $identity['person_type'] ?? '—', 'show_empty' => true],
+        ['label' => 'کد ملی', 'value' => $identity['national_code'] ?? '—', 'dir' => 'ltr'],
+        ['label' => 'نام پدر', 'value' => $identity['father_name'] ?? '—'],
+        ['label' => 'تاریخ تولد', 'value' => $identity['birth_date'] ?? '—'],
+        ['label' => 'محل تولد', 'value' => $identity['birth_place'] ?? '—'],
+        ['label' => 'شماره شناسنامه', 'value' => $identity['identity_number'] ?? '—', 'dir' => 'ltr'],
+        ['label' => 'سریال شناسنامه', 'value' => $identity['identity_serial'] ?? '—', 'dir' => 'ltr'],
+    ] as $field) {
+        $identityFields[] = $field;
+    }
+
+    $hiddenIdentityFields = count(array_filter($identityFields, fn (array $field): bool => (($field['show_empty'] ?? false) !== true) && $isEmptyDisplayValue($field['value'] ?? null)));
+    ?>
+    <section class="entity-section">
+        <div class="admin-section__header">
+            <div>
+                <h2>اطلاعات هویتی</h2>
+                <p class="admin-muted">مشخصات پایه شخص بدون نمایش داده‌های حساس خام.</p>
+            </div>
+        </div>
+        <?php $renderFieldList($identityFields); ?>
+        <?php if ($hiddenIdentityFields > 0): ?>
+            <div class="admin-empty-state admin-empty-state--compact">برخی اطلاعات هویتی این شخص هنوز تکمیل نشده است.</div>
+        <?php endif; ?>
+    </section>
+<?php elseif ($activeTab === 'contacts'): ?>
+    <?php $contacts = $content['contacts'] ?? []; ?>
+    <?php $addresses = $content['addresses'] ?? []; ?>
+    <div class="entity-split-grid">
+    <section class="entity-section">
+        <div class="admin-section__header">
+            <div>
+                <h2>راه‌های تماس</h2>
+                <p class="admin-muted">اطلاعات تماس ثبت‌شده با عنوان‌های معنایی.</p>
+            </div>
+        </div>
+        <?php if ($contacts === []): ?>
+            <div class="admin-empty-state">اطلاعات تماسی برای این شخص ثبت نشده است.</div>
+        <?php else: ?>
+            <div class="entity-card-list">
+                <?php foreach ($contacts as $contact): ?>
+                    <article class="entity-info-card">
+                        <header>
+                            <strong><?= admin_h($contact['type'] ?? '—') ?></strong>
+                            <span class="admin-status-badge admin-status-badge--<?= admin_h($contact['status']['code'] ?? 'unknown') ?>"><?= admin_h($contact['status']['label'] ?? '—') ?></span>
+                        </header>
+                        <?php $renderFieldList([
+                            ['label' => 'عنوان', 'value' => $contact['label'] ?? '—'],
+                            ['label' => 'مقدار', 'value' => $contact['value'] ?? '—', 'dir' => 'ltr'],
+                            ['label' => 'اصلی', 'value' => $contact['is_primary'] ?? 'خیر'],
+                            ['label' => 'تأیید شده', 'value' => $contact['is_verified'] ?? 'خیر'],
+                        ]); ?>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </section>
+
+    <section class="entity-section">
+        <div class="admin-section__header">
+            <div>
+                <h2>نشانی‌ها</h2>
+                <p class="admin-muted">نشانی‌های ثبت‌شده با عنوان‌های قابل فهم و بدون جزئیات داخلی.</p>
+            </div>
+        </div>
+        <?php if ($addresses === []): ?>
+            <div class="admin-empty-state">نشانی برای این شخص ثبت نشده است.</div>
+        <?php else: ?>
+            <div class="entity-card-list">
+                <?php foreach ($addresses as $address): ?>
+                    <article class="entity-info-card">
+                        <header>
+                            <strong><?= admin_h($address['type'] ?? '—') ?></strong>
+                            <span class="admin-status-badge admin-status-badge--<?= admin_h($address['status']['code'] ?? 'unknown') ?>"><?= admin_h($address['status']['label'] ?? '—') ?></span>
+                        </header>
+                        <?php $renderFieldList([
+                            ['label' => 'استان', 'value' => $address['province'] ?? '—'],
+                            ['label' => 'شهر', 'value' => $address['city'] ?? '—'],
+                            ['label' => 'ناحیه/محله', 'value' => $address['district'] ?? '—'],
+                            ['label' => 'کد پستی', 'value' => $address['postal_code'] ?? '—', 'dir' => 'ltr'],
+                            ['label' => 'اصلی', 'value' => $address['is_primary'] ?? 'خیر'],
+                            ['label' => 'نشانی', 'value' => $address['address_line'] ?? '—'],
+                        ]); ?>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </section>
+    </div>
+<?php elseif ($activeTab === 'account'): ?>
+    <?php $account = $content['account'] ?? []; ?>
+    <?php $security = $content['security'] ?? []; ?>
+    <section class="entity-section">
+        <div class="admin-section__header">
+            <div>
+                <h2>حساب و امنیت</h2>
+                <p class="admin-muted">خلاصه امن وضعیت حساب، احراز هویت و MFA.</p>
+            </div>
+        </div>
+        <?php $renderFieldList([
+            ['label' => 'نام کاربری', 'value' => $account['username'] ?? '—', 'dir' => 'ltr'],
+            ['label' => 'موبایل', 'value' => $account['mobile'] ?? '—', 'dir' => 'ltr'],
+            ['label' => 'ایمیل', 'value' => $account['email'] ?? '—', 'dir' => 'ltr'],
+            ['label' => 'وضعیت حساب', 'value' => $account['status']['label'] ?? '—'],
+            ['label' => 'تأیید ایمیل', 'value' => $account['email_verified']['label'] ?? '—'],
+            ['label' => 'تأیید موبایل', 'value' => $account['mobile_verified']['label'] ?? '—'],
+            ['label' => 'آخرین ورود', 'value' => $account['last_login_at'] ?? '—'],
+            ['label' => 'تاریخ ایجاد', 'value' => $account['created_at'] ?? '—'],
+            ['label' => 'آخرین به‌روزرسانی', 'value' => $account['updated_at'] ?? '—'],
+        ]); ?>
+    </section>
+    <section class="entity-section">
+        <div class="admin-section__header">
+            <div>
+                <h2>خلاصه MFA</h2>
+                <p class="admin-muted">رازها، کدها و توکن‌ها در این بخش نمایش داده نمی‌شوند.</p>
+            </div>
+        </div>
+        <?php $renderFieldList([
+            ['label' => 'MFA', 'value' => $security['mfa_enabled'] ?? 'خیر', 'show_empty' => true],
+            ['label' => 'TOTP', 'value' => $security['totp_enabled'] ?? 'خیر', 'show_empty' => true],
+            ['label' => 'کدهای بازیابی باقی‌مانده', 'value' => $security['recovery_codes_count'] ?? '۰', 'show_empty' => true],
+            ['label' => 'دستگاه‌های مورد اعتماد', 'value' => $security['trusted_devices_count'] ?? '۰', 'show_empty' => true],
+        ]); ?>
+    </section>
+<?php elseif ($activeTab === 'access'): ?>
+    <?php $roles = $content['roles'] ?? []; ?>
+    <section class="entity-section">
+        <div class="admin-section__header">
+            <div>
+                <h2>نقش‌ها و دسترسی‌ها</h2>
+                <p class="admin-muted">انتساب‌های نقش این کاربر فقط برای مشاهده نمایش داده می‌شود.</p>
+            </div>
+        </div>
+        <?php if ($roles === []): ?>
+            <div class="admin-empty-state">نقشی برای این کاربر ثبت نشده است.</div>
+        <?php else: ?>
+            <div class="admin-table-wrap entity-responsive-table">
+                <table class="admin-table admin-user-detail-table">
+                    <thead>
+                        <tr>
+                            <th>نقش</th>
+                            <th>اولویت</th>
+                            <th>وضعیت</th>
+                            <th>محدوده دسترسی</th>
+                            <th>اعتبار</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($roles as $role): ?>
+                            <tr>
+                                <td>
+                                    <strong><?= admin_h($role['role_title'] ?? '—') ?></strong>
+                                    <small class="admin-user-detail-secondary" dir="ltr"><?= admin_h($role['role_code'] ?? '—') ?></small>
+                                </td>
+                                <td><?= admin_h($role['priority'] ?? '—') ?></td>
+                                <td><span class="admin-status-badge admin-status-badge--<?= admin_h($role['status']['code'] ?? 'unknown') ?>"><?= admin_h($role['status']['label'] ?? '—') ?></span></td>
+                                <td><?= admin_h($role['scope_summary'] ?? '—') ?></td>
+                                <td><?= admin_h($role['validity'] ?? 'بدون محدودیت') ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <div class="entity-mobile-cards">
+                <?php foreach ($roles as $role): ?>
+                    <article class="entity-info-card">
+                        <header>
+                            <strong><?= admin_h($role['role_title'] ?? '—') ?></strong>
+                            <span class="admin-status-badge admin-status-badge--<?= admin_h($role['status']['code'] ?? 'unknown') ?>"><?= admin_h($role['status']['label'] ?? '—') ?></span>
+                        </header>
+                        <?php $renderFieldList([
+                            ['label' => 'کد نقش', 'value' => $role['role_code'] ?? '—', 'dir' => 'ltr'],
+                            ['label' => 'اولویت', 'value' => $role['priority'] ?? '—'],
+                            ['label' => 'محدوده', 'value' => $role['scope_summary'] ?? '—'],
+                            ['label' => 'اعتبار', 'value' => $role['validity'] ?? 'بدون محدودیت', 'show_empty' => true],
+                        ]); ?>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </section>
+<?php elseif ($activeTab === 'appointments'): ?>
+    <?php $legacy = $content['legacy_organization_assignments'] ?? []; ?>
+    <?php $canonical = $content['canonical_organization_appointments'] ?? []; ?>
+    <section class="entity-section">
+        <div class="admin-section__header">
+            <div>
+                <h2>وابستگی‌های سازمانی</h2>
+                <p class="admin-muted">سوابق واحد، سمت و وابستگی‌های سازمانی ثبت‌شده برای این شخص.</p>
+            </div>
+        </div>
+        <?php if ($legacy === []): ?>
+            <div class="admin-empty-state">وابستگی سازمانی برای این شخص ثبت نشده است.</div>
+        <?php else: ?>
+            <div class="entity-card-list">
+                <?php foreach ($legacy as $assignment): ?>
+                    <article class="entity-info-card">
+                        <header>
+                            <strong><?= admin_h($assignment['org_unit_title'] ?? '—') ?></strong>
+                            <span class="admin-status-badge admin-status-badge--<?= admin_h($assignment['status']['code'] ?? 'unknown') ?>"><?= admin_h($assignment['status']['label'] ?? '—') ?></span>
+                        </header>
+                        <?php $renderFieldList([
+                            ['label' => 'کد واحد', 'value' => $assignment['org_unit_code'] ?? '—', 'dir' => 'ltr'],
+                            ['label' => 'سمت', 'value' => $assignment['position_title'] ?? '—'],
+                            ['label' => 'کد سمت', 'value' => $assignment['position_code'] ?? '—', 'dir' => 'ltr'],
+                            ['label' => 'اصلی', 'value' => $assignment['is_primary'] ?? 'خیر'],
+                            ['label' => 'شروع', 'value' => $assignment['started_at'] ?? '—'],
+                            ['label' => 'پایان', 'value' => $assignment['ended_at'] ?? '—'],
+                        ]); ?>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </section>
+    <section class="entity-section">
+        <div class="admin-section__header">
+            <div>
+                <h2>انتصاب‌های رسمی سازمانی</h2>
+                <p class="admin-muted">انتصاب‌های رسمی این شخص در پست‌های سازمانی.</p>
+            </div>
+        </div>
+        <?php if ($canonical === []): ?>
+            <div class="admin-empty-state">انتصاب رسمی سازمانی برای این شخص ثبت نشده است.</div>
+        <?php else: ?>
+            <div class="entity-card-list">
+                <?php foreach ($canonical as $appointment): ?>
+                    <article class="entity-info-card">
+                        <header>
+                            <strong><?= admin_h($appointment['organization_position'] ?? '—') ?></strong>
+                            <span class="admin-status-badge admin-status-badge--<?= admin_h($appointment['status']['code'] ?? 'unknown') ?>"><?= admin_h($appointment['status']['label'] ?? '—') ?></span>
+                        </header>
+                        <?php $renderFieldList([
+                            ['label' => 'سازمان', 'value' => $appointment['organization'] ?? '—'],
+                            ['label' => 'واحد', 'value' => $appointment['org_unit'] ?? '—'],
+                            ['label' => 'سمت پایه', 'value' => $appointment['reusable_position'] ?? '—'],
+                            ['label' => 'کد جایگاه', 'value' => $appointment['organization_position_code'] ?? '—', 'dir' => 'ltr'],
+                            ['label' => 'نوع انتصاب', 'value' => $appointment['appointment_type'] ?? '—'],
+                            ['label' => 'اصلی', 'value' => $appointment['is_primary'] ?? 'خیر'],
+                            ['label' => 'سرپرست موقت', 'value' => $appointment['is_acting'] ?? 'خیر'],
+                            ['label' => 'شروع', 'value' => $appointment['valid_from'] ?? '—'],
+                            ['label' => 'پایان', 'value' => $appointment['valid_to'] ?? '—'],
+                            ['label' => 'مرجع انتصاب', 'value' => $appointment['appointment_reference'] ?? '—', 'dir' => 'ltr'],
+                        ]); ?>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </section>
+<?php else: ?>
+    <?php $overview = $content['overview'] ?? $user; ?>
+    <?php $security = $content['security'] ?? []; ?>
+    <section class="entity-section entity-overview">
+        <div class="admin-section__header">
+            <div>
+                <h2>خلاصه کاربر</h2>
+                <p class="admin-muted">نمای فشرده از مهم‌ترین اطلاعات، بدون تکرار همه فیلدها.</p>
+            </div>
+        </div>
+        <?php $renderFieldList([
+            ['label' => 'نام نمایشی', 'value' => $overview['display_name'] ?? '—', 'show_empty' => true],
+            ['label' => 'نام کاربری', 'value' => $overview['username'] ?? '—', 'dir' => 'ltr', 'show_empty' => true],
+            ['label' => 'وضعیت حساب', 'value' => $overview['status']['label'] ?? '—', 'show_empty' => true],
+            ['label' => 'نوع شخص', 'value' => $overview['person_type'] ?? '—', 'show_empty' => true],
+            ['label' => 'استان', 'value' => $overview['province'] ?? '—', 'show_empty' => true],
+            ['label' => 'شهرستان', 'value' => $overview['county'] ?? '—', 'show_empty' => true],
+            ['label' => 'شهر', 'value' => $overview['city'] ?? '—', 'show_empty' => true],
+            ['label' => 'نقش‌های فعال', 'value' => $overview['active_role_count_label'] ?? '۰', 'show_empty' => true],
+            ['label' => 'واحد اصلی', 'value' => $overview['primary_org_unit'] ?? '—', 'show_empty' => true],
+            ['label' => 'MFA', 'value' => $security['mfa_enabled'] ?? 'خیر', 'show_empty' => true],
+            ['label' => 'ایجاد', 'value' => $overview['created_at'] ?? '—', 'show_empty' => true],
+            ['label' => 'آخرین ورود', 'value' => $overview['last_login_at'] ?? '—'],
+        ]); ?>
+    </section>
+    <section class="entity-section">
+        <div class="admin-section__header">
+            <div>
+                <h2>نمای دسترسی و سازمان</h2>
+                <p class="admin-muted">خلاصه کوتاه؛ جزئیات کامل در تب‌های نقش‌ها و انتصاب‌ها قرار دارد.</p>
+            </div>
+        </div>
+        <?php $renderFieldList([
+            ['label' => 'نقش‌ها', 'value' => $overview['active_role_summary'] ?? '—', 'show_empty' => true],
+            ['label' => 'وابستگی سازمانی', 'value' => $overview['primary_org_unit'] ?? '—', 'show_empty' => true],
+        ]); ?>
+    </section>
+<?php endif; ?>
+
+<?php
+$workspaceContent = ob_get_clean();
+require __DIR__ . '/partials/entity-workspace.php';
+$content = ob_get_clean();
+require __DIR__ . '/layout.php';

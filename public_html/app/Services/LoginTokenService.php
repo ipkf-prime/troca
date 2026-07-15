@@ -3,9 +3,8 @@
 namespace App\Services;
 
 use App\Repositories\LoginTokenRepository;
-use DateTimeImmutable;
-use DateTimeZone;
 use IPKF\Support\Env;
+use IPKF\Support\Clock;
 
 class LoginTokenService extends BaseService
 {
@@ -18,8 +17,8 @@ class LoginTokenService extends BaseService
     {
         $ttlSeconds = 300;
         $plain = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
-        $expiresAtUtc = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->modify("+{$ttlSeconds} seconds");
-        $expiresAt = $expiresAtUtc->format('Y-m-d H:i:s');
+        $expiresAtUtc = Clock::nowUtc()->modify("+{$ttlSeconds} seconds");
+        $expiresAt = Clock::databaseTimestamp($expiresAtUtc);
 
         $this->tokens->create([
             'user_id' => $userId,
@@ -34,10 +33,9 @@ class LoginTokenService extends BaseService
         return [
             'token' => $plain,
             'login_url' => $this->urlBase() . '/auth/token-login?token=' . rawurlencode($plain),
-            'expires_at' => $this->isoUtc($expiresAtUtc),
-            'expires_at_utc' => $this->isoUtc($expiresAtUtc),
-            'expires_at_local' => $expiresAtUtc
-                ->setTimezone(new DateTimeZone($this->timezone()))
+            'expires_at' => Clock::isoUtc($expiresAtUtc),
+            'expires_at_utc' => Clock::isoUtc($expiresAtUtc),
+            'expires_at_local' => Clock::convertToDisplayTimezone($expiresAtUtc)
                 ->format(DATE_ATOM),
             'timezone' => $this->timezone(),
             'ttl_seconds' => $ttlSeconds,
@@ -60,14 +58,7 @@ class LoginTokenService extends BaseService
 
     public function timezone(): string
     {
-        $timezone = (string) Env::get('APP_TIMEZONE', 'Asia/Tehran');
-
-        try {
-            new DateTimeZone($timezone);
-            return $timezone;
-        } catch (\Throwable) {
-            return 'Asia/Tehran';
-        }
+        return Clock::displayTimezoneName();
     }
 
     public function consume(string $plain): ?array
@@ -95,19 +86,14 @@ class LoginTokenService extends BaseService
         return null;
     }
 
-    private function isoUtc(DateTimeImmutable $time): string
-    {
-        return $time->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s\Z');
-    }
-
     private function expired(string $expiresAt): bool
     {
-        try {
-            $expires = new DateTimeImmutable($expiresAt, new DateTimeZone('UTC'));
-        } catch (\Throwable) {
+        $expires = Clock::parseStoredInstant($expiresAt);
+
+        if ($expires === null) {
             return true;
         }
 
-        return $expires < new DateTimeImmutable('now', new DateTimeZone('UTC'));
+        return $expires < Clock::nowUtc();
     }
 }

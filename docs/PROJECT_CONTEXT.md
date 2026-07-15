@@ -1,5 +1,9 @@
 # IPKF Project Context
 
+## Datetime Timezone Contract
+
+The admin runtime now uses a documented UTC persistence and single-pass display conversion contract. MySQL sessions are set to UTC, `APP_TIMEZONE=Asia/Tehran` is display-only, and Jalali formatting happens after timezone resolution. See `docs/DATETIME_TIMEZONE.md`.
+
 ## Stable Baseline
 
 IPKF v0.1.0 Genesis Core has passed runtime tests on the development hosting environment.
@@ -134,8 +138,8 @@ Scope:
 
 - Admin login page using the existing AuthService login resolution for email, mobile, and username.
 - MFA verification page using the existing MfaService pending challenge flow.
-- Dashboard shell with auth status, active role, MFA status, version, and assignment summary.
-- Access switch UI using the existing AccessService.
+- Dashboard shell as a module launcher; account status cards and assignment summary are kept out of the dashboard.
+- Self-service access switch UI under `/admin/profile/access` using the existing AccessService.
 - Profile display shell with safe user identity fields.
 - Built-in admin theme preset selection, system/personal theme scope, and `/admin/theme`.
 - Reusable RTL admin layout and local CSS.
@@ -143,7 +147,7 @@ Scope:
 - Responsive mobile sidebar and autofocus behavior for admin forms.
 - No CRM, Bot, ERP, Automation, Marketplace, admin CRUD, or business modules are added.
 
-## Active Milestone
+## Stable Baseline
 
 IPKF v0.4.5 Admin Navigation RBAC adds permission-based admin navigation and route guards.
 
@@ -162,12 +166,100 @@ Scope:
 - Safe APP_DEBUG-only navigation diagnostics.
 - No Automation, CRM, ERP, Bot, Marketplace, or business module is added.
 
-Deferred after v0.4.5:
+## Stable Baseline
 
-- automation module.
-- custom theme builder.
-- named user theme profiles.
-- admin user CRUD.
+IPKF v0.4.6 Admin Users and Organization is the stable foundation required before Automation.
+
+Stable version: `0.4.6-admin-users-organization`
+
+Development branch: `v0.4.6-admin-users-organization-dev`
+
+Stable scope:
+
+- Person and user separation plus extended person-profile foundations.
+- Admin user management foundations with multi-role and active-access behavior.
+- Organization units, positions, and user organization assignments.
+- Dynamic legal-entity classifications, relations, units, posts, and appointments.
+- Reusable tabbed entity workspace and responsive users/organization views.
+- Canonical official geography with Ministry import, immutable plan, protected apply, status, recovery, telemetry, and idempotency.
+- Multi-source staging, coding, provenance, and crosswalk infrastructure.
+- Privacy-safe diagnostics and development-only maintenance endpoints.
+- No Automation/correspondence, CRM, ERP, Marketplace, or Bot business module is included.
+
+Extended person data foundation:
+
+- `person_profiles` adds optional one-to-one complementary identity attributes while existing `persons` fields remain canonical.
+- `contact_types` and `address_types` provide configurable semantic lookups.
+- `person_contacts` and `person_addresses` support multiple optional records per person.
+- Existing authentication behavior and `users` schema remain unchanged.
+- Sensitive person values are excluded from diagnostics and require masking, permissions, and auditing in future UI work.
+- Forms and CRUD remain deferred.
+
+Dynamic organization foundation now includes:
+
+- Configurable organization classification schemes, terms, and assignments.
+- Configurable organization relation types and dated organization relationships.
+- Data-driven organization unit types and optional organization scope for `org_units`.
+- Concrete `organization_positions` built from the reusable `positions` catalog.
+- Person-based `organization_appointments` that do not require a user account.
+- Additive compatibility with existing `organizations` data and legacy hierarchy/type fields.
+
+Organization CRUD and business workflows, registration/contact/address editing, governance, ownership, signatory authority, and Automation remain deferred. Current users and organization views are read-only foundations.
+
+Admin entity detail workspace foundation now includes:
+
+- Reusable compact entity detail header and route-based tabs.
+- Refactored user detail routes for overview, identity, contacts, account/security, access, and appointments.
+- Tab-specific data loading for admin user detail.
+- Mobile section navigation without a horizontally scrolling tab bar.
+- Future reuse path for organization, unit, position, correspondence, and other entity detail pages.
+
+The workspace has been polished for compact desktop/mobile display: row numbers replace raw user IDs in the users list, mobile field lists are compact, optional empty identity fields are hidden in read-only mode, technical schema names are hidden from appointments UI, and dashboard incomplete module rows are centered.
+
+Dynamic geographic hierarchy foundation now includes:
+
+- Configurable `geographic_level_types` for multi-country and deployment-defined levels.
+- Data-driven `geographic_relation_types` and dated `geographic_location_relations`.
+- Canonical `geographic_locations` without title-only identity assumptions.
+- Explicit `geographic_legacy_mappings` with no automatic title matching.
+- Optional `person_addresses.geographic_location_id` while legacy province/city compatibility remains intact.
+- Historical status and validity support for renamed locations, boundary changes, and parent changes.
+- A documented resolver contract that never substitutes city for county.
+- Future reuse by organization addresses, reports, access scopes, and routing without implementing those features yet.
+
+The original foundation remains additive and metadata-driven. Geographic records
+and reviewed Ministry mappings can now be created only by the separate protected
+canonical plan/apply workflow. No public CRUD UI, organization address,
+Auth/RBAC change, or Automation behavior is added.
+
+Multi-source provenance foundation now adds:
+
+- Data-driven source registry and domain-specific authority scopes for Ministry of Interior, SCI, and Rural Cooperation operational data.
+- Immutable source snapshot metadata without storing files in the public web root.
+- External coding systems, code sets, fixed-width segment definitions, and version-aware code values.
+- Explicit official, statistical, operational, and custom geographic hierarchy contexts.
+- Nullable source/hierarchy/review context on canonical geographic relations without backfill.
+- Multiple external identifiers and reviewable external-to-canonical mapping history.
+- Generic geography import staging that never writes canonical locations automatically.
+- Rural Cooperation 3/5/8-character string-code contract while preserving all active bot data and behavior.
+
+The stable baseline applies only the reviewed official Ministry hierarchy to the canonical geography model. SCI and Rural Cooperation staging remain non-operational source/audit infrastructure. No SCI or Rural Cooperation hierarchy is applied, and South Kerman is not inserted as a canonical province.
+
+Next development milestone: `v0.4.7-automation-foundation-dev`
+
+Planned scope:
+
+- دبیرخانه
+- نامه وارده
+- نامه صادره
+- پیش‌نویس و شماره‌گذاری
+- کارتابل
+- ارجاع
+- گردش کار
+- پیوست‌ها
+- نسخه‌ها
+- تاریخچه اقدامات
+- رهگیری مکاتبات
 
 ## Future Milestones
 
@@ -179,3 +271,51 @@ Deferred after v0.4.5:
 - CRM
 - Automation
 - ERP Foundation
+
+## Ministry geography validation adapter
+
+The first concrete source adapter accepts private UTF-8 Ministry CSV files, resolves Persian source types through seeded metadata, stages every nonblank row, validates code-derived hierarchy and repeated national identifiers, reuses identical source/hash snapshots, and returns aggregate-only summaries. It remains validate-only and performs no canonical geography, relation, mapping, organization, address, SCI, or bot write. XLSX remains unavailable until a compatible reviewed dependency/deployment path exists.
+
+## Statistical Center geography validation adapter
+
+The SCI source adapter extends the same dry-run framework with streaming UTF-8 CSV
+parsing suitable for more than 105,000 rows, data-driven CODEREC mappings, full
+source-context hierarchy keys, database-backed parent/duplicate validation, and
+opaque DIAG preservation. Statistical urban units and settlements remain source
+observations. Ministry official hierarchy stays authoritative and all canonical
+writes remain deferred.
+
+## Ministry to SCI crosswalk candidates
+
+Completed Ministry and SCI snapshots now support a versioned, idempotent,
+parent-first candidate run. Exact, probable, ambiguous, unmatched, and excluded
+classifications are stored as pending review records. Numbered statistical urban
+units and SCI settlements are excluded from official Ministry matching. No source
+staging, canonical geography, confirmed external mapping, bot data, organization,
+or address is modified.
+
+## Ministry official canonical geography
+
+Reviewed Ministry staging now supports the first controlled canonical write. A
+protected immutable plan classifies every row before an exact fingerprint-confirmed
+apply creates/reuses the Iran root and applies province, county, district, rural
+district, and city parent-first. Exact hierarchy-code mappings and source
+identifiers retain snapshot provenance. National identifier repetition never
+merges rows; title-only reuse is blocked; no deletion, SCI apply, bot geography,
+organization import, UI, Automation, or Auth/RBAC/MFA change is included.
+
+Canonical apply recovery is now hardened with additive private failure telemetry,
+safe operation-stage tracking, private exception logging, strict single-level
+chunks, aggregate status mode, and same-plan failed-run resume. Committed artifact
+counters are reconciled from database state, preventing retry inflation while
+preserving the existing plan, staging rows, audit items, and Iran root.
+
+Stable canonical verification for plan `CAN-F0637B652432` completed with status
+`applied`: 6,619 source rows, 6,617 applied items, 2 excluded audit items, no
+conflicts, 6,617 canonical locations, 6,617 official relations, 13,234 external
+identifiers, and 6,617 confirmed mappings. Repeating apply did not change any
+counter. SCI and bot writes remained disabled.
+
+Rural Cooperation provinces, operational regions, counties, and organizations are
+deferred to a future extension layered on top of Ministry canonical geography.
+They are not a replacement or a parallel canonical hierarchy in this release.

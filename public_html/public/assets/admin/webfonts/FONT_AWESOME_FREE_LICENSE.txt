@@ -1,0 +1,15 @@
+Font Awesome Free
+
+This project uses a local Font Awesome Free icon-font CSS foundation for admin UI icons.
+
+Font Awesome Free is licensed under:
+
+- Icons: CC BY 4.0 License
+- Fonts: SIL OFL 1.1 License
+- Code: MIT License
+
+Upstream project:
+https://fontawesome.com
+
+License reference:
+https://fontawesome.com/license/free

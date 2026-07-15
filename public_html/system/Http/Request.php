@@ -4,6 +4,8 @@ namespace IPKF\Http;
 
 class Request
 {
+    protected array $routeParams = [];
+
     public static function capture(): self
     {
         return new self();
@@ -37,6 +39,16 @@ class Request
     public function input(string $key, $default = null)
     {
         return $this->all()[$key] ?? $default;
+    }
+
+    public function setRouteParams(array $params): void
+    {
+        $this->routeParams = $params;
+    }
+
+    public function route(string $key, $default = null)
+    {
+        return $this->routeParams[$key] ?? $default;
     }
 
     public function host(): string

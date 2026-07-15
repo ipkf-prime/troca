@@ -21,3 +21,71 @@
 .admin-icon[aria-hidden="true"] {
     pointer-events: none;
 }
+
+.admin-icon::before {
+    display: none;
+    content: none;
+}
+
+.admin-icon svg {
+    display: block;
+    width: 1em;
+    height: 1em;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+}
+
+.admin-icon--gauge-high::before {
+    content: "\f625";
+}
+
+.admin-icon--users::before {
+    content: "\f0c0";
+}
+
+.admin-icon--user-group::before {
+    content: "\f500";
+}
+
+.admin-icon--user-shield::before {
+    content: "\f505";
+}
+
+.admin-icon--sitemap::before {
+    content: "\f0e8";
+}
+
+.admin-icon--building::before {
+    content: "\f1ad";
+}
+
+.admin-icon--id-badge::before {
+    content: "\f2c1";
+}
+
+.admin-icon--gears::before {
+    content: "\f085";
+}
+
+.admin-icon--palette::before {
+    content: "\f53f";
+}
+
+.admin-icon--sliders::before {
+    content: "\f1de";
+}
+
+.admin-icon--file-lines::before {
+    content: "\f15c";
+}
+
+.admin-icon--chart-column::before {
+    content: "\e0e3";
+}
+
+.admin-icon--headset::before {
+    content: "\f590";
+}

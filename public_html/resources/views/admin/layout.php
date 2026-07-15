@@ -9,7 +9,8 @@ $themeUserId = isset($context['user_id']) ? (int) $context['user_id'] : null;
 $theme = $themeService->theme($themeUserId);
 $avatarUrl = (string) ($user['avatar_url'] ?? $theme['default_avatar_url'] ?? '');
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
-$year = date('Y');
+$year = \App\Support\AdminFormat::digits(date('Y'));
+$runtimeVersion = \App\Support\AdminFormat::digits(\IPKF\Support\Version::CURRENT);
 $themeAssets = $themeService->assetUrls();
 $themeSource = $themeService->resolvedPresetSource($themeUserId);
 
@@ -17,6 +18,25 @@ if (!function_exists('admin_h')) {
     function admin_h($value): string
     {
         return htmlspecialchars((string) ($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+    }
+}
+
+if (!function_exists('admin_nav_is_active')) {
+    function admin_nav_is_active(array $item, string $currentPath): bool
+    {
+        $paths = $item['active_paths'] ?? [$item['url'] ?? '#'];
+
+        foreach ($paths as $path) {
+            if ($currentPath === (string) $path) {
+                return true;
+            }
+
+            if (str_ends_with((string) $path, '/*') && str_starts_with($currentPath, rtrim((string) $path, '/*') . '/')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 
@@ -55,7 +75,10 @@ $accountNav = $context['navigation']['account'] ?? [];
             <nav class="admin-nav" aria-label="منوی سامانه">
                 <?php foreach ($systemNav as $item): ?>
                     <?php $href = (string) ($item['url'] ?? '#'); ?>
-                    <a class="<?= $currentPath === $href ? 'is-active' : '' ?>" href="<?= admin_h($href) ?>">
+                    <a class="<?= admin_nav_is_active($item, $currentPath) ? 'is-active' : '' ?>" href="<?= admin_h($href) ?>">
+                        <span class="admin-nav__icon">
+                            <?= \App\Support\AdminIcon::html((string) ($item['icon'] ?? 'dashboard')) ?>
+                        </span>
                         <span><?= admin_h($item['title'] ?? '') ?></span>
                         <?php if (($item['badge'] ?? '') !== ''): ?>
                             <small class="admin-nav__badge"><?= admin_h($item['badge']) ?></small>
@@ -109,7 +132,10 @@ $accountNav = $context['navigation']['account'] ?? [];
             <?php if (($theme['footer_enabled'] ?? true) === true): ?>
                 <footer class="admin-footer">
                     <span><?= admin_h($theme['footer_text'] ?? 'کلیه حقوق این سامانه متعلق به سامانه هوشمند تروکا می‌باشد.') ?></span>
-                    <span><?= admin_h($year) ?></span>
+                    <span class="admin-footer__meta">
+                        <span>نسخه <?= admin_h($runtimeVersion) ?></span>
+                        <span><?= admin_h($year) ?></span>
+                    </span>
                 </footer>
             <?php endif; ?>
         </div>

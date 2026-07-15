@@ -41,7 +41,7 @@ ob_start();
                         <td><?= admin_h($assignment['role_title'] ?? '') ?></td>
                         <td><?= admin_h($assignment['role_code'] ?? '') ?></td>
                         <td><?= admin_h($assignment['scope_type'] ?? 'global') ?></td>
-                        <td><?= admin_h($assignment['priority'] ?? '') ?></td>
+                        <td><?= admin_h(\App\Support\AdminFormat::digits($assignment['priority'] ?? '')) ?></td>
                         <td>
                             <?php if ($isActive): ?>
                                 <span class="admin-pill">فعال</span>

@@ -23,7 +23,7 @@ ob_start();
     <div class="admin-mini-grid">
         <article class="admin-card"><span>نام</span><strong><?= admin_h($user['name'] ?? '-') ?></strong></article>
         <article class="admin-card"><span>نام کاربری</span><strong><?= admin_h($user['username'] ?? '-') ?></strong></article>
-        <article class="admin-card"><span>نقش فعال</span><strong><?= admin_h($active['role_title'] ?? '-') ?></strong></article>
+        <a class="admin-card admin-card--link" href="/admin/profile/access"><span>نقش فعال</span><strong><?= admin_h($active['role_title'] ?? '-') ?></strong></a>
     </div>
 </section>
 
@@ -31,7 +31,7 @@ ob_start();
     <h2>اطلاعات تماس</h2>
     <div class="admin-field-list">
         <div><span>ایمیل</span><strong><?= admin_h($user['email'] ?? '-') ?></strong></div>
-        <div><span>موبایل</span><strong><?= admin_h($user['mobile'] ?? '-') ?></strong></div>
+        <div><span>موبایل</span><strong dir="ltr"><?= admin_h($user['mobile'] ?? '-') ?></strong></div>
         <div><span>وضعیت حساب</span><strong><?= admin_h($user['status'] ?? '-') ?></strong></div>
     </div>
 </section>

@@ -6,7 +6,7 @@ business modules.
 
 ## Version
 
-Current version: `0.4.5-admin-navigation-rbac`
+Current version: `0.4.6-admin-users-organization`
 
 ## Requirements
 
@@ -107,6 +107,8 @@ The v0.4.4 stable baseline adds the first admin panel shell, simplified built-in
 
 The v0.4.5 stable baseline adds permission-based admin navigation and route guards. Sidebar visibility, account dropdown visibility, and direct URL access now share one route permission map and respect the current active role assignment.
 
+The v0.4.6 stable baseline adds the admin users and organization foundation required before Automation. It includes person/user separation, multi-role active access, organization-neutral dynamic classifications, organization relationships, internal units, reusable and concrete positions, person-based appointments, read-only responsive admin workspaces, and the official Ministry canonical geography.
+
 Deferred after v0.4.5:
 
 - full permission management UI
@@ -115,9 +117,11 @@ Deferred after v0.4.5:
 - CRM, ERP, Bot, and Marketplace modules
 - organization, geography, and fiscal-year scoped UI enforcement beyond the existing foundation
 
-Next phase: `v0.4.6-automation-foundation`.
+The only operational canonical geography in this stable baseline is the official Ministry hierarchy stored in the canonical geography model. SCI and Rural Cooperation staging remain non-operational audit/source infrastructure. Rural Cooperation regions and organizations, including the South Kerman operational-region extension, are deferred to a future extension and will not replace or duplicate the Ministry canonical hierarchy.
 
-Planned next work includes automation schema, correspondence and incoming/outgoing letter foundation, inbox/cartable, routing/referrals, attachments, and workflow history.
+Dynamic organization architecture is documented in `docs/DYNAMIC_ORGANIZATION_CORE.md`. Existing `organizations` rows and legacy compatibility fields remain intact; no organization type or relationship is hardcoded in PHP.
+
+The next development milestone is `v0.4.7-automation-foundation-dev`, covering the foundations for دبیرخانه, نامه وارده و صادره, پیش‌نویس و شماره‌گذاری, کارتابل, ارجاع, گردش کار, پیوست‌ها, نسخه‌ها, تاریخچه اقدامات, and رهگیری مکاتبات.
 
 Set:
 

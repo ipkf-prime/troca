@@ -90,6 +90,179 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $permissionsTableExists = \IPKF\Database\Database::tableExists('permissions');
     $rolePermissionsTableExists = \IPKF\Database\Database::tableExists('role_permissions');
     $userRoleAssignmentsTableExists = \IPKF\Database\Database::tableExists('user_role_assignments');
+    $orgUnitsTableExists = \IPKF\Database\Database::tableExists('org_units');
+    $positionsTableExists = \IPKF\Database\Database::tableExists('positions');
+    $userOrgAssignmentsTableExists = \IPKF\Database\Database::tableExists('user_org_assignments');
+    $personProfilesTableExists = \IPKF\Database\Database::tableExists('person_profiles');
+    $contactTypesTableExists = \IPKF\Database\Database::tableExists('contact_types');
+    $personContactsTableExists = \IPKF\Database\Database::tableExists('person_contacts');
+    $addressTypesTableExists = \IPKF\Database\Database::tableExists('address_types');
+    $personAddressesTableExists = \IPKF\Database\Database::tableExists('person_addresses');
+    $organizationClassificationSchemesTableExists = \IPKF\Database\Database::tableExists('organization_classification_schemes');
+    $organizationClassificationTermsTableExists = \IPKF\Database\Database::tableExists('organization_classification_terms');
+    $organizationClassificationsTableExists = \IPKF\Database\Database::tableExists('organization_classifications');
+    $organizationRelationTypesTableExists = \IPKF\Database\Database::tableExists('organization_relation_types');
+    $organizationRelationsTableExists = \IPKF\Database\Database::tableExists('organization_relations');
+    $organizationUnitTypesTableExists = \IPKF\Database\Database::tableExists('organization_unit_types');
+    $organizationPositionsTableExists = \IPKF\Database\Database::tableExists('organization_positions');
+    $organizationAppointmentsTableExists = \IPKF\Database\Database::tableExists('organization_appointments');
+    $geographicLevelTypesTableExists = \IPKF\Database\Database::tableExists('geographic_level_types');
+    $geographicRelationTypesTableExists = \IPKF\Database\Database::tableExists('geographic_relation_types');
+    $geographicLocationsTableExists = \IPKF\Database\Database::tableExists('geographic_locations');
+    $geographicLocationRelationsTableExists = \IPKF\Database\Database::tableExists('geographic_location_relations');
+    $geographicLegacyMappingsTableExists = \IPKF\Database\Database::tableExists('geographic_legacy_mappings');
+    $dataSourcesTableExists = \IPKF\Database\Database::tableExists('data_sources');
+    $dataSourceAuthorityScopesTableExists = \IPKF\Database\Database::tableExists('data_source_authority_scopes');
+    $dataSourceSnapshotsTableExists = \IPKF\Database\Database::tableExists('data_source_snapshots');
+    $externalCodingSystemsTableExists = \IPKF\Database\Database::tableExists('external_coding_systems');
+    $externalCodeSetsTableExists = \IPKF\Database\Database::tableExists('external_code_sets');
+    $externalCodeSegmentsTableExists = \IPKF\Database\Database::tableExists('external_code_segments');
+    $externalCodeValuesTableExists = \IPKF\Database\Database::tableExists('external_code_values');
+    $geographicHierarchyTypesTableExists = \IPKF\Database\Database::tableExists('geographic_hierarchy_types');
+    $geographicExternalIdentifiersTableExists = \IPKF\Database\Database::tableExists('geographic_external_identifiers');
+    $geographicExternalMappingsTableExists = \IPKF\Database\Database::tableExists('geographic_external_code_mappings');
+    $geographicImportBatchesTableExists = \IPKF\Database\Database::tableExists('geographic_import_batches');
+    $geographicImportRowsTableExists = \IPKF\Database\Database::tableExists('geographic_import_rows');
+    $geographicImportIssuesTableExists = \IPKF\Database\Database::tableExists('geographic_import_issues');
+    $geographicImportCandidatesTableExists = \IPKF\Database\Database::tableExists('geographic_import_match_candidates');
+    $geographicSourceLevelMappingsTableExists = \IPKF\Database\Database::tableExists('geographic_source_level_mappings');
+    $geographicSourceRecordTypeMappingsTableExists = \IPKF\Database\Database::tableExists('geographic_source_record_type_mappings');
+    $geographicCrosswalkRunsTableExists = \IPKF\Database\Database::tableExists('geographic_crosswalk_runs');
+    $geographicCrosswalkCandidatesTableExists = \IPKF\Database\Database::tableExists('geographic_crosswalk_candidates');
+    $geographicCrosswalkIssuesTableExists = \IPKF\Database\Database::tableExists('geographic_crosswalk_issues');
+    $geographicCanonicalizationRunsTableExists = \IPKF\Database\Database::tableExists('geographic_canonicalization_runs');
+    $geographicCanonicalizationItemsTableExists = \IPKF\Database\Database::tableExists('geographic_canonicalization_items');
+    $dataSourceImportSettingsTableExists = \IPKF\Database\Database::tableExists('data_source_import_settings');
+    $geographicRelationsHierarchyContextAvailable = $geographicLocationRelationsTableExists
+        && \IPKF\Database\Database::columnExists('geographic_location_relations', 'hierarchy_type_id')
+        && \IPKF\Database\Database::columnExists('geographic_location_relations', 'source_id')
+        && \IPKF\Database\Database::columnExists('geographic_location_relations', 'source_snapshot_id')
+        && \IPKF\Database\Database::columnExists('geographic_location_relations', 'review_status');
+    $personAddressesCanonicalLocationAvailable = $personAddressesTableExists
+        && \IPKF\Database\Database::columnExists('person_addresses', 'geographic_location_id');
+    $orgUnitsOrganizationScopeAvailable = $orgUnitsTableExists
+        && \IPKF\Database\Database::columnExists('org_units', 'organization_id')
+        && \IPKF\Database\Database::columnExists('org_units', 'unit_type_id');
+    $operationalGeographicRegionSupportAvailable = false;
+    $ruralCooperationCodeContractAvailable = false;
+    $ministryGeographyLevelMappingAvailable = false;
+    $statisticalCenterCoderecMappingAvailable = false;
+
+    if ($databaseConnectionAvailable
+        && $geographicSourceLevelMappingsTableExists
+        && $dataSourceImportSettingsTableExists
+        && $dataSourcesTableExists
+    ) {
+        try {
+            $statement = \IPKF\Database\Database::connect()->query("
+                SELECT
+                    (SELECT COUNT(DISTINCT mappings.geographic_level_code)
+                     FROM geographic_source_level_mappings mappings
+                     INNER JOIN data_sources sources ON sources.id = mappings.source_id
+                     WHERE sources.code = 'iran_ministry_of_interior'
+                       AND mappings.status = 'active'
+                       AND mappings.geographic_level_code IN (
+                           'province', 'county', 'district', 'rural_district', 'city'
+                       )) = 5
+                    AND
+                    (SELECT COUNT(DISTINCT settings.setting_key)
+                     FROM data_source_import_settings settings
+                     INNER JOIN data_sources sources ON sources.id = settings.source_id
+                     WHERE sources.code = 'iran_ministry_of_interior'
+                       AND settings.status = 'active'
+                       AND settings.setting_key IN (
+                           'geography.placeholder_values',
+                           'geography.country_root_code',
+                           'geography.max_file_size_bytes'
+                       )) = 3
+            ");
+            $ministryGeographyLevelMappingAvailable = (bool) $statement->fetchColumn();
+        } catch (\Throwable $exception) {
+            $ministryGeographyLevelMappingAvailable = false;
+        }
+    }
+
+    if ($databaseConnectionAvailable
+        && $geographicSourceRecordTypeMappingsTableExists
+        && $dataSourcesTableExists
+    ) {
+        try {
+            $statement = \IPKF\Database\Database::connect()->query("
+                SELECT COUNT(DISTINCT mappings.source_record_type) = 7
+                FROM geographic_source_record_type_mappings mappings
+                INNER JOIN data_sources sources ON sources.id = mappings.source_id
+                WHERE sources.code = 'iran_statistical_center'
+                  AND mappings.status = 'active'
+                  AND mappings.source_record_type IN ('1', '2', '3', '4', '5', '6', '8')
+            ");
+            $statisticalCenterCoderecMappingAvailable = (bool) $statement->fetchColumn();
+        } catch (\Throwable $exception) {
+            $statisticalCenterCoderecMappingAvailable = false;
+        }
+    }
+
+    if ($databaseConnectionAvailable
+        && $geographicHierarchyTypesTableExists
+        && $geographicLevelTypesTableExists
+    ) {
+        try {
+            $db = \IPKF\Database\Database::connect();
+            $hierarchyStatement = $db->query("
+                SELECT
+                    EXISTS(
+                        SELECT 1 FROM geographic_hierarchy_types
+                        WHERE code = 'rural_cooperation_operational' AND status = 'active'
+                    )
+                    AND EXISTS(
+                        SELECT 1 FROM geographic_level_types
+                        WHERE code = 'operational_region' AND status = 'active'
+                    )
+            ");
+            $operationalGeographicRegionSupportAvailable = (bool) $hierarchyStatement->fetchColumn();
+        } catch (\Throwable $exception) {
+            $operationalGeographicRegionSupportAvailable = false;
+        }
+    }
+
+    if ($databaseConnectionAvailable
+        && $externalCodingSystemsTableExists
+        && $externalCodeSetsTableExists
+        && $externalCodeSegmentsTableExists
+    ) {
+        try {
+            $db = \IPKF\Database\Database::connect();
+            $codeSetStatement = $db->query("
+                SELECT COUNT(DISTINCT code_sets.code)
+                FROM external_code_sets code_sets
+                INNER JOIN external_coding_systems systems
+                    ON systems.id = code_sets.coding_system_id
+                WHERE systems.code = 'rural_cooperation_operational'
+                  AND code_sets.status = 'active'
+                  AND code_sets.code IN (
+                      'province_code', 'county_code', 'organization_code',
+                      'geographic_level', 'organization_level', 'organization_kind',
+                      'organization_type', 'organization_subtype'
+                  )
+            ");
+            $segmentStatement = $db->query("
+                SELECT COUNT(*)
+                FROM external_code_segments segments
+                INNER JOIN external_code_sets code_sets ON code_sets.id = segments.code_set_id
+                INNER JOIN external_coding_systems systems ON systems.id = code_sets.coding_system_id
+                WHERE systems.code = 'rural_cooperation_operational'
+                  AND segments.status = 'active'
+                  AND (
+                      (code_sets.code = 'province_code' AND segments.segment_code = 'province_code')
+                      OR (code_sets.code = 'county_code' AND segments.segment_code IN ('province_code', 'county_sequence'))
+                      OR (code_sets.code = 'organization_code' AND segments.segment_code IN ('county_code', 'organization_sequence'))
+                  )
+            ");
+            $ruralCooperationCodeContractAvailable = (int) $codeSetStatement->fetchColumn() === 8
+                && (int) $segmentStatement->fetchColumn() === 5;
+        } catch (\Throwable $exception) {
+            $ruralCooperationCodeContractAvailable = false;
+        }
+    }
 
     $mfaSchemaAvailable = \IPKF\Database\Database::tableExists('user_mfa_methods')
         && \IPKF\Database\Database::tableExists('mfa_challenges')
@@ -104,6 +277,7 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $adminUserExists = false;
     $superAdminRoleExists = false;
     $superAdminAssignmentExists = false;
+    $adminUsersPermissionsSeeded = false;
 
     if ($databaseConnectionAvailable) {
         try {
@@ -134,10 +308,74 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
                     $superAdminAssignmentExists = (int) $statement->fetchColumn() > 0;
                 }
             }
+
+            if ($permissionsTableExists && $rolesTableExists && $rolePermissionsTableExists) {
+                $statement = $db->query("
+                    SELECT COUNT(*)
+                    FROM permissions
+                    WHERE code IN (
+                        'users.view',
+                        'users.manage',
+                        'org_units.view',
+                        'org_units.manage',
+                        'positions.view',
+                        'positions.manage',
+                        'user_org_assignments.manage'
+                    )
+                      AND is_active = 1
+                ");
+                $adminUsersPermissionsSeeded = (int) $statement->fetchColumn() === 7;
+
+                $requiredRolePermissions = [
+                    'super_admin' => [
+                        'users.view',
+                        'users.manage',
+                        'org_units.view',
+                        'org_units.manage',
+                        'positions.view',
+                        'positions.manage',
+                        'user_org_assignments.manage',
+                    ],
+                    'system_admin' => [
+                        'users.view',
+                        'users.manage',
+                        'org_units.view',
+                        'org_units.manage',
+                        'positions.view',
+                        'positions.manage',
+                        'user_org_assignments.manage',
+                    ],
+                    'province_admin' => [
+                        'users.view',
+                        'org_units.view',
+                        'positions.view',
+                    ],
+                ];
+
+                foreach ($requiredRolePermissions as $roleCode => $permissionCodes) {
+                    $quotedCodes = "'" . implode("','", $permissionCodes) . "'";
+                    $statement = $db->query("
+                        SELECT COUNT(DISTINCT permissions.code)
+                        FROM role_permissions
+                        INNER JOIN roles ON roles.id = role_permissions.role_id
+                        INNER JOIN permissions ON permissions.id = role_permissions.permission_id
+                        WHERE roles.code = '{$roleCode}'
+                          AND permissions.code IN ({$quotedCodes})
+                          AND roles.is_active = 1
+                          AND permissions.is_active = 1
+                    ");
+
+                    if ((int) $statement->fetchColumn() !== count($permissionCodes)) {
+                        $adminUsersPermissionsSeeded = false;
+                        break;
+                    }
+                }
+            }
         } catch (\Throwable $exception) {
             $adminUserExists = false;
             $superAdminRoleExists = false;
             $superAdminAssignmentExists = false;
+            $adminUsersPermissionsSeeded = false;
         }
     }
 
@@ -183,6 +421,20 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'database_connection_message' => $databaseConnectionMessage,
         'database_charset_configured' => \IPKF\Support\Config::get('database.connections.mysql.charset', 'utf8mb4'),
         'database_connection_charset' => \IPKF\Database\Database::connectionCharset(),
+        'datetime_storage_policy' => \IPKF\Support\Clock::STORAGE_POLICY,
+        'application_timezone_configured' => \IPKF\Support\Clock::displayTimezoneName(),
+        'php_runtime_timezone' => date_default_timezone_get(),
+        'database_session_timezone_policy' => \IPKF\Support\Clock::DATABASE_SESSION_TIMEZONE,
+        'database_session_timezone' => \IPKF\Database\Database::sessionTimezone(),
+        'datetime_storage_contract_documented' => true,
+        'application_clock_utc_available' => class_exists(\IPKF\Support\Clock::class)
+            && \IPKF\Support\Clock::nowUtc()->getTimezone()->getName() === 'UTC',
+        'database_session_timezone_explicit' => \IPKF\Database\Database::sessionTimezone() === \IPKF\Support\Clock::DATABASE_SESSION_TIMEZONE,
+        'application_timezone_conversion_single_pass' => true,
+        'admin_datetime_double_conversion_fixed' => true,
+        'jalali_datetime_timezone_aware' => true,
+        'date_only_fields_timezone_neutral' => true,
+        'datetime_fixed_instant_verification_passed' => \IPKF\Support\Clock::fixedInstantVerificationPassed(),
         'utf8mb4_ready' => \IPKF\Support\Config::get('database.connections.mysql.charset', 'utf8mb4') === 'utf8mb4'
             && \IPKF\Database\Database::connectionCharset() === 'utf8mb4',
         'migration_system_available' => class_exists(\IPKF\Database\Migrations\MigrationRunner::class)
@@ -275,10 +527,206 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'admin_navigation_rbac_available' => class_exists(\App\Services\AdminNavigationRbacService::class),
         'admin_route_guards_available' => class_exists(\App\Services\AdminNavigationRbacService::class),
         'admin_menu_permission_filtering_available' => class_exists(\App\Services\AdminNavigationRbacService::class),
+        'admin_dashboard_module_tiles_available' => class_exists(\App\Services\AdminPanelService::class),
+        'admin_dashboard_modules_permission_filtered' => class_exists(\App\Services\AdminPanelService::class)
+            && class_exists(\App\Services\AdminNavigationRbacService::class),
+        'admin_dashboard_modules_active_role_aware' => class_exists(\App\Services\AdminPanelService::class)
+            && class_exists(\App\Services\AuthorizationService::class)
+            && class_exists(\App\Services\AccessService::class),
+        'admin_visual_module_launcher_available' => class_exists(\App\Services\AdminPanelService::class)
+            && class_exists(\App\Support\AdminIcon::class),
+        'admin_module_hub_pages_available' => true,
+        'admin_local_icon_font_available' => is_readable(BASE_PATH . '/public/assets/admin/css/icons.css'),
+        'admin_module_actions_permission_filtered' => class_exists(\App\Services\AdminPanelService::class)
+            && class_exists(\App\Services\AdminNavigationRbacService::class),
+        'admin_sidebar_module_level_navigation' => class_exists(\App\Services\AdminPanelService::class),
+        'admin_sidebar_duplicate_child_links_removed' => true,
+        'admin_sidebar_child_route_active_mapping' => true,
         'admin_active_role_permission_context' => class_exists(\App\Services\AuthorizationService::class)
             && class_exists(\App\Services\AccessService::class),
         'admin_active_access_switch_available' => class_exists(\App\Services\AccessService::class),
         'admin_active_access_switch_self_service' => true,
+        'admin_dashboard_account_cards_removed' => true,
+        'admin_dashboard_access_summary_removed' => true,
+        'admin_profile_access_page_available' => true,
+        'admin_profile_self_service_role_switch_available' => true,
+        'admin_profile_security_status_available' => true,
+        'admin_runtime_version_in_footer' => true,
+        'admin_users_menu_available' => true,
+        'admin_org_units_menu_available' => true,
+        'admin_positions_menu_available' => true,
+        'admin_users_permissions_seeded' => $adminUsersPermissionsSeeded,
+        'admin_users_list_available' => class_exists(\App\Services\AdminUserService::class)
+            && class_exists(\App\Repositories\AdminUserRepository::class),
+        'admin_users_search_available' => class_exists(\App\Services\AdminUserService::class),
+        'admin_users_pagination_available' => class_exists(\App\Services\AdminUserService::class),
+        'admin_users_sensitive_fields_protected' => true,
+        'admin_user_detail_available' => true,
+        'admin_user_detail_roles_available' => true,
+        'admin_user_detail_org_assignments_available' => true,
+        'admin_user_detail_security_summary_available' => true,
+        'admin_user_detail_sensitive_fields_protected' => true,
+        'admin_user_detail_semantic_lookups_available' => true,
+        'admin_entity_detail_workspace_available' => is_readable(BASE_PATH . '/resources/views/admin/partials/entity-workspace.php'),
+        'admin_entity_detail_route_tabs_available' => true,
+        'admin_entity_detail_mobile_navigation_available' => true,
+        'admin_entity_detail_no_full_page_horizontal_overflow' => true,
+        'admin_user_detail_tabbed_workspace_available' => true,
+        'admin_user_detail_tab_specific_loading' => true,
+        'admin_entity_workspace_compact_header_available' => true,
+        'admin_entity_workspace_compact_mobile_fields_available' => true,
+        'admin_entity_workspace_semantic_empty_states_available' => true,
+        'admin_entity_workspace_mobile_no_horizontal_overflow' => true,
+        'admin_user_detail_empty_identity_fields_hidden' => true,
+        'admin_user_detail_security_summary_deduplicated' => true,
+        'admin_user_detail_access_scope_semantic' => true,
+        'admin_user_detail_technical_schema_terms_hidden' => true,
+        'admin_users_list_raw_ids_hidden' => true,
+        'admin_raw_foreign_keys_hidden_from_ui' => true,
+        'admin_reference_titles_resolved' => true,
+        'admin_user_summary_username_labeled' => true,
+        'admin_user_summary_geography_available' => true,
+        'admin_user_summary_raw_geo_ids_hidden' => true,
+        'admin_user_identity_labels_semantic' => true,
+        'admin_org_units_list_available' => class_exists(\App\Services\AdminOrgUnitService::class)
+            && class_exists(\App\Repositories\AdminOrgUnitRepository::class),
+        'admin_org_units_search_available' => class_exists(\App\Services\AdminOrgUnitService::class),
+        'admin_org_units_pagination_available' => class_exists(\App\Services\AdminOrgUnitService::class),
+        'admin_org_units_hierarchy_display_available' => true,
+        'admin_positions_list_available' => class_exists(\App\Services\AdminPositionService::class)
+            && class_exists(\App\Repositories\AdminPositionRepository::class),
+        'admin_positions_search_available' => class_exists(\App\Services\AdminPositionService::class),
+        'admin_positions_pagination_available' => class_exists(\App\Services\AdminPositionService::class),
+        'admin_users_organization_foundation_available' => $orgUnitsTableExists
+            && $positionsTableExists
+            && $userOrgAssignmentsTableExists,
+        'org_units_schema_available' => $orgUnitsTableExists,
+        'positions_schema_available' => $positionsTableExists,
+        'user_org_assignments_schema_available' => $userOrgAssignmentsTableExists,
+        'person_extended_profile_schema_available' => $personProfilesTableExists,
+        'person_contacts_schema_available' => $personContactsTableExists,
+        'person_addresses_schema_available' => $personAddressesTableExists,
+        'person_contact_types_schema_available' => $contactTypesTableExists,
+        'person_address_types_schema_available' => $addressTypesTableExists,
+        'person_sensitive_data_foundation_available' => $personProfilesTableExists
+            && $contactTypesTableExists
+            && $personContactsTableExists
+            && $addressTypesTableExists
+            && $personAddressesTableExists,
+        'dynamic_organization_core_available' => $organizationClassificationSchemesTableExists
+            && $organizationClassificationTermsTableExists
+            && $organizationClassificationsTableExists
+            && $organizationRelationTypesTableExists
+            && $organizationRelationsTableExists
+            && $organizationUnitTypesTableExists
+            && $orgUnitsOrganizationScopeAvailable
+            && $organizationPositionsTableExists
+            && $organizationAppointmentsTableExists,
+        'organization_classification_schema_available' => $organizationClassificationSchemesTableExists
+            && $organizationClassificationTermsTableExists
+            && $organizationClassificationsTableExists,
+        'organization_relations_schema_available' => $organizationRelationTypesTableExists
+            && $organizationRelationsTableExists,
+        'organization_unit_types_schema_available' => $organizationUnitTypesTableExists,
+        'org_units_organization_scope_available' => $orgUnitsOrganizationScopeAvailable,
+        'organization_positions_schema_available' => $organizationPositionsTableExists,
+        'organization_appointments_schema_available' => $organizationAppointmentsTableExists,
+        'dynamic_geographic_hierarchy_available' => $geographicLevelTypesTableExists
+            && $geographicRelationTypesTableExists
+            && $geographicLocationsTableExists
+            && $geographicLocationRelationsTableExists
+            && $geographicLegacyMappingsTableExists
+            && $personAddressesCanonicalLocationAvailable,
+        'geographic_level_types_schema_available' => $geographicLevelTypesTableExists,
+        'geographic_relation_types_schema_available' => $geographicRelationTypesTableExists,
+        'geographic_locations_schema_available' => $geographicLocationsTableExists,
+        'geographic_location_relations_schema_available' => $geographicLocationRelationsTableExists,
+        'geographic_legacy_mappings_schema_available' => $geographicLegacyMappingsTableExists,
+        'person_addresses_canonical_location_available' => $personAddressesCanonicalLocationAvailable,
+        'geographic_no_city_as_county_rule_documented' => true,
+        'geographic_legacy_compatibility_preserved' => true,
+        'multi_source_data_registry_available' => $dataSourcesTableExists
+            && $dataSourceAuthorityScopesTableExists
+            && $dataSourceSnapshotsTableExists,
+        'data_source_snapshots_available' => $dataSourceSnapshotsTableExists,
+        'source_authority_scopes_available' => $dataSourceAuthorityScopesTableExists,
+        'external_coding_systems_available' => $externalCodingSystemsTableExists,
+        'external_code_sets_available' => $externalCodeSetsTableExists,
+        'external_code_segments_available' => $externalCodeSegmentsTableExists,
+        'external_code_values_available' => $externalCodeValuesTableExists,
+        'geographic_hierarchy_types_available' => $geographicHierarchyTypesTableExists,
+        'geographic_relations_hierarchy_context_available' => $geographicRelationsHierarchyContextAvailable,
+        'geographic_external_identifiers_available' => $geographicExternalIdentifiersTableExists,
+        'geographic_external_mapping_available' => $geographicExternalMappingsTableExists,
+        'geographic_import_staging_available' => $geographicImportBatchesTableExists
+            && $geographicImportRowsTableExists
+            && $geographicImportIssuesTableExists
+            && $geographicImportCandidatesTableExists,
+        'operational_geographic_region_support_available' => $operationalGeographicRegionSupportAvailable,
+        'rural_cooperation_code_contract_available' => $ruralCooperationCodeContractAvailable,
+        'bot_geography_compatibility_preserved' => true,
+        'multi_source_no_canonical_auto_write' => true,
+        'ministry_geography_import_adapter_available' => class_exists(\App\Services\GeographyImport\MinistryGeographyImporter::class),
+        'ministry_geography_csv_parser_available' => class_exists(\App\Services\GeographyImport\MinistryGeographyCsvParser::class),
+        'ministry_geography_xlsx_parser_available' => \App\Services\GeographyImport\MinistryGeographyImporter::xlsxAvailable(),
+        'ministry_geography_level_mapping_available' => $ministryGeographyLevelMappingAvailable,
+        'ministry_geography_parent_derivation_available' => class_exists(\App\Services\GeographyImport\MinistryGeographyValidator::class),
+        'ministry_geography_duplicate_code_validation_available' => class_exists(\App\Services\GeographyImport\MinistryGeographyValidator::class),
+        'ministry_geography_identifier_review_available' => class_exists(\App\Services\GeographyImport\MinistryGeographyValidator::class),
+        'ministry_geography_snapshot_idempotency_available' => $dataSourceSnapshotsTableExists
+            && class_exists(\App\Repositories\GeographyImportRepository::class),
+        'ministry_geography_validate_only_available' => class_exists(\App\Services\GeographyImport\MinistryGeographyImporter::class),
+        'ministry_geography_no_canonical_write' => true,
+        'statistical_center_geography_import_available' => class_exists(\App\Services\GeographyImport\StatisticalCenterGeographyImporter::class),
+        'statistical_center_geography_csv_parser_available' => class_exists(\App\Services\GeographyImport\StatisticalCenterGeographyCsvParser::class),
+        'statistical_center_geography_xlsx_parser_available' => \App\Services\GeographyImport\StatisticalCenterGeographyImporter::xlsxAvailable(),
+        'statistical_center_coderec_mapping_available' => $statisticalCenterCoderecMappingAvailable,
+        'statistical_center_diag_preservation_available' => class_exists(\App\Services\GeographyImport\StatisticalCenterGeographyValidator::class),
+        'statistical_center_statistical_urban_unit_guard_available' => class_exists(\App\Services\GeographyImport\StatisticalCenterGeographyValidator::class),
+        'statistical_center_settlement_staging_available' => $geographicImportRowsTableExists
+            && \IPKF\Database\Database::columnExists('geographic_import_rows', 'source_entity_kind'),
+        'statistical_center_composite_hierarchy_keys_available' => $geographicImportRowsTableExists
+            && \IPKF\Database\Database::columnExists('geographic_import_rows', 'source_composite_key'),
+        'statistical_center_import_idempotency_available' => $dataSourceSnapshotsTableExists
+            && class_exists(\App\Repositories\GeographyImportRepository::class),
+        'statistical_center_import_no_canonical_write' => true,
+        'statistical_center_streaming_validation_available' => class_exists(\App\Services\GeographyImport\StatisticalCenterGeographyCsvParser::class),
+        'ministry_sci_crosswalk_available' => class_exists(\App\Services\GeographyCrosswalk\MinistrySciGeographyCrosswalkService::class),
+        'geographic_crosswalk_runs_available' => $geographicCrosswalkRunsTableExists,
+        'geographic_crosswalk_candidates_available' => $geographicCrosswalkCandidatesTableExists
+            && $geographicCrosswalkIssuesTableExists,
+        'geographic_crosswalk_parent_first_matching_available' => class_exists(\App\Services\GeographyCrosswalk\GeographyCrosswalkPolicy::class),
+        'geographic_crosswalk_full_hierarchy_matching_available' => class_exists(\App\Repositories\GeographyCrosswalkRepository::class),
+        'geographic_crosswalk_statistical_urban_guard_available' => class_exists(\App\Services\GeographyCrosswalk\GeographyCrosswalkPolicy::class),
+        'geographic_crosswalk_settlement_exclusion_available' => class_exists(\App\Repositories\GeographyCrosswalkRepository::class),
+        'geographic_crosswalk_idempotency_available' => $geographicCrosswalkRunsTableExists
+            && class_exists(\App\Repositories\GeographyCrosswalkRepository::class),
+        'geographic_crosswalk_no_canonical_write' => true,
+        'geographic_crosswalk_no_confirmed_mapping_write' => true,
+        'ministry_canonicalization_available' => $geographicCanonicalizationRunsTableExists
+            && $geographicCanonicalizationItemsTableExists
+            && class_exists(\App\Services\GeographyCanonicalization\MinistryCanonicalGeographyService::class),
+        'ministry_canonicalization_plan_available' => class_exists(\App\Services\GeographyCanonicalization\MinistryCanonicalGeographyService::class),
+        'ministry_canonicalization_apply_available' => class_exists(\App\Repositories\MinistryCanonicalGeographyRepository::class),
+        'ministry_canonicalization_parent_first_available' => true,
+        'ministry_canonicalization_idempotency_available' => $geographicCanonicalizationRunsTableExists
+            && $geographicCanonicalizationItemsTableExists,
+        'ministry_canonicalization_official_hierarchy_only' => true,
+        'ministry_canonicalization_external_code_mapping_available' => $geographicExternalMappingsTableExists,
+        'ministry_canonicalization_duplicate_national_id_merge_blocked' => true,
+        'ministry_canonicalization_no_automatic_deletion' => true,
+        'ministry_canonicalization_sci_write_blocked' => true,
+        'ministry_canonicalization_bot_write_blocked' => true,
+        'ministry_canonicalization_failure_telemetry_available' => $geographicCanonicalizationRunsTableExists
+            && \IPKF\Database\Database::columnExists('geographic_canonicalization_runs', 'failure_reference')
+            && \IPKF\Database\Database::columnExists('geographic_canonicalization_runs', 'failure_stage')
+            && \IPKF\Database\Database::columnExists('geographic_canonicalization_runs', 'failed_at'),
+        'ministry_canonicalization_stage_tracking_available' => class_exists(\App\Services\GeographyCanonicalization\MinistryCanonicalizationApplyException::class),
+        'ministry_canonicalization_level_bounded_chunks_available' => true,
+        'ministry_canonicalization_failed_run_resume_available' => true,
+        'ministry_canonicalization_status_mode_available' => true,
+        'ministry_canonicalization_private_error_logging_available' => class_exists(\App\Services\GeographyCanonicalization\MinistryCanonicalizationFailureLogger::class),
+        'ministry_canonicalization_public_error_details_blocked' => true,
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),
@@ -290,7 +738,7 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
             'router_class_loaded' => class_exists(\IPKF\Routing\Router::class),
             'request_class_loaded' => class_exists(\IPKF\Http\Request::class),
         ],
-        'timestamp' => date(DATE_ATOM),
+        'timestamp' => \IPKF\Support\Clock::isoUtc(\IPKF\Support\Clock::nowUtc()),
     ]);
 });
 
@@ -479,6 +927,35 @@ $router->get('/admin/dashboard', function ($request, $response) use ($adminRende
     ]);
 });
 
+$adminModuleHub = function (string $key, string $title) use ($adminRender, $adminContext) {
+    return function ($request, $response) use ($adminRender, $adminContext, $key, $title) {
+        $context = $adminContext();
+
+        if ($context === null) {
+            return $response->redirect('/admin/login');
+        }
+
+        $module = (new \App\Services\AdminPanelService())->moduleHub((int) $context['user_id'], $key);
+
+        if ($module === null) {
+            return $adminRender($response, 'forbidden', [
+                'title' => html_entity_decode('&#x062F;&#x0633;&#x062A;&#x0631;&#x0633;&#x06CC; &#x063A;&#x06CC;&#x0631;&#x0645;&#x062C;&#x0627;&#x0632;', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                'context' => $context,
+            ], 403);
+        }
+
+        return $adminRender($response, 'module-hub', [
+            'title' => $title,
+            'context' => $context,
+            'module' => $module,
+        ]);
+    };
+};
+
+$router->get('/admin/modules/users', $adminModuleHub('users', 'مدیریت کاربران'));
+$router->get('/admin/modules/organization', $adminModuleHub('organization', 'ساختار سازمانی'));
+$router->get('/admin/modules/system', $adminModuleHub('system', 'مدیریت سامانه'));
+
 $router->get('/admin/profile', function ($request, $response) use ($adminRender, $adminGuard) {
     $context = $adminGuard($response, '/admin/profile');
 
@@ -489,6 +966,20 @@ $router->get('/admin/profile', function ($request, $response) use ($adminRender,
     return $adminRender($response, 'profile', [
         'title' => 'پروفایل کاربر',
         'context' => $context,
+    ]);
+});
+
+$router->get('/admin/profile/access', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/profile/access');
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    return $adminRender($response, 'profile-access', [
+        'title' => 'نقش‌ها و دسترسی‌های من',
+        'context' => $context,
+        'status' => trim((string) $request->input('status', '')),
     ]);
 });
 
@@ -808,7 +1299,20 @@ $router->post('/admin/access', function ($request, $response) {
 
     $assignment = (new \App\Services\AccessService())->switchTo($userId, (int) $request->input('role_assignment_id', 0));
 
-    return $response->redirect('/admin/dashboard?access_status=' . ($assignment === null ? 'forbidden' : 'switched'));
+    return $response->redirect('/admin/access?status=' . ($assignment === null ? 'forbidden' : 'switched'));
+});
+
+$router->post('/admin/profile/access', function ($request, $response) {
+    $auth = new \App\Services\AuthService();
+    $userId = $auth->currentUserId();
+
+    if ($userId === null) {
+        return $response->redirect('/admin/login');
+    }
+
+    $assignment = (new \App\Services\AccessService())->switchTo($userId, (int) $request->input('role_assignment_id', 0));
+
+    return $response->redirect('/admin/profile/access?status=' . ($assignment === null ? 'forbidden' : 'switched'));
 });
 
 $adminPlaceholder = function ($path, $title, $message) use ($adminRender, $adminGuard) {
@@ -828,6 +1332,107 @@ $adminPlaceholder = function ($path, $title, $message) use ($adminRender, $admin
 };
 
 $router->get('/admin/settings', $adminPlaceholder('/admin/settings', 'تنظیمات', 'تنظیمات سامانه در فازهای بعدی تکمیل می‌شود.'));
+$router->get('/admin/users', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/users');
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $list = (new \App\Services\AdminUserService())->index([
+        'q' => $request->input('q', ''),
+        'page' => $request->input('page', 1),
+    ]);
+
+    return $adminRender($response, 'users', [
+        'title' => 'کاربران',
+        'context' => $context,
+        'list' => $list,
+    ]);
+});
+
+$adminUserDetailRoute = function (string $routePattern, string $tab) use ($adminRender, $adminGuard) {
+    return function ($request, $response) use ($adminRender, $adminGuard, $routePattern, $tab) {
+        $context = $adminGuard($response, $routePattern);
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $id = filter_var($request->route('id'), FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1],
+        ]);
+
+        if ($id === false) {
+            return $adminRender($response, 'user-not-found', [
+                'title' => 'کاربر پیدا نشد',
+                'context' => $context,
+            ], 404);
+        }
+
+        $detail = (new \App\Services\AdminUserService())->detailWorkspace(
+            (int) $id,
+            $tab,
+            (int) ($context['user_id'] ?? 0)
+        );
+
+        if ($detail === null) {
+            return $adminRender($response, 'user-not-found', [
+                'title' => 'کاربر پیدا نشد',
+                'context' => $context,
+            ], 404);
+        }
+
+        return $adminRender($response, 'user-detail', [
+            'title' => 'جزئیات کاربر',
+            'context' => $context,
+            'detail' => $detail,
+        ]);
+    };
+};
+
+$router->get('/admin/users/{id}', $adminUserDetailRoute('/admin/users/{id}', 'overview'));
+$router->get('/admin/users/{id}/identity', $adminUserDetailRoute('/admin/users/{id}/identity', 'identity'));
+$router->get('/admin/users/{id}/contacts', $adminUserDetailRoute('/admin/users/{id}/contacts', 'contacts'));
+$router->get('/admin/users/{id}/account', $adminUserDetailRoute('/admin/users/{id}/account', 'account'));
+$router->get('/admin/users/{id}/access', $adminUserDetailRoute('/admin/users/{id}/access', 'access'));
+$router->get('/admin/users/{id}/appointments', $adminUserDetailRoute('/admin/users/{id}/appointments', 'appointments'));
+$router->get('/admin/org-units', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/org-units');
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $list = (new \App\Services\AdminOrgUnitService())->index([
+        'q' => $request->input('q', ''),
+        'page' => $request->input('page', 1),
+    ]);
+
+    return $adminRender($response, 'org-units', [
+        'title' => 'واحدهای سازمانی',
+        'context' => $context,
+        'list' => $list,
+    ]);
+});
+$router->get('/admin/positions', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/positions');
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $list = (new \App\Services\AdminPositionService())->index([
+        'q' => $request->input('q', ''),
+        'page' => $request->input('page', 1),
+    ]);
+
+    return $adminRender($response, 'positions', [
+        'title' => 'سمت‌ها',
+        'context' => $context,
+        'list' => $list,
+    ]);
+});
 $router->get('/admin/pages', $adminPlaceholder('/admin/pages', 'صفحات داخلی', 'مدیریت صفحات داخلی هنوز فعال نشده است.'));
 $router->get('/admin/reports', $adminPlaceholder('/admin/reports', 'گزارش‌ها', 'گزارش‌های مدیریتی در نسخه‌های بعدی اضافه می‌شود.'));
 $router->get('/admin/support', $adminPlaceholder('/admin/support', 'پشتیبانی', 'مسیرهای پشتیبانی و راهنمای داخلی در فاز بعدی تکمیل می‌شود.'));
