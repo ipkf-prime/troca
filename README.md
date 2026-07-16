@@ -127,6 +127,8 @@ This milestone is schema and metadata only. It adds no operational correspondenc
 
 The active development milestone is `0.4.8-platform-commercial-foundation-dev`. It adds the platform commercial foundation for application/module catalogs, installation and topology registries, licensing metadata, entitlement contracts, and auditable provisioning records. It does not enforce licensing on current routes, create infrastructure, switch runtime databases, or seed operational installation/license/customer data.
 
+The same development milestone now includes a named multi-database runtime foundation. `core.primary` remains the current core database. `automation.primary` resolves to a dedicated automation database only when optional `AUTOMATION_DB_*` values are complete; otherwise it safely falls back to the core PDO connection so the existing automation foundation remains usable in the current single-database deployment.
+
 Set:
 
 - `MFA_ENABLED=true`

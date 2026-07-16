@@ -876,3 +876,25 @@ Security and compatibility:
 - Existing super_admin access remains functional.
 - Current v0.4.7 automation correspondence foundation remains compatible.
 - Runtime license enforcement, activation, infrastructure creation, and operational automation UI remain deferred.
+
+## v0.4.8 Multi-Database Runtime Foundation Checks
+
+- `core.primary` is registered.
+- `core.primary` uses the existing core PDO connection behavior.
+- `automation.primary` is registered.
+- With no complete `AUTOMATION_DB_*` configuration, `automation.primary` falls back to `core.primary`.
+- With complete dedicated automation configuration, `automation.primary` can create an independent PDO definition.
+- Partial automation configuration fails safely and does not expose credentials, DSNs, hostnames, database names, SQL, or PDO errors publicly.
+- Named connections enforce utf8mb4.
+- Named connections apply the existing UTC database-session timezone policy.
+- `ApplicationMigrationRegistry` groups core and automation migrations deterministically.
+- `ApplicationSeederRegistry` groups core and automation seeders deterministically.
+- `application_migrations` records application, connection, and migration name.
+- Legacy protected `/migrate.php` behavior remains available.
+- Legacy protected `/seed.php` behavior remains available.
+- Existing automation correspondence tables remain in the current database.
+- No table is moved, copied, renamed, or deleted.
+- No cross-database SQL or cross-database foreign key is introduced.
+- No distributed transaction support is added.
+- No runtime route is license-blocked or forced to require a dedicated automation database.
+- Diagnostics include only safe booleans for named connection readiness.

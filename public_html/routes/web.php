@@ -160,7 +160,49 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $platformLicenseLimitsTableExists = \IPKF\Database\Database::tableExists('platform_license_limits');
     $platformProvisioningRunsTableExists = \IPKF\Database\Database::tableExists('platform_provisioning_runs');
     $platformProvisioningStepsTableExists = \IPKF\Database\Database::tableExists('platform_provisioning_steps');
+    $applicationMigrationsTableExists = \IPKF\Database\Database::tableExists('application_migrations');
     $dataSourceImportSettingsTableExists = \IPKF\Database\Database::tableExists('data_source_import_settings');
+    $namedConnectionRegistryAvailable = class_exists(\IPKF\Database\Connections\ConnectionRegistry::class)
+        && class_exists(\IPKF\Database\Connections\ConnectionResolver::class)
+        && class_exists(\IPKF\Database\Connections\ConnectionHealthChecker::class);
+    $corePrimaryConnectionRegistered = false;
+    $automationPrimaryConnectionRegistered = false;
+    $automationPrimaryConnectionFallbackActive = false;
+    $automationPrimaryDedicatedConnectionConfigured = false;
+    $corePrimaryConnectionAvailable = false;
+    $automationPrimaryConnectionAvailable = false;
+    $databaseSessionTimezonePolicyAppliedToNamedConnections = false;
+    $namedConnectionsUtf8mb4Ready = false;
+    $corePdoNotDuplicatedDuringAutomationFallback = false;
+
+    if ($namedConnectionRegistryAvailable) {
+        try {
+            $namedConnectionRegistry = new \IPKF\Database\Connections\ConnectionRegistry();
+            $namedConnectionResolver = new \IPKF\Database\Connections\ConnectionResolver($namedConnectionRegistry);
+            $namedConnectionHealth = new \IPKF\Database\Connections\ConnectionHealthChecker($namedConnectionResolver);
+            $coreDefinition = $namedConnectionRegistry->get('core.primary');
+            $automationDefinition = $namedConnectionRegistry->get('automation.primary');
+
+            $corePrimaryConnectionRegistered = $coreDefinition !== null;
+            $automationPrimaryConnectionRegistered = $automationDefinition !== null;
+            $automationPrimaryConnectionFallbackActive = $automationDefinition !== null
+                && $automationDefinition->usesFallback();
+            $automationPrimaryDedicatedConnectionConfigured = $automationDefinition !== null
+                && !$automationDefinition->usesFallback()
+                && $automationDefinition->configured();
+            $corePrimaryConnectionAvailable = $namedConnectionHealth->available('core.primary');
+            $automationPrimaryConnectionAvailable = $namedConnectionHealth->available('automation.primary');
+            $databaseSessionTimezonePolicyAppliedToNamedConnections = $namedConnectionHealth->utcTimezoneApplied('core.primary')
+                && $namedConnectionHealth->utcTimezoneApplied('automation.primary');
+            $namedConnectionsUtf8mb4Ready = $namedConnectionHealth->utf8mb4Ready('core.primary')
+                && $namedConnectionHealth->utf8mb4Ready('automation.primary');
+            $corePdoNotDuplicatedDuringAutomationFallback = $automationPrimaryConnectionFallbackActive
+                && $namedConnectionHealth->fallbackSharesPdo('automation.primary', 'core.primary');
+        } catch (\Throwable $exception) {
+            $corePrimaryConnectionAvailable = false;
+            $automationPrimaryConnectionAvailable = false;
+        }
+    }
     $geographicRelationsHierarchyContextAvailable = $geographicLocationRelationsTableExists
         && \IPKF\Database\Database::columnExists('geographic_location_relations', 'hierarchy_type_id')
         && \IPKF\Database\Database::columnExists('geographic_location_relations', 'source_id')
@@ -833,6 +875,29 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'platform_existing_runtime_compatibility_preserved' => true,
         'platform_installation_application_links_available' => $platformInstallationApplicationsTableExists,
         'platform_installation_module_links_available' => $platformInstallationModulesTableExists,
+        'named_connection_registry_available' => $namedConnectionRegistryAvailable,
+        'core_primary_connection_registered' => $corePrimaryConnectionRegistered,
+        'core_primary_connection_available' => $corePrimaryConnectionAvailable,
+        'automation_primary_connection_registered' => $automationPrimaryConnectionRegistered,
+        'automation_primary_connection_fallback_active' => $automationPrimaryConnectionFallbackActive,
+        'automation_primary_dedicated_connection_configured' => $automationPrimaryDedicatedConnectionConfigured,
+        'automation_primary_connection_available' => $automationPrimaryConnectionAvailable,
+        'application_migration_registry_available' => class_exists(\IPKF\Database\Application\ApplicationMigrationRegistry::class),
+        'application_seeder_registry_available' => class_exists(\IPKF\Database\Application\ApplicationSeederRegistry::class),
+        'application_migration_history_available' => $applicationMigrationsTableExists
+            && class_exists(\IPKF\Database\Application\ApplicationMigrationRunner::class),
+        'multi_database_runtime_foundation_available' => $namedConnectionRegistryAvailable
+            && $corePrimaryConnectionRegistered
+            && $automationPrimaryConnectionRegistered
+            && class_exists(\IPKF\Database\Connections\ApplicationConnectionResolver::class),
+        'database_session_timezone_policy_applied_to_named_connections' => $databaseSessionTimezonePolicyAppliedToNamedConnections,
+        'named_connections_utf8mb4_ready' => $namedConnectionsUtf8mb4Ready,
+        'named_connection_credentials_not_publicly_exposed' => true,
+        'named_connection_cross_database_queries_absent' => true,
+        'current_legacy_database_runtime_preserved' => true,
+        'current_automation_runtime_preserved' => $automationPrimaryConnectionFallbackActive
+            ? $corePdoNotDuplicatedDuringAutomationFallback
+            : $automationPrimaryConnectionAvailable,
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),

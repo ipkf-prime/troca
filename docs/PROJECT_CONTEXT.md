@@ -366,7 +366,12 @@ Scope:
 - Resumable provisioning run and step audit records.
 - First specialized application catalog entry: `automation`.
 - Automation module catalog entries without operational UI or route enforcement.
+- Named connection runtime with `core.primary` and `automation.primary`.
+- Backward-compatible `automation.primary` fallback to the current core PDO connection.
+- Application-aware migration and seeder registries.
+- Application-aware migration history table.
+- Safe connection health diagnostics without exposing topology or credentials.
 
 Deferred implementation scope:
 
-- Installer UI, DNS creation, database/user creation, SSL provisioning, runtime connection switching, multi-database routing, automation table migration, sales documents, online license server, cryptographic license signing, offline activation files, usage metering, runtime license enforcement, and operational automation services.
+- Installer UI, DNS creation, database/user creation, SSL provisioning, physical automation database creation, runtime repository switching, automation table migration, sales documents, online license server, cryptographic license signing, offline activation files, usage metering, runtime license enforcement, distributed transactions, outbox delivery workers, and operational automation services.
