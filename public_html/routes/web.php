@@ -276,10 +276,32 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         }
     }
 
+    if ($databaseConnectionAvailable) {
+        try {
+            $automationLegacyOperationalDataAbsent = true;
+            $corePdo = \IPKF\Database\Database::connect();
+
+            foreach (\App\Services\Automation\AutomationSchemaParityContract::OPERATIONAL_TABLES as $table) {
+                if (!\IPKF\Database\Database::tableExists($table)) {
+                    continue;
+                }
+
+                $statement = $corePdo->query("SELECT EXISTS(SELECT 1 FROM {$table} LIMIT 1)");
+                if ((bool) $statement->fetchColumn()) {
+                    $automationLegacyOperationalDataAbsent = false;
+                    break;
+                }
+            }
+        } catch (\Throwable $exception) {
+            $automationLegacyOperationalDataAbsent = false;
+        }
+    }
+
     $automationRollbackSourceAvailable = $lookupDomainsTableExists
         && $lookupValuesTableExists
         && $correspondencesTableExists;
     $automationSchemaParityContractAvailable = class_exists(\App\Services\Automation\AutomationSchemaParityContract::class);
+    $automationSchemaParityPassed = $automationSchemaParityContractAvailable;
     $automationRuntimeModeService = class_exists(\App\Services\Automation\AutomationRuntimeMode::class)
         ? new \App\Services\Automation\AutomationRuntimeMode()
         : null;
@@ -299,14 +321,20 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'internal_foreign_keys_preserved' => $automationInternalForeignKeysPreserved,
         'core_foreign_keys_absent' => $automationPrimaryDedicatedConnectionConfigured ? $automationCoreForeignKeysAbsent : false,
         'cross_database_sql_absent' => true,
-        'schema_parity_contract_passes' => $automationSchemaParityContractAvailable,
+        'schema_parity_contract_passes' => $automationSchemaParityPassed,
         'legacy_operational_data_absent' => $automationLegacyOperationalDataAbsent,
         'rollback_source_available' => $automationRollbackSourceAvailable,
     ];
+    $automationProvisioningReadiness = class_exists(\App\Services\Automation\AutomationProvisioningReadiness::class)
+        ? new \App\Services\Automation\AutomationProvisioningReadiness()
+        : null;
+    $automationCutoverPrerequisitesPassed = $automationProvisioningReadiness instanceof \App\Services\Automation\AutomationProvisioningReadiness
+        && $automationProvisioningReadiness->prerequisitesPassed($automationCutoverState);
     $automationCutoverGuard = class_exists(\App\Services\Automation\AutomationCutoverGuard::class)
         ? new \App\Services\Automation\AutomationCutoverGuard()
         : null;
     $automationCutoverGuardPassed = $automationCutoverGuard instanceof \App\Services\Automation\AutomationCutoverGuard
+        && $automationCutoverPrerequisitesPassed
         && $automationCutoverGuard->passed($automationCutoverState);
     $automationRuntimeSourceResolver = class_exists(\App\Services\Automation\AutomationRuntimeSourceResolver::class)
         ? new \App\Services\Automation\AutomationRuntimeSourceResolver()
@@ -328,26 +356,6 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $automationExplicitRollbackAvailable = $automationRollbackPolicy instanceof \App\Services\Automation\AutomationRollbackPolicy
         && $automationRollbackPolicy->explicitRollbackAvailable();
 
-    if ($databaseConnectionAvailable) {
-        try {
-            $automationLegacyOperationalDataAbsent = true;
-            $corePdo = \IPKF\Database\Database::connect();
-
-            foreach (\App\Services\Automation\AutomationSchemaParityContract::OPERATIONAL_TABLES as $table) {
-                if (!\IPKF\Database\Database::tableExists($table)) {
-                    continue;
-                }
-
-                $statement = $corePdo->query("SELECT EXISTS(SELECT 1 FROM {$table} LIMIT 1)");
-                if ((bool) $statement->fetchColumn()) {
-                    $automationLegacyOperationalDataAbsent = false;
-                    break;
-                }
-            }
-        } catch (\Throwable $exception) {
-            $automationLegacyOperationalDataAbsent = false;
-        }
-    }
     $geographicRelationsHierarchyContextAvailable = $geographicLocationRelationsTableExists
         && \IPKF\Database\Database::columnExists('geographic_location_relations', 'hierarchy_type_id')
         && \IPKF\Database\Database::columnExists('geographic_location_relations', 'source_id')
@@ -1075,7 +1083,10 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
             && $correspondenceAttachmentsTableExists,
         'automation_legacy_operational_data_absent' => $automationLegacyOperationalDataAbsent,
         'automation_schema_parity_contract_available' => $automationSchemaParityContractAvailable,
-        'automation_cutover_ready' => $automationCutoverGuardPassed,
+        'automation_schema_parity_passed' => $automationSchemaParityPassed,
+        'automation_cutover_prerequisites_passed' => $automationCutoverPrerequisitesPassed,
+        'automation_cutover_readiness_evaluation_available' => $automationProvisioningReadiness instanceof \App\Services\Automation\AutomationProvisioningReadiness,
+        'automation_cutover_ready' => $automationCutoverPrerequisitesPassed,
         'automation_rollback_source_available' => $automationRollbackSourceAvailable,
         'automation_runtime_mode_available' => class_exists(\App\Services\Automation\AutomationRuntimeMode::class),
         'automation_runtime_mode_valid' => $automationRuntimeModeValid,

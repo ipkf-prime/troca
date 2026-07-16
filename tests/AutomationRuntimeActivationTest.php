@@ -13,6 +13,7 @@ $projectContextPath = $root . '/docs/PROJECT_CONTEXT.md';
 $checklistPath = $root . '/docs/RELEASE_CHECKLIST.md';
 
 $runtimeMode = file_get_contents($servicesDir . '/AutomationRuntimeMode.php');
+$readiness = file_get_contents($servicesDir . '/AutomationProvisioningReadiness.php');
 $sourceResolver = file_get_contents($servicesDir . '/AutomationRuntimeSourceResolver.php');
 $connectionResolver = file_get_contents($servicesDir . '/AutomationRuntimeConnectionResolver.php');
 $cutoverGuard = file_get_contents($servicesDir . '/AutomationCutoverGuard.php');
@@ -55,6 +56,7 @@ expectAutomationRuntime(str_contains($runtimeMode, 'AUTOMATION_DB_MODE'), 'Runti
 expectAutomationRuntime(str_contains($runtimeMode, 'return self::PROVISIONING;') && str_contains($runtimeMode, 'return self::FALLBACK;'), 'Missing mode must default to provisioning only when dedicated config exists, otherwise fallback.');
 expectAutomationRuntime(!str_contains($runtimeMode, 'return self::DEDICATED;'), 'Missing mode must never default to dedicated.');
 expectAutomationRuntime(str_contains($runtimeMode, 'provisioningAllowed'), 'Application migration/seeder mode must distinguish provisioning and dedicated from fallback.');
+expectAutomationRuntime(str_contains($readiness, 'prerequisitesPassed') && str_contains($readiness, 'requiredKeys'), 'Readiness must evaluate cutover prerequisites directly.');
 
 foreach ([
     'dedicated_connection_configured',
@@ -72,7 +74,10 @@ foreach ([
     'rollback_source_available',
 ] as $requiredGuardKey) {
     expectAutomationRuntime(str_contains($cutoverGuard, "'{$requiredGuardKey}'"), "Cutover guard missing key: {$requiredGuardKey}");
+    expectAutomationRuntime(str_contains($readiness, "'{$requiredGuardKey}'"), "Readiness missing prerequisite key: {$requiredGuardKey}");
 }
+
+expectAutomationRuntime(!preg_match('/current_runtime_source|runtime_source|dedicated_runtime_active|cutover_guard_passed|guard/i', $readiness), 'Readiness must not depend on runtime source, active dedicated mode, or guard state.');
 
 expectAutomationRuntime(str_contains($sourceResolver, 'dedicatedRequested()') && str_contains($sourceResolver, '$cutoverGuardPassed'), 'Dedicated source must require explicit mode and passing guard.');
 expectAutomationRuntime(str_contains($connectionResolver, 'Automation runtime is unavailable.'), 'Dedicated runtime failure must fail closed.');
@@ -104,9 +109,25 @@ foreach ([
     'automation_legacy_rollback_source_retained',
     'automation_runtime_connection_resolver_available',
     'automation_current_runtime_source_unchanged',
+    'automation_schema_parity_passed',
+    'automation_cutover_prerequisites_passed',
+    'automation_cutover_readiness_evaluation_available',
 ] as $diagnostic) {
     expectAutomationRuntime(str_contains($routes, "'{$diagnostic}'"), "Missing runtime diagnostic: {$diagnostic}");
 }
+
+expectAutomationRuntime(
+    str_contains($routes, "'automation_cutover_ready' => \$automationCutoverPrerequisitesPassed"),
+    'automation_cutover_ready must be based on prerequisites, not guard or activation state.'
+);
+expectAutomationRuntime(
+    strpos($routes, '$automationCutoverPrerequisitesPassed') < strpos($routes, '$automationCutoverGuardPassed'),
+    'Cutover prerequisites must be evaluated before the guard.'
+);
+expectAutomationRuntime(
+    strpos($routes, '$automationCutoverGuardPassed') < strpos($routes, '$automationRuntimeSourceDedicated'),
+    'Runtime source activation must be evaluated after readiness and guard.'
+);
 
 expectAutomationRuntime(!preg_match('/\b(?:password|dsn|database_name|username|host|PDOException|getMessage\(\))\b/i', $diagnosticsRoute), 'Runtime diagnostics must not expose topology, credentials, or exception details.');
 expectAutomationRuntime(!preg_match('/\b(?:INSERT|UPDATE|DELETE|REPLACE)\b[\s\S]{0,120}\b(?:correspondences|correspondence_versions|correspondence_referrals|correspondence_events)\b/i', $sourceResolver . "\n" . $connectionResolver . "\n" . $rollbackPolicy), 'Runtime activation must not introduce dual writes or operational data writes.');
