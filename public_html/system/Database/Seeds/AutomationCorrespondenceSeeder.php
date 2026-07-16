@@ -161,8 +161,6 @@ class AutomationCorrespondenceSeeder extends Seeder
 
         $this->seedLookupDomains();
         $this->seedLookupValues();
-        $this->seedPermissions();
-        $this->assignSuperAdminPermissions();
     }
 
     private function seedLookupDomains(): void
@@ -208,60 +206,6 @@ class AutomationCorrespondenceSeeder extends Seeder
 
             foreach ($values as $index => [$code, $title]) {
                 $valueStatement->execute([(int) $domainId, $code, $title, ($index + 1) * 10]);
-            }
-        }
-    }
-
-    private function seedPermissions(): void
-    {
-        if (!$this->tableExists('permissions')) {
-            return;
-        }
-
-        $statement = $this->db->prepare("
-            INSERT INTO permissions (
-                code, module, resource, action, title, is_active, created_at, updated_at
-            ) VALUES (?, 'automation', ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-            ON DUPLICATE KEY UPDATE code = code
-        ");
-
-        foreach (self::PERMISSIONS as [$code, $action, $title]) {
-            $resource = str_contains($code, '.registry.')
-                ? 'registry'
-                : (str_contains($code, '.audit.') ? 'audit' : 'correspondence');
-            $statement->execute([$code, $resource, $action, $title]);
-        }
-    }
-
-    private function assignSuperAdminPermissions(): void
-    {
-        if (!$this->tableExists('roles')
-            || !$this->tableExists('permissions')
-            || !$this->tableExists('role_permissions')
-        ) {
-            return;
-        }
-
-        $roleStatement = $this->db->prepare("SELECT id FROM roles WHERE code = 'super_admin' LIMIT 1");
-        $roleStatement->execute();
-        $roleId = $roleStatement->fetchColumn();
-
-        if ($roleId === false) {
-            return;
-        }
-
-        $permissionStatement = $this->db->prepare('SELECT id FROM permissions WHERE code = ? LIMIT 1');
-        $assignmentStatement = $this->db->prepare("
-            INSERT IGNORE INTO role_permissions (role_id, permission_id, created_at)
-            VALUES (?, ?, CURRENT_TIMESTAMP)
-        ");
-
-        foreach (self::PERMISSIONS as [$code]) {
-            $permissionStatement->execute([$code]);
-            $permissionId = $permissionStatement->fetchColumn();
-
-            if ($permissionId !== false) {
-                $assignmentStatement->execute([(int) $roleId, (int) $permissionId]);
             }
         }
     }

@@ -12,6 +12,81 @@ if (!\IPKF\Support\Maintenance::keyIsValid($_GET['key'] ?? null)) {
     \IPKF\Support\Maintenance::deny('/migrate.php');
 }
 
+$application = trim((string) ($_GET['application'] ?? ''));
+
+if ($application !== '') {
+    $allowedApplications = ['core', 'automation'];
+
+    if (!in_array($application, $allowedApplications, true)) {
+        \IPKF\Support\Maintenance::deny('/migrate.php');
+    }
+
+    try {
+        $registry = new \IPKF\Database\Connections\ConnectionRegistry();
+        $resolver = new \IPKF\Database\Connections\ConnectionResolver($registry);
+        $health = new \IPKF\Database\Connections\ConnectionHealthChecker($resolver);
+        $migrationRegistry = new \IPKF\Database\Application\ApplicationMigrationRegistry($resolver);
+        $groups = $migrationRegistry->groups();
+        $group = $groups[$application] ?? null;
+
+        if (!is_array($group)) {
+            throw new \RuntimeException('Application migration group is not available.');
+        }
+
+        $connectionName = (string) ($group['connection'] ?? '');
+        $definition = $registry->get($connectionName);
+
+        if ($application === 'automation') {
+            if ($definition === null || $definition->usesFallback() || !$definition->configured()) {
+                throw new \RuntimeException('Dedicated automation connection is required.');
+            }
+        }
+
+        if ($definition === null
+            || !$health->available($connectionName)
+            || !$health->utf8mb4Ready($connectionName)
+            || !$health->utcTimezoneApplied($connectionName)
+        ) {
+            throw new \RuntimeException('Application connection is not ready.');
+        }
+
+        if ($application === 'core') {
+            header('Content-Type: text/plain; charset=UTF-8');
+            echo "APPLICATION MIGRATION DONE\n";
+            echo "application=core\n";
+            echo "applied_count=0";
+            exit;
+        }
+
+        $pdo = $resolver->resolve($connectionName);
+        $applied = (new \IPKF\Database\Application\ApplicationMigrationRunner())
+            ->run($application, $connectionName, $migrationRegistry->migrationsFor($application), $pdo);
+
+        header('Content-Type: text/plain; charset=UTF-8');
+        echo "APPLICATION MIGRATION DONE\n";
+        echo "application={$application}\n";
+        echo "applied_count={$applied}";
+    } catch (Throwable $exception) {
+        $failedMigrationClass = "application_{$application}_migration";
+        $privateException = $exception;
+
+        if ($exception instanceof \IPKF\Database\Migrations\MigrationExecutionException) {
+            $failedMigrationClass = $exception->migrationClass();
+            $privateException = $exception->getPrevious() ?? $exception;
+        }
+
+        $failureReference = (new \IPKF\Database\Migrations\MigrationFailureLogger())
+            ->log($failedMigrationClass, $privateException);
+
+        http_response_code(500);
+        header('Content-Type: text/plain; charset=UTF-8');
+        echo "APPLICATION MIGRATION FAILED\n";
+        echo "failure_reference={$failureReference}";
+    }
+
+    exit;
+}
+
 try {
     $manager = new \IPKF\Database\DatabaseManager();
     $manager->migrations([

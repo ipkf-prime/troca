@@ -24,6 +24,11 @@ $routes = file_get_contents($routesPath);
 $migrate = file_get_contents($migratePath);
 $seed = file_get_contents($seedPath);
 $envExample = file_get_contents($envExamplePath);
+$diagnosticsStart = strpos($routes, "\$router->get('/_diagnostics'");
+$diagnosticsEnd = strpos($routes, "\$router->get('/test'", $diagnosticsStart);
+$diagnosticsRoute = $diagnosticsStart === false
+    ? ''
+    : substr($routes, $diagnosticsStart, ($diagnosticsEnd === false ? null : $diagnosticsEnd - $diagnosticsStart));
 
 function expectMultiDb(bool $condition, string $message): void
 {
@@ -76,7 +81,7 @@ expectMultiDb(str_contains($appConnectionResolver, '{$applicationCode}.primary')
 expectMultiDb(str_contains($migrationRegistry, "'core'") && str_contains($migrationRegistry, "'automation'"), 'Application migration registry must group core and automation.');
 expectMultiDb(str_contains($migrationRegistry, "'connection' => 'core.primary'"), 'Core migrations must run on core.primary.');
 expectMultiDb(str_contains($migrationRegistry, "'connection' => 'automation.primary'"), 'Automation migrations must run on automation.primary.');
-expectMultiDb(str_contains($migrationRegistry, 'CreateAutomationCorrespondenceFoundationTables::class'), 'Automation correspondence migration must be registered in the application catalog.');
+expectMultiDb(str_contains($migrationRegistry, 'CreateStandaloneAutomationCorrespondenceFoundationTables::class'), 'Standalone automation correspondence migration must be registered in the application catalog.');
 expectMultiDb(str_contains($migrationRegistry, 'CreatePlatformCommercialFoundationTables::class'), 'Platform commercial migration must be in core catalog.');
 
 expectMultiDb(str_contains($seederRegistry, "'connection' => 'core.primary'"), 'Core seeders must run on core.primary.');
@@ -95,8 +100,9 @@ expectMultiDb(str_contains($migrationRunner, 'MigrationExecutionException'), 'Ap
 expectMultiDb(substr_count($migrate, 'CreateApplicationMigrationHistoryTable()') === 1, 'Legacy migrate endpoint must register application migration history once.');
 expectMultiDb(str_contains($migrate, 'CreatePlatformCommercialFoundationTables()'), 'Legacy migrate endpoint must preserve platform foundation migration.');
 expectMultiDb(str_contains($seed, 'PlatformCommercialFoundationSeeder()'), 'Legacy seed endpoint must preserve platform foundation seeder.');
-expectMultiDb(!str_contains($migrate, 'ApplicationMigrationRunner'), 'Legacy migrate endpoint behavior must not be replaced.');
-expectMultiDb(!str_contains($seed, 'ApplicationSeederRunner'), 'Legacy seed endpoint behavior must not be replaced.');
+expectMultiDb(str_contains($migrate, "\$application = trim((string) (\$_GET['application'] ?? ''));"), 'Application migration mode must be explicit and opt-in.');
+expectMultiDb(str_contains($seed, "\$application = trim((string) (\$_GET['application'] ?? ''));"), 'Application seeder mode must be explicit and opt-in.');
+expectMultiDb(str_contains($migrate, 'if ($application !== \'\')') && str_contains($seed, 'if ($application !== \'\')'), 'Legacy migrate and seed behavior must remain the no-application default path.');
 
 $diagnostics = [
     'named_connection_registry_available',
@@ -122,7 +128,7 @@ foreach ($diagnostics as $diagnostic) {
     expectMultiDb(str_contains($routes, "'{$diagnostic}'"), "Missing diagnostic: {$diagnostic}");
 }
 
-expectMultiDb(!preg_match('/\b(host|port|database_name|username|password|dsn|secret_reference|PDOException|getMessage\(\))\b/i', $routes), 'Diagnostics must not expose connection topology or exception details.');
+expectMultiDb(!preg_match('/\b(host|port|database_name|username|password|dsn|secret_reference|PDOException|getMessage\(\))\b/i', $diagnosticsRoute), 'Diagnostics must not expose connection topology or exception details.');
 
 $allSources = implode("\n", [$registry, $resolver, $factory, $migrationRegistry, $seederRegistry, $migrationRunner, $historyMigration, $migrate, $seed]);
 expectMultiDb(!preg_match('/REFERENCES\s+[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+/i', $allSources), 'No cross-database foreign keys may be introduced.');

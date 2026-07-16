@@ -8,13 +8,14 @@ use Throwable;
 
 class ApplicationMigrationRunner
 {
-    public function run(string $application, string $connectionName, array $migrations, PDO $connection): void
+    public function run(string $application, string $connectionName, array $migrations, PDO $connection): int
     {
         if ($migrations === []) {
-            return;
+            return 0;
         }
 
         $this->createHistoryTable($connection);
+        $applied = 0;
 
         foreach ($migrations as $migration) {
             $name = get_class($migration);
@@ -44,7 +45,10 @@ class ApplicationMigrationRunner
                 ) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
             ");
             $insert->execute([$application, $connectionName, $name]);
+            $applied++;
         }
+
+        return $applied;
     }
 
     private function createHistoryTable(PDO $connection): void

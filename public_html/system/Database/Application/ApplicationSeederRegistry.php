@@ -21,6 +21,7 @@ class ApplicationSeederRegistry
                     \IPKF\Database\Seeds\RuntimeCheckSeeder::class,
                     \IPKF\Database\Seeds\AuthRbacSeeder::class,
                     \IPKF\Database\Seeds\MultiSourceMetadataSeeder::class,
+                    \IPKF\Database\Seeds\AutomationCorrespondencePermissionsSeeder::class,
                     \IPKF\Database\Seeds\PlatformCommercialFoundationSeeder::class,
                 ],
             ],

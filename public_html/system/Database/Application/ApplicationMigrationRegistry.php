@@ -42,7 +42,7 @@ class ApplicationMigrationRegistry
             'automation' => [
                 'connection' => 'automation.primary',
                 'migrations' => [
-                    \IPKF\Database\Migrations\CreateAutomationCorrespondenceFoundationTables::class,
+                    \IPKF\Database\Migrations\CreateStandaloneAutomationCorrespondenceFoundationTables::class,
                 ],
             ],
         ];

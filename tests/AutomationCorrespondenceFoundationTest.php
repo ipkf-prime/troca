@@ -5,12 +5,14 @@ declare(strict_types=1);
 $root = dirname(__DIR__);
 $migrationPath = $root . '/public_html/system/Database/Migrations/CreateAutomationCorrespondenceFoundationTables.php';
 $seederPath = $root . '/public_html/system/Database/Seeds/AutomationCorrespondenceSeeder.php';
+$permissionsSeederPath = $root . '/public_html/system/Database/Seeds/AutomationCorrespondencePermissionsSeeder.php';
 $migrateRunnerPath = $root . '/public_html/public/migrate.php';
 $seedRunnerPath = $root . '/public_html/public/seed.php';
 $routesPath = $root . '/public_html/routes/web.php';
 
 $migration = file_get_contents($migrationPath);
 $seeder = file_get_contents($seederPath);
+$permissionsSeeder = file_get_contents($permissionsSeederPath);
 $migrateRunner = file_get_contents($migrateRunnerPath);
 $seedRunner = file_get_contents($seedRunnerPath);
 $routes = file_get_contents($routesPath);
@@ -59,6 +61,7 @@ function partyTargetFragment(string $parties, string $kind): string
 
 expectAutomation(is_string($migration), 'Automation migration source must be readable.');
 expectAutomation(is_string($seeder), 'Automation seeder source must be readable.');
+expectAutomation(is_string($permissionsSeeder), 'Automation permissions seeder source must be readable.');
 expectAutomation(is_string($migrateRunner), 'Migration runner source must be readable.');
 expectAutomation(is_string($seedRunner), 'Seeder runner source must be readable.');
 expectAutomation(is_string($routes), 'Diagnostics route source must be readable.');
@@ -348,12 +351,14 @@ $permissions = [
 ];
 
 foreach ($permissions as $permission) {
-    expectAutomation(str_contains($seeder, "'{$permission}'"), "Missing permission: {$permission}");
+    expectAutomation(str_contains($permissionsSeeder, "'{$permission}'"), "Missing permission: {$permission}");
 }
 
 expectAutomation(
-    str_contains($seeder, "WHERE code = 'super_admin'")
-        && str_contains($seeder, 'INSERT IGNORE INTO role_permissions'),
+    !str_contains($seeder, 'INSERT INTO permissions')
+        && !str_contains($seeder, 'role_permissions')
+        && str_contains($permissionsSeeder, "WHERE code = 'super_admin'")
+        && str_contains($permissionsSeeder, 'INSERT IGNORE INTO role_permissions'),
     'Automation permissions must be granted idempotently to super_admin only.'
 );
 
@@ -376,7 +381,7 @@ foreach ($diagnostics as $diagnostic) {
     expectAutomation(str_contains($routes, "'{$diagnostic}'"), "Missing diagnostic: {$diagnostic}");
 }
 
-$foundationSources = $migration . "\n" . $seeder;
+$foundationSources = $migration . "\n" . $seeder . "\n" . $permissionsSeeder;
 expectAutomation(
     preg_match('/\b(?:FROM|JOIN|UPDATE|INTO)\s+[^\s]+\s+rows\b/i', $foundationSources) === 0,
     'Automation SQL must not use ROWS as a table alias.'

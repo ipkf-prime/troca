@@ -6,6 +6,24 @@ use PDO;
 
 class CreateAutomationCorrespondenceFoundationTables extends Migration
 {
+    private const CORE_REFERENCE_TABLES = [
+        'persons',
+        'users',
+        'organizations',
+        'org_units',
+        'positions',
+        'appointments',
+        'roles',
+        'permissions',
+        'fiscal_years',
+        'geographic_locations',
+    ];
+
+    public function __construct(?PDO $db = null, private bool $includeCoreForeignKeys = true)
+    {
+        parent::__construct($db);
+    }
+
     public function up(): void
     {
         $this->createLookupTables();
@@ -458,14 +476,14 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
     {
         $this->addForeignKeyIfPossible('lookup_values', 'lookup_values_domain_fk', 'domain_id', 'lookup_domains', 'id', 'RESTRICT');
 
-        $this->addForeignKeyIfPossible('correspondences', 'corr_organization_fk', 'organization_id', 'organizations', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondences', 'corr_org_unit_fk', 'org_unit_id', 'org_units', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondences', 'corr_fiscal_year_fk', 'fiscal_year_id', 'fiscal_years', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondences', 'corr_created_by_fk', 'created_by_user_id', 'users', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondences', 'corr_updated_by_fk', 'updated_by_user_id', 'users', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondences', 'corr_organization_fk', 'organization_id', 'organizations', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondences', 'corr_org_unit_fk', 'org_unit_id', 'org_units', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondences', 'corr_fiscal_year_fk', 'fiscal_year_id', 'fiscal_years', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondences', 'corr_created_by_fk', 'created_by_user_id', 'users', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondences', 'corr_updated_by_fk', 'updated_by_user_id', 'users', 'id', 'RESTRICT');
 
         $this->addForeignKeyIfPossible('correspondence_versions', 'corr_versions_corr_fk', 'correspondence_id', 'correspondences', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondence_versions', 'corr_versions_user_fk', 'created_by_user_id', 'users', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondence_versions', 'corr_versions_user_fk', 'created_by_user_id', 'users', 'id', 'RESTRICT');
         $this->addCompositeForeignKeyIfPossible(
             'correspondences',
             'corr_current_version_fk',
@@ -476,22 +494,22 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
         );
 
         $this->addForeignKeyIfPossible('correspondence_parties', 'corr_parties_corr_fk', 'correspondence_id', 'correspondences', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondence_parties', 'corr_parties_person_fk', 'person_id', 'persons', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondence_parties', 'corr_parties_org_fk', 'organization_id', 'organizations', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondence_parties', 'corr_parties_unit_fk', 'org_unit_id', 'org_units', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondence_parties', 'corr_parties_person_fk', 'person_id', 'persons', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondence_parties', 'corr_parties_org_fk', 'organization_id', 'organizations', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondence_parties', 'corr_parties_unit_fk', 'org_unit_id', 'org_units', 'id', 'RESTRICT');
 
-        $this->addForeignKeyIfPossible('registry_books', 'registry_books_org_fk', 'organization_id', 'organizations', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('registry_books', 'registry_books_fiscal_fk', 'fiscal_year_id', 'fiscal_years', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('registry_books', 'registry_books_unit_fk', 'org_unit_id', 'org_units', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('registry_books', 'registry_books_org_fk', 'organization_id', 'organizations', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('registry_books', 'registry_books_fiscal_fk', 'fiscal_year_id', 'fiscal_years', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('registry_books', 'registry_books_unit_fk', 'org_unit_id', 'org_units', 'id', 'RESTRICT');
 
         $this->addForeignKeyIfPossible('correspondence_registrations', 'corr_reg_corr_fk', 'correspondence_id', 'correspondences', 'id', 'RESTRICT');
         $this->addForeignKeyIfPossible('correspondence_registrations', 'corr_reg_book_fk', 'registry_book_id', 'registry_books', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondence_registrations', 'corr_reg_user_fk', 'registered_by_user_id', 'users', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondence_registrations', 'corr_reg_cancel_user_fk', 'cancelled_by_user_id', 'users', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondence_registrations', 'corr_reg_user_fk', 'registered_by_user_id', 'users', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondence_registrations', 'corr_reg_cancel_user_fk', 'cancelled_by_user_id', 'users', 'id', 'RESTRICT');
 
         $this->addForeignKeyIfPossible('correspondence_relations', 'corr_rel_source_fk', 'source_correspondence_id', 'correspondences', 'id', 'RESTRICT');
         $this->addForeignKeyIfPossible('correspondence_relations', 'corr_rel_target_fk', 'target_correspondence_id', 'correspondences', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondence_relations', 'corr_rel_user_fk', 'created_by_user_id', 'users', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondence_relations', 'corr_rel_user_fk', 'created_by_user_id', 'users', 'id', 'RESTRICT');
 
         $this->addForeignKeyIfPossible('correspondence_referrals', 'corr_ref_corr_fk', 'correspondence_id', 'correspondences', 'id', 'RESTRICT');
         $this->addCompositeForeignKeyIfPossible(
@@ -502,13 +520,13 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
             ['correspondence_id', 'id'],
             'RESTRICT'
         );
-        $this->addForeignKeyIfPossible('correspondence_referrals', 'corr_ref_by_user_fk', 'referred_by_user_id', 'users', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondence_referrals', 'corr_ref_source_unit_fk', 'source_org_unit_id', 'org_units', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondence_referrals', 'corr_ref_target_user_fk', 'target_user_id', 'users', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondence_referrals', 'corr_ref_target_unit_fk', 'target_org_unit_id', 'org_units', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondence_referrals', 'corr_ref_target_pos_fk', 'target_position_id', 'positions', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondence_referrals', 'corr_ref_claimed_user_fk', 'claimed_by_user_id', 'users', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondence_referrals', 'corr_ref_completed_user_fk', 'completed_by_user_id', 'users', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondence_referrals', 'corr_ref_by_user_fk', 'referred_by_user_id', 'users', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondence_referrals', 'corr_ref_source_unit_fk', 'source_org_unit_id', 'org_units', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondence_referrals', 'corr_ref_target_user_fk', 'target_user_id', 'users', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondence_referrals', 'corr_ref_target_unit_fk', 'target_org_unit_id', 'org_units', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondence_referrals', 'corr_ref_target_pos_fk', 'target_position_id', 'positions', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondence_referrals', 'corr_ref_claimed_user_fk', 'claimed_by_user_id', 'users', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondence_referrals', 'corr_ref_completed_user_fk', 'completed_by_user_id', 'users', 'id', 'RESTRICT');
 
         $this->addForeignKeyIfPossible('correspondence_events', 'corr_events_corr_fk', 'correspondence_id', 'correspondences', 'id', 'RESTRICT');
         $this->addCompositeForeignKeyIfPossible(
@@ -519,10 +537,10 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
             ['correspondence_id', 'id'],
             'RESTRICT'
         );
-        $this->addForeignKeyIfPossible('correspondence_events', 'corr_events_user_fk', 'actor_user_id', 'users', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondence_events', 'corr_events_unit_fk', 'actor_org_unit_id', 'org_units', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondence_events', 'corr_events_user_fk', 'actor_user_id', 'users', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondence_events', 'corr_events_unit_fk', 'actor_org_unit_id', 'org_units', 'id', 'RESTRICT');
 
-        $this->addForeignKeyIfPossible('private_files', 'private_files_user_fk', 'uploaded_by_user_id', 'users', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('private_files', 'private_files_user_fk', 'uploaded_by_user_id', 'users', 'id', 'RESTRICT');
 
         $this->addForeignKeyIfPossible('correspondence_attachments', 'corr_attach_corr_fk', 'correspondence_id', 'correspondences', 'id', 'RESTRICT');
         $this->addCompositeForeignKeyIfPossible(
@@ -534,7 +552,22 @@ class CreateAutomationCorrespondenceFoundationTables extends Migration
             'RESTRICT'
         );
         $this->addForeignKeyIfPossible('correspondence_attachments', 'corr_attach_file_fk', 'file_id', 'private_files', 'id', 'RESTRICT');
-        $this->addForeignKeyIfPossible('correspondence_attachments', 'corr_attach_user_fk', 'linked_by_user_id', 'users', 'id', 'RESTRICT');
+        $this->addCoreForeignKeyIfAllowed('correspondence_attachments', 'corr_attach_user_fk', 'linked_by_user_id', 'users', 'id', 'RESTRICT');
+    }
+
+    private function addCoreForeignKeyIfAllowed(
+        string $table,
+        string $constraint,
+        string $column,
+        string $referenceTable,
+        string $referenceColumn,
+        string $onDelete
+    ): void {
+        if (!$this->includeCoreForeignKeys && in_array($referenceTable, self::CORE_REFERENCE_TABLES, true)) {
+            return;
+        }
+
+        $this->addForeignKeyIfPossible($table, $constraint, $column, $referenceTable, $referenceColumn, $onDelete);
     }
 
     private function referenceColumnType(string $table, string $column, string $default): string

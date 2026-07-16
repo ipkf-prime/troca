@@ -371,7 +371,14 @@ Scope:
 - Application-aware migration and seeder registries.
 - Application-aware migration history table.
 - Safe connection health diagnostics without exposing topology or credentials.
+- Standalone Automation database provisioning foundation.
+- Standalone Automation correspondence schema profile without Core-targeting foreign keys.
+- Core reference contracts for scalar Core-owned references.
+- Historical snapshot policy for future correspondence write services.
+- Split Automation metadata seeding from Core RBAC permission seeding.
+- Protected `application=automation` migration and seeder modes.
+- Cutover readiness and rollback-source diagnostics.
 
 Deferred implementation scope:
 
-- Installer UI, DNS creation, database/user creation, SSL provisioning, physical automation database creation, runtime repository switching, automation table migration, sales documents, online license server, cryptographic license signing, offline activation files, usage metering, runtime license enforcement, distributed transactions, outbox delivery workers, and operational automation services.
+- Adding real `AUTOMATION_DB_*` values to the repository, installer UI, DNS creation, database/user creation, SSL provisioning, copying operational automation data, automatic cutover, dual writes, deleting legacy automation tables, runtime repository switching, sales documents, online license server, cryptographic license signing, offline activation files, usage metering, runtime license enforcement, distributed transactions, outbox delivery workers, and operational automation services.

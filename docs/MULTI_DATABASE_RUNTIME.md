@@ -27,6 +27,24 @@ The core database remains authoritative for identity, authentication, MFA, RBAC,
 
 Specialized application databases own operational data. The first specialized connection is `automation.primary`.
 
+## Core versus Automation ownership
+
+Core-owned records must not be referenced from the standalone Automation database through SQL foreign keys, schema-qualified queries, views, triggers, or generated SQL. Automation stores Core-owned identities as scalar reference values only.
+
+Automation-owned records include:
+
+- `lookup_domains` and `lookup_values` for Automation-local metadata.
+- `correspondences` and immutable `correspondence_versions`.
+- `correspondence_parties`.
+- `registry_books` and `correspondence_registrations`.
+- `correspondence_relations`.
+- `correspondence_referrals`.
+- `correspondence_events`.
+- `private_files` metadata and `correspondence_attachments`.
+- Automation-local `application_migrations`.
+
+Core-owned references include persons, users, organizations, org units, positions, appointments, fiscal years, and geographic locations. Future write services must validate these through the Core application boundary before committing Automation transactions.
+
 ## Configuration and Fallback
 
 The existing `DB_*` configuration remains the core connection.
@@ -46,6 +64,16 @@ If no automation-specific connection is configured, `automation.primary` falls b
 
 If a partial automation configuration is present, the dedicated definition is considered incomplete and fails safely without exposing credentials or topology details.
 
+## Provisioning states
+
+The runtime supports these safe states:
+
+- `fallback`: `automation.primary` shares `core.primary`; current runtime remains unchanged and standalone provisioning is blocked.
+- `provisioning`: a dedicated `automation.primary` can be checked, migrated, and seeded while runtime remains on the legacy Core-hosted Automation tables.
+- `dedicated`: deferred future state where Automation services may resolve the dedicated database only after readiness checks pass.
+
+No automatic cutover or rollback exists in this release.
+
 ## Migration Grouping
 
 Legacy `/migrate.php` remains protected by `APP_DEBUG=true` and `DEV_MAINTENANCE_KEY`, and keeps its existing behavior.
@@ -57,6 +85,21 @@ The application-aware migration registry groups migrations by logical applicatio
 
 The automation correspondence migration is intentionally registered in the automation catalog while remaining in the legacy migration path during this transitional phase. The application-aware runner uses a separate `application_migrations` history table keyed by application, connection, and migration name.
 
+Standalone Automation provisioning uses:
+
+```text
+/migrate.php?key=DEV_MAINTENANCE_KEY&application=automation
+```
+
+Rules:
+
+- `APP_DEBUG=true` and a valid maintenance key are required.
+- `application` is allowlisted to `core` and `automation`.
+- `application=core` is accepted as a no-op compatibility mode in this phase so the legacy default path is not duplicated.
+- `application=automation` rejects fallback mode and requires a dedicated, configured, available, utf8mb4 `automation.primary`.
+- The standalone Automation migration profile omits only Core-targeting foreign keys and preserves Automation-internal foreign keys.
+- Public failure output exposes only an opaque failure reference.
+
 ## Seeder Grouping
 
 The application-aware seeder registry groups metadata seeders by logical application and named connection:
@@ -65,6 +108,45 @@ The application-aware seeder registry groups metadata seeders by logical applica
 - automation metadata seeders on `automation.primary`
 
 Legacy `/seed.php` remains protected and keeps current behavior. No operational data is seeded by the multi-database runtime foundation.
+
+Automation metadata seeding uses:
+
+```text
+/seed.php?key=DEV_MAINTENANCE_KEY&application=automation
+```
+
+The Automation seeder writes only Automation-local lookup metadata. Automation RBAC permissions remain a Core responsibility and are seeded by the Core permissions seeder.
+
+`application=core` is accepted as a no-op compatibility mode in this phase; continue using the legacy default `/seed.php` path for Core seeding until a later explicit release changes that behavior.
+
+## Core reference contract
+
+The lightweight Core reference contract is represented by:
+
+- `CoreReference`
+- `CoreReferenceType`
+- `CoreReferenceValidator`
+- `CoreReferenceSnapshotPolicy`
+
+It supports person, user, organization, org unit, position, appointment, fiscal year, and geographic location references without creating cross-database SQL dependencies.
+
+## Snapshot policy
+
+Future correspondence write services must preserve historical display snapshots where a document needs the value visible at creation or registration time. Required snapshot subjects include organization title, organizational unit title, person display name, position title, external correspondent identity, signer identity and position, and registry owner display information.
+
+## Cutover readiness and rollback
+
+Cutover remains blocked unless all safe readiness checks are true:
+
+- dedicated Automation connection configured and available;
+- standalone schema exists;
+- Automation metadata exists;
+- internal Automation foreign keys are present;
+- Core-targeting foreign keys are absent;
+- no cross-database SQL policy violation exists;
+- legacy Core Automation operational data is absent.
+
+Legacy Core-hosted Automation tables are retained as the rollback source. They are not dropped, renamed, truncated, copied, synchronized, or retired in this phase.
 
 ## Transaction Boundaries
 
@@ -81,7 +163,8 @@ Distributed transactions are explicitly deferred.
 - No table copy, move, rename, or deletion.
 - No runtime connection switching for existing automation repositories yet.
 - No credentials, complete DSNs, hostnames, database names, usernames, secret references, SQL, stack traces, or PDO driver errors in public diagnostics.
+- Private failure logs remain outside the public document root.
 
 ## Deferred Work
 
-Deferred items include physical automation database creation, storing real automation credentials, moving automation tables, switching automation repositories, deleting legacy automation tables, installer UI, DNS or SSL provisioning, runtime license enforcement, sales and invoicing, correspondence operational services, workflow engine, document generation, QR generation, message broker, and outbox delivery workers.
+Deferred items include adding real `AUTOMATION_DB_*` values to the repository, creating databases or database users, copying operational data, dual writes, deleting legacy tables, switching existing diagnostics away from Core, operational correspondence services, correspondence UI, Workflow and forms, document generation, PDF/JPG/QR, digital signature, object storage, licensing enforcement, Installer UI, commercial billing, online license server, message broker, and outbox delivery workers.

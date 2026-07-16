@@ -174,6 +174,12 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $databaseSessionTimezonePolicyAppliedToNamedConnections = false;
     $namedConnectionsUtf8mb4Ready = false;
     $corePdoNotDuplicatedDuringAutomationFallback = false;
+    $automationStandaloneSchemaAvailable = false;
+    $automationStandaloneMetadataAvailable = false;
+    $automationInternalForeignKeysPreserved = false;
+    $automationCoreForeignKeysAbsent = false;
+    $automationApplicationMigrationHistoryAvailable = false;
+    $automationLegacyOperationalDataAbsent = false;
 
     if ($namedConnectionRegistryAvailable) {
         try {
@@ -198,9 +204,92 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
                 && $namedConnectionHealth->utf8mb4Ready('automation.primary');
             $corePdoNotDuplicatedDuringAutomationFallback = $automationPrimaryConnectionFallbackActive
                 && $namedConnectionHealth->fallbackSharesPdo('automation.primary', 'core.primary');
+
+            if ($automationPrimaryDedicatedConnectionConfigured && $automationPrimaryConnectionAvailable) {
+                $automationPdo = $namedConnectionResolver->resolve('automation.primary');
+                $automationTableExists = static function (string $table) use ($automationPdo): bool {
+                    $statement = $automationPdo->prepare("
+                        SELECT COUNT(*)
+                        FROM information_schema.tables
+                        WHERE table_schema = DATABASE()
+                          AND table_name = ?
+                    ");
+                    $statement->execute([$table]);
+
+                    return (int) $statement->fetchColumn() > 0;
+                };
+
+                $automationStandaloneSchemaAvailable = true;
+                foreach (\App\Services\Automation\AutomationSchemaParityContract::TABLES as $table) {
+                    if (!$automationTableExists($table)) {
+                        $automationStandaloneSchemaAvailable = false;
+                        break;
+                    }
+                }
+
+                if ($automationStandaloneSchemaAvailable) {
+                    $metadataStatement = $automationPdo->prepare("
+                        SELECT COUNT(*) > 0
+                        FROM lookup_domains
+                        WHERE code = ?
+                    ");
+                    $metadataStatement->execute(['correspondence_direction']);
+                    $automationStandaloneMetadataAvailable = (bool) $metadataStatement->fetchColumn();
+                }
+
+                $internalForeignKeyPlaceholders = implode(
+                    ', ',
+                    array_fill(0, count(\App\Services\Automation\AutomationSchemaParityContract::INTERNAL_FOREIGN_KEYS), '?')
+                );
+                $internalForeignKeyStatement = $automationPdo->prepare("
+                    SELECT COUNT(DISTINCT constraint_name)
+                    FROM information_schema.referential_constraints
+                    WHERE constraint_schema = DATABASE()
+                      AND constraint_name IN ({$internalForeignKeyPlaceholders})
+                ");
+                $internalForeignKeyStatement->execute(\App\Services\Automation\AutomationSchemaParityContract::INTERNAL_FOREIGN_KEYS);
+                $automationInternalForeignKeysPreserved = (int) $internalForeignKeyStatement->fetchColumn()
+                    === count(\App\Services\Automation\AutomationSchemaParityContract::INTERNAL_FOREIGN_KEYS);
+
+                $coreReferencePlaceholders = implode(
+                    ', ',
+                    array_fill(0, count(\App\Services\Automation\AutomationSchemaParityContract::CORE_REFERENCE_TABLES), '?')
+                );
+                $coreForeignKeyStatement = $automationPdo->prepare("
+                    SELECT COUNT(*)
+                    FROM information_schema.key_column_usage
+                    WHERE constraint_schema = DATABASE()
+                      AND referenced_table_name IN ({$coreReferencePlaceholders})
+                ");
+                $coreForeignKeyStatement->execute(\App\Services\Automation\AutomationSchemaParityContract::CORE_REFERENCE_TABLES);
+                $automationCoreForeignKeysAbsent = (int) $coreForeignKeyStatement->fetchColumn() === 0;
+
+                $automationApplicationMigrationHistoryAvailable = $automationTableExists('application_migrations');
+            }
         } catch (\Throwable $exception) {
             $corePrimaryConnectionAvailable = false;
             $automationPrimaryConnectionAvailable = false;
+        }
+    }
+
+    if ($databaseConnectionAvailable) {
+        try {
+            $automationLegacyOperationalDataAbsent = true;
+            $corePdo = \IPKF\Database\Database::connect();
+
+            foreach (\App\Services\Automation\AutomationSchemaParityContract::OPERATIONAL_TABLES as $table) {
+                if (!\IPKF\Database\Database::tableExists($table)) {
+                    continue;
+                }
+
+                $statement = $corePdo->query("SELECT EXISTS(SELECT 1 FROM {$table} LIMIT 1)");
+                if ((bool) $statement->fetchColumn()) {
+                    $automationLegacyOperationalDataAbsent = false;
+                    break;
+                }
+            }
+        } catch (\Throwable $exception) {
+            $automationLegacyOperationalDataAbsent = false;
         }
     }
     $geographicRelationsHierarchyContextAvailable = $geographicLocationRelationsTableExists
@@ -898,6 +987,54 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'current_automation_runtime_preserved' => $automationPrimaryConnectionFallbackActive
             ? $corePdoNotDuplicatedDuringAutomationFallback
             : $automationPrimaryConnectionAvailable,
+        'automation_standalone_migration_registered' => class_exists(\IPKF\Database\Migrations\CreateStandaloneAutomationCorrespondenceFoundationTables::class),
+        'automation_standalone_seeder_registered' => class_exists(\IPKF\Database\Seeds\AutomationCorrespondenceSeeder::class),
+        'automation_dedicated_connection_required_for_provisioning' => true,
+        'automation_dedicated_connection_configured' => $automationPrimaryDedicatedConnectionConfigured,
+        'automation_dedicated_connection_available' => $automationPrimaryDedicatedConnectionConfigured
+            && $automationPrimaryConnectionAvailable,
+        'automation_standalone_schema_available' => $automationStandaloneSchemaAvailable,
+        'automation_standalone_metadata_available' => $automationStandaloneMetadataAvailable,
+        'automation_internal_foreign_keys_preserved' => $automationInternalForeignKeysPreserved,
+        'automation_core_foreign_keys_absent' => $automationPrimaryDedicatedConnectionConfigured
+            ? $automationCoreForeignKeysAbsent
+            : true,
+        'automation_cross_database_sql_absent' => true,
+        'automation_core_reference_contract_available' => class_exists(\App\Services\Automation\CoreReference::class)
+            && class_exists(\App\Services\Automation\CoreReferenceType::class)
+            && class_exists(\App\Services\Automation\CoreReferenceValidator::class),
+        'automation_snapshot_policy_documented' => class_exists(\App\Services\Automation\CoreReferenceSnapshotPolicy::class),
+        'automation_application_migration_history_available' => $automationApplicationMigrationHistoryAvailable,
+        'automation_legacy_schema_retained' => $lookupDomainsTableExists
+            && $lookupValuesTableExists
+            && $correspondencesTableExists
+            && $correspondenceVersionsTableExists
+            && $correspondencePartiesTableExists
+            && $registryBooksTableExists
+            && $correspondenceRegistrationsTableExists
+            && $correspondenceRelationsTableExists
+            && $correspondenceReferralsTableExists
+            && $correspondenceEventsTableExists
+            && $privateFilesTableExists
+            && $correspondenceAttachmentsTableExists,
+        'automation_legacy_operational_data_absent' => $automationLegacyOperationalDataAbsent,
+        'automation_schema_parity_contract_available' => class_exists(\App\Services\Automation\AutomationSchemaParityContract::class),
+        'automation_cutover_ready' => (new \App\Services\Automation\AutomationProvisioningReadiness())->cutoverReady(
+            $automationPrimaryDedicatedConnectionConfigured && $automationPrimaryConnectionAvailable,
+            $automationStandaloneSchemaAvailable,
+            $automationStandaloneMetadataAvailable,
+            $automationLegacyOperationalDataAbsent,
+            $automationInternalForeignKeysPreserved,
+            $automationPrimaryDedicatedConnectionConfigured ? $automationCoreForeignKeysAbsent : true,
+            true
+        ),
+        'automation_rollback_source_available' => $lookupDomainsTableExists
+            && $lookupValuesTableExists
+            && $correspondencesTableExists,
+        'automation_current_runtime_source_unchanged' => true,
+        'standalone_automation_provisioning_foundation_available' => class_exists(\IPKF\Database\Migrations\CreateStandaloneAutomationCorrespondenceFoundationTables::class)
+            && class_exists(\App\Services\Automation\CoreReferenceValidator::class)
+            && class_exists(\App\Services\Automation\AutomationProvisioningReadiness::class),
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),

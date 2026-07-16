@@ -898,3 +898,22 @@ Security and compatibility:
 - No distributed transaction support is added.
 - No runtime route is license-blocked or forced to require a dedicated automation database.
 - Diagnostics include only safe booleans for named connection readiness.
+
+## v0.4.8 Standalone Automation Provisioning Checks
+
+- `CreateStandaloneAutomationCorrespondenceFoundationTables` is registered only for the Automation application migration group.
+- Legacy `CreateAutomationCorrespondenceFoundationTables` remains available for the Core-hosted rollback baseline.
+- The standalone Automation profile preserves Automation-internal foreign keys.
+- The standalone Automation profile omits Core-targeting foreign keys.
+- Core references are represented by scalar reference contracts, not cross-database SQL.
+- `AutomationCorrespondenceSeeder` writes only Automation-local lookup metadata.
+- `AutomationCorrespondencePermissionsSeeder` writes Core RBAC permissions and super_admin grants.
+- `/migrate.php` without `application` preserves existing legacy behavior.
+- `/seed.php` without `application` preserves existing legacy behavior.
+- `/migrate.php?application=automation` requires a valid maintenance key, `APP_DEBUG=true`, and a dedicated non-fallback `automation.primary`.
+- `/seed.php?application=automation` requires a valid maintenance key, `APP_DEBUG=true`, a dedicated non-fallback `automation.primary`, and an existing standalone schema.
+- Application failure responses expose only opaque failure references.
+- Public diagnostics expose no database host, port, database name, username, password, DSN, SQL, row count, PDO error, Core ID, subject, party, filename, or storage key.
+- Legacy Core Automation tables are retained and are not dropped, renamed, truncated, copied, synchronized, or retired.
+- Cutover readiness remains false until dedicated connection, schema, metadata, FK, cross-database policy, and legacy operational-data guards all pass.
+- No operational correspondence UI, service, workflow, document generation, licensing enforcement, database creation, database-user creation, or credential commit is added.
