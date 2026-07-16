@@ -347,3 +347,26 @@ Deferred implementation scope:
 - Correspondence CRUD, editor, upload/download, notifications, digital signature/seal, OCR, PDF/document conversion, and external APIs.
 
 The Ministry hierarchy remains the only operational canonical geography. This milestone writes no geography, SCI, Rural Cooperation, or bot data.
+
+## Active Milestone
+
+IPKF v0.4.8 Platform Commercial Foundation starts the commercial deployment model required for a multi-application IPKF platform.
+
+Working version: `0.4.8-platform-commercial-foundation-dev`
+
+Development branch: `v0.4.8-platform-commercial-foundation-dev`
+
+Scope:
+
+- Platform-owned application and module catalogs.
+- Installation and environment registry foundation.
+- Installation application and module state records.
+- Domain, database, storage, and service endpoint metadata with secret-reference policy.
+- Licensing, entitlement, quantitative limit, and ModuleGate contracts.
+- Resumable provisioning run and step audit records.
+- First specialized application catalog entry: `automation`.
+- Automation module catalog entries without operational UI or route enforcement.
+
+Deferred implementation scope:
+
+- Installer UI, DNS creation, database/user creation, SSL provisioning, runtime connection switching, multi-database routing, automation table migration, sales documents, online license server, cryptographic license signing, offline activation files, usage metering, runtime license enforcement, and operational automation services.

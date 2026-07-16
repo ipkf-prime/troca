@@ -821,3 +821,58 @@ Security and regression:
 - No reserved `ROWS` SQL alias exists.
 - Persian UTF-8 lookup labels remain valid.
 - `git diff --check` passes.
+
+## v0.4.8 Platform Commercial Foundation Checks
+
+Version: `0.4.8-platform-commercial-foundation-dev`
+
+Schema and registry:
+
+- Protected migration creates all `platform_*` catalog, topology, licensing, and provisioning tables.
+- Migration is additive, idempotent, utf8mb4, InnoDB, and MariaDB-compatible.
+- No existing Auth, RBAC, MFA, organization, geography, or automation table is renamed, removed, or moved.
+- No cross-database foreign key is introduced.
+- No global foreign-key disabling is used.
+- Endpoint credentials are represented only by secret/credential reference columns.
+- No database password, storage secret, private key, token, or signed license content is stored in plaintext schema fields.
+- Application codes are unique and lowercase.
+- Module codes are unique and lowercase.
+- Module dependency self-reference is rejected.
+- Duplicate module dependencies are rejected.
+- Installation/application and installation/module associations are unique.
+- Domain primary and alias rules are deterministic per installation, environment, and application.
+- License entitlements reference known modules.
+- License limits are unique by entitlement and metric.
+- Provisioning step order is deterministic.
+
+Seeder:
+
+- `PlatformCommercialFoundationSeeder` is registered exactly once.
+- Application catalog seeds `core` and `automation` idempotently.
+- Core modules are seeded idempotently.
+- Automation modules are seeded idempotently.
+- Module dependencies are seeded idempotently.
+- No operational installation, environment, domain, endpoint, license, customer, invoice, or correspondence record is seeded.
+
+Diagnostics:
+
+- `platform_catalog_available`
+- `platform_application_catalog_available`
+- `platform_module_catalog_available`
+- `platform_module_dependencies_available`
+- `platform_installation_registry_available`
+- `platform_topology_registry_available`
+- `platform_license_foundation_available`
+- `platform_entitlement_contract_available`
+- `platform_provisioning_foundation_available`
+- `platform_connection_secrets_not_stored_plaintext`
+- `platform_cross_database_foreign_keys_absent`
+- `platform_existing_runtime_compatibility_preserved`
+
+Security and compatibility:
+
+- Diagnostics expose no counts, IDs, domains, hosts, database names, customer references, license contents, topology details, or secret references.
+- No existing route is license-blocked in this phase.
+- Existing super_admin access remains functional.
+- Current v0.4.7 automation correspondence foundation remains compatible.
+- Runtime license enforcement, activation, infrastructure creation, and operational automation UI remain deferred.

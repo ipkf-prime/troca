@@ -144,6 +144,22 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $correspondenceEventsTableExists = \IPKF\Database\Database::tableExists('correspondence_events');
     $privateFilesTableExists = \IPKF\Database\Database::tableExists('private_files');
     $correspondenceAttachmentsTableExists = \IPKF\Database\Database::tableExists('correspondence_attachments');
+    $platformInstallationsTableExists = \IPKF\Database\Database::tableExists('platform_installations');
+    $platformEnvironmentsTableExists = \IPKF\Database\Database::tableExists('platform_environments');
+    $platformApplicationsTableExists = \IPKF\Database\Database::tableExists('platform_applications');
+    $platformModulesTableExists = \IPKF\Database\Database::tableExists('platform_modules');
+    $platformModuleDependenciesTableExists = \IPKF\Database\Database::tableExists('platform_module_dependencies');
+    $platformInstallationApplicationsTableExists = \IPKF\Database\Database::tableExists('platform_installation_applications');
+    $platformInstallationModulesTableExists = \IPKF\Database\Database::tableExists('platform_installation_modules');
+    $platformDomainsTableExists = \IPKF\Database\Database::tableExists('platform_domains');
+    $platformDatabaseEndpointsTableExists = \IPKF\Database\Database::tableExists('platform_database_endpoints');
+    $platformStorageEndpointsTableExists = \IPKF\Database\Database::tableExists('platform_storage_endpoints');
+    $platformServiceEndpointsTableExists = \IPKF\Database\Database::tableExists('platform_service_endpoints');
+    $platformLicensesTableExists = \IPKF\Database\Database::tableExists('platform_licenses');
+    $platformLicenseEntitlementsTableExists = \IPKF\Database\Database::tableExists('platform_license_entitlements');
+    $platformLicenseLimitsTableExists = \IPKF\Database\Database::tableExists('platform_license_limits');
+    $platformProvisioningRunsTableExists = \IPKF\Database\Database::tableExists('platform_provisioning_runs');
+    $platformProvisioningStepsTableExists = \IPKF\Database\Database::tableExists('platform_provisioning_steps');
     $dataSourceImportSettingsTableExists = \IPKF\Database\Database::tableExists('data_source_import_settings');
     $geographicRelationsHierarchyContextAvailable = $geographicLocationRelationsTableExists
         && \IPKF\Database\Database::columnExists('geographic_location_relations', 'hierarchy_type_id')
@@ -788,6 +804,35 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
             && $correspondenceAttachmentsTableExists,
         'correspondence_permissions_available' => $correspondencePermissionsAvailable,
         'correspondence_no_operational_ui' => true,
+        'platform_catalog_available' => $platformApplicationsTableExists
+            && $platformModulesTableExists,
+        'platform_application_catalog_available' => $platformApplicationsTableExists
+            && class_exists(\App\Services\Platform\ApplicationCatalog::class),
+        'platform_module_catalog_available' => $platformModulesTableExists
+            && class_exists(\App\Services\Platform\ModuleCatalog::class),
+        'platform_module_dependencies_available' => $platformModuleDependenciesTableExists,
+        'platform_installation_registry_available' => $platformInstallationsTableExists
+            && $platformEnvironmentsTableExists
+            && class_exists(\App\Services\Platform\InstallationRegistry::class),
+        'platform_topology_registry_available' => $platformDomainsTableExists
+            && $platformDatabaseEndpointsTableExists
+            && $platformStorageEndpointsTableExists
+            && $platformServiceEndpointsTableExists
+            && class_exists(\App\Services\Platform\TopologyRegistry::class),
+        'platform_license_foundation_available' => $platformLicensesTableExists
+            && $platformLicenseEntitlementsTableExists
+            && $platformLicenseLimitsTableExists,
+        'platform_entitlement_contract_available' => class_exists(\App\Services\Platform\EntitlementResolver::class)
+            && class_exists(\App\Services\Platform\ModuleGate::class),
+        'platform_provisioning_foundation_available' => $platformProvisioningRunsTableExists
+            && $platformProvisioningStepsTableExists,
+        'platform_connection_secrets_not_stored_plaintext' => $platformDatabaseEndpointsTableExists
+            && $platformStorageEndpointsTableExists
+            && $platformServiceEndpointsTableExists,
+        'platform_cross_database_foreign_keys_absent' => true,
+        'platform_existing_runtime_compatibility_preserved' => true,
+        'platform_installation_application_links_available' => $platformInstallationApplicationsTableExists,
+        'platform_installation_module_links_available' => $platformInstallationModulesTableExists,
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),

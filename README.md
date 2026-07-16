@@ -6,7 +6,7 @@ business modules.
 
 ## Version
 
-Current version: `0.4.7-automation-foundation`
+Current version: `0.4.8-platform-commercial-foundation-dev`
 
 ## Requirements
 
@@ -124,6 +124,8 @@ Dynamic organization architecture is documented in `docs/DYNAMIC_ORGANIZATION_CO
 The v0.4.7 stable baseline is `0.4.7-automation-foundation`. It adds the additive correspondence domain foundation for دبیرخانه, incoming/outgoing/internal correspondence, immutable versions, normalized parties, registry books, official registrations, relations, referrals, personal/unit cartable derivation, append-only events, and private attachment metadata.
 
 This milestone is schema and metadata only. It adds no operational correspondence UI, editor, upload/download endpoint, notification delivery, numbering API, workflow designer, signature, OCR, PDF generation, public tracking, external API, or operational record. Future official number allocation must use a database transaction and row-level lock on the registry book.
+
+The active development milestone is `0.4.8-platform-commercial-foundation-dev`. It adds the platform commercial foundation for application/module catalogs, installation and topology registries, licensing metadata, entitlement contracts, and auditable provisioning records. It does not enforce licensing on current routes, create infrastructure, switch runtime databases, or seed operational installation/license/customer data.
 
 Set:
 
