@@ -917,3 +917,25 @@ Security and compatibility:
 - Legacy Core Automation tables are retained and are not dropped, renamed, truncated, copied, synchronized, or retired.
 - Cutover readiness remains false until dedicated connection, schema, metadata, FK, cross-database policy, and legacy operational-data guards all pass.
 - No operational correspondence UI, service, workflow, document generation, licensing enforcement, database creation, database-user creation, or credential commit is added.
+
+## v0.4.8 Guarded Automation Runtime Activation Checks
+
+- `AUTOMATION_DB_MODE` is documented and present in `.env.example`.
+- Allowed modes are `fallback`, `provisioning`, and `dedicated`.
+- Missing mode never defaults to `dedicated`.
+- Invalid mode is represented safely and does not activate dedicated runtime.
+- `provisioning` keeps the current Automation runtime source unchanged.
+- `dedicated` requires all cutover guard conditions.
+- `dedicated` rejects fallback Core connection use for Automation runtime.
+- Dedicated connection failure fails closed.
+- Core runtime remains available if Automation dedicated storage is unavailable.
+- Automatic cutover is disabled.
+- Automatic rollback is disabled.
+- Explicit rollback remains available through `AUTOMATION_DB_MODE=provisioning` or `fallback`.
+- Legacy rollback source tables are retained.
+- No dual-write behavior is introduced.
+- No cross-database SQL or FK is introduced.
+- No legacy Automation table is removed, renamed, truncated, copied, or modified.
+- Application migration and seeder modes remain protected and compatible.
+- Diagnostics expose only safe booleans and the safe runtime mode enum.
+- Runtime version remains `0.4.8-platform-commercial-foundation-dev`.

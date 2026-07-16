@@ -35,9 +35,14 @@ if ($application !== '') {
 
         $connectionName = (string) ($group['connection'] ?? '');
         $definition = $registry->get($connectionName);
+        $runtimeMode = new \App\Services\Automation\AutomationRuntimeMode($registry);
 
         if ($application === 'automation') {
-            if ($definition === null || $definition->usesFallback() || !$definition->configured()) {
+            if (!$runtimeMode->provisioningAllowed()
+                || $definition === null
+                || $definition->usesFallback()
+                || !$definition->configured()
+            ) {
                 throw new \RuntimeException('Dedicated automation connection is required.');
             }
         }

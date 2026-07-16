@@ -59,6 +59,7 @@ Optional automation connection variables:
 - `AUTOMATION_DB_CHARSET`
 - `AUTOMATION_DB_SSL_MODE`
 - `AUTOMATION_DB_CONNECTION_TIMEOUT`
+- `AUTOMATION_DB_MODE`
 
 If no automation-specific connection is configured, `automation.primary` falls back to the existing `core.primary` PDO connection. This preserves the current v0.4.7 automation correspondence tables in the current database.
 
@@ -72,7 +73,67 @@ The runtime supports these safe states:
 - `provisioning`: a dedicated `automation.primary` can be checked, migrated, and seeded while runtime remains on the legacy Core-hosted Automation tables.
 - `dedicated`: deferred future state where Automation services may resolve the dedicated database only after readiness checks pass.
 
+`AUTOMATION_DB_MODE` accepts only `fallback`, `provisioning`, or `dedicated`.
+Invalid values fail safely. If the variable is absent, the runtime resolves to
+`provisioning` when a complete dedicated Automation connection is configured,
+and `fallback` when it is not. It never defaults to `dedicated`.
+
 No automatic cutover or rollback exists in this release.
+
+## Dedicated runtime activation
+
+Dedicated runtime activation is explicit:
+
+```text
+AUTOMATION_DB_MODE=dedicated
+```
+
+Dedicated mode is active only when the cutover guard passes all readiness
+conditions:
+
+- dedicated connection configured and available;
+- utf8mb4 and UTC database session policy ready;
+- standalone schema and metadata available;
+- Automation-local migration history available;
+- internal Automation foreign keys preserved;
+- Core-targeting foreign keys absent;
+- cross-database SQL policy clean;
+- schema parity contract available;
+- legacy operational data absent;
+- rollback source retained.
+
+If any condition fails in dedicated mode, the Automation runtime resolver fails
+closed and never silently reads or writes the legacy Core Automation tables.
+Existing non-Automation routes continue to use Core runtime behavior.
+
+## Split-brain prevention
+
+Automation-owned future repositories must use the Automation runtime connection
+resolver instead of calling the global Core PDO directly. The resolver has one
+active source per request:
+
+- fallback/provisioning resolves the legacy Core source;
+- dedicated resolves `automation.primary` only after the guard passes.
+
+There is no dual-write behavior and no silent fallback from dedicated to Core.
+
+## Explicit rollback
+
+Rollback is manual and configuration-based:
+
+```text
+AUTOMATION_DB_MODE=provisioning
+```
+
+or, if no dedicated Automation database is intended:
+
+```text
+AUTOMATION_DB_MODE=fallback
+```
+
+Because no operational Automation writes exist yet, rollback currently requires
+no data synchronization. Once operational writes begin, rollback will require a
+separately designed reconciliation policy.
 
 ## Migration Grouping
 
@@ -96,7 +157,7 @@ Rules:
 - `APP_DEBUG=true` and a valid maintenance key are required.
 - `application` is allowlisted to `core` and `automation`.
 - `application=core` is accepted as a no-op compatibility mode in this phase so the legacy default path is not duplicated.
-- `application=automation` rejects fallback mode and requires a dedicated, configured, available, utf8mb4 `automation.primary`.
+- `application=automation` is allowed in `provisioning` and `dedicated` modes, rejects fallback mode, and requires a dedicated, configured, available, utf8mb4 `automation.primary`.
 - The standalone Automation migration profile omits only Core-targeting foreign keys and preserves Automation-internal foreign keys.
 - Public failure output exposes only an opaque failure reference.
 
@@ -168,3 +229,18 @@ Distributed transactions are explicitly deferred.
 ## Deferred Work
 
 Deferred items include adding real `AUTOMATION_DB_*` values to the repository, creating databases or database users, copying operational data, dual writes, deleting legacy tables, switching existing diagnostics away from Core, operational correspondence services, correspondence UI, Workflow and forms, document generation, PDF/JPG/QR, digital signature, object storage, licensing enforcement, Installer UI, commercial billing, online license server, message broker, and outbox delivery workers.
+
+## Manual deployment sequence
+
+Use real credentials only in the hosting environment, never in git:
+
+1. Set `AUTOMATION_DB_*` values and keep `AUTOMATION_DB_MODE=provisioning`.
+2. Deploy the branch and verify safe diagnostics.
+3. Run the protected Automation migration endpoint.
+4. Run the protected Automation seeder endpoint.
+5. Verify `automation_cutover_guard_passed=true`.
+6. Change only the hosting `.env` to `AUTOMATION_DB_MODE=dedicated`.
+7. Deploy/reload and verify `automation_dedicated_runtime_active=true`.
+
+To roll back before operational writes begin, set `AUTOMATION_DB_MODE=provisioning`
+or `fallback` as appropriate and redeploy/reload.

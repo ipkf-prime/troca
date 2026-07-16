@@ -171,6 +171,8 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $automationPrimaryDedicatedConnectionConfigured = false;
     $corePrimaryConnectionAvailable = false;
     $automationPrimaryConnectionAvailable = false;
+    $automationPrimaryUtf8mb4Ready = false;
+    $automationPrimaryUtcTimezoneApplied = false;
     $databaseSessionTimezonePolicyAppliedToNamedConnections = false;
     $namedConnectionsUtf8mb4Ready = false;
     $corePdoNotDuplicatedDuringAutomationFallback = false;
@@ -198,10 +200,12 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
                 && $automationDefinition->configured();
             $corePrimaryConnectionAvailable = $namedConnectionHealth->available('core.primary');
             $automationPrimaryConnectionAvailable = $namedConnectionHealth->available('automation.primary');
+            $automationPrimaryUtf8mb4Ready = $namedConnectionHealth->utf8mb4Ready('automation.primary');
+            $automationPrimaryUtcTimezoneApplied = $namedConnectionHealth->utcTimezoneApplied('automation.primary');
             $databaseSessionTimezonePolicyAppliedToNamedConnections = $namedConnectionHealth->utcTimezoneApplied('core.primary')
-                && $namedConnectionHealth->utcTimezoneApplied('automation.primary');
+                && $automationPrimaryUtcTimezoneApplied;
             $namedConnectionsUtf8mb4Ready = $namedConnectionHealth->utf8mb4Ready('core.primary')
-                && $namedConnectionHealth->utf8mb4Ready('automation.primary');
+                && $automationPrimaryUtf8mb4Ready;
             $corePdoNotDuplicatedDuringAutomationFallback = $automationPrimaryConnectionFallbackActive
                 && $namedConnectionHealth->fallbackSharesPdo('automation.primary', 'core.primary');
 
@@ -271,6 +275,58 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
             $automationPrimaryConnectionAvailable = false;
         }
     }
+
+    $automationRollbackSourceAvailable = $lookupDomainsTableExists
+        && $lookupValuesTableExists
+        && $correspondencesTableExists;
+    $automationSchemaParityContractAvailable = class_exists(\App\Services\Automation\AutomationSchemaParityContract::class);
+    $automationRuntimeModeService = class_exists(\App\Services\Automation\AutomationRuntimeMode::class)
+        ? new \App\Services\Automation\AutomationRuntimeMode()
+        : null;
+    $automationRuntimeMode = $automationRuntimeModeService instanceof \App\Services\Automation\AutomationRuntimeMode
+        ? $automationRuntimeModeService->value()
+        : 'unavailable';
+    $automationRuntimeModeValid = $automationRuntimeModeService instanceof \App\Services\Automation\AutomationRuntimeMode
+        && $automationRuntimeModeService->valid();
+    $automationCutoverState = [
+        'dedicated_connection_configured' => $automationPrimaryDedicatedConnectionConfigured,
+        'dedicated_connection_available' => $automationPrimaryDedicatedConnectionConfigured && $automationPrimaryConnectionAvailable,
+        'utf8mb4_ready' => $automationPrimaryUtf8mb4Ready,
+        'utc_timezone_applied' => $automationPrimaryUtcTimezoneApplied,
+        'standalone_schema_available' => $automationStandaloneSchemaAvailable,
+        'standalone_metadata_available' => $automationStandaloneMetadataAvailable,
+        'application_migration_history_available' => $automationApplicationMigrationHistoryAvailable,
+        'internal_foreign_keys_preserved' => $automationInternalForeignKeysPreserved,
+        'core_foreign_keys_absent' => $automationPrimaryDedicatedConnectionConfigured ? $automationCoreForeignKeysAbsent : false,
+        'cross_database_sql_absent' => true,
+        'schema_parity_contract_passes' => $automationSchemaParityContractAvailable,
+        'legacy_operational_data_absent' => $automationLegacyOperationalDataAbsent,
+        'rollback_source_available' => $automationRollbackSourceAvailable,
+    ];
+    $automationCutoverGuard = class_exists(\App\Services\Automation\AutomationCutoverGuard::class)
+        ? new \App\Services\Automation\AutomationCutoverGuard()
+        : null;
+    $automationCutoverGuardPassed = $automationCutoverGuard instanceof \App\Services\Automation\AutomationCutoverGuard
+        && $automationCutoverGuard->passed($automationCutoverState);
+    $automationRuntimeSourceResolver = class_exists(\App\Services\Automation\AutomationRuntimeSourceResolver::class)
+        ? new \App\Services\Automation\AutomationRuntimeSourceResolver()
+        : null;
+    $automationRuntimeSourceDedicated = $automationRuntimeSourceResolver instanceof \App\Services\Automation\AutomationRuntimeSourceResolver
+        && $automationRuntimeModeService instanceof \App\Services\Automation\AutomationRuntimeMode
+        && $automationRuntimeSourceResolver->source($automationRuntimeModeService, $automationCutoverGuardPassed) === \App\Services\Automation\AutomationRuntimeMode::DEDICATED;
+    $automationDedicatedRuntimeActive = $automationRuntimeSourceDedicated
+        && $automationRuntimeMode === \App\Services\Automation\AutomationRuntimeMode::DEDICATED;
+    $automationRuntimeFallbackDisabledInDedicatedMode = $automationRuntimeMode !== \App\Services\Automation\AutomationRuntimeMode::DEDICATED
+        || ($automationPrimaryDedicatedConnectionConfigured && !$automationPrimaryConnectionFallbackActive);
+    $automationRollbackPolicy = class_exists(\App\Services\Automation\AutomationRollbackPolicy::class)
+        ? new \App\Services\Automation\AutomationRollbackPolicy()
+        : null;
+    $automationAutomaticCutoverDisabled = $automationRollbackPolicy instanceof \App\Services\Automation\AutomationRollbackPolicy
+        && !$automationRollbackPolicy->automaticCutoverEnabled();
+    $automationAutomaticRollbackDisabled = $automationRollbackPolicy instanceof \App\Services\Automation\AutomationRollbackPolicy
+        && !$automationRollbackPolicy->automaticRollbackEnabled();
+    $automationExplicitRollbackAvailable = $automationRollbackPolicy instanceof \App\Services\Automation\AutomationRollbackPolicy
+        && $automationRollbackPolicy->explicitRollbackAvailable();
 
     if ($databaseConnectionAvailable) {
         try {
@@ -1018,20 +1074,26 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
             && $privateFilesTableExists
             && $correspondenceAttachmentsTableExists,
         'automation_legacy_operational_data_absent' => $automationLegacyOperationalDataAbsent,
-        'automation_schema_parity_contract_available' => class_exists(\App\Services\Automation\AutomationSchemaParityContract::class),
-        'automation_cutover_ready' => (new \App\Services\Automation\AutomationProvisioningReadiness())->cutoverReady(
-            $automationPrimaryDedicatedConnectionConfigured && $automationPrimaryConnectionAvailable,
-            $automationStandaloneSchemaAvailable,
-            $automationStandaloneMetadataAvailable,
-            $automationLegacyOperationalDataAbsent,
-            $automationInternalForeignKeysPreserved,
-            $automationPrimaryDedicatedConnectionConfigured ? $automationCoreForeignKeysAbsent : true,
-            true
-        ),
-        'automation_rollback_source_available' => $lookupDomainsTableExists
-            && $lookupValuesTableExists
-            && $correspondencesTableExists,
-        'automation_current_runtime_source_unchanged' => true,
+        'automation_schema_parity_contract_available' => $automationSchemaParityContractAvailable,
+        'automation_cutover_ready' => $automationCutoverGuardPassed,
+        'automation_rollback_source_available' => $automationRollbackSourceAvailable,
+        'automation_runtime_mode_available' => class_exists(\App\Services\Automation\AutomationRuntimeMode::class),
+        'automation_runtime_mode_valid' => $automationRuntimeModeValid,
+        'automation_runtime_mode' => $automationRuntimeMode,
+        'automation_cutover_guard_available' => class_exists(\App\Services\Automation\AutomationCutoverGuard::class),
+        'automation_cutover_guard_passed' => $automationCutoverGuardPassed,
+        'automation_runtime_source_dedicated' => $automationRuntimeSourceDedicated,
+        'automation_dedicated_runtime_active' => $automationDedicatedRuntimeActive,
+        'automation_runtime_fallback_disabled_in_dedicated_mode' => $automationRuntimeFallbackDisabledInDedicatedMode,
+        'automation_runtime_fail_closed' => class_exists(\App\Services\Automation\AutomationRuntimeConnectionResolver::class),
+        'automation_split_brain_prevention_available' => class_exists(\App\Services\Automation\AutomationRuntimeSourceResolver::class)
+            && $automationAutomaticCutoverDisabled,
+        'automation_automatic_cutover_disabled' => $automationAutomaticCutoverDisabled,
+        'automation_automatic_rollback_disabled' => $automationAutomaticRollbackDisabled,
+        'automation_explicit_rollback_available' => $automationExplicitRollbackAvailable,
+        'automation_legacy_rollback_source_retained' => $automationRollbackSourceAvailable,
+        'automation_runtime_connection_resolver_available' => class_exists(\App\Services\Automation\AutomationRuntimeConnectionResolver::class),
+        'automation_current_runtime_source_unchanged' => !$automationDedicatedRuntimeActive,
         'standalone_automation_provisioning_foundation_available' => class_exists(\IPKF\Database\Migrations\CreateStandaloneAutomationCorrespondenceFoundationTables::class)
             && class_exists(\App\Services\Automation\CoreReferenceValidator::class)
             && class_exists(\App\Services\Automation\AutomationProvisioningReadiness::class),
