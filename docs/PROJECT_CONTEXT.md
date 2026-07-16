@@ -385,3 +385,15 @@ Scope:
 Deferred implementation scope:
 
 - Adding real `AUTOMATION_DB_*` values to the repository, installer UI, DNS creation, database/user creation, SSL provisioning, copying operational automation data, automatic cutover, automatic rollback, dual writes, deleting legacy automation tables, operational correspondence repositories/services/UI, sales documents, online license server, cryptographic license signing, offline activation files, usage metering, runtime license enforcement, distributed transactions, outbox delivery workers, Workflow, forms, archive, document generation, QR, digital signature, and object storage.
+Operational Automation demo slice now includes:
+
+- Guarded Admin routes for dashboard, list, create, detail, and draft revision.
+- Dedicated Automation runtime only; no fallback to Core-hosted Automation operational tables.
+- Correspondence repository, version repository, party repository, event repository, query service, command service, draft service, and view-model builder.
+- Draft creation transaction that writes the aggregate, first immutable version, parties, and created event.
+- Draft-only revision flow with immutable versions, current-version consistency, and stale-update guard.
+- Internal and external party support through Core reference validation and Automation-local snapshots.
+- Opaque public references in URLs; numeric database IDs remain hidden.
+- Boolean-only diagnostics for the demo slice.
+
+The slice remains a demo vertical: registry numbering, cartable/referral workflow UI, attachments, delivery, signature, document generation, tracking, and external APIs remain deferred.

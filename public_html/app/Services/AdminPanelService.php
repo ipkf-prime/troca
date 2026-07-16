@@ -162,6 +162,22 @@ class AdminPanelService extends BaseService
                 ],
             ],
             [
+                'key' => 'automation',
+                'title' => 'اتوماسیون اداری',
+                'description' => 'مکاتبات اداری، پیش نویس‌ها، نسخه‌ها، طرف‌ها و تاریخچه رویدادها',
+                'subtitle' => 'مکاتبات، نسخه‌ها و طرف‌های نامه',
+                'icon' => 'file-lines',
+                'color' => 'teal',
+                'url' => '/admin/automation',
+                'permission' => 'automation.correspondence.view',
+                'sort_order' => 35,
+                'actions' => [
+                    ['key' => 'automation-dashboard', 'title' => 'داشبورد مکاتبات', 'description' => 'نمای کلی پیش نویس‌ها و مکاتبات اخیر', 'icon' => 'dashboard', 'color' => 'teal', 'url' => '/admin/automation', 'permission' => 'automation.correspondence.view', 'sort_order' => 10],
+                    ['key' => 'automation-correspondences', 'title' => 'مکاتبات', 'description' => 'جستجو، فیلتر و مشاهده مکاتبات', 'icon' => 'file-lines', 'color' => 'blue', 'url' => '/admin/automation/correspondences', 'permission' => 'automation.correspondence.view', 'sort_order' => 20],
+                    ['key' => 'automation-create', 'title' => 'ایجاد پیش نویس', 'description' => 'ثبت مکاتبه و نسخه اول', 'icon' => 'circle-check', 'color' => 'green', 'url' => '/admin/automation/correspondences/create', 'permission' => 'automation.correspondence.create', 'sort_order' => 30],
+                ],
+            ],
+            [
                 'key' => 'reports',
                 'title' => $this->fa('&#x06AF;&#x0632;&#x0627;&#x0631;&#x0634;&#x200C;&#x0647;&#x0627;'),
                 'description' => $this->fa('&#x06AF;&#x0632;&#x0627;&#x0631;&#x0634;&#x200C;&#x0647;&#x0627;&#x06CC; &#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A;&#x06CC; &#x0648; &#x0639;&#x0645;&#x0644;&#x06CC;&#x0627;&#x062A;&#x06CC; &#x0633;&#x0627;&#x0645;&#x0627;&#x0646;&#x0647;'),
@@ -217,6 +233,10 @@ class AdminPanelService extends BaseService
 
                 if (($action['url'] ?? '') === '/admin/users') {
                     $activePaths[] = '/admin/users/*';
+                }
+
+                if (str_starts_with((string) ($action['url'] ?? ''), '/admin/automation')) {
+                    $activePaths[] = '/admin/automation/*';
                 }
             }
         }

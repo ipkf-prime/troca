@@ -149,3 +149,9 @@ Release tags should omit the `-dev` suffix, for example:
 - `v0.4.3-identity-access`
 - `v0.4.4-admin-panel-shell`
 - `v0.4.5-admin-users`
+
+### v0.4.8 Automation Correspondence Demo Slice
+
+The current v0.4.8 development branch includes a guarded Admin correspondence demo slice. It adds server-rendered Persian Admin routes for Automation dashboard, correspondence list, draft creation, draft-only revision, and detail workspace.
+
+This runtime uses only the dedicated Automation connection after the cutover guard passes. It does not fall back to Core-hosted Automation tables, expose numeric database IDs in public URLs, or add registry numbering, cartable workflow, attachments, delivery, signature, document generation, public tracking, or external APIs.

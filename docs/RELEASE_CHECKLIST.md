@@ -939,3 +939,18 @@ Security and compatibility:
 - Application migration and seeder modes remain protected and compatible.
 - Diagnostics expose only safe booleans and the safe runtime mode enum.
 - Runtime version remains `0.4.8-platform-commercial-foundation-dev`.
+
+## v0.4.8 Automation Correspondence Demo Slice Checks
+
+- Runtime version remains `0.4.8-platform-commercial-foundation-dev`.
+- `/admin/automation` opens the Automation demo dashboard when the dedicated Automation runtime and cutover guard pass.
+- `/admin/automation/correspondences` lists correspondence drafts using opaque public references.
+- `/admin/automation/correspondences/create` renders a Persian RTL draft form.
+- `POST /admin/automation/correspondences` creates one draft aggregate, first immutable version, parties, and a created event in a single Automation transaction.
+- `/admin/automation/correspondences/{public_reference}` renders the detail workspace without exposing numeric database IDs.
+- Draft edit creates a new immutable version and uses a stale-update lock guard.
+- Operational repositories use the dedicated Automation connection and do not use Core PDO for Automation operational tables.
+- Core references are validated before Automation transactions and no cross-database SQL is introduced.
+- Diagnostics expose only boolean demo-slice flags.
+- No migration, seeder, schema, lookup metadata, permission code, or runtime version change is part of the demo slice.
+- Registry numbering, cartable workflow, referrals UI, attachment upload/download, delivery, signature, OCR, document generation, tracking, and external APIs remain deferred.

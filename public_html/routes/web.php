@@ -998,7 +998,26 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'correspondence_attachment_metadata_available' => $privateFilesTableExists
             && $correspondenceAttachmentsTableExists,
         'correspondence_permissions_available' => $correspondencePermissionsAvailable,
-        'correspondence_no_operational_ui' => true,
+        'correspondence_no_operational_ui' => false,
+        'automation_correspondence_repository_available' => class_exists(\App\Services\Automation\Correspondence\CorrespondenceRepository::class),
+        'automation_correspondence_query_service_available' => class_exists(\App\Services\Automation\Correspondence\CorrespondenceQueryService::class),
+        'automation_correspondence_command_service_available' => class_exists(\App\Services\Automation\Correspondence\CorrespondenceCommandService::class),
+        'automation_correspondence_draft_creation_available' => class_exists(\App\Services\Automation\Correspondence\CorrespondenceDraftService::class),
+        'automation_correspondence_versioning_runtime_available' => class_exists(\App\Services\Automation\Correspondence\CorrespondenceVersionRepository::class),
+        'automation_correspondence_party_runtime_available' => class_exists(\App\Services\Automation\Correspondence\CorrespondencePartyRepository::class),
+        'automation_correspondence_event_runtime_available' => class_exists(\App\Services\Automation\Correspondence\CorrespondenceEventRepository::class),
+        'automation_correspondence_routes_available' => true,
+        'automation_correspondence_dashboard_available' => is_readable(BASE_PATH . '/resources/views/admin/automation-dashboard.php'),
+        'automation_correspondence_list_ui_available' => is_readable(BASE_PATH . '/resources/views/admin/automation-correspondences.php'),
+        'automation_correspondence_create_ui_available' => is_readable(BASE_PATH . '/resources/views/admin/automation-correspondence-form.php'),
+        'automation_correspondence_detail_workspace_available' => is_readable(BASE_PATH . '/resources/views/admin/automation-correspondence-detail.php'),
+        'automation_correspondence_rbac_guards_available' => class_exists(\App\Services\AdminNavigationRbacService::class),
+        'automation_correspondence_runtime_uses_dedicated_connection' => $automationRuntimeMode === 'dedicated'
+            && $automationCutoverGuardPassed,
+        'automation_correspondence_legacy_runtime_access_blocked' => true,
+        'automation_correspondence_no_cross_database_queries' => true,
+        'automation_correspondence_operational_demo_slice_available' => class_exists(\App\Services\Automation\Correspondence\AutomationOperationalRuntime::class)
+            && class_exists(\App\Services\Automation\Correspondence\CorrespondenceCommandService::class),
         'platform_catalog_available' => $platformApplicationsTableExists
             && $platformModulesTableExists,
         'platform_application_catalog_available' => $platformApplicationsTableExists
@@ -1696,6 +1715,194 @@ $router->post('/admin/profile/access', function ($request, $response) {
     return $response->redirect('/admin/profile/access?status=' . ($assignment === null ? 'forbidden' : 'switched'));
 });
 
+$automationUnavailable = function ($response, array $context) use ($adminRender) {
+    return $adminRender($response, 'placeholder', [
+        'title' => 'اتوماسیون اداری',
+        'context' => $context,
+        'message' => 'زیرساخت عملیاتی اتوماسیون در حال حاضر در دسترس نیست. اتصال اختصاصی یا گارد cutover آماده نیست.',
+    ], 503);
+};
+
+$router->get('/admin/automation', function ($request, $response) use ($adminRender, $adminGuard, $automationUnavailable) {
+    $context = $adminGuard($response, '/admin/automation');
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $dashboard = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->dashboard();
+    } catch (\Throwable) {
+        return $automationUnavailable($response, $context);
+    }
+
+    return $adminRender($response, 'automation-dashboard', [
+        'title' => 'اتوماسیون اداری',
+        'context' => $context,
+        'dashboard' => $dashboard,
+    ]);
+});
+
+$router->get('/admin/automation/correspondences', function ($request, $response) use ($adminRender, $adminGuard, $automationUnavailable) {
+    $context = $adminGuard($response, '/admin/automation/correspondences');
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $list = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->index($request->all());
+    } catch (\Throwable) {
+        return $automationUnavailable($response, $context);
+    }
+
+    return $adminRender($response, 'automation-correspondences', [
+        'title' => 'مکاتبات اداری',
+        'context' => $context,
+        'list' => $list,
+    ]);
+});
+
+$router->get('/admin/automation/correspondences/create', function ($request, $response) use ($adminRender, $adminGuard, $automationUnavailable) {
+    $context = $adminGuard($response, '/admin/automation/correspondences/create');
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $form = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->form();
+    } catch (\Throwable) {
+        return $automationUnavailable($response, $context);
+    }
+
+    return $adminRender($response, 'automation-correspondence-form', [
+        'title' => 'ایجاد پیش نویس مکاتبه',
+        'context' => $context,
+        'form' => $form['form'],
+        'options' => $form['options'],
+        'references' => $form['references'],
+        'errors' => [],
+        'isEdit' => false,
+        'editable' => true,
+    ]);
+});
+
+$router->post('/admin/automation/correspondences', function ($request, $response) use ($adminRender, $adminGuard, $automationUnavailable) {
+    $context = $adminGuard($response, '/admin/automation/correspondences/create');
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $service = new \App\Services\Automation\Correspondence\CorrespondenceDraftService();
+        $result = $service->create($request->all(), (int) $context['user_id'], $context);
+
+        if (($result['ok'] ?? false) === true) {
+            return $response->redirect('/admin/automation/correspondences/' . rawurlencode((string) $result['public_reference']));
+        }
+
+        $form = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->form();
+        return $adminRender($response, 'automation-correspondence-form', [
+            'title' => 'ایجاد پیش نویس مکاتبه',
+            'context' => $context,
+            'form' => $request->all() + $form['form'],
+            'options' => $form['options'],
+            'references' => $form['references'],
+            'errors' => $result['errors'] ?? ['invalid'],
+            'isEdit' => false,
+            'editable' => true,
+        ], 422);
+    } catch (\Throwable) {
+        return $automationUnavailable($response, $context);
+    }
+});
+
+$router->get('/admin/automation/correspondences/{public_reference}/edit', function ($request, $response) use ($adminRender, $adminGuard, $automationUnavailable) {
+    $context = $adminGuard($response, '/admin/automation/correspondences/{public_reference}/edit');
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $form = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->form((string) $request->route('public_reference'));
+    } catch (\Throwable) {
+        return $automationUnavailable($response, $context);
+    }
+
+    if (($form['ok'] ?? false) !== true) {
+        return $adminRender($response, 'placeholder', ['title' => 'مکاتبه پیدا نشد', 'context' => $context, 'message' => 'مکاتبه مورد نظر پیدا نشد.'], 404);
+    }
+
+    return $adminRender($response, 'automation-correspondence-form', [
+        'title' => 'ویرایش پیش نویس مکاتبه',
+        'context' => $context,
+        'form' => $form['form'],
+        'options' => $form['options'],
+        'references' => $form['references'],
+        'errors' => [],
+        'isEdit' => true,
+        'editable' => $form['editable'],
+    ]);
+});
+
+$router->post('/admin/automation/correspondences/{public_reference}/versions', function ($request, $response) use ($adminRender, $adminGuard, $automationUnavailable) {
+    $context = $adminGuard($response, '/admin/automation/correspondences/{public_reference}/versions');
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $publicReference = (string) $request->route('public_reference');
+
+    try {
+        $result = (new \App\Services\Automation\Correspondence\CorrespondenceDraftService())->update($publicReference, $request->all(), (int) $context['user_id'], $context);
+
+        if (($result['ok'] ?? false) === true) {
+            return $response->redirect('/admin/automation/correspondences/' . rawurlencode($publicReference));
+        }
+
+        $form = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->form($publicReference);
+        return $adminRender($response, 'automation-correspondence-form', [
+            'title' => 'ویرایش پیش نویس مکاتبه',
+            'context' => $context,
+            'form' => $request->all() + ($form['form'] ?? []),
+            'options' => $form['options'] ?? [],
+            'references' => $form['references'] ?? [],
+            'errors' => $result['errors'] ?? ['invalid'],
+            'isEdit' => true,
+            'editable' => $form['editable'] ?? false,
+        ], 422);
+    } catch (\Throwable) {
+        return $automationUnavailable($response, $context);
+    }
+});
+
+$router->get('/admin/automation/correspondences/{public_reference}', function ($request, $response) use ($adminRender, $adminGuard, $automationUnavailable) {
+    $context = $adminGuard($response, '/admin/automation/correspondences/{public_reference}');
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $detail = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->detail((string) $request->route('public_reference'), (string) $request->input('tab', 'summary'));
+    } catch (\Throwable) {
+        return $automationUnavailable($response, $context);
+    }
+
+    if ($detail === null) {
+        return $adminRender($response, 'placeholder', ['title' => 'مکاتبه پیدا نشد', 'context' => $context, 'message' => 'مکاتبه مورد نظر پیدا نشد.'], 404);
+    }
+
+    return $adminRender($response, 'automation-correspondence-detail', [
+        'title' => 'جزئیات مکاتبه',
+        'context' => $context,
+        'detail' => $detail,
+    ]);
+});
 $adminPlaceholder = function ($path, $title, $message) use ($adminRender, $adminGuard) {
     return function ($request, $response) use ($adminRender, $adminGuard, $path, $title, $message) {
         $context = $adminGuard($response, $path);
