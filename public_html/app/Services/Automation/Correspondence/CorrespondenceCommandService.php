@@ -193,11 +193,11 @@ class CorrespondenceCommandService
             $errors[] = 'subject_required';
         }
 
-        if ($content === '') {
+        if ($direction !== 'incoming' && $content === '') {
             $errors[] = 'content_required';
         }
 
-        if ($templateVersion === null) {
+        if ($direction !== 'incoming' && $templateVersion === null) {
             $errors[] = 'document_template_required';
         }
 
@@ -219,6 +219,7 @@ class CorrespondenceCommandService
 
         $externalDate = $this->dateInput($input, 'external_date', 'external_date_fa', $errors);
         $parties = $this->normalizeParties($input, $errors);
+        $this->validatePartiesForDirection($parties, $direction, $errors);
         $relations = $this->normalizeRelations($input, $errors);
 
         if ($parties === []) {
@@ -363,6 +364,48 @@ class CorrespondenceCommandService
         }
 
         return $parties;
+    }
+
+    private function validatePartiesForDirection(array $parties, string $direction, array &$errors): void
+    {
+        if (!in_array($direction, ['incoming', 'outgoing', 'internal'], true)) {
+            return;
+        }
+
+        $senders = array_values(array_filter($parties, static fn (array $party): bool => ($party['party_role_code'] ?? '') === 'sender'));
+        $receivers = array_values(array_filter($parties, static fn (array $party): bool => ($party['party_role_code'] ?? '') === 'primary_recipient'));
+
+        if ($senders === []) {
+            $errors[] = 'sender_required';
+        }
+
+        if ($receivers === []) {
+            $errors[] = 'receiver_required';
+        }
+
+        $isExternal = static fn (array $party): bool => ($party['target_kind_code'] ?? '') === 'external';
+
+        if ($direction === 'incoming') {
+            if (array_filter($senders, static fn (array $party): bool => !$isExternal($party)) !== []) {
+                $errors[] = 'incoming_sender_must_be_external';
+            }
+            if (array_filter($receivers, $isExternal) !== []) {
+                $errors[] = 'incoming_receiver_must_be_internal';
+            }
+        }
+
+        if ($direction === 'outgoing') {
+            if (array_filter($senders, $isExternal) !== []) {
+                $errors[] = 'outgoing_sender_must_be_internal';
+            }
+            if (array_filter($receivers, static fn (array $party): bool => !$isExternal($party)) !== []) {
+                $errors[] = 'outgoing_receiver_must_be_external';
+            }
+        }
+
+        if ($direction === 'internal' && array_filter($parties, $isExternal) !== []) {
+            $errors[] = 'internal_parties_must_be_internal';
+        }
     }
 
     private function publicReference(): string

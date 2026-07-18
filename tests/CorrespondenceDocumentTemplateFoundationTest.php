@@ -20,7 +20,11 @@ $expect(str_contains($seeder, "['a4' => [210, 297], 'a5' => [148, 210]]"), 'A4 a
 $expect(str_contains($seeder, "'fa' => ['فارسی', 'rtl']") && str_contains($seeder, "'en' => ['English', 'ltr']"), 'Persian and English layouts must be seeded.');
 $expect(str_contains($seeder, 'foreach ([1, 2] as $slots)'), 'Single and dual signature layouts must be seeded.');
 $expect(str_contains($repository, 'activeVersion') && str_contains($repository, 'snapshot'), 'Template resolution and snapshot building are required.');
-$expect(str_contains($commands, 'document_template_required'), 'Draft commands must require an active document template.');
+$expect(
+    str_contains($commands, "\$direction !== 'incoming' && \$templateVersion === null")
+        && str_contains($commands, 'document_template_required'),
+    'Internal and outgoing drafts must require an active document template while scanned incoming letters remain template-free.'
+);
 $expect(str_contains($form, 'automation-template-picker') && str_contains($form, 'document_template_reference'), 'Draft UI must provide a template picker.');
 
 echo "Correspondence document template foundation checks passed.\n";

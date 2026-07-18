@@ -28,9 +28,16 @@ ob_start();
 <section class="admin-module-hub admin-module-hub--teal admin-users-heading">
     <div class="admin-module-hub__icon"><?= \App\Support\AdminIcon::html('file-lines') ?></div>
     <div><h2>مکاتبات اداری</h2><p>فهرست عملیاتی مکاتبات با جستجو، فیلتر و اقدام‌های مجاز</p></div>
-    <a class="admin-module-hub__back" href="/admin/automation/correspondences/create">ایجاد پیش نویس</a>
+    <a class="admin-module-hub__back" href="/admin/automation/correspondences/create?direction=outgoing">ایجاد پیش نویس</a>
 </section>
 <section class="admin-section admin-users-panel">
+    <nav class="automation-list-nav" aria-label="دسته‌بندی مکاتبات">
+        <a href="/admin/automation/correspondences">همه مکاتبات</a>
+        <a href="/admin/automation/correspondences?status=draft">پیش‌نویس‌ها</a>
+        <a href="/admin/automation/correspondences?direction=incoming">وارده</a>
+        <a href="/admin/automation/correspondences?direction=outgoing">صادره</a>
+        <a href="/admin/automation/correspondences?direction=internal">داخلی</a>
+    </nav>
     <form class="automation-filter-grid" method="get" action="/admin/automation/correspondences">
         <label class="automation-filter-grid__search"><span>جستجو</span><input type="search" name="q" value="<?= admin_h($filters['q'] ?? '') ?>" maxlength="80" placeholder="موضوع، شناسه عمومی یا شماره بیرونی"></label>
         <?= $select('status', $options['statuses'] ?? [], (string) ($filters['status'] ?? ''), 'وضعیت', 'automation-filter-grid__select') ?>

@@ -12,7 +12,7 @@ ob_start();
 <section class="admin-module-hub admin-module-hub--teal admin-users-heading">
     <div class="admin-module-hub__icon"><?= \App\Support\AdminIcon::html('file-lines') ?></div>
     <div><h2>اتوماسیون اداری</h2><p>برش نمایشی عملیات مکاتبات؛ ایجاد پیش نویس، نسخه‌ها، طرف‌ها و تاریخچه</p></div>
-    <a class="admin-module-hub__back" href="/admin/automation/correspondences/create">ایجاد پیش نویس</a>
+    <a class="admin-module-hub__back" href="/admin/automation/correspondences/create?direction=outgoing">ایجاد پیش نویس</a>
 </section>
 <?php if (($dashboard['ok'] ?? false) !== true): ?>
     <section class="admin-section"><div class="admin-alert">زیرساخت عملیاتی اتوماسیون در دسترس نیست. لطفاً وضعیت اتصال اختصاصی Automation را بررسی کنید.</div></section>
@@ -32,8 +32,14 @@ ob_start();
         <a class="admin-action-tile admin-action-tile--teal" href="/admin/automation/correspondences">
             <span class="admin-action-tile__icon"><?= \App\Support\AdminIcon::html('file-lines') ?></span><strong>فهرست مکاتبات</strong><small>جستجو، فیلتر و مشاهده مکاتبات</small>
         </a>
-        <a class="admin-action-tile admin-action-tile--blue" href="/admin/automation/correspondences/create">
-            <span class="admin-action-tile__icon"><?= \App\Support\AdminIcon::html('circle-check') ?></span><strong>ایجاد پیش نویس</strong><small>ثبت مکاتبه، طرف‌ها و نسخه اول</small>
+        <a class="admin-action-tile admin-action-tile--blue" href="/admin/automation/correspondences/create?direction=incoming">
+            <span class="admin-action-tile__icon"><?= \App\Support\AdminIcon::html('circle-check') ?></span><strong>ثبت نامه وارده</strong><small>ثبت مشخصات و بارگذاری تصویر اصل نامه</small>
+        </a>
+        <a class="admin-action-tile admin-action-tile--teal" href="/admin/automation/correspondences/create?direction=outgoing">
+            <span class="admin-action-tile__icon"><?= \App\Support\AdminIcon::html('file-lines') ?></span><strong>ایجاد نامه صادره</strong><small>انتخاب قالب، نگارش متن و تعیین گیرنده بیرونی</small>
+        </a>
+        <a class="admin-action-tile admin-action-tile--blue" href="/admin/automation/correspondences/create?direction=internal">
+            <span class="admin-action-tile__icon"><?= \App\Support\AdminIcon::html('users') ?></span><strong>ایجاد نامه داخلی</strong><small>مکاتبه میان اشخاص و واحدهای داخل سازمان</small>
         </a>
         <a class="admin-action-tile admin-action-tile--teal" href="/admin/automation/templates">
             <span class="admin-action-tile__icon"><?= \App\Support\AdminIcon::html('file-lines') ?></span><strong>قالب‌های نامه</strong><small>مشاهده قالب‌های A4، A5، فارسی، انگلیسی و امضاها</small>

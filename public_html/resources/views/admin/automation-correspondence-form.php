@@ -73,6 +73,7 @@ $externalContacts = array_values(is_array($form['external_contact_or_address'] ?
 $documentTemplates = array_values(is_array($options['document_templates'] ?? null) ? $options['document_templates'] : []);
 $relatedCorrespondences = array_values(is_array($options['related_correspondences'] ?? null) ? $options['related_correspondences'] : []);
 $storedRelations = array_values(is_array($form['relations'] ?? null) ? $form['relations'] : []);
+$initialDirection = (string) ($form['direction_code'] ?? 'incoming');
 $selectedTemplateReference = trim((string) ($form['document_template_reference'] ?? ''));
 if ($selectedTemplateReference === '' && $documentTemplates !== []) {
     $selectedTemplateReference = (string) ($documentTemplates[0]['public_reference'] ?? '');
@@ -120,29 +121,30 @@ ob_start();
         </nav>
 
         <section class="automation-form-section automation-draft-panel" data-draft-panel="base" role="tabpanel">
-            <div class="automation-form-section__head"><div><h3>اطلاعات پایه</h3><p>مشخصات عمومی و طبقه‌بندی مکاتبه</p></div></div>
+            <div class="automation-form-section__head"><div><h3>اطلاعات پایه</h3><p>ابتدا نوع مکاتبه را تعیین کنید؛ فرم و کنترل‌ها متناسب با آن تنظیم می‌شوند.</p></div></div>
             <div class="admin-form-grid automation-base-grid">
+                <label class="admin-form-grid__wide automation-direction-picker"><span>نوع مکاتبه</span><?= $select('direction_code', $options['directions'] ?? [], (string) ($form['direction_code'] ?? 'incoming')) ?><small data-direction-help></small></label>
                 <label class="admin-form-grid__wide"><span>موضوع</span><input name="subject" value="<?= admin_h($form['subject'] ?? '') ?>" maxlength="500" required></label>
-                <fieldset class="automation-template-picker admin-form-grid__wide" data-template-picker>
+                <fieldset class="automation-template-picker admin-form-grid__wide" data-template-picker data-direction-section="document">
                     <legend>قالب استاندارد نامه</legend>
                     <p>قالب را از فهرست انتخاب کنید؛ اندازه، زبان، هدر، فوتر و محل امضا با نسخه قالب تثبیت می‌شود. <a href="/admin/automation/templates">مشاهده فهرست قالب‌ها</a></p>
                     <label><span>انتخاب قالب</span><select name="document_template_reference" required data-template-select><option value="">انتخاب قالب نامه</option><?php foreach ($documentTemplates as $template): $reference=(string)($template['public_reference']??''); ?><option value="<?=admin_h($reference)?>" data-page="<?=admin_h($template['page_size_code']??'')?>" data-language="<?=admin_h(($template['language_code']??'')==='fa'?'فارسی':'انگلیسی')?>" data-signatures="<?=admin_h($template['signature_slots']??1)?>" data-version="<?=admin_h($template['version_number']??1)?>" <?= $reference===$selectedTemplateReference?'selected':'' ?>><?=admin_h($template['title_fa']??'')?></option><?php endforeach;?></select></label>
                     <div class="automation-template-summary" data-template-summary>یک قالب را انتخاب کنید.</div>
                 </fieldset>
-                <label><span>نوع یا جهت مکاتبه</span><?= $select('direction_code', $options['directions'] ?? [], (string) ($form['direction_code'] ?? 'incoming')) ?></label>
                 <label><span>اولویت</span><?= $select('priority_code', $options['priorities'] ?? [], (string) ($form['priority_code'] ?? 'normal')) ?></label>
                 <label><span>محرمانگی</span><?= $select('confidentiality_code', $options['confidentialities'] ?? [], (string) ($form['confidentiality_code'] ?? 'normal')) ?></label>
                 <label><span>کانال</span><?= $select('channel_code', $options['channels'] ?? [], (string) ($form['channel_code'] ?? 'manual')) ?></label>
-                <label><span>شماره بیرونی</span><input name="external_number" value="<?= admin_h($form['external_number'] ?? '') ?>" maxlength="190"></label>
-                <label><span>تاریخ بیرونی</span><div class="admin-persian-date" data-persian-datepicker><input type="text" name="external_date_fa" data-persian-date-input inputmode="numeric" autocomplete="off" placeholder="۱۴۰۵/۰۴/۲۷" value="<?= admin_h($externalDateFa) ?>"><input type="hidden" name="external_date" data-persian-date-output value="<?= admin_h($form['external_date'] ?? '') ?>"><button type="button" class="admin-persian-date__toggle" data-persian-date-toggle aria-label="انتخاب تاریخ"><?= \App\Support\AdminIcon::html('calendar') ?></button></div></label>
+                <label data-direction-section="external"><span>شماره نامه بیرونی</span><input name="external_number" value="<?= admin_h($form['external_number'] ?? '') ?>" maxlength="190"></label>
+                <label data-direction-section="external"><span>تاریخ نامه بیرونی</span><div class="admin-persian-date" data-persian-datepicker><input type="text" name="external_date_fa" data-persian-date-input inputmode="numeric" autocomplete="off" placeholder="۱۴۰۵/۰۴/۲۷" value="<?= admin_h($externalDateFa) ?>"><input type="hidden" name="external_date" data-persian-date-output value="<?= admin_h($form['external_date'] ?? '') ?>"><button type="button" class="admin-persian-date__toggle" data-persian-date-toggle aria-label="انتخاب تاریخ"><?= \App\Support\AdminIcon::html('calendar') ?></button></div></label>
                 <label class="admin-form-grid__wide"><span>خلاصه</span><textarea name="summary" rows="3" maxlength="2000"><?= admin_h($form['summary'] ?? '') ?></textarea></label>
             </div>
-            <div class="automation-draft-navigation"><button class="admin-button" type="button" data-draft-next="content">ادامه: متن مکاتبه</button></div>
+            <div class="automation-draft-navigation"><button class="admin-button" type="button" data-draft-next="content">ادامه: محتوای مکاتبه</button></div>
         </section>
 
         <section class="automation-form-section automation-draft-panel" data-draft-panel="content" role="tabpanel">
-            <div class="automation-form-section__head"><div><h3>متن مکاتبه</h3><p>محتوای نسخه جاری پیش‌نویس</p></div></div>
-            <label class="automation-form__wide"><span>متن یا محتوای نسخه جاری</span><textarea name="content" rows="10" maxlength="8000" required><?= admin_h($form['content'] ?? '') ?></textarea></label>
+            <div class="automation-form-section__head"><div><h3 data-content-title>متن مکاتبه</h3><p data-content-help>محتوای نسخه جاری پیش‌نویس</p></div></div>
+            <div class="admin-alert admin-alert--info admin-alert--compact" data-incoming-scan-note>نامه وارده از روی اصل نامه ثبت می‌شود؛ پس از ایجاد رکورد، تصویر یا PDF نامه را در تب «پیوست‌ها» بارگذاری کنید. قالب و متن تایپی برای وارده الزامی نیست.</div>
+            <label class="automation-form__wide" data-direction-section="content"><span>متن یا محتوای نسخه جاری</span><textarea name="content" rows="10" maxlength="8000"><?= admin_h($form['content'] ?? '') ?></textarea></label>
             <?php if ($isEdit): ?><label class="automation-form__wide"><span>یادداشت تغییر</span><input name="change_note" maxlength="500" placeholder="شرح کوتاه تغییرات این نسخه"></label><?php endif; ?>
             <div class="automation-draft-navigation"><button class="admin-button admin-button--soft" type="button" data-draft-next="base">قبلی</button><button class="admin-button" type="button" data-draft-next="parties">ادامه: طرف‌های مکاتبه</button></div>
         </section>
@@ -152,8 +154,15 @@ ob_start();
             <div class="automation-party-list">
                 <?php for ($index = 0; $index < 6; $index++):
                     $stored = $storedParties[$index] ?? [];
-                    $role = $arrayValue($partyRoles, $index, (string) ($stored['party_role_code'] ?? ($index === 0 ? 'sender' : '')));
-                    $kind = $arrayValue($partyKinds, $index, (string) ($stored['target_kind_code'] ?? ($index === 0 ? 'external' : '')));
+                    $defaultRole = $index === 0 ? 'sender' : ($index === 1 ? 'primary_recipient' : '');
+                    $role = $arrayValue($partyRoles, $index, (string) ($stored['party_role_code'] ?? $defaultRole));
+                    $defaultKind = '';
+                    if ($index < 2) {
+                        $defaultKind = $initialDirection === 'internal'
+                            ? 'person'
+                            : (($initialDirection === 'incoming' && $index === 0) || ($initialDirection === 'outgoing' && $index === 1) ? 'external' : 'person');
+                    }
+                    $kind = $arrayValue($partyKinds, $index, (string) ($stored['target_kind_code'] ?? $defaultKind));
                     $tokenValue = $arrayValue($partyTokens, $index, (string) ($stored['reference_token'] ?? ''));
                     $nameValue = $arrayValue($externalNames, $index, (string) ($stored['external_display_name'] ?? ''));
                     $organizationValue = $arrayValue($externalOrganizations, $index, (string) ($stored['external_organization_name'] ?? ''));
@@ -163,7 +172,7 @@ ob_start();
                         <summary><span>طرف <?= admin_h(\App\Support\AdminFormat::digits($index + 1)) ?></span><small data-party-summary></small></summary>
                         <div class="automation-party-row">
                             <label><span>نقش طرف</span><?= $partySelect('party_role_code[]', $options['party_roles'] ?? [], $role, 'انتخاب نقش') ?></label>
-                            <label><span>نوع طرف</span><?= $partySelect('party_kind[]', $options['party_kinds'] ?? [], $kind, 'انتخاب نوع طرف') ?></label>
+                            <label><span>نوع طرف</span><?= $partySelect('party_kind[]', $options['party_kinds'] ?? [], $kind, 'انتخاب نوع طرف') ?><small data-party-rule></small></label>
                             <label data-party-internal><span>مرجع داخلی</span><?= $referenceSelect($tokenValue) ?></label>
                             <label data-party-external><span>نام طرف بیرونی</span><input name="external_display_name[]" value="<?= admin_h($nameValue) ?>" maxlength="255" placeholder="نام شخص یا نماینده"></label>
                             <label data-party-external><span>سازمان بیرونی</span><input name="external_organization_name[]" value="<?= admin_h($organizationValue) ?>" maxlength="255"></label>
@@ -182,7 +191,7 @@ ob_start();
                 </div>
                 <?php endfor; ?>
             </div>
-            <div class="admin-alert admin-alert--info admin-alert--compact">رونوشت و رونوشت مخفی از فهرست «نقش طرف» در همین بخش انتخاب می‌شوند. پیوست فایل پس از ایجاد پیش‌نویس، در تب «پیوست‌ها» افزوده می‌شود.</div>
+            <div class="admin-alert admin-alert--info admin-alert--compact" data-party-direction-help>رونوشت و رونوشت مخفی از فهرست «نقش طرف» در همین بخش انتخاب می‌شوند. پیوست فایل پس از ایجاد پیش‌نویس، در تب «پیوست‌ها» افزوده می‌شود.</div>
             <div class="automation-draft-navigation"><button class="admin-button admin-button--soft" type="button" data-draft-next="content">قبلی</button><button class="admin-button" type="button" data-draft-next="review">ادامه: مرور و ثبت</button></div>
         </section>
 
@@ -278,6 +287,100 @@ ob_start();
     }
     templateSelect?.addEventListener('change', templatePreview);
     templatePreview();
+
+    const directionSelect = form.elements.direction_code;
+    const contentField = form.elements.content;
+    const incomingScanNote = form.querySelector('[data-incoming-scan-note]');
+    const directionHelp = form.querySelector('[data-direction-help]');
+    const contentTitle = form.querySelector('[data-content-title]');
+    const contentHelp = form.querySelector('[data-content-help]');
+    const partyDirectionHelp = form.querySelector('[data-party-direction-help]');
+
+    const directionCopy = {
+        incoming: {
+            help: 'وارده: اصل نامه بیرونی و تصویر/PDF آن ثبت می‌شود؛ قالب و متن تایپی لازم نیست.',
+            contentTitle: 'تصویر نامه وارده',
+            contentHelp: 'پس از ایجاد رکورد، اصل نامه اسکن‌شده را در پیوست‌ها بارگذاری کنید.',
+            parties: 'در نامه وارده، فرستنده باید بیرونی و گیرنده باید از داخل سازمان باشد.'
+        },
+        outgoing: {
+            help: 'صادره: متن با قالب استاندارد تولید می‌شود؛ فرستنده داخلی و گیرنده بیرونی است.',
+            contentTitle: 'متن نامه صادره',
+            contentHelp: 'متن نسخه جاری که با قالب انتخاب‌شده برای چاپ یا PDF ترکیب می‌شود.',
+            parties: 'در نامه صادره، فرستنده باید داخلی و گیرنده اصلی باید بیرونی باشد.'
+        },
+        internal: {
+            help: 'داخلی: قالب و متن دارد و همه فرستندگان و گیرندگان باید داخل سازمان باشند.',
+            contentTitle: 'متن نامه داخلی',
+            contentHelp: 'محتوای نسخه جاری نامه داخلی',
+            parties: 'در نامه داخلی، استفاده از شخص یا سازمان بیرونی مجاز نیست.'
+        }
+    };
+
+    function allowedPartyKinds(direction, role) {
+        if (direction === 'internal') return ['person', 'organization', 'org_unit'];
+        if (direction === 'incoming' && role === 'sender') return ['external'];
+        if (direction === 'incoming' && role === 'primary_recipient') return ['person', 'organization', 'org_unit'];
+        if (direction === 'outgoing' && role === 'sender') return ['person', 'organization', 'org_unit'];
+        if (direction === 'outgoing' && role === 'primary_recipient') return ['external'];
+        return ['external', 'person', 'organization', 'org_unit'];
+    }
+
+    function applyPartyRules(direction) {
+        form.querySelectorAll('[data-automation-party]').forEach((card) => {
+            const role = card.querySelector('[name="party_role_code[]"]');
+            const kind = card.querySelector('[name="party_kind[]"]');
+            if (!role || !kind) return;
+            const allowed = allowedPartyKinds(direction, role.value);
+            [...kind.options].forEach((option) => {
+                option.disabled = option.value !== '' && !allowed.includes(option.value);
+            });
+            if (kind.value && !allowed.includes(kind.value)) kind.value = '';
+            if (!kind.value && role.value && allowed.length === 1) kind.value = allowed[0];
+            const hint = card.querySelector('[data-party-rule]');
+            if (hint) {
+                hint.textContent = allowed.length === 1 && allowed[0] === 'external'
+                    ? 'فقط طرف بیرونی'
+                    : (allowed.includes('external') ? '' : 'فقط مرجع داخلی');
+            }
+            kind.dispatchEvent(new Event('change'));
+        });
+    }
+
+    function applyDirectionRules() {
+        const direction = directionSelect?.value || 'incoming';
+        const incoming = direction === 'incoming';
+        const internal = direction === 'internal';
+        const copy = directionCopy[direction] || directionCopy.incoming;
+
+        form.dataset.correspondenceDirection = direction;
+        if (directionHelp) directionHelp.textContent = copy.help;
+        if (contentTitle) contentTitle.textContent = copy.contentTitle;
+        if (contentHelp) contentHelp.textContent = copy.contentHelp;
+        if (partyDirectionHelp) partyDirectionHelp.textContent = copy.parties + ' رونوشت و رونوشت مخفی نیز از نقش طرف انتخاب می‌شوند.';
+        if (incomingScanNote) incomingScanNote.hidden = !incoming;
+
+        form.querySelectorAll('[data-direction-section="document"]').forEach((section) => section.hidden = incoming);
+        form.querySelectorAll('[data-direction-section="content"]').forEach((section) => section.hidden = incoming);
+        form.querySelectorAll('[data-direction-section="external"]').forEach((section) => section.hidden = internal);
+
+        if (templateSelect) {
+            templateSelect.required = !incoming;
+            templateSelect.disabled = incoming;
+        }
+        if (contentField) {
+            contentField.required = !incoming;
+            contentField.disabled = incoming;
+        }
+        for (const name of ['external_number', 'external_date_fa', 'external_date']) {
+            if (form.elements[name]) form.elements[name].disabled = internal;
+        }
+        applyPartyRules(direction);
+    }
+
+    directionSelect?.addEventListener('change', applyDirectionRules);
+    form.querySelectorAll('[name="party_role_code[]"]').forEach((role) => role.addEventListener('change', applyDirectionRules));
+    applyDirectionRules();
 })();
 </script>
 <?php

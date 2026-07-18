@@ -71,6 +71,16 @@ expectAutomationDemo(str_contains($commands, 'versions->create'), 'Correspondenc
 expectAutomationDemo(str_contains($commands, 'parties->insertMany'), 'Correspondence parties must be created by the command service.');
 expectAutomationDemo(str_contains($commands, "events->append(") && str_contains($commands, "'created'") && str_contains($commands, "'revised'"), 'Created and revised events must be appended.');
 expectAutomationDemo(str_contains($commands, 'lock_version'), 'Draft editing must include stale update protection.');
+expectAutomationDemo(str_contains($commands, 'validatePartiesForDirection'), 'Correspondence parties must be validated against the selected direction.');
+foreach ([
+    'incoming_sender_must_be_external',
+    'incoming_receiver_must_be_internal',
+    'outgoing_sender_must_be_internal',
+    'outgoing_receiver_must_be_external',
+    'internal_parties_must_be_internal',
+] as $directionRule) {
+    expectAutomationDemo(str_contains($commands, $directionRule), "Missing direction-aware party rule: {$directionRule}");
+}
 expectAutomationDemo(!preg_match('/\b(?:DROP\s+TABLE|TRUNCATE\s+TABLE)\b/i', $commands), 'Command service must not destructively repair schema or data.');
 
 $routesExpected = [
@@ -105,6 +115,11 @@ $viewsExpected = [
 foreach ($viewsExpected as $view) {
     expectAutomationDemo(is_readable("{$viewsPath}/{$view}"), "Missing Automation admin view: {$view}");
 }
+
+$draftForm = file_get_contents("{$viewsPath}/automation-correspondence-form.php");
+expectAutomationDemo(str_contains($draftForm, 'data-direction-section="document"'), 'Draft form must conditionally expose document templates.');
+expectAutomationDemo(str_contains($draftForm, 'data-incoming-scan-note'), 'Incoming correspondence must explain the scanned-original flow.');
+expectAutomationDemo(str_contains($draftForm, 'allowedPartyKinds'), 'Draft form must constrain party kinds by direction and role.');
 
 $diagnostics = [
     'automation_correspondence_repository_available',

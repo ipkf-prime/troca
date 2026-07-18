@@ -3148,6 +3148,43 @@ input[aria-invalid="true"] {
     padding-bottom: 12px;
 }
 
+.automation-form [data-direction-section][hidden],
+.automation-form [data-incoming-scan-note][hidden] {
+    display: none !important;
+}
+
+.automation-direction-picker small,
+.automation-party-row [data-party-rule] {
+    color: var(--admin-text-muted);
+    display: block;
+    font-size: var(--admin-font-size-sm);
+    line-height: 1.8;
+    margin-top: 5px;
+}
+
+.automation-list-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.automation-list-nav a {
+    background: var(--admin-surface-muted);
+    border: 1px solid var(--admin-border);
+    border-radius: 999px;
+    color: var(--admin-text);
+    padding: 8px 14px;
+    text-decoration: none;
+}
+
+.automation-list-nav a:hover,
+.automation-list-nav a:focus-visible {
+    background: var(--admin-primary-soft);
+    border-color: var(--admin-primary);
+    color: var(--admin-primary-hover);
+}
+
 .automation-party-editor {
     background: var(--admin-surface);
     padding: 18px;

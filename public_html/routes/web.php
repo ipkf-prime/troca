@@ -1901,6 +1901,11 @@ $router->get('/admin/automation/correspondences/create', function ($request, $re
         return $automationUnavailable($response, $context);
     }
 
+    $requestedDirection = (string) $request->input('direction', 'outgoing');
+    $form['form']['direction_code'] = in_array($requestedDirection, ['incoming', 'outgoing', 'internal'], true)
+        ? $requestedDirection
+        : 'outgoing';
+
     return $adminRender($response, 'automation-correspondence-form', [
         'title' => 'ایجاد پیش نویس مکاتبه',
         'context' => $context,
