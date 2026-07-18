@@ -1012,6 +1012,9 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'automation_correspondence_create_ui_available' => is_readable(BASE_PATH . '/resources/views/admin/automation-correspondence-form.php'),
         'automation_correspondence_detail_workspace_available' => is_readable(BASE_PATH . '/resources/views/admin/automation-correspondence-detail.php'),
         'automation_correspondence_rbac_guards_available' => class_exists(\App\Services\AdminNavigationRbacService::class),
+        'multi_host_module_url_registry_available' => class_exists(\IPKF\Support\ApplicationUrlRegistry::class),
+        'multi_host_module_guard_available' => class_exists(\IPKF\Http\Middleware\ModuleHostMiddleware::class),
+        'shared_subdomain_session_configuration_available' => \IPKF\Support\Env::get('AUTH_COOKIE_DOMAIN', '') !== '',
         'automation_correspondence_runtime_uses_dedicated_connection' => $automationRuntimeMode === 'dedicated'
             && $automationCutoverGuardPassed,
         'automation_correspondence_legacy_runtime_access_blocked' => true,
@@ -1187,6 +1190,7 @@ $adminRender = function ($response, string $view, array $data = [], int $status 
 };
 
 $adminContext = fn (): ?array => (new \App\Services\AdminPanelService())->context();
+$adminHomeUrl = fn ($request): string => (new \IPKF\Support\ApplicationUrlRegistry())->adminHome((string) $request->host());
 
 $adminGuard = function ($response, string $path) use ($adminRender, $adminContext) {
     $context = $adminContext();
@@ -1207,15 +1211,15 @@ $adminGuard = function ($response, string $path) use ($adminRender, $adminContex
     return $context;
 };
 
-$router->get('/admin', function ($request, $response) {
+$router->get('/admin', function ($request, $response) use ($adminHomeUrl) {
     return $response->redirect((new \App\Services\AuthService())->authenticated()
-        ? '/admin/dashboard'
+        ? $adminHomeUrl($request)
         : '/admin/login');
 });
 
-$router->get('/admin/login', function ($request, $response) use ($adminRender) {
+$router->get('/admin/login', function ($request, $response) use ($adminRender, $adminHomeUrl) {
     if ((new \App\Services\AuthService())->authenticated()) {
-        return $response->redirect('/admin/dashboard');
+        return $response->redirect($adminHomeUrl($request));
     }
 
     return $adminRender($response, 'login', [
@@ -1225,9 +1229,9 @@ $router->get('/admin/login', function ($request, $response) use ($adminRender) {
     ]);
 });
 
-$router->get('/admin/forgot-password', function ($request, $response) use ($adminRender) {
+$router->get('/admin/forgot-password', function ($request, $response) use ($adminRender, $adminHomeUrl) {
     if ((new \App\Services\AuthService())->authenticated()) {
-        return $response->redirect('/admin/dashboard');
+        return $response->redirect($adminHomeUrl($request));
     }
 
     return $adminRender($response, 'forgot-password', [
@@ -1237,9 +1241,9 @@ $router->get('/admin/forgot-password', function ($request, $response) use ($admi
     ]);
 });
 
-$router->post('/admin/forgot-password', function ($request, $response) use ($adminRender) {
+$router->post('/admin/forgot-password', function ($request, $response) use ($adminRender, $adminHomeUrl) {
     if ((new \App\Services\AuthService())->authenticated()) {
-        return $response->redirect('/admin/dashboard');
+        return $response->redirect($adminHomeUrl($request));
     }
 
     return $adminRender($response, 'forgot-password', [
@@ -1249,7 +1253,7 @@ $router->post('/admin/forgot-password', function ($request, $response) use ($adm
     ]);
 });
 
-$router->post('/admin/login', function ($request, $response) use ($adminRender) {
+$router->post('/admin/login', function ($request, $response) use ($adminRender, $adminHomeUrl) {
     $login = trim((string) $request->input('login', ''));
     $password = (string) $request->input('password', '');
     $auth = new \App\Services\AuthService();
@@ -1267,12 +1271,12 @@ $router->post('/admin/login', function ($request, $response) use ($adminRender) 
         return $response->redirect('/admin/mfa');
     }
 
-    return $response->redirect('/admin/dashboard');
+    return $response->redirect($adminHomeUrl($request));
 });
 
-$router->get('/admin/mfa', function ($request, $response) use ($adminRender) {
+$router->get('/admin/mfa', function ($request, $response) use ($adminRender, $adminHomeUrl) {
     if ((new \App\Services\AuthService())->authenticated()) {
-        return $response->redirect('/admin/dashboard');
+        return $response->redirect($adminHomeUrl($request));
     }
 
     if ((new \App\Services\MfaService())->pendingUserId() === null) {
@@ -1285,7 +1289,7 @@ $router->get('/admin/mfa', function ($request, $response) use ($adminRender) {
     ]);
 });
 
-$router->post('/admin/mfa', function ($request, $response) use ($adminRender) {
+$router->post('/admin/mfa', function ($request, $response) use ($adminRender, $adminHomeUrl) {
     $totpCode = trim((string) $request->input('code', ''));
     $recoveryCode = trim((string) $request->input('recovery_code', ''));
     $method = $recoveryCode !== '' ? 'recovery_code' : 'totp';
@@ -1302,12 +1306,12 @@ $router->post('/admin/mfa', function ($request, $response) use ($adminRender) {
 
     (new \App\Services\AuthService())->completeMfaLogin($userId);
 
-    return $response->redirect('/admin/dashboard');
+    return $response->redirect($adminHomeUrl($request));
 });
 
-$router->get('/admin/mfa/recovery', function ($request, $response) use ($adminRender) {
+$router->get('/admin/mfa/recovery', function ($request, $response) use ($adminRender, $adminHomeUrl) {
     if ((new \App\Services\AuthService())->authenticated()) {
-        return $response->redirect('/admin/dashboard');
+        return $response->redirect($adminHomeUrl($request));
     }
 
     if ((new \App\Services\MfaService())->pendingUserId() === null) {
@@ -1320,7 +1324,7 @@ $router->get('/admin/mfa/recovery', function ($request, $response) use ($adminRe
     ]);
 });
 
-$router->post('/admin/mfa/recovery', function ($request, $response) use ($adminRender) {
+$router->post('/admin/mfa/recovery', function ($request, $response) use ($adminRender, $adminHomeUrl) {
     $code = trim((string) $request->input('recovery_code', ''));
     $userId = (new \App\Services\MfaService())->verifyPendingChallenge('recovery_code', $code);
 
@@ -1333,7 +1337,7 @@ $router->post('/admin/mfa/recovery', function ($request, $response) use ($adminR
 
     (new \App\Services\AuthService())->completeMfaLogin($userId);
 
-    return $response->redirect('/admin/dashboard');
+    return $response->redirect($adminHomeUrl($request));
 });
 
 $router->get('/admin/dashboard', function ($request, $response) use ($adminRender, $adminGuard) {

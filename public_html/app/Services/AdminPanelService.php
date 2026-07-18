@@ -4,6 +4,7 @@ namespace App\Services;
 
 use IPKF\Support\Session;
 use IPKF\Support\Version;
+use IPKF\Support\ApplicationUrlRegistry;
 
 class AdminPanelService extends BaseService
 {
@@ -117,7 +118,7 @@ class AdminPanelService extends BaseService
 
     private function moduleDefinitions(): array
     {
-        return [
+        $definitions = [
             [
                 'key' => 'users',
                 'title' => $this->fa('&#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x06A9;&#x0627;&#x0631;&#x0628;&#x0631;&#x0627;&#x0646;'),
@@ -203,6 +204,20 @@ class AdminPanelService extends BaseService
                 'sort_order' => 50,
             ],
         ];
+
+        $urls = new ApplicationUrlRegistry();
+        foreach ($definitions as &$module) {
+            $isAutomation = ($module['key'] ?? '') === 'automation';
+            $qualify = fn (string $path): string => $isAutomation ? $urls->automation($path) : $urls->core($path);
+            $module['url'] = $qualify((string) ($module['url'] ?? '/'));
+            foreach ($module['actions'] ?? [] as &$action) {
+                $action['url'] = $qualify((string) ($action['url'] ?? '/'));
+            }
+            unset($action);
+        }
+        unset($module);
+
+        return $definitions;
     }
 
     private function resolveDashboardModule(int $userId, array $module): ?array
@@ -228,17 +243,18 @@ class AdminPanelService extends BaseService
             return null;
         }
 
-        $activePaths = [(string) ($resolved['url'] ?? '#')];
+        $activePaths = [(string) (parse_url((string) ($resolved['url'] ?? '#'), PHP_URL_PATH) ?: '#')];
 
         foreach ($this->permittedActions($userId, $module) as $action) {
             if (($action['url'] ?? '') !== '') {
-                $activePaths[] = (string) $action['url'];
+                $actionPath = (string) (parse_url((string) $action['url'], PHP_URL_PATH) ?: $action['url']);
+                $activePaths[] = $actionPath;
 
-                if (($action['url'] ?? '') === '/admin/users') {
+                if ($actionPath === '/admin/users') {
                     $activePaths[] = '/admin/users/*';
                 }
 
-                if (str_starts_with((string) ($action['url'] ?? ''), '/admin/automation')) {
+                if (str_starts_with($actionPath, '/admin/automation')) {
                     $activePaths[] = '/admin/automation/*';
                 }
             }

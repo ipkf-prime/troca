@@ -6,6 +6,7 @@ class Kernel
 {
     protected array $middleware = [
         \IPKF\Http\Middleware\LogMiddleware::class,
+        \IPKF\Http\Middleware\ModuleHostMiddleware::class,
         \IPKF\Http\Middleware\CsrfMiddleware::class,
     ];
 
