@@ -9,3 +9,5 @@ Initial Core Refactor
 - Added private signature asset and appointment-scoped authorization schema.
 - Added strict Persian/English signature selection and immutable snapshot builder.
 - Added idempotent Core RBAC permissions and safe diagnostics.
+
+- Added operational organization chart, appointment management, and active organizational context UI.

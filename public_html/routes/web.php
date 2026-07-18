@@ -1145,6 +1145,9 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'signature_public_direct_access_blocked' => true,
         'automation_organizational_identity_contract_available' => class_exists(\App\Services\Organization\OrganizationalIdentityContract::class),
         'organizational_identity_foundation_ready_for_automation' => class_exists(\App\Services\Organization\OrganizationalIdentityContract::class) && class_exists(\App\Services\Signature\SignatureAuthorizationResolver::class),
+        'organization_chart_operational_ui_available' => class_exists(\App\Services\Organization\OrganizationOperationsService::class),
+        'appointment_operational_ui_available' => class_exists(\App\Services\Organization\OrganizationOperationsService::class),
+        'organizational_context_operational_ui_available' => class_exists(\App\Services\Organization\UserOrganizationalContextResolver::class),
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),
@@ -2039,6 +2042,56 @@ $router->get('/admin/positions', function ($request, $response) use ($adminRende
         'list' => $list,
     ]);
 });
+$router->get('/admin/organization-chart', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/organization-chart');
+    if (!is_array($context)) { return $context; }
+    return $adminRender($response, 'organization-chart', [
+        'title' => 'چارت سازمانی', 'context' => $context,
+        'chart' => (new \App\Services\Organization\OrganizationOperationsService())->chart(),
+    ]);
+});
+$router->get('/admin/appointments', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/appointments');
+    if (!is_array($context)) { return $context; }
+    $service = new \App\Services\Organization\OrganizationOperationsService();
+    return $adminRender($response, 'appointments', [
+        'title' => 'پست و انتصاب', 'context' => $context,
+        'list' => $service->appointments((string)$request->input('q','')),
+        'options' => $service->formOptions(),
+    ]);
+});
+$router->post('/admin/appointments', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/appointments');
+    if (!is_array($context)) { return $context; }
+    try {
+        (new \App\Services\Organization\OrganizationOperationsService())->createAppointment([
+            'person_reference'=>$request->input('person_reference',''), 'position_reference'=>$request->input('position_reference',''),
+            'appointment_kind'=>$request->input('appointment_kind','permanent'), 'is_primary'=>$request->input('is_primary',null),
+            'valid_from'=>$request->input('valid_from',''), 'valid_to'=>$request->input('valid_to',''),
+            'appointment_reference'=>$request->input('appointment_reference',''), 'description'=>$request->input('description',''),
+        ]);
+        $_SESSION['admin_flash_message']='انتصاب با موفقیت ثبت شد.';
+    } catch (\Throwable $e) { $_SESSION['admin_flash_error']=$e instanceof \RuntimeException ? $e->getMessage() : 'ثبت انتصاب ممکن نشد.'; }
+    return $response->redirect('/admin/appointments');
+});
+$router->get('/admin/profile/organizational-context', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/profile/organizational-context');
+    if (!is_array($context)) { return $context; }
+    $resolver = new \App\Services\Organization\UserOrganizationalContextResolver();
+    return $adminRender($response, 'organizational-context', [
+        'title'=>'جایگاه سازمانی فعال','context'=>$context,
+        'appointments'=>$resolver->activeAppointmentsForUser((int)$context['user_id']),
+        'current'=>$resolver->current((int)$context['user_id']),
+    ]);
+});
+$router->post('/admin/profile/organizational-context', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/profile/organizational-context');
+    if (!is_array($context)) { return $context; }
+    try { (new \App\Services\Organization\UserOrganizationalContextResolver())->switchContext((int)$context['user_id'],(string)$request->input('appointment_reference','')); $_SESSION['admin_flash_message']='جایگاه فعال تغییر کرد.'; }
+    catch (\Throwable) { $_SESSION['admin_flash_error']='انتخاب این جایگاه مجاز نیست.'; }
+    return $response->redirect('/admin/profile/organizational-context');
+});
+
 $router->get('/admin/pages', $adminPlaceholder('/admin/pages', 'صفحات داخلی', 'مدیریت صفحات داخلی هنوز فعال نشده است.'));
 $router->get('/admin/reports', $adminPlaceholder('/admin/reports', 'گزارش‌ها', 'گزارش‌های مدیریتی در نسخه‌های بعدی اضافه می‌شود.'));
 $router->get('/admin/support', $adminPlaceholder('/admin/support', 'پشتیبانی', 'مسیرهای پشتیبانی و راهنمای داخلی در فاز بعدی تکمیل می‌شود.'));
