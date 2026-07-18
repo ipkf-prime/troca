@@ -18,6 +18,7 @@ class CorrespondenceCommandService
         private ?CorrespondencePartyRepository $parties = null,
         private ?CorrespondenceEventRepository $events = null,
         private ?AutomationLookupRepository $lookups = null,
+        private ?CorrespondenceDocumentTemplateRepository $documentTemplates = null,
         private ?CoreReferenceOptions $coreReferences = null
     ) {
         $this->runtime ??= new AutomationOperationalRuntime();
@@ -26,6 +27,7 @@ class CorrespondenceCommandService
         $this->parties ??= new CorrespondencePartyRepository($this->runtime);
         $this->events ??= new CorrespondenceEventRepository($this->runtime);
         $this->lookups ??= new AutomationLookupRepository($this->runtime);
+        $this->documentTemplates ??= new CorrespondenceDocumentTemplateRepository($this->runtime);
         $this->coreReferences ??= new CoreReferenceOptions();
     }
 
@@ -52,6 +54,7 @@ class CorrespondenceCommandService
                 'status_code' => 'draft',
                 'subject' => $normalized['subject'],
                 'summary' => $normalized['summary'],
+                'document_template_version_id' => $normalized['document_template_version_id'],
                 'priority_code' => $normalized['priority_code'],
                 'confidentiality_code' => $normalized['confidentiality_code'],
                 'channel_code' => $normalized['channel_code'],
@@ -69,6 +72,7 @@ class CorrespondenceCommandService
                 'subject' => $normalized['subject'],
                 'content' => $normalized['content'],
                 'summary' => $normalized['summary'],
+                'document_template_snapshot_json' => $normalized['document_template_snapshot_json'],
                 'change_note' => 'ایجاد پیش نویس',
                 'created_by_user_id' => $userId,
                 'created_at' => $now,
@@ -125,6 +129,7 @@ class CorrespondenceCommandService
                 'subject' => $normalized['subject'],
                 'content' => $normalized['content'],
                 'summary' => $normalized['summary'],
+                'document_template_snapshot_json' => $normalized['document_template_snapshot_json'],
                 'change_note' => trim((string) ($input['change_note'] ?? '')) ?: 'ویرایش پیش نویس',
                 'created_by_user_id' => $userId,
                 'created_at' => $now,
@@ -134,6 +139,7 @@ class CorrespondenceCommandService
                 'direction_code' => $normalized['direction_code'],
                 'subject' => $normalized['subject'],
                 'summary' => $normalized['summary'],
+                'document_template_version_id' => $normalized['document_template_version_id'],
                 'priority_code' => $normalized['priority_code'],
                 'confidentiality_code' => $normalized['confidentiality_code'],
                 'channel_code' => $normalized['channel_code'],
@@ -176,6 +182,8 @@ class CorrespondenceCommandService
         $priority = $this->code($input['priority_code'] ?? 'normal');
         $confidentiality = $this->code($input['confidentiality_code'] ?? 'normal');
         $channel = $this->code($input['channel_code'] ?? 'manual');
+        $templateReference = trim((string) ($input['document_template_reference'] ?? ''));
+        $templateVersion = $templateReference !== '' ? $this->documentTemplates->activeVersion($templateReference) : null;
 
         if ($subject === '') {
             $errors[] = 'subject_required';
@@ -183,6 +191,10 @@ class CorrespondenceCommandService
 
         if ($content === '') {
             $errors[] = 'content_required';
+        }
+
+        if ($templateVersion === null) {
+            $errors[] = 'document_template_required';
         }
 
         foreach ([
@@ -213,6 +225,10 @@ class CorrespondenceCommandService
             'organization_id' => $organizationId,
             'subject' => $subject,
             'summary' => $summary !== '' ? $summary : null,
+            'document_template_version_id' => $templateVersion !== null ? (int) $templateVersion['version_id'] : null,
+            'document_template_snapshot_json' => $templateVersion !== null
+                ? json_encode($this->documentTemplates->snapshot($templateVersion), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                : null,
             'content' => $content,
             'direction_code' => $direction,
             'priority_code' => $priority,

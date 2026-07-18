@@ -3215,7 +3215,105 @@ input[aria-invalid="true"] {
     padding: 12px;
 }
 
+.automation-template-picker {
+    border: 0;
+    margin: 0;
+    min-width: 0;
+    padding: 0;
+}
+
+.automation-template-picker legend {
+    color: var(--admin-text);
+    font-weight: var(--admin-font-weight-bold);
+    margin-bottom: 3px;
+}
+
+.automation-template-picker > p {
+    color: var(--admin-text-muted);
+    font-size: var(--admin-font-size-sm);
+    margin: 0 0 10px;
+}
+
+.automation-template-picker__grid {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.automation-template-option {
+    align-items: center;
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    cursor: pointer;
+    display: grid !important;
+    gap: 4px !important;
+    grid-template-columns: 42px minmax(0, 1fr);
+    min-height: 76px;
+    padding: 10px;
+    position: relative;
+}
+
+.automation-template-option:has(input:checked) {
+    background: var(--admin-primary-soft);
+    border-color: var(--admin-primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--admin-primary) 14%, transparent);
+}
+
+.automation-template-option input {
+    height: 1px;
+    opacity: 0;
+    position: absolute;
+    width: 1px;
+}
+
+.automation-template-option strong,
+.automation-template-option small {
+    grid-column: 2;
+}
+
+.automation-template-option small {
+    color: var(--admin-text-muted);
+    font-size: 11px;
+}
+
+.automation-template-option__page {
+    align-self: center;
+    background: #fff;
+    border: 1px solid #b9cec4;
+    border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    grid-row: 1 / 3;
+    height: 50px;
+    justify-content: center;
+    padding: 7px 5px;
+    width: 36px;
+}
+
+.automation-template-option__page--a5 {
+    height: 44px;
+    width: 32px;
+}
+
+.automation-template-option__page i {
+    background: #bad5c8;
+    border-radius: 9px;
+    display: block;
+    height: 2px;
+}
+
+.automation-template-option__page i:first-child {
+    background: var(--admin-primary);
+    height: 4px;
+}
+
 @media (max-width: 920px) {
+    .automation-template-picker__grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .admin-setup-summary {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -3342,6 +3440,10 @@ input[aria-invalid="true"] {
 }
 
 @media (max-width: 520px) {
+    .automation-template-picker__grid {
+        grid-template-columns: 1fr;
+    }
+
     .admin-setup-summary {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }

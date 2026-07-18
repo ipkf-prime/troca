@@ -70,6 +70,11 @@ $partyTokens = array_values(is_array($form['party_reference_token'] ?? null) ? $
 $externalNames = array_values(is_array($form['external_display_name'] ?? null) ? $form['external_display_name'] : []);
 $externalOrganizations = array_values(is_array($form['external_organization_name'] ?? null) ? $form['external_organization_name'] : []);
 $externalContacts = array_values(is_array($form['external_contact_or_address'] ?? null) ? $form['external_contact_or_address'] : []);
+$documentTemplates = array_values(is_array($options['document_templates'] ?? null) ? $options['document_templates'] : []);
+$selectedTemplateReference = trim((string) ($form['document_template_reference'] ?? ''));
+if ($selectedTemplateReference === '' && $documentTemplates !== []) {
+    $selectedTemplateReference = (string) ($documentTemplates[0]['public_reference'] ?? '');
+}
 $externalDateFa = trim((string) ($form['external_date_fa'] ?? ''));
 if ($externalDateFa === '') {
     $externalDateFa = \App\Support\PersianDate::fromGregorianDate((string) ($form['external_date'] ?? ''));
@@ -115,6 +120,23 @@ ob_start();
             <div class="automation-form-section__head"><div><h3>اطلاعات پایه</h3><p>مشخصات عمومی و طبقه‌بندی مکاتبه</p></div></div>
             <div class="admin-form-grid automation-base-grid">
                 <label class="admin-form-grid__wide"><span>موضوع</span><input name="subject" value="<?= admin_h($form['subject'] ?? '') ?>" maxlength="500" required></label>
+                <fieldset class="automation-template-picker admin-form-grid__wide">
+                    <legend>قالب استاندارد نامه</legend>
+                    <p>اندازه صفحه، زبان، هدر، فوتر و محل امضا با انتخاب قالب تثبیت می‌شود.</p>
+                    <div class="automation-template-picker__grid">
+                        <?php foreach ($documentTemplates as $template):
+                            $reference = (string) ($template['public_reference'] ?? '');
+                            $checked = $reference === $selectedTemplateReference;
+                        ?>
+                            <label class="automation-template-option">
+                                <input type="radio" name="document_template_reference" value="<?= admin_h($reference) ?>" <?= $checked ? 'checked' : '' ?> required>
+                                <span class="automation-template-option__page automation-template-option__page--<?= strtolower(admin_h($template['page_size_code'] ?? 'a4')) ?>"><i></i><i></i><i></i></span>
+                                <strong><?= admin_h($template['title_fa'] ?? '') ?></strong>
+                                <small><?= admin_h(($template['page_size_code'] ?? '') . ' · ' . (($template['language_code'] ?? '') === 'fa' ? 'فارسی' : 'English') . ' · ' . ($template['signature_slots'] ?? 1) . ' امضا · نسخه ' . ($template['version_number'] ?? 1)) ?></small>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                </fieldset>
                 <label><span>نوع یا جهت مکاتبه</span><?= $select('direction_code', $options['directions'] ?? [], (string) ($form['direction_code'] ?? 'incoming')) ?></label>
                 <label><span>اولویت</span><?= $select('priority_code', $options['priorities'] ?? [], (string) ($form['priority_code'] ?? 'normal')) ?></label>
                 <label><span>محرمانگی</span><?= $select('confidentiality_code', $options['confidentialities'] ?? [], (string) ($form['confidentiality_code'] ?? 'normal')) ?></label>
@@ -167,6 +189,7 @@ ob_start();
                 <div><span>موضوع</span><strong data-draft-review="subject">—</strong></div>
                 <div><span>نوع مکاتبه</span><strong data-draft-review="direction_code">—</strong></div>
                 <div><span>اولویت</span><strong data-draft-review="priority_code">—</strong></div>
+                <div><span>قالب نامه</span><strong data-draft-review="document_template_reference">—</strong></div>
                 <div><span>طرف‌های تکمیل‌شده</span><strong data-draft-review="parties">۰</strong></div>
             </div>
             <div class="admin-alert admin-alert--info admin-alert--compact">ثبت نهایی در این مرحله، پیش‌نویس را ایجاد می‌کند؛ گردش کار و شماره ثبت رسمی هنوز آغاز نمی‌شود.</div>
@@ -203,6 +226,8 @@ ob_start();
         set('subject', value('subject'));
         set('direction_code', selected('direction_code'));
         set('priority_code', selected('priority_code'));
+        const template = form.querySelector('[name="document_template_reference"]:checked');
+        set('document_template_reference', template?.closest('label')?.querySelector('strong')?.textContent?.trim() || '—');
         set('parties', String(count).replace(/\d/g, (digit) => '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]));
     }
 

@@ -16,12 +16,12 @@ class CorrespondenceRepository
         $statement = $this->connection()->prepare('
             INSERT INTO correspondences (
                 public_reference, organization_id, org_unit_id, fiscal_year_id, direction_code,
-                status_code, subject, summary, priority_code, confidentiality_code, channel_code,
+                status_code, subject, summary, document_template_version_id, priority_code, confidentiality_code, channel_code,
                 external_number, external_date, received_at, dispatched_at, created_by_user_id,
                 updated_by_user_id, lock_version, created_at, updated_at
             ) VALUES (
                 :public_reference, :organization_id, :org_unit_id, NULL, :direction_code,
-                :status_code, :subject, :summary, :priority_code, :confidentiality_code, :channel_code,
+                :status_code, :subject, :summary, :document_template_version_id, :priority_code, :confidentiality_code, :channel_code,
                 :external_number, :external_date, :received_at, :dispatched_at, :created_by_user_id,
                 :updated_by_user_id, 0, :created_at, :updated_at
             )
@@ -49,6 +49,7 @@ class CorrespondenceRepository
             SET direction_code = :direction_code,
                 subject = :subject,
                 summary = :summary,
+                document_template_version_id = :document_template_version_id,
                 priority_code = :priority_code,
                 confidentiality_code = :confidentiality_code,
                 channel_code = :channel_code,
@@ -74,7 +75,7 @@ class CorrespondenceRepository
 
     public function findByPublicReference(string $publicReference): ?array
     {
-        $statement = $this->connection()->prepare('SELECT * FROM correspondences WHERE public_reference = ? LIMIT 1');
+        $statement = $this->connection()->prepare('SELECT c.*, t.public_reference AS document_template_reference, t.title_fa AS document_template_title FROM correspondences c LEFT JOIN correspondence_document_template_versions tv ON tv.id = c.document_template_version_id LEFT JOIN correspondence_document_templates t ON t.id = tv.template_id WHERE c.public_reference = ? LIMIT 1');
         $statement->execute([$publicReference]);
         $row = $statement->fetch(PDO::FETCH_ASSOC);
 

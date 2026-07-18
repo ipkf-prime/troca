@@ -9,6 +9,8 @@ class AutomationSchemaParityContract
         'lookup_values',
         'correspondences',
         'correspondence_versions',
+        'correspondence_document_templates',
+        'correspondence_document_template_versions',
         'correspondence_parties',
         'registry_books',
         'correspondence_registrations',
@@ -22,6 +24,7 @@ class AutomationSchemaParityContract
     public const INTERNAL_FOREIGN_KEYS = [
         'lookup_values_domain_fk',
         'corr_versions_corr_fk',
+        'corr_doc_template_versions_template_fk',
         'corr_current_version_fk',
         'corr_parties_corr_fk',
         'corr_reg_corr_fk',
@@ -53,6 +56,8 @@ class AutomationSchemaParityContract
     public const OPERATIONAL_TABLES = [
         'correspondences',
         'correspondence_versions',
+        'correspondence_document_templates',
+        'correspondence_document_template_versions',
         'correspondence_parties',
         'registry_books',
         'correspondence_registrations',

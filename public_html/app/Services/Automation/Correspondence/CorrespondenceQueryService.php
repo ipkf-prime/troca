@@ -16,6 +16,7 @@ class CorrespondenceQueryService
         private ?CorrespondencePartyRepository $parties = null,
         private ?CorrespondenceEventRepository $events = null,
         private ?AutomationLookupRepository $lookups = null,
+        private ?CorrespondenceDocumentTemplateRepository $documentTemplates = null,
         private ?CoreReferenceOptions $coreReferences = null,
         private ?CorrespondenceViewModelBuilder $viewModels = null
     ) {
@@ -25,6 +26,7 @@ class CorrespondenceQueryService
         $this->parties ??= new CorrespondencePartyRepository($runtime);
         $this->events ??= new CorrespondenceEventRepository($runtime);
         $this->lookups ??= new AutomationLookupRepository($runtime);
+        $this->documentTemplates ??= new CorrespondenceDocumentTemplateRepository($runtime);
         $this->coreReferences ??= new CoreReferenceOptions();
         $this->viewModels ??= new CorrespondenceViewModelBuilder($this->lookups);
     }
@@ -83,7 +85,7 @@ class CorrespondenceQueryService
         return [
             'ok' => $publicReference === null || $correspondence !== null,
             'form' => $this->viewModels->formData($correspondence, $versions, $this->formParties($parties)),
-            'options' => $this->lookups->formOptions(),
+            'options' => $this->lookups->formOptions() + ['document_templates' => $this->documentTemplates->options()],
             'references' => $this->coreReferences->options(),
             'editable' => $correspondence === null || ($correspondence['status_code'] ?? '') === 'draft',
         ];

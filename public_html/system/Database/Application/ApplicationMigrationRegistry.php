@@ -35,6 +35,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateMinistryCanonicalGeographyTables::class,
                     \IPKF\Database\Migrations\HardenMinistryCanonicalGeographyApply::class,
                     \IPKF\Database\Migrations\CreateAutomationCorrespondenceFoundationTables::class,
+                    \IPKF\Database\Migrations\CreateCorrespondenceDocumentTemplateTables::class,
                     \IPKF\Database\Migrations\CreatePlatformCommercialFoundationTables::class,
                     \IPKF\Database\Migrations\CreateApplicationMigrationHistoryTable::class,
                 ],
@@ -43,6 +44,7 @@ class ApplicationMigrationRegistry
                 'connection' => 'automation.primary',
                 'migrations' => [
                     \IPKF\Database\Migrations\CreateStandaloneAutomationCorrespondenceFoundationTables::class,
+                    \IPKF\Database\Migrations\CreateCorrespondenceDocumentTemplateTables::class,
                 ],
             ],
         ];

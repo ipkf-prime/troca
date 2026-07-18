@@ -16,8 +16,8 @@ class CorrespondenceVersionRepository
         $statement = $this->connection()->prepare('
             INSERT INTO correspondence_versions (
                 correspondence_id, version_number, subject_snapshot, content_snapshot,
-                summary_snapshot, change_note, content_checksum, created_by_user_id, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                summary_snapshot, document_template_snapshot_json, change_note, content_checksum, created_by_user_id, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ');
         $statement->execute([
             $correspondenceId,
@@ -25,6 +25,7 @@ class CorrespondenceVersionRepository
             $data['subject'],
             $data['content'],
             $data['summary'],
+            $data['document_template_snapshot_json'],
             $data['change_note'],
             hash('sha256', $data['content']),
             $data['created_by_user_id'],
