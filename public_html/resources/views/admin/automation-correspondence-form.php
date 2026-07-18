@@ -71,6 +71,8 @@ $externalNames = array_values(is_array($form['external_display_name'] ?? null) ?
 $externalOrganizations = array_values(is_array($form['external_organization_name'] ?? null) ? $form['external_organization_name'] : []);
 $externalContacts = array_values(is_array($form['external_contact_or_address'] ?? null) ? $form['external_contact_or_address'] : []);
 $documentTemplates = array_values(is_array($options['document_templates'] ?? null) ? $options['document_templates'] : []);
+$relatedCorrespondences = array_values(is_array($options['related_correspondences'] ?? null) ? $options['related_correspondences'] : []);
+$storedRelations = array_values(is_array($form['relations'] ?? null) ? $form['relations'] : []);
 $selectedTemplateReference = trim((string) ($form['document_template_reference'] ?? ''));
 if ($selectedTemplateReference === '' && $documentTemplates !== []) {
     $selectedTemplateReference = (string) ($documentTemplates[0]['public_reference'] ?? '');
@@ -107,6 +109,7 @@ ob_start();
 
     <form class="automation-form automation-form--structured automation-tab-workspace" method="post" action="<?= admin_h($action) ?>" data-automation-draft-tabs>
         <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
+        <input type="hidden" name="form_public_reference" value="<?=admin_h($form['public_reference']??'')?>">
         <?php if ($isEdit): ?><input type="hidden" name="lock_version" value="<?= admin_h($form['lock_version'] ?? 0) ?>"><?php endif; ?>
 
         <nav class="automation-draft-tabs" role="tablist" aria-label="مراحل ایجاد پیش‌نویس">
@@ -120,22 +123,11 @@ ob_start();
             <div class="automation-form-section__head"><div><h3>اطلاعات پایه</h3><p>مشخصات عمومی و طبقه‌بندی مکاتبه</p></div></div>
             <div class="admin-form-grid automation-base-grid">
                 <label class="admin-form-grid__wide"><span>موضوع</span><input name="subject" value="<?= admin_h($form['subject'] ?? '') ?>" maxlength="500" required></label>
-                <fieldset class="automation-template-picker admin-form-grid__wide">
+                <fieldset class="automation-template-picker admin-form-grid__wide" data-template-picker>
                     <legend>قالب استاندارد نامه</legend>
-                    <p>اندازه صفحه، زبان، هدر، فوتر و محل امضا با انتخاب قالب تثبیت می‌شود.</p>
-                    <div class="automation-template-picker__grid">
-                        <?php foreach ($documentTemplates as $template):
-                            $reference = (string) ($template['public_reference'] ?? '');
-                            $checked = $reference === $selectedTemplateReference;
-                        ?>
-                            <label class="automation-template-option">
-                                <input type="radio" name="document_template_reference" value="<?= admin_h($reference) ?>" <?= $checked ? 'checked' : '' ?> required>
-                                <span class="automation-template-option__page automation-template-option__page--<?= strtolower(admin_h($template['page_size_code'] ?? 'a4')) ?>"><i></i><i></i><i></i></span>
-                                <strong><?= admin_h($template['title_fa'] ?? '') ?></strong>
-                                <small><?= admin_h(($template['page_size_code'] ?? '') . ' · ' . (($template['language_code'] ?? '') === 'fa' ? 'فارسی' : 'English') . ' · ' . ($template['signature_slots'] ?? 1) . ' امضا · نسخه ' . ($template['version_number'] ?? 1)) ?></small>
-                            </label>
-                        <?php endforeach; ?>
-                    </div>
+                    <p>قالب را از فهرست انتخاب کنید؛ اندازه، زبان، هدر، فوتر و محل امضا با نسخه قالب تثبیت می‌شود. <a href="/admin/automation/templates">مشاهده فهرست قالب‌ها</a></p>
+                    <label><span>انتخاب قالب</span><select name="document_template_reference" required data-template-select><option value="">انتخاب قالب نامه</option><?php foreach ($documentTemplates as $template): $reference=(string)($template['public_reference']??''); ?><option value="<?=admin_h($reference)?>" data-page="<?=admin_h($template['page_size_code']??'')?>" data-language="<?=admin_h(($template['language_code']??'')==='fa'?'فارسی':'انگلیسی')?>" data-signatures="<?=admin_h($template['signature_slots']??1)?>" data-version="<?=admin_h($template['version_number']??1)?>" <?= $reference===$selectedTemplateReference?'selected':'' ?>><?=admin_h($template['title_fa']??'')?></option><?php endforeach;?></select></label>
+                    <div class="automation-template-summary" data-template-summary>یک قالب را انتخاب کنید.</div>
                 </fieldset>
                 <label><span>نوع یا جهت مکاتبه</span><?= $select('direction_code', $options['directions'] ?? [], (string) ($form['direction_code'] ?? 'incoming')) ?></label>
                 <label><span>اولویت</span><?= $select('priority_code', $options['priorities'] ?? [], (string) ($form['priority_code'] ?? 'normal')) ?></label>
@@ -158,7 +150,7 @@ ob_start();
         <section class="automation-form-section automation-party-editor automation-draft-panel" data-draft-panel="parties" role="tabpanel">
             <div class="automation-form-section__head"><div><h3>طرف‌های مکاتبه</h3><p>حداقل یک طرف تعریف کنید. فیلدهای هر طرف متناسب با نوع انتخابی نمایش داده می‌شوند.</p></div></div>
             <div class="automation-party-list">
-                <?php for ($index = 0; $index < 3; $index++):
+                <?php for ($index = 0; $index < 6; $index++):
                     $stored = $storedParties[$index] ?? [];
                     $role = $arrayValue($partyRoles, $index, (string) ($stored['party_role_code'] ?? ($index === 0 ? 'sender' : '')));
                     $kind = $arrayValue($partyKinds, $index, (string) ($stored['target_kind_code'] ?? ($index === 0 ? 'external' : '')));
@@ -180,6 +172,17 @@ ob_start();
                     </details>
                 <?php endfor; ?>
             </div>
+            <div class="automation-form-section__head"><div><h3>عطف، پیرو و ارتباط با نامه‌های قبلی</h3><p>شماره و تاریخ نامه مرجع پس از انتخاب، در خروجی نامه قابل استفاده خواهد بود.</p></div></div>
+            <div class="automation-party-list">
+                <?php for($index=0;$index<2;$index++): $relation=$storedRelations[$index]??[]; ?>
+                <div class="automation-party-row">
+                    <label><span>نوع ارتباط</span><select name="relation_type_code[]"><option value="">بدون ارتباط</option><?php foreach($options['relation_types']??[] as $item):$code=(string)($item['code']??'');?><option value="<?=admin_h($code)?>" <?= $code===(string)($relation['relation_type_code']??'')?'selected':'' ?>><?=admin_h($item['label']??$code)?></option><?php endforeach;?></select></label>
+                    <label><span>نامه مرجع</span><select name="related_correspondence_reference[]"><option value="">انتخاب نامه</option><?php foreach($relatedCorrespondences as $item):$ref=(string)($item['public_reference']??'');?><option value="<?=admin_h($ref)?>" <?= $ref===(string)($relation['target_public_reference']??'')?'selected':'' ?>><?=admin_h(($item['subject']??'بدون موضوع').' — '.($item['external_number']?:$ref))?></option><?php endforeach;?></select></label>
+                    <label class="automation-party-row__wide"><span>توضیح ارتباط</span><input name="relation_note[]" maxlength="1000" value="<?=admin_h($relation['note']??'')?>" placeholder="مثلاً عطف به نامه شماره ..."></label>
+                </div>
+                <?php endfor; ?>
+            </div>
+            <div class="admin-alert admin-alert--info admin-alert--compact">رونوشت و رونوشت مخفی از فهرست «نقش طرف» در همین بخش انتخاب می‌شوند. پیوست فایل پس از ایجاد پیش‌نویس، در تب «پیوست‌ها» افزوده می‌شود.</div>
             <div class="automation-draft-navigation"><button class="admin-button admin-button--soft" type="button" data-draft-next="content">قبلی</button><button class="admin-button" type="button" data-draft-next="review">ادامه: مرور و ثبت</button></div>
         </section>
 
@@ -226,8 +229,7 @@ ob_start();
         set('subject', value('subject'));
         set('direction_code', selected('direction_code'));
         set('priority_code', selected('priority_code'));
-        const template = form.querySelector('[name="document_template_reference"]:checked');
-        set('document_template_reference', template?.closest('label')?.querySelector('strong')?.textContent?.trim() || '—');
+        set('document_template_reference', selected('document_template_reference'));
         set('parties', String(count).replace(/\d/g, (digit) => '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]));
     }
 
@@ -266,6 +268,16 @@ ob_start();
 
     const requested = location.hash.startsWith('#draft-') ? location.hash.slice(7) : 'base';
     activate(requested);
+
+    const templateSelect = form.querySelector('[data-template-select]');
+    const templateSummary = form.querySelector('[data-template-summary]');
+    function templatePreview() {
+        const option = templateSelect?.selectedOptions?.[0];
+        if (!templateSummary || !option?.value) { if (templateSummary) templateSummary.textContent='یک قالب را انتخاب کنید.'; return; }
+        templateSummary.textContent = [option.dataset.page, option.dataset.language, option.dataset.signatures + ' امضا', 'نسخه ' + option.dataset.version].join(' · ');
+    }
+    templateSelect?.addEventListener('change', templatePreview);
+    templatePreview();
 })();
 </script>
 <?php

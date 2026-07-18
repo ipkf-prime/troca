@@ -14,6 +14,16 @@ class ApplicationUrlRegistry
         return $this->url('AUTOMATION_APP_URL', $path);
     }
 
+    public function automationLaunch(string $path = '/admin/automation', ?string $requestHost = null): string
+    {
+        $host = $requestHost ?? (string) ($_SERVER['HTTP_HOST'] ?? '');
+        if ($this->isAutomationHost($host)) {
+            return $this->automation($path);
+        }
+
+        return $this->core('/auth/module-sso/start?return_path=' . rawurlencode($path));
+    }
+
     public function coreHost(): ?string
     {
         return $this->configuredHost('CORE_APP_URL');
@@ -61,14 +71,22 @@ class ApplicationUrlRegistry
         $path = parse_url($requestUri, PHP_URL_PATH) ?: '/';
         $automationPath = $path === '/admin/automation' || str_starts_with($path, '/admin/automation/');
 
+        if ($automationPath && $this->isCoreHost($requestHost)) {
+            return $this->core('/auth/module-sso/start?return_path=' . rawurlencode($requestUri));
+        }
+
         if ($automationPath && !$this->isAutomationHost($requestHost) && $this->automationHost() !== null) {
             return $this->automation($requestUri);
+        }
+
+        if ($this->isAutomationHost($requestHost) && $this->isCentralAuthenticationPath($path)) {
+            return $this->core('/auth/module-sso/start?return_path=' . rawurlencode('/admin/automation'));
         }
 
         if ($this->isAutomationHost($requestHost)
             && str_starts_with($path, '/admin')
             && !$automationPath
-            && !$this->isAuthenticationPath($path)
+            && $path !== '/admin/logout'
             && $this->coreHost() !== null
         ) {
             return $this->core($requestUri);
@@ -105,10 +123,10 @@ class ApplicationUrlRegistry
         return preg_replace('/:\d+$/', '', $host) ?: '';
     }
 
-    private function isAuthenticationPath(string $path): bool
+    private function isCentralAuthenticationPath(string $path): bool
     {
         return in_array($path, [
-            '/admin', '/admin/login', '/admin/logout', '/admin/forgot-password',
+            '/admin', '/admin/login', '/admin/forgot-password',
             '/admin/mfa', '/admin/mfa/recovery',
         ], true);
     }

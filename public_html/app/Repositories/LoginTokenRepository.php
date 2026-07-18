@@ -45,7 +45,7 @@ class LoginTokenRepository extends BaseRepository
         return $statement->fetchAll();
     }
 
-    public function markConsumed(int $id): void
+    public function claim(int $id): bool
     {
         $statement = $this->connection()->prepare("
             UPDATE auth_login_tokens
@@ -54,11 +54,15 @@ class LoginTokenRepository extends BaseRepository
                 consumed_user_agent = ?,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
+              AND used_at IS NULL
+              AND revoked_at IS NULL
         ");
         $statement->execute([
             $_SERVER['REMOTE_ADDR'] ?? null,
             $_SERVER['HTTP_USER_AGENT'] ?? null,
             $id,
         ]);
+
+        return $statement->rowCount() === 1;
     }
 }

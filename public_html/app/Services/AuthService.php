@@ -68,6 +68,7 @@ class AuthService extends BaseService
         Session::forget('auth_pending_user_id');
         Session::forget('auth_pending_at');
         Session::forget('auth_pending_methods');
+        Session::forget('module_sso_return_path');
     }
 
     public function completeMfaLogin(int $userId): ?array

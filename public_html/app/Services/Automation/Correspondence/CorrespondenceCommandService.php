@@ -19,7 +19,8 @@ class CorrespondenceCommandService
         private ?CorrespondenceEventRepository $events = null,
         private ?AutomationLookupRepository $lookups = null,
         private ?CorrespondenceDocumentTemplateRepository $documentTemplates = null,
-        private ?CoreReferenceOptions $coreReferences = null
+        private ?CoreReferenceOptions $coreReferences = null,
+        private ?CorrespondenceRelationRepository $relations = null
     ) {
         $this->runtime ??= new AutomationOperationalRuntime();
         $this->correspondences ??= new CorrespondenceRepository($this->runtime);
@@ -29,6 +30,7 @@ class CorrespondenceCommandService
         $this->lookups ??= new AutomationLookupRepository($this->runtime);
         $this->documentTemplates ??= new CorrespondenceDocumentTemplateRepository($this->runtime);
         $this->coreReferences ??= new CoreReferenceOptions();
+        $this->relations ??= new CorrespondenceRelationRepository($this->runtime);
     }
 
     public function createDraft(array $input, int $userId, array $context): array
@@ -79,6 +81,7 @@ class CorrespondenceCommandService
             ]);
 
             $this->parties->insertMany($correspondenceId, $normalized['parties'], $now);
+            $this->relations->replaceForDraft($correspondenceId, $normalized['relations'], $userId, $now);
             $this->events->append($correspondenceId, 'created', $userId, null, 'draft', ['version' => 1], $now);
             $this->correspondences->updateCurrentVersion($correspondenceId, $versionId, 1, $userId, $now);
 
@@ -158,6 +161,7 @@ class CorrespondenceCommandService
 
             $this->correspondences->updateCurrentVersion((int) $current['id'], $versionId, $versionNumber, $userId, $now, false);
             $this->parties->replaceForDraft((int) $current['id'], $normalized['parties'], $now);
+            $this->relations->replaceForDraft((int) $current['id'], $normalized['relations'], $userId, $now);
             $this->events->append((int) $current['id'], 'revised', $userId, 'draft', 'draft', ['version' => $versionNumber], $now);
 
             $pdo->commit();
@@ -215,6 +219,7 @@ class CorrespondenceCommandService
 
         $externalDate = $this->dateInput($input, 'external_date', 'external_date_fa', $errors);
         $parties = $this->normalizeParties($input, $errors);
+        $relations = $this->normalizeRelations($input, $errors);
 
         if ($parties === []) {
             $errors[] = 'party_required';
@@ -239,7 +244,31 @@ class CorrespondenceCommandService
             'received_at' => null,
             'dispatched_at' => null,
             'parties' => $parties,
+            'relations' => $relations,
         ];
+    }
+
+    private function normalizeRelations(array $input, array &$errors): array
+    {
+        $types = $this->arrayInput($input['relation_type_code'] ?? []);
+        $references = $this->arrayInput($input['related_correspondence_reference'] ?? []);
+        $notes = $this->arrayInput($input['relation_note'] ?? []);
+        $selfReference = trim((string) ($input['form_public_reference'] ?? ''));
+        $relations = [];
+        $allowed = ['reply_to', 'follow_up', 'continuation', 'replacement', 'related', 'cancellation_reference'];
+        $max = min(5, max(count($types), count($references)));
+        for ($i = 0; $i < $max; $i++) {
+            $type = $this->code($types[$i] ?? '');
+            $reference = trim((string) ($references[$i] ?? ''));
+            if ($type === '' && $reference === '') continue;
+            $targetId = $reference !== '' ? $this->relations->targetId($reference) : null;
+            if (!in_array($type, $allowed, true) || $targetId === null || ($selfReference !== '' && hash_equals($selfReference, $reference))) {
+                $errors[] = 'invalid_relation';
+                continue;
+            }
+            $relations[] = ['relation_type_code' => $type, 'target_correspondence_id' => $targetId, 'note' => $this->nullable($notes[$i] ?? '', 1000)];
+        }
+        return $relations;
     }
 
     private function normalizeParties(array $input, array &$errors): array

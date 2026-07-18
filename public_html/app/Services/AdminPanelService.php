@@ -208,7 +208,7 @@ class AdminPanelService extends BaseService
         $urls = new ApplicationUrlRegistry();
         foreach ($definitions as &$module) {
             $isAutomation = ($module['key'] ?? '') === 'automation';
-            $qualify = fn (string $path): string => $isAutomation ? $urls->automation($path) : $urls->core($path);
+            $qualify = fn (string $path): string => $isAutomation ? $urls->automationLaunch($path) : $urls->core($path);
             $module['url'] = $qualify((string) ($module['url'] ?? '/'));
             foreach ($module['actions'] ?? [] as &$action) {
                 $action['url'] = $qualify((string) ($action['url'] ?? '/'));

@@ -1,0 +1,8 @@
+<?php
+if (!function_exists('admin_h')) { function admin_h($value): string { return htmlspecialchars((string)($value??''), ENT_QUOTES|ENT_SUBSTITUTE, 'UTF-8', false); } }
+$templates=$templates??[]; ob_start();
+?>
+<nav class="admin-breadcrumb"><a href="/admin/dashboard">داشبورد</a><span>/</span><a href="/admin/automation">اتوماسیون</a><span>/</span><span>قالب‌های نامه</span></nav>
+<section class="admin-module-hub admin-module-hub--teal admin-users-heading"><div class="admin-module-hub__icon"><?=\App\Support\AdminIcon::html('file-lines')?></div><div><h2>قالب‌های استاندارد نامه</h2><p>فهرست نسخه‌های فعال برای تولید نامه؛ قالب انتخاب‌شده در هر نسخه نامه به‌صورت snapshot تثبیت می‌شود.</p></div><a class="admin-module-hub__back" href="/admin/automation/correspondences/create">ایجاد پیش‌نویس</a></section>
+<section class="admin-section"><div class="automation-template-catalog"><?php foreach($templates as $template):?><article class="entity-info-card"><header><strong><?=admin_h($template['title_fa']??'')?></strong><span class="admin-status-badge admin-status-badge--active">فعال</span></header><dl><div><dt>اندازه</dt><dd><?=admin_h($template['page_size_code']??'')?></dd></div><div><dt>زبان</dt><dd><?=admin_h(($template['language_code']??'')==='fa'?'فارسی':'انگلیسی')?></dd></div><div><dt>امضا</dt><dd><?=admin_h(\App\Support\AdminFormat::digits($template['signature_slots']??1))?></dd></div><div><dt>نسخه</dt><dd><?=admin_h(\App\Support\AdminFormat::digits($template['version_number']??1))?></dd></div></dl></article><?php endforeach;?></div></section>
+<?php $content=ob_get_clean(); require __DIR__.'/layout.php';

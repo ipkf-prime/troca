@@ -13,9 +13,9 @@ class LoginTokenService extends BaseService
         $this->tokens ??= new LoginTokenRepository();
     }
 
-    public function issue(int $userId, string $purpose, string $source, ?string $redirectPath, ?int $createdByUserId): array
+    public function issue(int $userId, string $purpose, string $source, ?string $redirectPath, ?int $createdByUserId, int $ttlSeconds = 300, array $metadata = []): array
     {
-        $ttlSeconds = 300;
+        $ttlSeconds = max(30, min(300, $ttlSeconds));
         $plain = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
         $expiresAtUtc = Clock::nowUtc()->modify("+{$ttlSeconds} seconds");
         $expiresAt = Clock::databaseTimestamp($expiresAtUtc);
@@ -28,6 +28,7 @@ class LoginTokenService extends BaseService
             'redirect_path' => $redirectPath,
             'expires_at' => $expiresAt,
             'created_by_user_id' => $createdByUserId,
+            'metadata_json' => $metadata !== [] ? json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
         ]);
 
         return [
@@ -61,7 +62,7 @@ class LoginTokenService extends BaseService
         return Clock::displayTimezoneName();
     }
 
-    public function consume(string $plain): ?array
+    public function consume(string $plain, ?string $expectedPurpose = null, ?string $expectedSource = null, array $requiredMetadata = []): ?array
     {
         $plain = trim($plain);
 
@@ -74,11 +75,26 @@ class LoginTokenService extends BaseService
                 continue;
             }
 
+            if (($expectedPurpose !== null && !hash_equals($expectedPurpose, (string) ($token['purpose'] ?? '')))
+                || ($expectedSource !== null && !hash_equals($expectedSource, (string) ($token['source'] ?? '')))
+            ) {
+                continue;
+            }
+
+            $metadata = json_decode((string) ($token['metadata_json'] ?? ''), true);
+            foreach ($requiredMetadata as $key => $value) {
+                if (!is_array($metadata) || !hash_equals((string) $value, (string) ($metadata[$key] ?? ''))) {
+                    continue 2;
+                }
+            }
+
             if (!password_verify($plain, (string) $token['token_hash'])) {
                 continue;
             }
 
-            $this->tokens->markConsumed((int) $token['id']);
+            if (!$this->tokens->claim((int) $token['id'])) {
+                continue;
+            }
 
             return $token;
         }

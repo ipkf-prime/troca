@@ -35,6 +35,9 @@ ob_start();
         <a class="admin-action-tile admin-action-tile--blue" href="/admin/automation/correspondences/create">
             <span class="admin-action-tile__icon"><?= \App\Support\AdminIcon::html('circle-check') ?></span><strong>ایجاد پیش نویس</strong><small>ثبت مکاتبه، طرف‌ها و نسخه اول</small>
         </a>
+        <a class="admin-action-tile admin-action-tile--teal" href="/admin/automation/templates">
+            <span class="admin-action-tile__icon"><?= \App\Support\AdminIcon::html('file-lines') ?></span><strong>قالب‌های نامه</strong><small>مشاهده قالب‌های A4، A5، فارسی، انگلیسی و امضاها</small>
+        </a>
     </div>
 </section>
 <?php endif; ?>

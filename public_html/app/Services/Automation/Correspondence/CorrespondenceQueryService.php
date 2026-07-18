@@ -18,7 +18,9 @@ class CorrespondenceQueryService
         private ?AutomationLookupRepository $lookups = null,
         private ?CorrespondenceDocumentTemplateRepository $documentTemplates = null,
         private ?CoreReferenceOptions $coreReferences = null,
-        private ?CorrespondenceViewModelBuilder $viewModels = null
+        private ?CorrespondenceViewModelBuilder $viewModels = null,
+        private ?CorrespondenceRelationRepository $relations = null,
+        private ?CorrespondenceAttachmentRepository $attachments = null
     ) {
         $runtime = new AutomationOperationalRuntime();
         $this->correspondences ??= new CorrespondenceRepository($runtime);
@@ -29,6 +31,8 @@ class CorrespondenceQueryService
         $this->documentTemplates ??= new CorrespondenceDocumentTemplateRepository($runtime);
         $this->coreReferences ??= new CoreReferenceOptions();
         $this->viewModels ??= new CorrespondenceViewModelBuilder($this->lookups);
+        $this->relations ??= new CorrespondenceRelationRepository($runtime);
+        $this->attachments ??= new CorrespondenceAttachmentRepository($runtime);
     }
 
     public function dashboard(): array
@@ -72,6 +76,7 @@ class CorrespondenceQueryService
         $correspondence = null;
         $versions = [];
         $parties = [];
+        $relations = [];
 
         if ($publicReference !== null) {
             $correspondence = $this->correspondences->findByPublicReference($publicReference);
@@ -79,13 +84,17 @@ class CorrespondenceQueryService
             if ($correspondence !== null) {
                 $versions = $this->versions->listFor((int) $correspondence['id']);
                 $parties = $this->parties->listFor((int) $correspondence['id']);
+                $relations = $this->relations->listFor((int) $correspondence['id']);
             }
         }
 
         return [
             'ok' => $publicReference === null || $correspondence !== null,
-            'form' => $this->viewModels->formData($correspondence, $versions, $this->formParties($parties)),
-            'options' => $this->lookups->formOptions() + ['document_templates' => $this->documentTemplates->options()],
+            'form' => $this->viewModels->formData($correspondence, $versions, $this->formParties($parties), $relations),
+            'options' => $this->lookups->formOptions() + [
+                'document_templates' => $this->documentTemplates->options(),
+                'related_correspondences' => $this->relations->options($correspondence !== null ? (int) $correspondence['id'] : null),
+            ],
             'references' => $this->coreReferences->options(),
             'editable' => $correspondence === null || ($correspondence['status_code'] ?? '') === 'draft',
         ];
@@ -93,7 +102,7 @@ class CorrespondenceQueryService
 
     public function detail(string $publicReference, string $tab): ?array
     {
-        $tab = in_array($tab, ['summary', 'content', 'parties', 'versions', 'history'], true) ? $tab : 'summary';
+        $tab = in_array($tab, ['summary', 'content', 'parties', 'relations', 'attachments', 'versions', 'history'], true) ? $tab : 'summary';
         $correspondence = $this->correspondences->findByPublicReference($publicReference);
 
         if ($correspondence === null) {
@@ -107,8 +116,15 @@ class CorrespondenceQueryService
             $this->versions->listFor($id),
             $this->parties->listFor($id),
             $this->events->listFor($id),
-            $tab
+            $tab,
+            $this->relations->listFor($id),
+            $this->attachments->listFor($id)
         );
+    }
+
+    public function templates(): array
+    {
+        return $this->documentTemplates->options();
     }
 
     private function formParties(array $parties): array

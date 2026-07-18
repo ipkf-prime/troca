@@ -15,6 +15,8 @@ class AutomationLookupRepository
         'correspondence_party_role' => ['sender' => 'فرستنده', 'primary_recipient' => 'گیرنده اصلی', 'cc' => 'رونوشت', 'bcc' => 'رونوشت مخفی', 'external_correspondent' => 'طرف بیرونی'],
         'correspondence_party_kind' => ['person' => 'شخص داخلی', 'user' => 'کاربر داخلی', 'organization' => 'سازمان', 'org_unit' => 'واحد سازمانی', 'external' => 'طرف بیرونی'],
         'correspondence_event_type' => ['created' => 'ایجاد شد', 'revised' => 'نسخه جدید پیش نویس', 'registered' => 'ثبت رسمی', 'cancelled' => 'لغو شد'],
+        'correspondence_relation_type' => ['reply_to' => 'عطف / پاسخ به', 'follow_up' => 'پیرو', 'continuation' => 'ادامه', 'replacement' => 'جایگزین', 'related' => 'مرتبط', 'cancellation_reference' => 'مرجع ابطال'],
+        'attachment_role' => ['main' => 'فایل اصلی', 'enclosure' => 'پیوست', 'supporting' => 'مدرک پشتیبان', 'scan' => 'تصویر اسکن‌شده'],
     ];
 
     public function __construct(private ?AutomationOperationalRuntime $runtime = null)
@@ -87,6 +89,8 @@ class AutomationLookupRepository
                 ['code' => 'org_unit', 'label' => 'واحد سازمانی'],
                 ['code' => 'external', 'label' => 'طرف بیرونی'],
             ],
+            'relation_types' => $this->options('correspondence_relation_type'),
+            'attachment_roles' => $this->options('attachment_role'),
         ];
     }
 

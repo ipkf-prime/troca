@@ -35,7 +35,7 @@ class CorrespondenceViewModelBuilder
         ];
     }
 
-    public function detail(array $correspondence, array $versions, array $parties, array $events, string $tab): array
+    public function detail(array $correspondence, array $versions, array $parties, array $events, string $tab, array $relations = [], array $attachments = []): array
     {
         $reference = (string) ($correspondence['public_reference'] ?? '');
         $tabs = $this->tabs($reference, $tab);
@@ -61,12 +61,14 @@ class CorrespondenceViewModelBuilder
             'versions' => array_map(fn (array $row): array => $this->version($row), $versions),
             'parties' => array_map(fn (array $row): array => $this->party($row), $parties),
             'events' => array_map(fn (array $row): array => $this->event($row), $events),
+            'relations' => array_map(fn (array $row): array => $this->relation($row), $relations),
+            'attachments' => array_map(fn (array $row): array => $this->attachment($reference, $row), $attachments),
             'editable' => ($correspondence['status_code'] ?? '') === 'draft',
             'edit_url' => '/admin/automation/correspondences/' . rawurlencode($reference) . '/edit',
         ];
     }
 
-    public function formData(?array $correspondence, array $versions, array $parties): array
+    public function formData(?array $correspondence, array $versions, array $parties, array $relations = []): array
     {
         $latestVersion = $versions[0] ?? [];
 
@@ -84,6 +86,7 @@ class CorrespondenceViewModelBuilder
             'external_number' => (string) ($correspondence['external_number'] ?? ''),
             'external_date' => (string) ($correspondence['external_date'] ?? ''),
             'parties' => $parties,
+            'relations' => $relations,
         ];
     }
 
@@ -122,6 +125,7 @@ class CorrespondenceViewModelBuilder
     private function party(array $row): array
     {
         return [
+            'role_code' => (string) ($row['party_role_code'] ?? ''),
             'role' => $this->lookups->label('correspondence_party_role', $row['party_role_code'] ?? ''),
             'kind' => $this->partyKindLabel((string) ($row['target_kind_code'] ?? '')),
             'display' => $this->partyDisplay($row),
@@ -139,6 +143,37 @@ class CorrespondenceViewModelBuilder
         ];
     }
 
+    private function relation(array $row): array
+    {
+        $code = (string) ($row['relation_type_code'] ?? '');
+        $type = $this->lookups->label('correspondence_relation_type', $code);
+        $prefix = match ($code) { 'reply_to' => 'عطف به', 'follow_up' => 'پیرو', default => $type };
+        $number = $this->value($row['target_external_number'] ?? null);
+        $date = $this->dateOnly($row['target_external_date'] ?? null);
+        return [
+            'type' => $type,
+            'subject' => $this->value($row['target_subject'] ?? null),
+            'reference' => (string) ($row['target_public_reference'] ?? ''),
+            'number' => $number,
+            'date' => $date,
+            'line' => $prefix . ' نامه شماره ' . $number . ' مورخ ' . $date,
+            'note' => $this->value($row['note'] ?? null),
+        ];
+    }
+
+    private function attachment(string $correspondenceReference, array $row): array
+    {
+        $fileReference = (string) ($row['file_reference'] ?? '');
+        return [
+            'role' => $this->lookups->label('attachment_role', $row['attachment_role_code'] ?? ''),
+            'title' => $this->value($row['title'] ?? null),
+            'filename' => (string) ($row['original_filename'] ?? ''),
+            'mime_type' => (string) ($row['mime_type'] ?? ''),
+            'size' => AdminFormat::digits(number_format(((int) ($row['size_bytes'] ?? 0)) / 1024, 0)) . ' کیلوبایت',
+            'url' => '/admin/automation/correspondences/' . rawurlencode($correspondenceReference) . '/attachments/' . rawurlencode($fileReference),
+        ];
+    }
+
     private function tabs(string $reference, string $active): array
     {
         $base = '/admin/automation/correspondences/' . rawurlencode($reference);
@@ -146,6 +181,8 @@ class CorrespondenceViewModelBuilder
             ['key' => 'summary', 'title' => 'خلاصه', 'icon' => 'file-lines', 'url' => $base],
             ['key' => 'content', 'title' => 'نسخه جاری', 'icon' => 'file-lines', 'url' => $base . '?tab=content'],
             ['key' => 'parties', 'title' => 'طرف‌ها', 'icon' => 'users', 'url' => $base . '?tab=parties'],
+            ['key' => 'relations', 'title' => 'عطف و پیرو', 'icon' => 'status', 'url' => $base . '?tab=relations'],
+            ['key' => 'attachments', 'title' => 'پیوست‌ها', 'icon' => 'file-lines', 'url' => $base . '?tab=attachments'],
             ['key' => 'versions', 'title' => 'نسخه‌ها', 'icon' => 'calendar', 'url' => $base . '?tab=versions'],
             ['key' => 'history', 'title' => 'تاریخچه', 'icon' => 'status', 'url' => $base . '?tab=history'],
         ];

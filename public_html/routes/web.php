@@ -1014,7 +1014,8 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'automation_correspondence_rbac_guards_available' => class_exists(\App\Services\AdminNavigationRbacService::class),
         'multi_host_module_url_registry_available' => class_exists(\IPKF\Support\ApplicationUrlRegistry::class),
         'multi_host_module_guard_available' => class_exists(\IPKF\Http\Middleware\ModuleHostMiddleware::class),
-        'shared_subdomain_session_configuration_available' => \IPKF\Support\Env::get('AUTH_COOKIE_DOMAIN', '') !== '',
+        'module_sso_service_available' => class_exists(\App\Services\ModuleSsoService::class),
+        'module_sso_independent_host_sessions' => \IPKF\Support\Env::get('AUTH_COOKIE_DOMAIN', '') === '',
         'automation_correspondence_runtime_uses_dedicated_connection' => $automationRuntimeMode === 'dedicated'
             && $automationCutoverGuardPassed,
         'automation_correspondence_legacy_runtime_access_blocked' => true,
@@ -1190,12 +1191,99 @@ $adminRender = function ($response, string $view, array $data = [], int $status 
 };
 
 $adminContext = fn (): ?array => (new \App\Services\AdminPanelService())->context();
-$adminHomeUrl = fn ($request): string => (new \IPKF\Support\ApplicationUrlRegistry())->adminHome((string) $request->host());
+$adminHomeUrl = function ($request): string {
+    $urls = new \IPKF\Support\ApplicationUrlRegistry();
+    if ($urls->isCoreHost((string) $request->host())) {
+        $pending = (new \App\Services\ModuleSsoService())->pendingResumeUrl();
+        if ($pending !== null) {
+            return $pending;
+        }
+    }
+
+    return $urls->adminHome((string) $request->host());
+};
+
+$router->get('/auth/module-sso/start', function ($request, $response) {
+    $urls = new \IPKF\Support\ApplicationUrlRegistry();
+    $returnPath = (string) $request->input('return_path', '/admin/automation');
+    if (!$urls->isCoreHost((string) $request->host())) {
+        return $response->redirect($urls->core('/auth/module-sso/start?return_path=' . rawurlencode($returnPath)));
+    }
+
+    $sso = new \App\Services\ModuleSsoService();
+    $auth = new \App\Services\AuthService();
+    $userId = $auth->currentUserId();
+    if ($userId === null) {
+        $sso->remember($returnPath);
+        return $response->redirect($urls->core('/admin/login'));
+    }
+
+    $issued = $sso->issueFor($userId, $returnPath);
+    if (($issued['ok'] ?? false) !== true) {
+        return $response->status(403)->send('403 - Forbidden');
+    }
+
+    return $response->header('Cache-Control', 'no-store')->header('Referrer-Policy', 'no-referrer')->redirect((string) $issued['transfer_url']);
+});
+
+$router->get('/auth/module-sso/resume', function ($request, $response) {
+    $urls = new \IPKF\Support\ApplicationUrlRegistry();
+    if (!$urls->isCoreHost((string) $request->host())) {
+        return $response->status(421)->send('421 - Misdirected Request');
+    }
+
+    $userId = (new \App\Services\AuthService())->currentUserId();
+    if ($userId === null) {
+        return $response->redirect($urls->core('/admin/login'));
+    }
+
+    $issued = (new \App\Services\ModuleSsoService())->resumeFor($userId);
+    if (($issued['ok'] ?? false) !== true) {
+        return $response->status(403)->send('403 - Forbidden');
+    }
+
+    return $response->header('Cache-Control', 'no-store')->header('Referrer-Policy', 'no-referrer')->redirect((string) $issued['transfer_url']);
+});
+
+$router->get('/auth/module-sso/callback', function ($request, $response) {
+    $code = trim((string) $request->input('code', ''));
+    $record = (new \App\Services\ModuleSsoService())->consume($code, (string) $request->host());
+    if ($record === null) {
+        return $response->status(401)->header('Cache-Control', 'no-store')->send('401 - Invalid or expired authorization code');
+    }
+
+    $auth = new \App\Services\AuthService();
+    if ($auth->completeMfaLogin((int) $record['user_id']) === null) {
+        $auth->logout();
+        return $response->status(401)->header('Cache-Control', 'no-store')->send('401 - User is no longer eligible to sign in');
+    }
+    if ((int) $record['safe_assignment_id'] > 0) {
+        (new \App\Services\AccessService())->switchTo((int) $record['user_id'], (int) $record['safe_assignment_id']);
+    }
+    if ((string) $record['safe_appointment_reference'] !== '') {
+        try {
+            (new \App\Services\Organization\UserOrganizationalContextResolver())->switchContext(
+                (int) $record['user_id'],
+                (string) $record['safe_appointment_reference']
+            );
+        } catch (\Throwable) {
+            // The appointment may have expired between issuance and consumption; continue without stale context.
+        }
+    }
+    return $response->header('Cache-Control', 'no-store')->header('Referrer-Policy', 'no-referrer')
+        ->redirect((new \IPKF\Support\ApplicationUrlRegistry())->automation((string) $record['safe_redirect_path']));
+});
 
 $adminGuard = function ($response, string $path) use ($adminRender, $adminContext) {
     $context = $adminContext();
 
     if ($context === null) {
+        $urls = new \IPKF\Support\ApplicationUrlRegistry();
+        if ($urls->isAutomationHost((string) ($_SERVER['HTTP_HOST'] ?? ''))) {
+            $returnPath = (string) ($_SERVER['REQUEST_URI'] ?? $path);
+            return $response->redirect($urls->core('/auth/module-sso/start?return_path=' . rawurlencode($returnPath)));
+        }
+
         return $response->redirect('/admin/login');
     }
 
@@ -1789,6 +1877,17 @@ $router->get('/admin/automation/correspondences', function ($request, $response)
     ]);
 });
 
+$router->get('/admin/automation/templates', function ($request, $response) use ($adminRender, $adminGuard, $automationUnavailable) {
+    $context = $adminGuard($response, '/admin/automation/templates');
+    if (!is_array($context)) return $context;
+    try {
+        $templates = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->templates();
+    } catch (\Throwable) {
+        return $automationUnavailable($response, $context);
+    }
+    return $adminRender($response, 'automation-templates', ['title' => 'قالب‌های استاندارد نامه', 'context' => $context, 'templates' => $templates]);
+});
+
 $router->get('/admin/automation/correspondences/create', function ($request, $response) use ($adminRender, $adminGuard, $automationUnavailable) {
     $context = $adminGuard($response, '/admin/automation/correspondences/create');
 
@@ -1906,6 +2005,43 @@ $router->post('/admin/automation/correspondences/{public_reference}/versions', f
     }
 });
 
+$router->post('/admin/automation/correspondences/{public_reference}/edit/attachments', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/automation/correspondences/{public_reference}/edit/attachments');
+    if (!is_array($context)) return $context;
+    $reference = (string) $request->route('public_reference');
+    try {
+        $result = (new \App\Services\Automation\Correspondence\CorrespondenceAttachmentService())->upload(
+            $reference,
+            is_array($_FILES['attachment'] ?? null) ? $_FILES['attachment'] : [],
+            (string) $request->input('attachment_role_code', 'enclosure'),
+            (string) $request->input('title', ''),
+            (int) $context['user_id']
+        );
+        $status = ($result['ok'] ?? false) ? 'uploaded' : rawurlencode((string) ($result['error'] ?? 'invalid'));
+        return $response->redirect('/admin/automation/correspondences/' . rawurlencode($reference) . '?tab=attachments&attachment_status=' . $status);
+    } catch (\Throwable) {
+        return $response->redirect('/admin/automation/correspondences/' . rawurlencode($reference) . '?tab=attachments&attachment_status=failed');
+    }
+});
+
+$router->get('/admin/automation/correspondences/{public_reference}/attachments/{file_reference}', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/automation/correspondences/{public_reference}/attachments/{file_reference}');
+    if (!is_array($context)) return $context;
+    $file = (new \App\Services\Automation\Correspondence\CorrespondenceAttachmentRepository())->findForCorrespondence((string) $request->route('public_reference'), (string) $request->route('file_reference'));
+    $configuredRoot = trim((string) \IPKF\Support\Env::get('PRIVATE_FILE_STORAGE_PATH', ''));
+    $root = realpath(rtrim($configuredRoot !== '' ? $configuredRoot : dirname(BASE_PATH) . '/storage/private/automation', '/\\'));
+    $path = $file !== null ? realpath((string) $file['storage_key']) : false;
+    if ($file === null || $root === false || $path === false || !str_starts_with($path, $root . DIRECTORY_SEPARATOR) || !is_file($path) || !is_readable($path)) {
+        return $response->status(404)->send('404 - File not found');
+    }
+    $filename = preg_replace('/[^A-Za-z0-9._-]/', '_', (string) $file['original_filename']) ?: 'attachment';
+    return $response->header('Content-Type', (string) $file['mime_type'])
+        ->header('Content-Length', (string) filesize($path))
+        ->header('Content-Disposition', 'attachment; filename="' . $filename . '"')
+        ->header('X-Content-Type-Options', 'nosniff')
+        ->send((string) file_get_contents($path));
+});
+
 $router->get('/admin/automation/correspondences/{public_reference}', function ($request, $response) use ($adminRender, $adminGuard, $automationUnavailable) {
     $context = $adminGuard($response, '/admin/automation/correspondences/{public_reference}');
 
@@ -1927,6 +2063,7 @@ $router->get('/admin/automation/correspondences/{public_reference}', function ($
         'title' => 'جزئیات مکاتبه',
         'context' => $context,
         'detail' => $detail,
+        'attachmentStatus' => (string) $request->input('attachment_status', ''),
     ]);
 });
 $adminPlaceholder = function ($path, $title, $message) use ($adminRender, $adminGuard) {
@@ -2167,8 +2304,13 @@ $router->get('/admin/navigation/debug', function ($request, $response) use ($adm
 });
 $router->get('/admin/logout', function ($request, $response) {
     (new \App\Services\AuthService())->logout();
+    $urls = new \IPKF\Support\ApplicationUrlRegistry();
 
-    return $response->redirect('/admin/login');
+    if ($urls->isAutomationHost((string) $request->host())) {
+        return $response->redirect($urls->core('/admin/logout?federated=1'));
+    }
+
+    return $response->redirect($urls->core('/admin/login'));
 });
 
 $router->post('/auth/login', function ($request, $response) {
