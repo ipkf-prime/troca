@@ -105,6 +105,7 @@ try {
         new \IPKF\Database\Migrations\CreateExtendedPersonDataTables(),
         new \IPKF\Database\Migrations\CreateDynamicOrganizationCoreTables(),
         new \IPKF\Database\Migrations\CompleteOrganizationalIdentityAndSignatureFoundation(),
+        new \IPKF\Database\Migrations\RepairLegacyJalaliAppointmentDates(),
         new \IPKF\Database\Migrations\CreateDynamicGeographyTables(),
         new \IPKF\Database\Migrations\CreateMultiSourceCodingGeographyTables(),
         new \IPKF\Database\Migrations\CreateMinistryGeographyImportMetadata(),
@@ -120,7 +121,7 @@ try {
     $manager->migrate();
 
     header('Content-Type: text/plain; charset=UTF-8');
-    echo "MIGRATION DONE: ipkf_runtime_checks, auth_rbac_schema, identity_access_foundation, admin_panel_shell, scoped_admin_theme_settings, admin_users_organization, extended_person_data, dynamic_organization_core, dynamic_geography, multi_source_coding_geography, ministry_geography_import_metadata, statistical_center_geography_import_metadata, ministry_sci_geography_crosswalk, ministry_canonical_geography, ministry_canonical_geography_apply_recovery, automation_correspondence_foundation, platform_commercial_foundation, application_migration_history";
+    echo "MIGRATION DONE: ipkf_runtime_checks, auth_rbac_schema, identity_access_foundation, admin_panel_shell, scoped_admin_theme_settings, admin_users_organization, extended_person_data, dynamic_organization_core, legacy_jalali_appointment_date_repair, dynamic_geography, multi_source_coding_geography, ministry_geography_import_metadata, statistical_center_geography_import_metadata, ministry_sci_geography_crosswalk, ministry_canonical_geography, ministry_canonical_geography_apply_recovery, automation_correspondence_foundation, platform_commercial_foundation, application_migration_history";
 } catch (Throwable $exception) {
     $failedMigrationClass = 'unknown';
     $failedMigrationName = 'unknown';

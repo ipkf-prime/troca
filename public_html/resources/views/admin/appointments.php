@@ -65,7 +65,7 @@ ob_start();
     </form>
 </section>
 
-<section class="admin-section">
+<section class="admin-section admin-records-section">
     <div class="admin-section__header"><div><h3>سوابق انتصاب</h3><p class="admin-muted">فهرست انتصاب‌های ثبت‌شده و وضعیت فعلی آن‌ها</p></div></div>
     <form method="get" class="admin-users-search admin-appointment-search">
         <label for="appointment-search">جستجو</label>

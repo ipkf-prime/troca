@@ -89,7 +89,7 @@ ob_start();
                 <label><span>عنوان انگلیسی</span><input name="title_en" dir="ltr" maxlength="255"></label>
                 <label><span>عنوان کوتاه</span><input name="short_title" maxlength="150"></label>
                 <label><span>سازمان بالادست</span><select name="parent_reference"><option value="">بدون بالادست</option><?php foreach ($workspace['organizations'] as $organization): ?><option value="<?= admin_h($organization['public_reference']) ?>"><?= admin_h($organization['display_path'] ?? $organization['title']) ?></option><?php endforeach; ?></select></label>
-                <label><span>ترتیب نمایش</span><input type="number" name="sort_order" min="0" value="0"></label>
+                <label class="admin-field--compact"><span>ترتیب نمایش</span><input type="number" name="sort_order" min="0" value="0"></label>
                 <div class="admin-form-actions admin-form-grid__wide"><button class="admin-button" type="submit">ثبت سازمان</button></div>
             </form>
 
@@ -123,7 +123,7 @@ ob_start();
                 <label><span>عنوان فارسی</span><input name="title_fa" required maxlength="255"></label>
                 <label><span>عنوان انگلیسی</span><input name="title_en" dir="ltr" maxlength="255"></label>
                 <label><span>کد واحد</span><input name="code" dir="ltr" maxlength="100"></label>
-                <label><span>ترتیب نمایش</span><input type="number" name="sort_order" min="0" value="0"></label>
+                <label class="admin-field--compact"><span>ترتیب نمایش</span><input type="number" name="sort_order" min="0" value="0"></label>
                 <label class="admin-form-grid__wide"><span>توضیحات</span><textarea name="description" rows="3" maxlength="2000"></textarea></label>
                 <div class="admin-form-actions admin-form-grid__wide"><button class="admin-button" type="submit">ثبت واحد</button></div>
             </form>
@@ -158,8 +158,8 @@ ob_start();
                 <label><span>عنوان فارسی</span><input name="title_fa" required maxlength="255"></label>
                 <label><span>عنوان انگلیسی</span><input name="title_en" dir="ltr" maxlength="255"></label>
                 <label><span>کد پست</span><input name="code" dir="ltr" maxlength="100"></label>
-                <label><span>ظرفیت تصدی</span><input type="number" name="headcount_limit" min="1" value="1"></label>
-                <label><span>ترتیب نمایش</span><input type="number" name="sort_order" min="0" value="0"></label>
+                <label class="admin-field--compact"><span>ظرفیت تصدی</span><input type="number" name="headcount_limit" min="1" value="1"></label>
+                <label class="admin-field--compact"><span>ترتیب نمایش</span><input type="number" name="sort_order" min="0" value="0"></label>
                 <label class="admin-inline-check"><input type="checkbox" name="is_head" value="1"><span>مسئول واحد</span></label>
                 <div class="admin-form-actions admin-form-grid__wide"><button class="admin-button" type="submit">تعریف پست</button></div>
             </form>

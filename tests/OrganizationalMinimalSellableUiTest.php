@@ -14,9 +14,14 @@ $checks = [
     'position records table' => str_contains($setup, 'آخرین پست‌های سازمانی تعریف‌شده'),
     'identity records table' => str_contains($setup, 'آخرین اتصال‌های حساب کاربری و شخص'),
     'responsive record table' => str_contains($css, '.admin-record-table td::before'),
+    'visually separated records' => str_contains($css, '.admin-records-block::before') && str_contains($appointments, 'admin-records-section'),
+    'proportional appointment search' => str_contains($css, '.admin-appointment-search .admin-users-search__row') && str_contains($css, 'minmax(260px, 1fr) auto'),
+    'proportional automation filters' => str_contains($automation, 'automation-draft-tabs') && str_contains($css, '.automation-filter-grid__search'),
     'semantic warning' => str_contains($setup, 'admin-alert--warning') && str_contains($css, '.admin-alert--warning'),
     'compact chart action' => str_contains($setup, 'admin-module-hub__back') && str_contains($appointments, 'admin-module-hub__back'),
     'structured automation form' => substr_count($automation, 'automation-form-section') >= 3,
+    'tabbed automation draft' => substr_count($automation, 'data-draft-tab=') === 4 && substr_count($automation, 'data-draft-panel=') === 4,
+    'tab validation routing' => str_contains($automation, "form.addEventListener('invalid'") && str_contains($automation, "closest('[data-draft-panel]')"),
     'responsive automation parties' => str_contains($automation, 'data-automation-party'),
 ];
 

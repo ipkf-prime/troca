@@ -100,11 +100,18 @@ ob_start();
         <div class="admin-alert admin-alert--danger" role="alert">اطلاعات فرم کامل یا معتبر نیست. فیلدهای ضروری، تاریخ و طرف‌های مکاتبه را بررسی کنید.</div>
     <?php endif; ?>
 
-    <form class="automation-form automation-form--structured" method="post" action="<?= admin_h($action) ?>">
+    <form class="automation-form automation-form--structured automation-tab-workspace" method="post" action="<?= admin_h($action) ?>" data-automation-draft-tabs>
         <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
         <?php if ($isEdit): ?><input type="hidden" name="lock_version" value="<?= admin_h($form['lock_version'] ?? 0) ?>"><?php endif; ?>
 
-        <section class="automation-form-section">
+        <nav class="automation-draft-tabs" role="tablist" aria-label="مراحل ایجاد پیش‌نویس">
+            <button type="button" class="automation-draft-tab" data-draft-tab="base" role="tab"><b>۱</b><span>اطلاعات پایه</span></button>
+            <button type="button" class="automation-draft-tab" data-draft-tab="content" role="tab"><b>۲</b><span>متن مکاتبه</span></button>
+            <button type="button" class="automation-draft-tab" data-draft-tab="parties" role="tab"><b>۳</b><span>فرستنده و گیرندگان</span></button>
+            <button type="button" class="automation-draft-tab" data-draft-tab="review" role="tab"><b>۴</b><span>مرور و ثبت</span></button>
+        </nav>
+
+        <section class="automation-form-section automation-draft-panel" data-draft-panel="base" role="tabpanel">
             <div class="automation-form-section__head"><div><h3>اطلاعات پایه</h3><p>مشخصات عمومی و طبقه‌بندی مکاتبه</p></div></div>
             <div class="admin-form-grid automation-base-grid">
                 <label class="admin-form-grid__wide"><span>موضوع</span><input name="subject" value="<?= admin_h($form['subject'] ?? '') ?>" maxlength="500" required></label>
@@ -116,15 +123,17 @@ ob_start();
                 <label><span>تاریخ بیرونی</span><div class="admin-persian-date" data-persian-datepicker><input type="text" name="external_date_fa" data-persian-date-input inputmode="numeric" autocomplete="off" placeholder="۱۴۰۵/۰۴/۲۷" value="<?= admin_h($externalDateFa) ?>"><input type="hidden" name="external_date" data-persian-date-output value="<?= admin_h($form['external_date'] ?? '') ?>"><button type="button" class="admin-persian-date__toggle" data-persian-date-toggle aria-label="انتخاب تاریخ"><?= \App\Support\AdminIcon::html('calendar') ?></button></div></label>
                 <label class="admin-form-grid__wide"><span>خلاصه</span><textarea name="summary" rows="3" maxlength="2000"><?= admin_h($form['summary'] ?? '') ?></textarea></label>
             </div>
+            <div class="automation-draft-navigation"><button class="admin-button" type="button" data-draft-next="content">ادامه: متن مکاتبه</button></div>
         </section>
 
-        <section class="automation-form-section">
+        <section class="automation-form-section automation-draft-panel" data-draft-panel="content" role="tabpanel">
             <div class="automation-form-section__head"><div><h3>متن مکاتبه</h3><p>محتوای نسخه جاری پیش‌نویس</p></div></div>
             <label class="automation-form__wide"><span>متن یا محتوای نسخه جاری</span><textarea name="content" rows="10" maxlength="8000" required><?= admin_h($form['content'] ?? '') ?></textarea></label>
             <?php if ($isEdit): ?><label class="automation-form__wide"><span>یادداشت تغییر</span><input name="change_note" maxlength="500" placeholder="شرح کوتاه تغییرات این نسخه"></label><?php endif; ?>
+            <div class="automation-draft-navigation"><button class="admin-button admin-button--soft" type="button" data-draft-next="base">قبلی</button><button class="admin-button" type="button" data-draft-next="parties">ادامه: طرف‌های مکاتبه</button></div>
         </section>
 
-        <section class="automation-form-section automation-party-editor">
+        <section class="automation-form-section automation-party-editor automation-draft-panel" data-draft-panel="parties" role="tabpanel">
             <div class="automation-form-section__head"><div><h3>طرف‌های مکاتبه</h3><p>حداقل یک طرف تعریف کنید. فیلدهای هر طرف متناسب با نوع انتخابی نمایش داده می‌شوند.</p></div></div>
             <div class="automation-party-list">
                 <?php for ($index = 0; $index < 3; $index++):
@@ -149,14 +158,91 @@ ob_start();
                     </details>
                 <?php endfor; ?>
             </div>
+            <div class="automation-draft-navigation"><button class="admin-button admin-button--soft" type="button" data-draft-next="content">قبلی</button><button class="admin-button" type="button" data-draft-next="review">ادامه: مرور و ثبت</button></div>
         </section>
 
-        <div class="admin-form-actions automation-form-actions">
-            <button class="admin-button" type="submit"><?= $isEdit ? 'ذخیره نسخه جدید' : 'ایجاد پیش‌نویس' ?></button>
-            <a class="admin-button admin-button--soft" href="/admin/automation/correspondences">انصراف</a>
-        </div>
+        <section class="automation-form-section automation-draft-panel automation-draft-review" data-draft-panel="review" role="tabpanel">
+            <div class="automation-form-section__head"><div><h3>مرور و ثبت</h3><p>پیش از ثبت، اطلاعات اصلی پیش‌نویس را مرور کنید.</p></div></div>
+            <div class="automation-draft-review__grid">
+                <div><span>موضوع</span><strong data-draft-review="subject">—</strong></div>
+                <div><span>نوع مکاتبه</span><strong data-draft-review="direction_code">—</strong></div>
+                <div><span>اولویت</span><strong data-draft-review="priority_code">—</strong></div>
+                <div><span>طرف‌های تکمیل‌شده</span><strong data-draft-review="parties">۰</strong></div>
+            </div>
+            <div class="admin-alert admin-alert--info admin-alert--compact">ثبت نهایی در این مرحله، پیش‌نویس را ایجاد می‌کند؛ گردش کار و شماره ثبت رسمی هنوز آغاز نمی‌شود.</div>
+            <div class="admin-form-actions automation-form-actions automation-draft-navigation">
+                <button class="admin-button admin-button--soft" type="button" data-draft-next="parties">قبلی</button>
+                <button class="admin-button" type="submit"><?= $isEdit ? 'ذخیره نسخه جدید' : 'ایجاد پیش‌نویس' ?></button>
+                <a class="admin-button admin-button--soft" href="/admin/automation/correspondences">انصراف</a>
+            </div>
+        </section>
     </form>
 <?php endif; ?>
+<script>
+(function () {
+    const form = document.querySelector('[data-automation-draft-tabs]');
+    if (!form) return;
+
+    const tabs = [...form.querySelectorAll('[data-draft-tab]')];
+    const panels = [...form.querySelectorAll('[data-draft-panel]')];
+    const names = tabs.map((tab) => tab.dataset.draftTab);
+
+    function review() {
+        const value = (name) => form.elements[name]?.value?.trim() || '—';
+        const selected = (name) => {
+            const field = form.elements[name];
+            return field?.selectedOptions?.[0]?.textContent?.trim() || '—';
+        };
+        const set = (name, valueText) => {
+            const target = form.querySelector('[data-draft-review="' + name + '"]');
+            if (target) target.textContent = valueText;
+        };
+        const roles = [...form.querySelectorAll('[name="party_role_code[]"]')];
+        const kinds = [...form.querySelectorAll('[name="party_kind[]"]')];
+        const count = roles.filter((role, index) => role.value && kinds[index]?.value).length;
+        set('subject', value('subject'));
+        set('direction_code', selected('direction_code'));
+        set('priority_code', selected('priority_code'));
+        set('parties', String(count).replace(/\d/g, (digit) => '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]));
+    }
+
+    function activate(name, focusTab = false) {
+        if (!names.includes(name)) name = 'base';
+        tabs.forEach((tab) => {
+            const active = tab.dataset.draftTab === name;
+            tab.classList.toggle('is-active', active);
+            tab.setAttribute('aria-selected', active ? 'true' : 'false');
+            tab.setAttribute('tabindex', active ? '0' : '-1');
+            if (active && focusTab) tab.focus();
+        });
+        panels.forEach((panel) => panel.classList.toggle('is-active', panel.dataset.draftPanel === name));
+        if (name === 'review') review();
+        try { history.replaceState(null, '', '#draft-' + name); } catch (error) {}
+    }
+
+    tabs.forEach((tab) => tab.addEventListener('click', () => activate(tab.dataset.draftTab)));
+    form.querySelectorAll('[data-draft-next]').forEach((button) => button.addEventListener('click', () => {
+        activate(button.dataset.draftNext, true);
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+    form.addEventListener('invalid', (event) => {
+        const panel = event.target.closest('[data-draft-panel]');
+        if (panel) activate(panel.dataset.draftPanel);
+    }, true);
+    form.addEventListener('submit', (event) => {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            const invalid = form.querySelector(':invalid');
+            const panel = invalid?.closest('[data-draft-panel]');
+            if (panel) activate(panel.dataset.draftPanel);
+            invalid?.focus();
+        }
+    });
+
+    const requested = location.hash.startsWith('#draft-') ? location.hash.slice(7) : 'base';
+    activate(requested);
+})();
+</script>
 <?php
 $content = ob_get_clean();
 require __DIR__ . '/layout.php';

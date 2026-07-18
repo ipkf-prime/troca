@@ -14,8 +14,8 @@ $pageUrl = static function (int $targetPage) use ($filters): string {
     $params['page'] = $targetPage;
     return '/admin/automation/correspondences?' . http_build_query($params);
 };
-$select = static function (string $name, array $items, string $selected, string $label): string {
-    $html = '<label><span>' . admin_h($label) . '</span><select name="' . admin_h($name) . '"><option value="">همه</option>';
+$select = static function (string $name, array $items, string $selected, string $label, string $class = ''): string {
+    $html = '<label class="' . admin_h($class) . '"><span>' . admin_h($label) . '</span><select name="' . admin_h($name) . '"><option value="">همه</option>';
     foreach ($items as $item) {
         $code = (string) ($item['code'] ?? '');
         $html .= '<option value="' . admin_h($code) . '"' . ($code === $selected ? ' selected' : '') . '>' . admin_h($item['label'] ?? $code) . '</option>';
@@ -32,12 +32,12 @@ ob_start();
 </section>
 <section class="admin-section admin-users-panel">
     <form class="automation-filter-grid" method="get" action="/admin/automation/correspondences">
-        <label class="automation-filter-grid__wide"><span>جستجو</span><input type="search" name="q" value="<?= admin_h($filters['q'] ?? '') ?>" maxlength="80" placeholder="موضوع، شناسه عمومی یا شماره بیرونی"></label>
-        <?= $select('status', $options['statuses'] ?? [], (string) ($filters['status'] ?? ''), 'وضعیت') ?>
-        <?= $select('direction', $options['directions'] ?? [], (string) ($filters['direction'] ?? ''), 'نوع/جهت') ?>
-        <?= $select('priority', $options['priorities'] ?? [], (string) ($filters['priority'] ?? ''), 'اولویت') ?>
-        <label><span>از تاریخ</span><div class="admin-persian-date" data-persian-datepicker><input type="text" name="date_from_fa" data-persian-date-input inputmode="numeric" autocomplete="off" placeholder="۱۴۰۵/۰۱/۰۱" value="<?= admin_h($dateFromFa) ?>"><input type="hidden" name="date_from" data-persian-date-output value="<?= admin_h($filters['date_from'] ?? '') ?>"><button type="button" class="admin-persian-date__toggle" data-persian-date-toggle aria-label="انتخاب تاریخ"><?= \App\Support\AdminIcon::html('calendar') ?></button></div></label>
-        <label><span>تا تاریخ</span><div class="admin-persian-date" data-persian-datepicker><input type="text" name="date_to_fa" data-persian-date-input inputmode="numeric" autocomplete="off" placeholder="۱۴۰۵/۱۲/۲۹" value="<?= admin_h($dateToFa) ?>"><input type="hidden" name="date_to" data-persian-date-output value="<?= admin_h($filters['date_to'] ?? '') ?>"><button type="button" class="admin-persian-date__toggle" data-persian-date-toggle aria-label="انتخاب تاریخ"><?= \App\Support\AdminIcon::html('calendar') ?></button></div></label>
+        <label class="automation-filter-grid__search"><span>جستجو</span><input type="search" name="q" value="<?= admin_h($filters['q'] ?? '') ?>" maxlength="80" placeholder="موضوع، شناسه عمومی یا شماره بیرونی"></label>
+        <?= $select('status', $options['statuses'] ?? [], (string) ($filters['status'] ?? ''), 'وضعیت', 'automation-filter-grid__select') ?>
+        <?= $select('direction', $options['directions'] ?? [], (string) ($filters['direction'] ?? ''), 'نوع/جهت', 'automation-filter-grid__select') ?>
+        <?= $select('priority', $options['priorities'] ?? [], (string) ($filters['priority'] ?? ''), 'اولویت', 'automation-filter-grid__select') ?>
+        <label class="automation-filter-grid__date"><span>از تاریخ</span><div class="admin-persian-date" data-persian-datepicker><input type="text" name="date_from_fa" data-persian-date-input inputmode="numeric" autocomplete="off" placeholder="۱۴۰۵/۰۱/۰۱" value="<?= admin_h($dateFromFa) ?>"><input type="hidden" name="date_from" data-persian-date-output value="<?= admin_h($filters['date_from'] ?? '') ?>"><button type="button" class="admin-persian-date__toggle" data-persian-date-toggle aria-label="انتخاب تاریخ"><?= \App\Support\AdminIcon::html('calendar') ?></button></div></label>
+        <label class="automation-filter-grid__date"><span>تا تاریخ</span><div class="admin-persian-date" data-persian-datepicker><input type="text" name="date_to_fa" data-persian-date-input inputmode="numeric" autocomplete="off" placeholder="۱۴۰۵/۱۲/۲۹" value="<?= admin_h($dateToFa) ?>"><input type="hidden" name="date_to" data-persian-date-output value="<?= admin_h($filters['date_to'] ?? '') ?>"><button type="button" class="admin-persian-date__toggle" data-persian-date-toggle aria-label="انتخاب تاریخ"><?= \App\Support\AdminIcon::html('calendar') ?></button></div></label>
         <div class="automation-filter-grid__actions"><button class="admin-button" type="submit">اعمال فیلتر</button><a class="admin-button admin-button--soft" href="/admin/automation/correspondences">بازنشانی</a></div>
     </form>
     <?php if (($list['ok'] ?? false) !== true): ?>
