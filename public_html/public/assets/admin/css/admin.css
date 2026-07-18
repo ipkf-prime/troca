@@ -2882,7 +2882,8 @@ button[type="submit"]:hover,
 
 .admin-appointment-search {
     margin-bottom: 16px;
-    max-width: 760px;
+    max-width: none;
+    width: 100%;
 }
 
 .admin-appointment-search .admin-users-search__row {
@@ -2897,7 +2898,8 @@ button[type="submit"]:hover,
 .admin-setup-form,
 .admin-appointment-form,
 .automation-base-grid {
-    max-width: 1180px;
+    max-width: none;
+    width: 100%;
 }
 
 .admin-field--compact {
