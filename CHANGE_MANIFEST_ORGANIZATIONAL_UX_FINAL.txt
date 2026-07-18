@@ -1,0 +1,18 @@
+Organizational minimal UX and Persian datepicker increment
+
+Base branch: v0.4.8-platform-commercial-foundation-dev
+Base source HEAD: cedee02fd6ed87f2a23c5a6334f117ccbdc2908a
+
+Changed behavior:
+- Shows saved organization, unit, organizational position, and User-to-Person records directly below the relevant setup form.
+- Keeps the existing five-step setup workflow and active-tab persistence.
+- Uses compact secondary organization-chart actions.
+- Adds a reusable Persian Jalali calendar widget to appointment and Automation date inputs.
+- Removes native Gregorian date controls and Gregorian explanatory text from Admin UI.
+- Keeps database date storage Gregorian through hidden normalized values and server-side fallback conversion.
+- Standardizes success, warning, danger, information, and status colors.
+- Reorganizes correspondence drafting into minimal sections and collapsible party cards without removing fields.
+- Keeps mobile tables card-like and removes horizontal overflow from setup records.
+- Restores private signature directory web guards omitted from the source archive by exclusion rules.
+
+No schema migration, permission removal, route removal, or destructive data behavior is introduced.

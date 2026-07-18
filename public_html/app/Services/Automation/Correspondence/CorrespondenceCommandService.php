@@ -3,6 +3,7 @@
 namespace App\Services\Automation\Correspondence;
 
 use App\Services\Automation\CoreReferenceType;
+use App\Support\PersianDate;
 use IPKF\Support\Clock;
 use PDO;
 use RuntimeException;
@@ -200,6 +201,7 @@ class CorrespondenceCommandService
             $errors[] = 'organization_required';
         }
 
+        $externalDate = $this->dateInput($input, 'external_date', 'external_date_fa', $errors);
         $parties = $this->normalizeParties($input, $errors);
 
         if ($parties === []) {
@@ -217,7 +219,7 @@ class CorrespondenceCommandService
             'confidentiality_code' => $confidentiality,
             'channel_code' => $channel,
             'external_number' => $this->nullable($input['external_number'] ?? '', 190),
-            'external_date' => $this->dateOnly($input['external_date'] ?? ''),
+            'external_date' => $externalDate,
             'received_at' => null,
             'dispatched_at' => null,
             'parties' => $parties,
@@ -349,10 +351,23 @@ class CorrespondenceCommandService
         return preg_match('/^[a-z0-9_]+$/', $value) === 1 ? $value : '';
     }
 
-    private function dateOnly(mixed $value): ?string
+    private function dateInput(array $input, string $gregorianKey, string $persianKey, array &$errors): ?string
     {
-        $value = trim((string) ($value ?? ''));
+        $gregorian = trim((string) ($input[$gregorianKey] ?? ''));
+        if ($gregorian !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $gregorian) === 1) {
+            return $gregorian;
+        }
 
-        return preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1 ? $value : null;
+        $persian = trim((string) ($input[$persianKey] ?? ''));
+        if ($persian === '') {
+            return null;
+        }
+
+        try {
+            return PersianDate::toGregorianDate($persian);
+        } catch (RuntimeException) {
+            $errors[] = 'invalid_date';
+            return null;
+        }
     }
 }

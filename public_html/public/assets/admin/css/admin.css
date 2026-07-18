@@ -2539,3 +2539,612 @@ button[type="submit"]:hover,
         grid-column: auto;
     }
 }
+/* Organizational operations and Persian date UX */
+.admin-alert--success {
+    background: #edf9f1;
+    border-color: #a9ddba;
+    color: #176b39;
+}
+
+.admin-alert--warning {
+    background: #fff8e6;
+    border-color: #f2cf7b;
+    color: #7a5200;
+}
+
+.admin-alert--danger {
+    background: #fff1f1;
+    border-color: #efb7b7;
+    color: #9f2727;
+}
+
+.admin-alert--info {
+    background: #eef6ff;
+    border-color: #b8d5f5;
+    color: #245b88;
+}
+
+.admin-alert--compact {
+    margin-block: 14px 0;
+    padding: 10px 12px;
+}
+
+.admin-button--danger {
+    background: #b42318;
+    color: #fff;
+}
+
+.admin-button--danger:hover {
+    background: #912018;
+}
+
+.admin-status-badge--warning,
+.admin-status-badge--draft,
+.admin-status-badge--urgent {
+    background: #fff3d6;
+    color: #805600;
+}
+
+.admin-status-badge--danger,
+.admin-status-badge--cancelled,
+.admin-status-badge--revoked {
+    background: #fff0f0;
+    color: #a12626;
+}
+
+.admin-status-badge--info,
+.admin-status-badge--registered,
+.admin-status-badge--received,
+.admin-status-badge--dispatched,
+.admin-status-badge--in_progress {
+    background: #eaf4ff;
+    color: #225f91;
+}
+
+.admin-status-badge--closed {
+    background: #eef2f6;
+    color: #3d4d5f;
+}
+
+.admin-actions-row--compact {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-inline-start: auto;
+}
+
+.admin-actions-row--compact .admin-module-hub__back {
+    margin-inline-start: 0;
+    min-height: 36px;
+    padding: 6px 12px;
+}
+
+.admin-setup-tabs {
+    border-bottom: 1px solid var(--admin-border);
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 4px 0 14px;
+    scrollbar-width: thin;
+}
+
+.admin-setup-tab {
+    background: var(--admin-surface-muted);
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    color: var(--admin-text);
+    cursor: pointer;
+    min-height: 40px;
+    padding: 9px 13px;
+    white-space: nowrap;
+}
+
+.admin-setup-tab:hover,
+.admin-setup-tab:focus-visible {
+    border-color: var(--admin-primary);
+}
+
+.admin-setup-tab.is-active {
+    background: var(--admin-primary);
+    border-color: var(--admin-primary);
+    color: #fff;
+}
+
+.admin-setup-panel {
+    display: none;
+    padding-top: 18px;
+}
+
+.admin-setup-panel.is-active {
+    display: block;
+}
+
+.admin-panel-heading {
+    align-items: start;
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.admin-panel-heading h3,
+.admin-records-block__head h4,
+.automation-form-section__head h3 {
+    margin: 0 0 4px;
+}
+
+.admin-panel-heading p,
+.admin-records-block__head p,
+.automation-form-section__head p {
+    color: var(--admin-text-muted);
+    font-size: var(--admin-font-size-sm);
+    margin: 0;
+}
+
+.admin-setup-form,
+.admin-appointment-form,
+.automation-base-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-form-grid__wide {
+    grid-column: 1 / -1;
+}
+
+.admin-inline-check {
+    align-items: center;
+    align-self: end;
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    min-height: 40px;
+}
+
+.admin-inline-check input,
+.admin-appointment-form__primary input {
+    min-height: auto;
+    width: auto;
+}
+
+.admin-records-block {
+    border-top: 1px solid var(--admin-border);
+    margin-top: 22px;
+    padding-top: 18px;
+}
+
+.admin-records-block__head {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.admin-records-block__head > span {
+    background: var(--admin-surface-muted);
+    border: 1px solid var(--admin-border);
+    border-radius: 999px;
+    color: var(--admin-text-muted);
+    font-size: var(--admin-font-size-sm);
+    padding: 5px 10px;
+    white-space: nowrap;
+}
+
+.admin-record-table-wrap {
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.admin-record-table {
+    min-width: 760px;
+}
+
+.admin-record-table tr:last-child td {
+    border-bottom: 0;
+}
+
+.admin-record-table td strong,
+.admin-record-table td small {
+    display: block;
+}
+
+.admin-record-table td small {
+    color: var(--admin-text-muted);
+    font-size: var(--admin-font-size-sm);
+    margin-top: 4px;
+}
+
+.admin-setup-summary {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-setup-summary span {
+    background: var(--admin-surface-muted);
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    color: var(--admin-text-muted);
+    padding: 14px;
+    text-align: center;
+}
+
+.admin-setup-summary b {
+    color: var(--admin-text);
+    display: block;
+    font-size: 1.35rem;
+    margin-bottom: 3px;
+}
+
+.admin-actions-row {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.admin-appointment-form__primary {
+    align-self: end;
+    display: flex !important;
+    flex-direction: row !important;
+    margin-bottom: 0;
+}
+
+.admin-appointment-search {
+    margin-bottom: 16px;
+}
+
+.admin-persian-date {
+    min-width: 0;
+    position: relative;
+}
+
+.admin-persian-date > input[data-persian-date-input] {
+    padding-inline-end: 42px;
+}
+
+.admin-persian-date__toggle {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: var(--admin-primary);
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 18px;
+    height: 36px;
+    inset-block-start: 3px;
+    inset-inline-end: 4px;
+    justify-content: center;
+    min-height: 36px;
+    padding: 0;
+    position: absolute;
+    width: 34px;
+}
+
+.admin-persian-date__toggle:hover,
+.admin-persian-date__toggle:focus-visible {
+    background: var(--admin-primary-soft);
+    border-radius: 8px;
+}
+
+.admin-persian-calendar {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 14px;
+    box-shadow: 0 18px 44px rgba(15, 23, 42, .18);
+    inset-block-start: calc(100% + 6px);
+    inset-inline-start: 0;
+    max-width: calc(100vw - 32px);
+    padding: 10px;
+    position: absolute;
+    width: 286px;
+    z-index: 80;
+}
+
+.admin-persian-calendar[hidden] {
+    display: none;
+}
+
+.admin-persian-calendar__header {
+    align-items: center;
+    display: grid;
+    grid-template-columns: 36px 1fr 36px;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.admin-persian-calendar__nav,
+.admin-persian-calendar__grid button,
+.admin-persian-calendar__footer button {
+    background: transparent;
+    border: 0;
+    color: var(--admin-text);
+    cursor: pointer;
+    min-height: 34px;
+    padding: 4px;
+}
+
+.admin-persian-calendar__nav {
+    border-radius: 8px;
+    font-size: 22px;
+}
+
+.admin-persian-calendar__nav:hover,
+.admin-persian-calendar__grid button:hover,
+.admin-persian-calendar__footer button:hover {
+    background: var(--admin-primary-soft);
+    color: var(--admin-primary-hover);
+}
+
+.admin-persian-calendar__weekdays,
+.admin-persian-calendar__grid {
+    display: grid;
+    gap: 3px;
+    grid-template-columns: repeat(7, 1fr);
+}
+
+.admin-persian-calendar__weekdays span {
+    color: var(--admin-text-muted);
+    font-size: 12px;
+    padding: 5px 0;
+    text-align: center;
+}
+
+.admin-persian-calendar__grid button {
+    border-radius: 9px;
+    font-size: 13px;
+}
+
+.admin-persian-calendar__grid button.is-today {
+    box-shadow: inset 0 0 0 1px var(--admin-primary);
+}
+
+.admin-persian-calendar__grid button.is-selected {
+    background: var(--admin-primary);
+    color: #fff;
+}
+
+.admin-persian-calendar__footer {
+    border-top: 1px solid var(--admin-border);
+    display: flex;
+    gap: 6px;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding-top: 8px;
+}
+
+.admin-persian-calendar__footer button {
+    border-radius: 8px;
+    color: var(--admin-primary-hover);
+    font-size: 12px;
+    padding-inline: 9px;
+}
+
+input[aria-invalid="true"] {
+    border-color: #b42318 !important;
+    box-shadow: 0 0 0 3px rgba(180, 35, 24, .12) !important;
+}
+
+.automation-form--structured {
+    gap: 14px;
+}
+
+.automation-form-section {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius);
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+}
+
+.automation-form-section__head {
+    border-bottom: 1px solid var(--admin-border);
+    padding-bottom: 12px;
+}
+
+.automation-party-editor {
+    background: var(--admin-surface);
+    padding: 18px;
+}
+
+.automation-party-list {
+    display: grid;
+    gap: 10px;
+}
+
+.automation-party-card {
+    background: var(--admin-surface-muted);
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.automation-party-card > summary {
+    align-items: center;
+    cursor: pointer;
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+    list-style: none;
+    min-height: 44px;
+    padding: 10px 12px;
+}
+
+.automation-party-card > summary::-webkit-details-marker {
+    display: none;
+}
+
+.automation-party-card > summary::after {
+    color: var(--admin-primary);
+    content: "+";
+    font-size: 20px;
+    margin-inline-start: 6px;
+}
+
+.automation-party-card[open] > summary::after {
+    content: "−";
+}
+
+.automation-party-card > summary span {
+    color: var(--admin-text);
+    font-weight: var(--admin-font-weight-bold);
+}
+
+.automation-party-card > summary small {
+    color: var(--admin-text-muted);
+    margin-inline-start: auto;
+}
+
+.automation-party-card .automation-party-row {
+    border: 0;
+    border-radius: 0;
+    border-top: 1px solid var(--admin-border);
+}
+
+.automation-form-actions {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    justify-content: flex-start;
+    padding: 12px;
+}
+
+@media (max-width: 920px) {
+    .admin-setup-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-actions-row--compact {
+        margin-inline-start: 0;
+    }
+}
+
+@media (max-width: 760px) {
+    .admin-setup-form,
+    .admin-appointment-form,
+    .automation-base-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-form-grid__wide {
+        grid-column: auto;
+    }
+
+    .admin-setup-tabs {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        overflow: visible;
+    }
+
+    .admin-setup-tab {
+        white-space: normal;
+    }
+
+    .admin-setup-tab:last-child {
+        grid-column: 1 / -1;
+    }
+
+    .admin-record-table-wrap {
+        border: 0;
+        overflow: visible;
+    }
+
+    .admin-record-table {
+        min-width: 0;
+    }
+
+    .admin-record-table thead {
+        display: none;
+    }
+
+    .admin-record-table,
+    .admin-record-table tbody,
+    .admin-record-table tr,
+    .admin-record-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .admin-record-table tbody {
+        display: grid;
+        gap: 10px;
+    }
+
+    .admin-record-table tr {
+        background: var(--admin-surface);
+        border: 1px solid var(--admin-border);
+        border-radius: 12px;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, .04);
+        overflow: hidden;
+    }
+
+    .admin-record-table td {
+        align-items: start;
+        border-bottom: 1px solid var(--admin-border);
+        display: grid;
+        gap: 10px;
+        grid-template-columns: minmax(90px, 36%) minmax(0, 1fr);
+        padding: 10px 12px;
+    }
+
+    .admin-record-table td:last-child {
+        border-bottom: 0;
+    }
+
+    .admin-record-table td::before {
+        color: var(--admin-text-muted);
+        content: attr(data-label);
+        font-size: var(--admin-font-size-sm);
+        font-weight: var(--admin-font-weight-bold);
+    }
+
+    .automation-form-section,
+    .automation-party-editor {
+        padding: 14px;
+    }
+
+    .automation-party-card > summary small {
+        max-width: 55%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 520px) {
+    .admin-setup-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-actions-row {
+        align-items: stretch;
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .admin-actions-row .admin-button,
+    .admin-actions-row .admin-module-hub__back {
+        width: 100%;
+    }
+
+    .admin-records-block__head {
+        align-items: flex-start;
+    }
+
+    .admin-persian-calendar {
+        inset-inline-start: auto;
+        inset-inline-end: 0;
+        width: min(286px, calc(100vw - 32px));
+    }
+
+    .automation-form-actions {
+        align-items: stretch;
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+}

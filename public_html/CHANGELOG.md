@@ -14,3 +14,8 @@ Initial Core Refactor
 - Added operational organization setup workspace for organizations, units, positions, and User-to-Person linking.
 
 - Converted organization setup into a tabbed workspace with semantic success/error alerts and active-tab persistence.
+
+- Refined organizational setup with saved-record tables below each operational step.
+- Added compact chart actions, semantic state colors, and responsive mobile record cards.
+- Added a reusable Jalali calendar for appointments and Automation filters/forms; native Gregorian date controls and explanatory text were removed from Admin UI.
+- Reorganized correspondence draft creation into minimal structured sections and collapsible party cards without removing fields.

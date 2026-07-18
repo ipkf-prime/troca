@@ -1,0 +1,28 @@
+TROCA organizational UX final patch
+Base branch: v0.4.8-platform-commercial-foundation-dev
+Base source HEAD: cedee02fd6ed87f2a23c5a6334f117ccbdc2908a
+
+Copy this package over the repository root while preserving paths.
+No database migration is required for this UX increment.
+Back up the current repository before extraction.
+
+Changed files:
+- CHANGE_MANIFEST_ORGANIZATIONAL_UX_FINAL.txt
+- docs/ORGANIZATIONAL_MINIMAL_UX_AND_PERSIAN_DATEPICKER.md
+- public_html/CHANGELOG.md
+- public_html/app/Services/Automation/Correspondence/CoreReferenceOptions.php
+- public_html/app/Services/Automation/Correspondence/CorrespondenceCommandService.php
+- public_html/app/Services/Automation/Correspondence/CorrespondenceQueryService.php
+- public_html/app/Services/Organization/OrganizationSetupService.php
+- public_html/public/assets/admin/css/admin.css
+- public_html/public/assets/admin/js/admin.js
+- public_html/resources/views/admin/appointments.php
+- public_html/resources/views/admin/automation-correspondence-form.php
+- public_html/resources/views/admin/automation-correspondences.php
+- public_html/resources/views/admin/organization-chart.php
+- public_html/resources/views/admin/organization-setup.php
+- public_html/storage/private/signatures/.htaccess
+- public_html/storage/private/signatures/index.php
+- tests/OrganizationSetupTabsUiTest.php
+- tests/OrganizationalMinimalSellableUiTest.php
+- tests/OrganizationalUxPersianDateTest.php

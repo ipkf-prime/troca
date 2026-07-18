@@ -7,6 +7,8 @@ $items = $list['items'] ?? [];
 $filters = $list['filters'] ?? [];
 $options = $list['options'] ?? [];
 $pagination = $list['pagination'] ?? [];
+$dateFromFa = \App\Support\PersianDate::fromGregorianDate((string) ($filters['date_from'] ?? ''));
+$dateToFa = \App\Support\PersianDate::fromGregorianDate((string) ($filters['date_to'] ?? ''));
 $pageUrl = static function (int $targetPage) use ($filters): string {
     $params = array_filter($filters + ['page' => $targetPage], fn ($value) => $value !== '' && $value !== null);
     $params['page'] = $targetPage;
@@ -34,8 +36,8 @@ ob_start();
         <?= $select('status', $options['statuses'] ?? [], (string) ($filters['status'] ?? ''), 'وضعیت') ?>
         <?= $select('direction', $options['directions'] ?? [], (string) ($filters['direction'] ?? ''), 'نوع/جهت') ?>
         <?= $select('priority', $options['priorities'] ?? [], (string) ($filters['priority'] ?? ''), 'اولویت') ?>
-        <label><span>از تاریخ</span><input type="date" name="date_from" value="<?= admin_h($filters['date_from'] ?? '') ?>"></label>
-        <label><span>تا تاریخ</span><input type="date" name="date_to" value="<?= admin_h($filters['date_to'] ?? '') ?>"></label>
+        <label><span>از تاریخ</span><div class="admin-persian-date" data-persian-datepicker><input type="text" name="date_from_fa" data-persian-date-input inputmode="numeric" autocomplete="off" placeholder="۱۴۰۵/۰۱/۰۱" value="<?= admin_h($dateFromFa) ?>"><input type="hidden" name="date_from" data-persian-date-output value="<?= admin_h($filters['date_from'] ?? '') ?>"><button type="button" class="admin-persian-date__toggle" data-persian-date-toggle aria-label="انتخاب تاریخ"><?= \App\Support\AdminIcon::html('calendar') ?></button></div></label>
+        <label><span>تا تاریخ</span><div class="admin-persian-date" data-persian-datepicker><input type="text" name="date_to_fa" data-persian-date-input inputmode="numeric" autocomplete="off" placeholder="۱۴۰۵/۱۲/۲۹" value="<?= admin_h($dateToFa) ?>"><input type="hidden" name="date_to" data-persian-date-output value="<?= admin_h($filters['date_to'] ?? '') ?>"><button type="button" class="admin-persian-date__toggle" data-persian-date-toggle aria-label="انتخاب تاریخ"><?= \App\Support\AdminIcon::html('calendar') ?></button></div></label>
         <div class="automation-filter-grid__actions"><button class="admin-button" type="submit">اعمال فیلتر</button><a class="admin-button admin-button--soft" href="/admin/automation/correspondences">بازنشانی</a></div>
     </form>
     <?php if (($list['ok'] ?? false) !== true): ?>

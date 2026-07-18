@@ -38,7 +38,7 @@ $renderUnit = function (string $ref, array $units) use (&$renderUnit): void {
 ob_start();
 ?>
 <nav class="admin-breadcrumb"><a href="/admin/dashboard">داشبورد</a><span>/</span><a href="/admin/modules/organization">ساختار سازمانی</a><span>/</span><span>چارت سازمانی</span></nav>
-<section class="admin-module-hub admin-module-hub--teal"><div><h2>چارت سازمانی</h2><p>نمایش واحدها، پست‌ها، مسئولان و جایگاه‌های بلاتصدی</p></div><div class="admin-actions-row"><a class="admin-button admin-button--soft" href="/admin/organization-setup">راه‌اندازی ساختار</a><a class="admin-button" href="/admin/appointments">مدیریت انتصاب‌ها</a></div></section>
+<section class="admin-module-hub admin-module-hub--teal admin-users-heading"><div class="admin-module-hub__icon"><?= \App\Support\AdminIcon::html('organization') ?></div><div><h2>چارت سازمانی</h2><p>نمایش واحدها، پست‌ها، مسئولان و جایگاه‌های بلاتصدی</p></div><div class="admin-actions-row admin-actions-row--compact"><a class="admin-module-hub__back" href="/admin/organization-setup">راه‌اندازی ساختار</a><a class="admin-module-hub__back" href="/admin/appointments">مدیریت انتصاب‌ها</a></div></section>
 <section class="admin-section">
 <?php if (!$chart['ok']): ?>
     <div class="admin-alert">دریافت چارت سازمانی ممکن نیست.</div>

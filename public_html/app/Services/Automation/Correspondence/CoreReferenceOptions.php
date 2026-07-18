@@ -21,6 +21,20 @@ class CoreReferenceOptions
         ];
     }
 
+    public function tokenFor(string $kind, int $id): ?string
+    {
+        if ($id < 1 || !in_array($kind, [
+            CoreReferenceType::PERSON,
+            CoreReferenceType::USER,
+            CoreReferenceType::ORGANIZATION,
+            CoreReferenceType::ORG_UNIT,
+        ], true)) {
+            return null;
+        }
+
+        return $this->token($kind, $id);
+    }
+
     public function decode(string $token): ?array
     {
         $encoded = strtr(trim($token), '-_', '+/');

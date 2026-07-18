@@ -2,6 +2,8 @@
 
 namespace App\Services\Automation\Correspondence;
 
+use App\Support\PersianDate;
+use RuntimeException;
 use Throwable;
 
 class CorrespondenceQueryService
@@ -80,7 +82,7 @@ class CorrespondenceQueryService
 
         return [
             'ok' => $publicReference === null || $correspondence !== null,
-            'form' => $this->viewModels->formData($correspondence, $versions, $parties),
+            'form' => $this->viewModels->formData($correspondence, $versions, $this->formParties($parties)),
             'options' => $this->lookups->formOptions(),
             'references' => $this->coreReferences->options(),
             'editable' => $correspondence === null || ($correspondence['status_code'] ?? '') === 'draft',
@@ -107,6 +109,25 @@ class CorrespondenceQueryService
         );
     }
 
+    private function formParties(array $parties): array
+    {
+        foreach ($parties as &$party) {
+            $kind = (string) ($party['target_kind_code'] ?? '');
+            $id = match ($kind) {
+                'person' => (int) ($party['person_id'] ?? 0),
+                'organization' => (int) ($party['organization_id'] ?? 0),
+                'org_unit' => (int) ($party['org_unit_id'] ?? 0),
+                default => 0,
+            };
+            $party['reference_token'] = $id > 0
+                ? (string) ($this->coreReferences->tokenFor($kind, $id) ?? '')
+                : '';
+        }
+        unset($party);
+
+        return $parties;
+    }
+
     private function filters(array $params): array
     {
         return [
@@ -114,8 +135,8 @@ class CorrespondenceQueryService
             'status' => $this->code($params['status'] ?? ''),
             'direction' => $this->code($params['direction'] ?? ''),
             'priority' => $this->code($params['priority'] ?? ''),
-            'date_from' => $this->date($params['date_from'] ?? ''),
-            'date_to' => $this->date($params['date_to'] ?? ''),
+            'date_from' => $this->date($params['date_from'] ?? '', $params['date_from_fa'] ?? ''),
+            'date_to' => $this->date($params['date_to'] ?? '', $params['date_to_fa'] ?? ''),
         ];
     }
 
@@ -144,9 +165,22 @@ class CorrespondenceQueryService
         return preg_match('/^[a-z0-9_]+$/', $value) === 1 ? $value : '';
     }
 
-    private function date(mixed $value): string
+    private function date(mixed $gregorianValue, mixed $persianValue = ''): string
     {
-        $value = trim((string) ($value ?? ''));
-        return preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1 ? $value : '';
+        $gregorian = trim((string) ($gregorianValue ?? ''));
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $gregorian) === 1) {
+            return $gregorian;
+        }
+
+        $persian = trim((string) ($persianValue ?? ''));
+        if ($persian === '') {
+            return '';
+        }
+
+        try {
+            return PersianDate::toGregorianDate($persian) ?? '';
+        } catch (RuntimeException) {
+            return '';
+        }
     }
 }
