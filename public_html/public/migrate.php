@@ -104,6 +104,7 @@ try {
         new \IPKF\Database\Migrations\CreateAdminUsersOrganizationTables(),
         new \IPKF\Database\Migrations\CreateExtendedPersonDataTables(),
         new \IPKF\Database\Migrations\CreateDynamicOrganizationCoreTables(),
+        new \IPKF\Database\Migrations\CompleteOrganizationalIdentityAndSignatureFoundation(),
         new \IPKF\Database\Migrations\CreateDynamicGeographyTables(),
         new \IPKF\Database\Migrations\CreateMultiSourceCodingGeographyTables(),
         new \IPKF\Database\Migrations\CreateMinistryGeographyImportMetadata(),

@@ -112,6 +112,7 @@ try {
         new \IPKF\Database\Seeds\MultiSourceMetadataSeeder(),
         new \IPKF\Database\Seeds\AutomationCorrespondenceSeeder(),
         new \IPKF\Database\Seeds\AutomationCorrespondencePermissionsSeeder(),
+        new \IPKF\Database\Seeds\OrganizationalIdentityPermissionsSeeder(),
         new \IPKF\Database\Seeds\PlatformCommercialFoundationSeeder(),
     ]);
 

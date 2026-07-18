@@ -1,0 +1,17 @@
+Added:
+- public_html/system/Database/Migrations/CompleteOrganizationalIdentityAndSignatureFoundation.php
+- public_html/system/Database/Seeds/OrganizationalIdentityPermissionsSeeder.php
+- public_html/app/Services/Organization/OrganizationalContextException.php
+- public_html/app/Services/Organization/UserOrganizationalContextResolver.php
+- public_html/app/Services/Organization/OrganizationalIdentityContract.php
+- public_html/app/Services/Signature/SignatureAuthorizationResolver.php
+- public_html/storage/private/signatures/.htaccess
+- public_html/storage/private/signatures/index.php
+- tests/OrganizationalIdentitySignatureFoundationTest.php
+- docs/ORGANIZATIONAL_IDENTITY_AND_SIGNATURE.md
+
+Modified:
+- public_html/public/migrate.php
+- public_html/public/seed.php
+- public_html/routes/web.php
+- public_html/CHANGELOG.md
