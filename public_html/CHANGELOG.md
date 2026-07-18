@@ -11,3 +11,6 @@ Initial Core Refactor
 - Added idempotent Core RBAC permissions and safe diagnostics.
 
 - Added operational organization chart, appointment management, and active organizational context UI.
+- Added operational organization setup workspace for organizations, units, positions, and User-to-Person linking.
+
+- Converted organization setup into a tabbed workspace with semantic success/error alerts and active-tab persistence.

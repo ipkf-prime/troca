@@ -6,6 +6,7 @@ use IPKF\Database\Database;
 use PDO;
 use RuntimeException;
 use Throwable;
+use App\Support\PersianDate;
 
 class OrganizationOperationsService
 {
@@ -39,7 +40,12 @@ class OrganizationOperationsService
             }
             $sql .= " ORDER BY a.status='active' DESC, a.is_primary DESC, a.valid_from DESC, a.id DESC LIMIT 200";
             $st=$this->db->prepare($sql); $st->execute($params);
-            return ['ok'=>true,'items'=>$st->fetchAll(PDO::FETCH_ASSOC) ?: [],'q'=>$query];
+            $items=$st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            foreach($items as &$item){
+                $item['valid_from_fa']=PersianDate::fromGregorianDate($item['valid_from']??null);
+                $item['valid_to_fa']=PersianDate::fromGregorianDate($item['valid_to']??null);
+            }
+            return ['ok'=>true,'items'=>$items,'q'=>$query];
         } catch (Throwable) {
             return ['ok'=>false,'items'=>[],'q'=>$query];
         }
@@ -47,9 +53,19 @@ class OrganizationOperationsService
 
     public function formOptions(): array
     {
+        $positions=$this->db->query("SELECT op.public_reference, op.organization_id, COALESCE(NULLIF(op.title_fa,''),NULLIF(op.title_override,''),p.title) title, COALESCE(NULLIF(o.title_fa,''),o.title) organization_title, COALESCE(NULLIF(ou.title_fa,''),ou.title) unit_title, ou.id AS unit_id FROM organization_positions op INNER JOIN positions p ON p.id=op.position_id INNER JOIN organizations o ON o.id=op.organization_id LEFT JOIN org_units ou ON ou.id=op.org_unit_id WHERE op.status='active' AND o.is_active=1 ORDER BY organization_title, unit_title, title LIMIT 500")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $orgRows=$this->db->query("SELECT id,parent_id,COALESCE(NULLIF(title_fa,''),title) title FROM organizations WHERE deleted_at IS NULL")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $unitRows=$this->db->query("SELECT id,parent_id,organization_id,COALESCE(NULLIF(title_fa,''),title) title FROM org_units WHERE deleted_at IS NULL AND status='active'")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $orgMap=[];foreach($orgRows as $r){$orgMap[(int)$r['id']]=$r;}
+        $unitMap=[];foreach($unitRows as $r){$unitMap[(int)$r['id']]=$r;}
+        foreach($positions as &$position){
+            $orgPath=$this->pathLabel((int)$position['organization_id'],$orgMap);
+            $unitPath=$position['unit_id']?$this->pathLabel((int)$position['unit_id'],$unitMap):'ستاد سازمان';
+            $position['display_path']=$orgPath.' ← '.$unitPath.' ← '.$position['title'];
+        }
         return [
             'persons' => $this->db->query("SELECT public_reference, COALESCE(NULLIF(display_name_fa,''), full_name) title FROM persons WHERE status='active' ORDER BY title LIMIT 500")->fetchAll(PDO::FETCH_ASSOC) ?: [],
-            'positions' => $this->db->query("SELECT op.public_reference, op.organization_id, COALESCE(NULLIF(op.title_fa,''),NULLIF(op.title_override,''),p.title) title, COALESCE(NULLIF(o.title_fa,''),o.title) organization_title, COALESCE(NULLIF(ou.title_fa,''),ou.title) unit_title FROM organization_positions op INNER JOIN positions p ON p.id=op.position_id INNER JOIN organizations o ON o.id=op.organization_id LEFT JOIN org_units ou ON ou.id=op.org_unit_id WHERE op.status='active' AND o.is_active=1 ORDER BY organization_title, unit_title, title LIMIT 500")->fetchAll(PDO::FETCH_ASSOC) ?: [],
+            'positions' => $positions,
         ];
     }
 
@@ -98,6 +114,7 @@ class OrganizationOperationsService
     }
     private function scalar(string $sql,array $p){$s=$this->db->prepare($sql);$s->execute($p);return $s->fetchColumn();}
     private function row(string $sql,array $p):?array{$s=$this->db->prepare($sql);$s->execute($p);$r=$s->fetch(PDO::FETCH_ASSOC);return $r?:null;}
-    private function dateOrNull($v):?string{$v=trim((string)$v);if($v==='')return null;$d=\DateTimeImmutable::createFromFormat('Y-m-d',$v);if(!$d||$d->format('Y-m-d')!==$v)throw new RuntimeException('قالب تاریخ معتبر نیست.');return $v;}
+    private function dateOrNull($v):?string{return PersianDate::toGregorianDate((string)$v);}
+    private function pathLabel(int $id,array $map):string{$parts=[];$guard=0;while($id>0&&isset($map[$id])&&$guard++<30){array_unshift($parts,(string)$map[$id]['title']);$id=(int)($map[$id]['parent_id']??0);}return implode(' ← ',$parts);}
     private function clean($v,int $max):?string{$v=trim((string)$v);if($v==='')return null;return function_exists('mb_substr')?mb_substr($v,0,$max,'UTF-8'):substr($v,0,$max);}
 }

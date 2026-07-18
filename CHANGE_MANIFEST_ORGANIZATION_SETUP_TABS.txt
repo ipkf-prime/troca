@@ -1,0 +1,10 @@
+Organization setup workspace tabs and semantic alerts
+
+Modified:
+- public_html/resources/views/admin/organization-setup.php
+- public_html/routes/web.php
+- public_html/CHANGELOG.md
+
+Added:
+- tests/OrganizationSetupTabsUiTest.php
+- docs/ORGANIZATION_SETUP_TABS_UI.md

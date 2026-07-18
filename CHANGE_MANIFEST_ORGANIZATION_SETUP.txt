@@ -1,0 +1,14 @@
+Organization setup operational UI
+
+Added:
+- public_html/app/Services/Organization/OrganizationSetupService.php
+- public_html/resources/views/admin/organization-setup.php
+- docs/ORGANIZATION_SETUP_UI.md
+- tests/OrganizationSetupUiTest.php
+- CHANGE_MANIFEST_ORGANIZATION_SETUP.txt
+
+Modified:
+- public_html/routes/web.php
+- public_html/app/Services/AdminNavigationRbacService.php
+- public_html/resources/views/admin/organization-chart.php
+- public_html/CHANGELOG.md

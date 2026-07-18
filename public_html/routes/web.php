@@ -1148,6 +1148,7 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'organization_chart_operational_ui_available' => class_exists(\App\Services\Organization\OrganizationOperationsService::class),
         'appointment_operational_ui_available' => class_exists(\App\Services\Organization\OrganizationOperationsService::class),
         'organizational_context_operational_ui_available' => class_exists(\App\Services\Organization\UserOrganizationalContextResolver::class),
+        'organization_setup_operational_ui_available' => class_exists(\App\Services\Organization\OrganizationSetupService::class),
         'installer_available' => class_exists(\IPKF\Installer\Installer::class),
         'installed' => (new \IPKF\Installer\InstallationState())->installed(),
         'storage_writable' => is_writable(BASE_PATH . '/storage'),
@@ -2041,6 +2042,44 @@ $router->get('/admin/positions', function ($request, $response) use ($adminRende
         'context' => $context,
         'list' => $list,
     ]);
+});
+$router->get('/admin/organization-setup', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/organization-setup');
+    if (!is_array($context)) { return $context; }
+    return $adminRender($response, 'organization-setup', [
+        'title' => 'راه‌اندازی ساختار سازمانی', 'context' => $context,
+        'workspace' => (new \App\Services\Organization\OrganizationSetupService())->workspace(),
+    ]);
+});
+$router->post('/admin/organization-setup', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/organization-setup');
+    if (!is_array($context)) { return $context; }
+    $service = new \App\Services\Organization\OrganizationSetupService();
+    try {
+        $action = (string)$request->input('action', '');
+        $_SESSION['admin_organization_setup_tab'] = match ($action) {
+            'create_unit' => 'unit',
+            'create_position' => 'position',
+            'link_user_person' => 'identity',
+            default => 'organization',
+        };
+        if ($action === 'create_organization') {
+            $service->createOrganization(['title_fa'=>$request->input('title_fa',''),'title_en'=>$request->input('title_en',''),'short_title'=>$request->input('short_title',''),'parent_reference'=>$request->input('parent_reference',''),'sort_order'=>$request->input('sort_order',0)]);
+            $_SESSION['admin_flash_message'] = 'سازمان با موفقیت ثبت شد.';
+        } elseif ($action === 'create_unit') {
+            $service->createUnit(['organization_reference'=>$request->input('organization_reference',''),'parent_reference'=>$request->input('parent_reference',''),'title_fa'=>$request->input('title_fa',''),'title_en'=>$request->input('title_en',''),'code'=>$request->input('code',''),'sort_order'=>$request->input('sort_order',0),'description'=>$request->input('description','')]);
+            $_SESSION['admin_flash_message'] = 'واحد سازمانی با موفقیت ثبت شد.';
+        } elseif ($action === 'create_position') {
+            $service->createOrganizationPosition(['organization_reference'=>$request->input('organization_reference',''),'unit_reference'=>$request->input('unit_reference',''),'title_fa'=>$request->input('title_fa',''),'title_en'=>$request->input('title_en',''),'code'=>$request->input('code',''),'headcount_limit'=>$request->input('headcount_limit',1),'sort_order'=>$request->input('sort_order',0),'is_head'=>$request->input('is_head',null)]);
+            $_SESSION['admin_flash_message'] = 'پست سازمانی با موفقیت تعریف شد.';
+        } elseif ($action === 'link_user_person') {
+            $service->linkUserToPerson(['user_id'=>$request->input('user_id',0),'person_reference'=>$request->input('person_reference','')]);
+            $_SESSION['admin_flash_message'] = 'حساب کاربری به شخص متصل شد.';
+        } else { throw new \RuntimeException('عملیات انتخاب‌شده معتبر نیست.'); }
+    } catch (\Throwable $e) {
+        $_SESSION['admin_flash_error'] = $e instanceof \RuntimeException ? $e->getMessage() : 'ثبت اطلاعات سازمانی ممکن نشد.';
+    }
+    return $response->redirect('/admin/organization-setup');
 });
 $router->get('/admin/organization-chart', function ($request, $response) use ($adminRender, $adminGuard) {
     $context = $adminGuard($response, '/admin/organization-chart');
