@@ -1189,6 +1189,28 @@ button[type="submit"]:hover,
     opacity: .45;
 }
 
+.admin-module-database-grid > label {
+    min-width: 0;
+}
+
+.admin-module-database-grid input,
+.admin-module-database-grid select {
+    height: 44px;
+    min-height: 44px;
+}
+
+.admin-secret-status {
+    background: var(--admin-surface-muted);
+    color: var(--admin-text-muted);
+    letter-spacing: .08em;
+}
+
+.admin-secret-status.is-configured {
+    border-color: var(--admin-success);
+    color: var(--admin-success);
+    font-weight: var(--admin-font-weight-bold);
+}
+
 .admin-form-actions {
     align-items: center;
     display: flex;
