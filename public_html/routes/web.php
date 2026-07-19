@@ -1194,9 +1194,12 @@ $adminContext = fn (): ?array => (new \App\Services\AdminPanelService())->contex
 $adminHomeUrl = function ($request): string {
     $urls = new \IPKF\Support\ApplicationUrlRegistry();
     if ($urls->isCoreHost((string) $request->host())) {
-        // A normal central-panel login must always finish on the dashboard.
-        // Module handoff only starts from an explicit module launch request.
-        (new \App\Services\ModuleSsoService())->forgetPendingIntent();
+        // An explicit module launch stores a short-lived destination in the
+        // central session. Preserve it across password and MFA completion.
+        $pending = (new \App\Services\ModuleSsoService())->pendingResumeUrl();
+        if ($pending !== null) {
+            return $pending;
+        }
     }
 
     return $urls->adminHome((string) $request->host());
@@ -2335,7 +2338,11 @@ $router->get('/admin/logout', function ($request, $response) {
     $urls = new \IPKF\Support\ApplicationUrlRegistry();
 
     if ($urls->isAutomationHost((string) $request->host())) {
-        return $response->redirect($urls->core('/admin/logout?federated=1'));
+        return $response->redirect($urls->core('/admin/logout?federated=1&return_module=automation'));
+    }
+
+    if ((string) $request->input('return_module', '') === 'automation') {
+        return $response->redirect($urls->core('/auth/module-sso/start?return_path=' . rawurlencode('/admin/automation')));
     }
 
     return $response->redirect($urls->core('/admin/login'));

@@ -73,6 +73,10 @@ class ApplicationUrlRegistry
         $path = parse_url($requestUri, PHP_URL_PATH) ?: '/';
         $automationPath = $path === '/admin/automation' || str_starts_with($path, '/admin/automation/');
 
+        if ($path === '/' && $this->isAutomationHost($requestHost)) {
+            return $this->automation('/admin/automation');
+        }
+
         if ($automationPath && $this->isCoreHost($requestHost)) {
             return $this->core('/auth/module-sso/start?return_path=' . rawurlencode($requestUri));
         }
