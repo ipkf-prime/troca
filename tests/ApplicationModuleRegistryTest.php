@@ -16,6 +16,7 @@ $expect(str_contains($view, "require __DIR__ . '/layout.php'") && str_contains($
 $expect(str_contains($view, 'new \\IPKF\\Security\\Csrf()'), 'The module settings form must include CSRF protection.');
 $expect(str_contains($view, 'data-module-select') && str_contains($view, 'data-admin-tab="database"'), 'Module settings must use a catalog dropdown and a compact tabbed workspace.');
 $expect(str_contains($service, "'accounting'") && str_contains($service, "'inventory'") && str_contains($service, "'crm'"), 'The central module catalog must be extensible beyond Automation.');
-$expect(str_contains($view, 'data-module-context') && str_contains($view, 'data-module-dependent-tab'), 'The selected module context must remain visible and dependent tabs must stay locked until selection.');
+$expect(str_contains($view, 'data-module-context') && str_contains($view, 'registered-modules-data'), 'The selected module context must remain visible and load saved module data across all tabs.');
+$expect(!str_contains($view, 'data-module-dependent-tab disabled'), 'Module settings tabs must remain available while module context is selected independently.');
 
 echo "Application module registry checks passed.\n";

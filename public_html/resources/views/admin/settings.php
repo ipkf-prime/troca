@@ -6,6 +6,7 @@ $registry = $registry ?? ['available' => false, 'items' => [], 'catalog' => []];
 $status = (string) ($status ?? '');
 $catalog = $registry['catalog'] ?? [];
 $catalogJson = json_encode($catalog, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?: '{}';
+$registeredJson = json_encode($registry['items'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?: '[]';
 ob_start();
 ?>
 <nav class="admin-breadcrumb" aria-label="breadcrumb"><a href="/admin/dashboard">داشبورد</a><span>/</span><span>تنظیمات ماژول‌ها</span></nav>
@@ -17,14 +18,14 @@ ob_start();
 <section class="admin-section admin-tab-workspace">
     <nav class="admin-tabs" data-admin-tabs role="tablist" aria-label="تنظیمات ماژول">
         <button class="admin-tab is-active" type="button" data-admin-tab="general">عمومی</button>
-        <button class="admin-tab" type="button" data-admin-tab="access" data-module-dependent-tab disabled>دامنه و ورود</button>
-        <button class="admin-tab" type="button" data-admin-tab="database" data-module-dependent-tab disabled>دیتابیس</button>
+        <button class="admin-tab" type="button" data-admin-tab="access">دامنه و ورود</button>
+        <button class="admin-tab" type="button" data-admin-tab="database">دیتابیس</button>
         <button class="admin-tab" type="button" data-admin-tab="registered">ماژول‌های ثبت‌شده <small><?= admin_h(\App\Support\AdminFormat::digits(count($registry['items'] ?? []))) ?></small></button>
     </nav>
 
-    <div class="admin-module-context" data-module-context hidden>
+    <div class="admin-module-context" data-module-context>
         <span>ماژول جاری</span>
-        <strong data-module-context-name>—</strong>
+        <strong data-module-context-name>یک ماژول انتخاب کنید</strong>
         <code dir="ltr" data-module-context-key>—</code>
     </div>
 
@@ -74,34 +75,52 @@ ob_start();
 </section>
 
 <script type="application/json" id="module-catalog-data"><?= $catalogJson ?></script>
+<script type="application/json" id="registered-modules-data"><?= $registeredJson ?></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.querySelector('[data-module-registry-form]');
     const select = document.querySelector('[data-module-select]');
     if (!form || !select) return;
     const catalog = JSON.parse(document.getElementById('module-catalog-data')?.textContent || '{}');
+    const registeredItems = JSON.parse(document.getElementById('registered-modules-data')?.textContent || '[]');
+    const registered = Object.fromEntries(registeredItems.map((item) => [item.module_key, item]));
     const context = document.querySelector('[data-module-context]');
     const contextName = document.querySelector('[data-module-context-name]');
     const contextKey = document.querySelector('[data-module-context-key]');
-    const dependentTabs = document.querySelectorAll('[data-module-dependent-tab]');
     const actions = document.querySelector('[data-module-save-actions]');
     const nameInput = form.querySelector('[data-module-field="name"]');
     const keyInput = form.querySelector('[data-module-field="key"]');
     const refreshContext = function () {
         const selected = select.value !== '';
-        if (context) context.hidden = !selected;
-        dependentTabs.forEach((tab) => { tab.disabled = !selected; });
         if (actions) actions.hidden = !selected;
-        if (contextName) contextName.textContent = nameInput?.value || 'ماژول سفارشی';
-        if (contextKey) contextKey.textContent = keyInput?.value || 'custom';
+        if (contextName) contextName.textContent = selected ? (nameInput?.value || 'ماژول سفارشی') : 'یک ماژول انتخاب کنید';
+        if (contextKey) contextKey.textContent = selected ? (keyInput?.value || 'custom') : '—';
     };
-    select.addEventListener('change', function () {
+    const loadSelectedModule = function () {
         const key = select.value;
         const module = catalog[key] || {};
-        const values = {key: key === 'custom' ? '' : key, name: module.name || '', base_url: module.base_url || '', callback_url: module.callback_url || '', connection: module.connection || '', database: module.database || '', secret: module.secret || ''};
+        const saved = registered[key] || {};
+        const values = {
+            key: key === 'custom' ? '' : key,
+            name: saved.display_name || module.name || '',
+            base_url: saved.base_url || module.base_url || '',
+            callback_url: saved.sso_callback_url || module.callback_url || '',
+            connection: saved.database_connection_name || module.connection || '',
+            database: saved.database_name || module.database || '',
+            secret: saved.secret_reference || module.secret || ''
+        };
         Object.entries(values).forEach(([field, value]) => { const input = form.querySelector('[data-module-field="' + field + '"]'); if (input) input.value = value; });
+        const hostInput = form.querySelector('[name="database_host"]');
+        const portInput = form.querySelector('[name="database_port"]');
+        const orderInput = form.querySelector('[name="sort_order"]');
+        const activeInput = form.querySelector('[name="is_active"]');
+        if (hostInput) hostInput.value = saved.database_host || 'localhost';
+        if (portInput) portInput.value = saved.database_port || 3306;
+        if (orderInput) orderInput.value = saved.sort_order ?? 10;
+        if (activeInput) activeInput.checked = !saved.module_key || Number(saved.is_active) === 1;
         refreshContext();
-    });
+    };
+    select.addEventListener('change', loadSelectedModule);
     nameInput?.addEventListener('input', refreshContext);
     keyInput?.addEventListener('input', refreshContext);
     document.querySelectorAll('[data-admin-tab]').forEach(function (tab) {
@@ -109,6 +128,11 @@ document.addEventListener('DOMContentLoaded', function () {
             if (actions) actions.hidden = tab.getAttribute('data-admin-tab') === 'registered' || select.value === '';
         });
     });
+    const firstRegisteredKey = registeredItems[0]?.module_key || '';
+    if (firstRegisteredKey && select.querySelector('option[value="' + CSS.escape(firstRegisteredKey) + '"]')) {
+        select.value = firstRegisteredKey;
+        loadSelectedModule();
+    }
 });
 </script>
 <?php $content = ob_get_clean(); require __DIR__ . '/layout.php';
