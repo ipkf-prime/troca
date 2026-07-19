@@ -37,6 +37,7 @@ class ApplicationModuleRegistryService extends BaseService
                 'timeout' => (int) Env::get('AUTOMATION_DB_CONNECTION_TIMEOUT', 5),
                 'runtime_mode' => (string) Env::get('AUTOMATION_DB_MODE', 'fallback'),
                 'secret' => 'AUTOMATION_DB_PASSWORD',
+                'secret_configured' => trim((string) Env::get('AUTOMATION_DB_PASSWORD', '')) !== '',
             ],
             'commerce' => ['name' => 'مدیریت بازرگانی', 'base_url' => '', 'callback_url' => '', 'connection' => 'commerce', 'database' => '', 'secret' => 'COMMERCE_DB_PASSWORD'],
             'accounting' => ['name' => 'حسابداری و مالی', 'base_url' => '', 'callback_url' => '', 'connection' => 'accounting', 'database' => '', 'secret' => 'ACCOUNTING_DB_PASSWORD'],

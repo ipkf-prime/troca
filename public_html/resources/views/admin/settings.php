@@ -52,18 +52,19 @@ ob_start();
         </section>
 
         <section class="admin-tab-panel" data-admin-tab-panel="database" hidden>
-            <div class="admin-panel-heading"><div><h3>اتصال دیتابیس</h3><p>مشخصات اتصال ثبت می‌شود؛ رمز عبور فقط از Secret خوانده خواهد شد.</p></div></div>
-            <div class="admin-form-grid">
+            <div class="admin-panel-heading"><div><h3>اتصال دیتابیس</h3><p>مشخصات فنی اینجا ثبت می‌شود؛ مقدار واقعی رمز فقط در ENV باقی می‌ماند.</p></div></div>
+            <div class="admin-form-grid admin-module-database-grid">
                 <label><span>نام اتصال</span><input name="database_connection_name" dir="ltr" data-module-field="connection"></label>
                 <label><span>میزبان</span><input name="database_host" value="localhost" dir="ltr"></label>
-                <label class="admin-field--compact"><span>پورت</span><input type="number" name="database_port" value="3306" min="1" max="65535"></label>
+                <label><span>پورت</span><input type="number" name="database_port" value="3306" min="1" max="65535"></label>
                 <label><span>نام دیتابیس</span><input name="database_name" dir="ltr" data-module-field="database"></label>
                 <label><span>نام کاربری دیتابیس</span><input name="database_username" dir="ltr" autocomplete="off" data-module-field="username"></label>
                 <label><span>Charset</span><select name="database_charset" dir="ltr" data-module-field="charset"><option value="utf8mb4">utf8mb4</option></select></label>
                 <label><span>SSL Mode</span><input name="database_ssl_mode" dir="ltr" placeholder="اختیاری" data-module-field="ssl_mode"></label>
-                <label class="admin-field--compact"><span>Timeout (ثانیه)</span><input type="number" name="connection_timeout" value="5" min="1" max="60" data-module-field="timeout"></label>
+                <label><span>Timeout (ثانیه)</span><input type="number" name="connection_timeout" value="5" min="1" max="60" data-module-field="timeout"></label>
                 <label><span>حالت اجرا</span><select name="runtime_mode" dir="ltr" data-module-field="runtime_mode"><option value="fallback">fallback</option><option value="provisioning">provisioning</option><option value="dedicated">dedicated</option></select></label>
                 <label><span>Secret Reference</span><input name="secret_reference" dir="ltr" data-module-field="secret"></label>
+                <label><span>وضعیت رمز در ENV</span><input type="text" value="تنظیم نشده" readonly dir="ltr" class="admin-secret-status" data-module-secret-status></label>
             </div>
         </section>
 
@@ -95,6 +96,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const actions = document.querySelector('[data-module-save-actions]');
     const nameInput = form.querySelector('[data-module-field="name"]');
     const keyInput = form.querySelector('[data-module-field="key"]');
+    const secretStatusInput = form.querySelector('[data-module-secret-status]');
     const refreshContext = function () {
         const selected = select.value !== '';
         if (actions) actions.hidden = !selected;
@@ -128,6 +130,10 @@ document.addEventListener('DOMContentLoaded', function () {
         if (portInput) portInput.value = saved.database_port || module.port || 3306;
         if (orderInput) orderInput.value = saved.sort_order ?? 10;
         if (activeInput) activeInput.checked = !saved.module_key || Number(saved.is_active) === 1;
+        if (secretStatusInput) {
+            secretStatusInput.value = module.secret_configured ? '********' : 'تنظیم نشده';
+            secretStatusInput.classList.toggle('is-configured', Boolean(module.secret_configured));
+        }
         refreshContext();
     };
     select.addEventListener('change', loadSelectedModule);

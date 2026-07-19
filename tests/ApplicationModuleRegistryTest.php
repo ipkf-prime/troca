@@ -21,5 +21,7 @@ $expect(str_contains($view, 'data-module-context') && str_contains($view, 'regis
 $expect(!str_contains($view, 'data-module-dependent-tab disabled'), 'Module settings tabs must remain available while module context is selected independently.');
 $expect(str_contains($view, 'database_username') && str_contains($view, 'connection_timeout') && str_contains($view, 'runtime_mode'), 'The module registry form must cover the complete non-secret runtime connection contract.');
 $expect(str_contains($runtimeMigration, 'database_username') && str_contains($runtimeMigration, 'database_charset') && str_contains($runtimeMigration, 'runtime_mode'), 'The runtime registry migration must persist all non-secret connection settings.');
+$expect(str_contains($view, 'data-module-secret-status') && str_contains($view, "'********'"), 'Configured secrets must be represented only by a masked status in the Admin form.');
+$expect(str_contains($service, "Env::get('AUTOMATION_DB_PASSWORD', '') !== ''") || str_contains($service, "Env::get('AUTOMATION_DB_PASSWORD', '')"), 'The module catalog may expose only whether the ENV secret is configured.');
 
 echo "Application module registry checks passed.\n";

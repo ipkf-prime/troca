@@ -4,6 +4,7 @@ namespace IPKF\Database\Connections;
 
 use IPKF\Database\Database;
 use IPKF\Support\Env;
+use IPKF\Support\ModuleRuntimeConfig;
 
 class ConnectionRegistry
 {
@@ -59,6 +60,23 @@ class ConnectionRegistry
 
     private function automationConfig(): ?array
     {
+        $runtime = new ModuleRuntimeConfig();
+        $module = $runtime->active('automation');
+
+        if ($module !== null) {
+            return [
+                'driver' => 'mysql',
+                'host' => trim((string) ($module['database_host'] ?? '')),
+                'database' => trim((string) ($module['database_name'] ?? '')),
+                'username' => trim((string) ($module['database_username'] ?? '')),
+                'password' => $runtime->secret($module, 'AUTOMATION_DB_PASSWORD'),
+                'port' => (int) ($module['database_port'] ?? 3306),
+                'charset' => trim((string) ($module['database_charset'] ?? 'utf8mb4')) ?: 'utf8mb4',
+                'ssl_mode' => trim((string) ($module['database_ssl_mode'] ?? '')),
+                'connection_timeout' => max(1, min(60, (int) ($module['connection_timeout'] ?? 5))),
+            ];
+        }
+
         $keys = [
             'AUTOMATION_DB_HOST',
             'AUTOMATION_DB_DATABASE',

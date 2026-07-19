@@ -5,6 +5,7 @@ namespace App\Services\Automation;
 use IPKF\Database\Connections\ConnectionDefinition;
 use IPKF\Database\Connections\ConnectionRegistry;
 use IPKF\Support\Env;
+use IPKF\Support\ModuleRuntimeConfig;
 
 class AutomationRuntimeMode
 {
@@ -20,7 +21,10 @@ class AutomationRuntimeMode
 
     public function value(): string
     {
-        $configured = trim((string) Env::get('AUTOMATION_DB_MODE', ''));
+        $module = (new ModuleRuntimeConfig())->active('automation');
+        $configured = $module !== null
+            ? trim((string) ($module['runtime_mode'] ?? ''))
+            : trim((string) Env::get('AUTOMATION_DB_MODE', ''));
 
         if ($configured === '') {
             return $this->defaultMode();

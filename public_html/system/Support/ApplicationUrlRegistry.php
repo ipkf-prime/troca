@@ -11,7 +11,7 @@ class ApplicationUrlRegistry
 
     public function automation(string $path = ''): string
     {
-        return $this->url('AUTOMATION_APP_URL', $path);
+        return $this->moduleUrl('automation', 'AUTOMATION_APP_URL', $path);
     }
 
     public function automationLaunch(string $path = '/admin/automation', ?string $requestHost = null): string
@@ -31,7 +31,9 @@ class ApplicationUrlRegistry
 
     public function automationHost(): ?string
     {
-        return $this->configuredHost('AUTOMATION_APP_URL');
+        $url = $this->moduleBaseUrl('automation', 'AUTOMATION_APP_URL');
+        $host = $url !== '' ? parse_url($url, PHP_URL_HOST) : null;
+        return is_string($host) && $host !== '' ? $this->normalizeHost($host) : null;
     }
 
     public function guardEnabled(): bool
@@ -108,6 +110,28 @@ class ApplicationUrlRegistry
         $normalizedPath = $path === '' ? '' : '/' . ltrim($path, '/');
 
         return $base !== '' ? $base . $normalizedPath : ($normalizedPath !== '' ? $normalizedPath : '/');
+    }
+
+    private function moduleUrl(string $moduleKey, string $fallbackKey, string $path): string
+    {
+        $base = $this->moduleBaseUrl($moduleKey, $fallbackKey);
+        $normalizedPath = $path === '' ? '' : '/' . ltrim($path, '/');
+
+        return $base !== '' ? $base . $normalizedPath : ($normalizedPath !== '' ? $normalizedPath : '/');
+    }
+
+    private function moduleBaseUrl(string $moduleKey, string $fallbackKey): string
+    {
+        $module = (new ModuleRuntimeConfig())->active($moduleKey);
+        $base = $module !== null
+            ? trim((string) ($module['base_url'] ?? ''))
+            : trim((string) Env::get($fallbackKey, ''));
+
+        if ($base !== '' && filter_var($base, FILTER_VALIDATE_URL) === false) {
+            return '';
+        }
+
+        return rtrim($base, '/');
     }
 
     private function configuredHost(string $key): ?string
