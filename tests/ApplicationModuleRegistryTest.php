@@ -12,5 +12,7 @@ $expect(str_contains($migration, 'secret_reference') && !str_contains($migration
 $expect(str_contains($service, 'FILTER_VALIDATE_URL') && str_contains($service, "=== 'https'"), 'Module endpoints must require valid HTTPS URLs.');
 $expect(str_contains($routes, "get('/admin/settings'") && str_contains($routes, "post('/admin/settings/modules'"), 'Module registry settings routes are required.');
 $expect(str_contains($view, 'نام اتصال دیتابیس') && str_contains($view, 'Secret Reference'), 'The central settings form must expose connection metadata without passwords.');
+$expect(str_contains($view, "require __DIR__ . '/layout.php'") && str_contains($view, 'ob_start()'), 'The module settings view must render inside the standard Admin layout.');
+$expect(str_contains($view, 'new \\IPKF\\Security\\Csrf()'), 'The module settings form must include CSRF protection.');
 
 echo "Application module registry checks passed.\n";

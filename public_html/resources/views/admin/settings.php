@@ -1,4 +1,18 @@
-<?php $registry = $registry ?? ['available' => false, 'items' => []]; $status = (string) ($status ?? ''); ?>
+<?php
+if (!function_exists('admin_h')) {
+    function admin_h($value): string
+    {
+        return htmlspecialchars((string) ($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+    }
+}
+
+$registry = $registry ?? ['available' => false, 'items' => []];
+$status = (string) ($status ?? '');
+ob_start();
+?>
+<nav class="admin-breadcrumb" aria-label="breadcrumb">
+    <a href="/admin/dashboard">داشبورد</a><span>/</span><span>تنظیمات ماژول‌ها</span>
+</nav>
 <section class="admin-page-hero admin-page-hero--purple">
     <div><p class="admin-kicker">تنظیمات مرکزی</p><h2>رجیستری ماژول‌ها</h2><p>نام، نشانی اجرا، بازگشت SSO و اتصال دیتابیس ماژول‌ها را از پنل مرکزی مدیریت کنید.</p></div>
 </section>
@@ -10,6 +24,7 @@
 <section class="admin-card">
     <header><div><h3>تعریف یا ویرایش ماژول</h3><p>برای ویرایش، همان کلید ماژول را دوباره ذخیره کنید.</p></div></header>
     <form method="post" action="/admin/settings/modules" class="admin-form-grid">
+        <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
         <label><span>نام نمایشی</span><input name="display_name" required placeholder="اتوماسیون اداری"></label>
         <label><span>کلید ماژول</span><input name="module_key" required dir="ltr" placeholder="automation"></label>
         <label><span>آدرس ماژول</span><input type="url" name="base_url" required dir="ltr" placeholder="https://oa-dev.troca.ir"></label>
@@ -32,3 +47,6 @@
     <?php if ($registry['items'] === []): ?><tr><td colspan="5">هنوز ماژولی ثبت نشده است.</td></tr><?php endif; ?>
     </tbody></table></div>
 </section>
+<?php
+$content = ob_get_clean();
+require __DIR__ . '/layout.php';

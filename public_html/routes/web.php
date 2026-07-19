@@ -2092,12 +2092,14 @@ $router->get('/admin/settings', function ($request, $response) use ($adminRender
     if (!is_array($context)) {
         return $context;
     }
+    $registryError = (string) ($_SESSION['admin_module_registry_error'] ?? '');
+    unset($_SESSION['admin_module_registry_error']);
     return $adminRender($response, 'settings', [
         'title' => 'تنظیمات ماژول‌ها',
         'context' => $context,
         'registry' => (new \App\Services\ApplicationModuleRegistryService())->index(),
         'status' => (string) $request->input('status', ''),
-        'error' => (string) ($_SESSION['admin_module_registry_error'] ?? ''),
+        'error' => $registryError,
     ]);
 });
 $router->post('/admin/settings/modules', function ($request, $response) use ($adminGuard) {
