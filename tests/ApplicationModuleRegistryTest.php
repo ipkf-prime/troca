@@ -14,5 +14,7 @@ $expect(str_contains($routes, "get('/admin/settings'") && str_contains($routes, 
 $expect(str_contains($view, 'نام اتصال دیتابیس') && str_contains($view, 'Secret Reference'), 'The central settings form must expose connection metadata without passwords.');
 $expect(str_contains($view, "require __DIR__ . '/layout.php'") && str_contains($view, 'ob_start()'), 'The module settings view must render inside the standard Admin layout.');
 $expect(str_contains($view, 'new \\IPKF\\Security\\Csrf()'), 'The module settings form must include CSRF protection.');
+$expect(str_contains($view, 'data-module-select') && str_contains($view, 'data-admin-tab="database"'), 'Module settings must use a catalog dropdown and a compact tabbed workspace.');
+$expect(str_contains($service, "'accounting'") && str_contains($service, "'inventory'") && str_contains($service, "'crm'"), 'The central module catalog must be extensible beyond Automation.');
 
 echo "Application module registry checks passed.\n";

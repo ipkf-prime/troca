@@ -13,7 +13,27 @@ class ApplicationModuleRegistryService extends BaseService
 
     public function index(): array
     {
-        return ['available' => $this->modules->available(), 'items' => $this->modules->all()];
+        return [
+            'available' => $this->modules->available(),
+            'items' => $this->modules->all(),
+            'catalog' => $this->catalog(),
+        ];
+    }
+
+    public function catalog(): array
+    {
+        return [
+            'automation' => ['name' => 'اتوماسیون اداری', 'base_url' => 'https://oa-dev.troca.ir', 'callback_url' => 'https://oa-dev.troca.ir/auth/module-sso/callback', 'connection' => 'automation', 'database' => 'troca_automation', 'secret' => 'AUTOMATION_DB_PASSWORD'],
+            'commerce' => ['name' => 'مدیریت بازرگانی', 'base_url' => '', 'callback_url' => '', 'connection' => 'commerce', 'database' => '', 'secret' => 'COMMERCE_DB_PASSWORD'],
+            'accounting' => ['name' => 'حسابداری و مالی', 'base_url' => '', 'callback_url' => '', 'connection' => 'accounting', 'database' => '', 'secret' => 'ACCOUNTING_DB_PASSWORD'],
+            'inventory' => ['name' => 'انبار و کالا', 'base_url' => '', 'callback_url' => '', 'connection' => 'inventory', 'database' => '', 'secret' => 'INVENTORY_DB_PASSWORD'],
+            'crm' => ['name' => 'مدیریت ارتباط با مشتری', 'base_url' => '', 'callback_url' => '', 'connection' => 'crm', 'database' => '', 'secret' => 'CRM_DB_PASSWORD'],
+            'hr' => ['name' => 'منابع انسانی', 'base_url' => '', 'callback_url' => '', 'connection' => 'hr', 'database' => '', 'secret' => 'HR_DB_PASSWORD'],
+            'procurement' => ['name' => 'تدارکات و خرید', 'base_url' => '', 'callback_url' => '', 'connection' => 'procurement', 'database' => '', 'secret' => 'PROCUREMENT_DB_PASSWORD'],
+            'sales' => ['name' => 'فروش و سفارشات', 'base_url' => '', 'callback_url' => '', 'connection' => 'sales', 'database' => '', 'secret' => 'SALES_DB_PASSWORD'],
+            'production' => ['name' => 'تولید', 'base_url' => '', 'callback_url' => '', 'connection' => 'production', 'database' => '', 'secret' => 'PRODUCTION_DB_PASSWORD'],
+            'logistics' => ['name' => 'لجستیک و حمل‌ونقل', 'base_url' => '', 'callback_url' => '', 'connection' => 'logistics', 'database' => '', 'secret' => 'LOGISTICS_DB_PASSWORD'],
+        ];
     }
 
     public function save(array $input): array
