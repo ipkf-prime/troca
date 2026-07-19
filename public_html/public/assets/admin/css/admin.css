@@ -552,7 +552,7 @@ body.admin-sidebar-locked {
 .admin-grid {
     display: grid;
     gap: 12px;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     margin-bottom: 16px;
 }
 
@@ -3148,18 +3148,39 @@ input[aria-invalid="true"] {
     padding-bottom: 12px;
 }
 
-.automation-form [data-direction-section][hidden],
-.automation-form [data-incoming-scan-note][hidden] {
+.automation-party-card--simple[hidden],
+.automation-add-recipient[hidden] {
     display: none !important;
 }
 
-.automation-direction-picker small,
-.automation-party-row [data-party-rule] {
-    color: var(--admin-text-muted);
-    display: block;
-    font-size: var(--admin-font-size-sm);
-    line-height: 1.8;
-    margin-top: 5px;
+.automation-party-card--simple > header {
+    align-items: center;
+    border-bottom: 1px solid var(--admin-border);
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 14px;
+}
+
+.automation-add-recipient {
+    justify-self: start;
+}
+
+.automation-add-recipient span {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.automation-recipient-remove {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: var(--admin-danger, #b42318);
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 22px;
+    height: 30px;
+    justify-content: center;
+    width: 30px;
 }
 
 .automation-list-nav {

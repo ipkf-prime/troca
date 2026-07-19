@@ -319,10 +319,12 @@ class CorrespondenceCommandService
 
             $reference = $this->coreReferences->decode((string) ($tokens[$i] ?? ''));
 
-            if ($reference === null || ($reference['kind'] ?? '') !== $kind) {
+            if ($reference === null) {
                 $errors[] = 'invalid_core_reference';
                 continue;
             }
+
+            $kind = (string) ($reference['kind'] ?? '');
 
             $personId = null;
             $organizationId = null;

@@ -117,9 +117,10 @@ foreach ($viewsExpected as $view) {
 }
 
 $draftForm = file_get_contents("{$viewsPath}/automation-correspondence-form.php");
-expectAutomationDemo(str_contains($draftForm, 'data-direction-section="document"'), 'Draft form must conditionally expose document templates.');
-expectAutomationDemo(str_contains($draftForm, 'data-incoming-scan-note'), 'Incoming correspondence must explain the scanned-original flow.');
-expectAutomationDemo(str_contains($draftForm, 'allowedPartyKinds'), 'Draft form must constrain party kinds by direction and role.');
+expectAutomationDemo(str_contains($draftForm, 'type="hidden" name="direction_code"'), 'Draft direction must be fixed by the selected entry flow.');
+expectAutomationDemo(str_contains($draftForm, 'data-add-recipient'), 'Draft form must progressively add recipients.');
+expectAutomationDemo(str_contains($draftForm, "index === 0 ? 'sender'"), 'The first party must always be the sender.');
+expectAutomationDemo(str_contains($draftForm, "'primary_recipient'"), 'Additional parties must be primary recipients.');
 
 $diagnostics = [
     'automation_correspondence_repository_available',

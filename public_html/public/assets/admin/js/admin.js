@@ -455,8 +455,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.querySelectorAll("[data-automation-party]").forEach((party) => {
-        const kind = party.querySelector('select[name="party_kind[]"]');
-        const role = party.querySelector('select[name="party_role_code[]"]');
+        const kind = party.querySelector('[name="party_kind[]"]');
+        const role = party.querySelector('[name="party_role_code[]"]');
         const summary = party.querySelector("[data-party-summary]");
         const syncParty = () => {
             const active = Boolean(kind?.value);
