@@ -32,6 +32,11 @@ class ModuleSsoService extends BaseService
         return Session::has(self::INTENT_KEY) ? $this->urls->core('/auth/module-sso/resume') : null;
     }
 
+    public function forgetPendingIntent(): void
+    {
+        Session::forget(self::INTENT_KEY);
+    }
+
     public function issueFor(int $userId, string $returnPath): array
     {
         if (!$this->authorization->hasPermission($userId, 'automation.correspondence.view')) {

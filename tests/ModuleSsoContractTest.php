@@ -21,6 +21,8 @@ $expect(str_contains($tokens, 'password_hash($plain, PASSWORD_DEFAULT)'), 'Only 
 $expect(str_contains($tokens, '$ttlSeconds = max(30, min(300, $ttlSeconds))'), 'Authorization-code lifetime must be bounded.');
 $expect(str_contains($repository, 'AND used_at IS NULL') && str_contains($repository, 'rowCount() === 1'), 'Authorization codes must be claimed atomically exactly once.');
 $expect(str_contains($routes, "get('/auth/module-sso/start'") && str_contains($routes, "get('/auth/module-sso/resume'") && str_contains($routes, "get('/auth/module-sso/callback'"), 'The complete central handoff route set is required.');
+$expect(str_contains($routes, 'forgetPendingIntent()') && !str_contains($routes, '$pending = (new \\App\\Services\\ModuleSsoService())->pendingResumeUrl()'), 'Central login must finish on the dashboard instead of automatically resuming a stale module intent.');
+$expect(str_contains($routes, "return \$response->redirect(\$urls->core('/admin/dashboard'));"), 'An invalid or unauthorized pending module resume must safely fall back to the central dashboard.');
 $expect(str_contains($routes, "header('Cache-Control', 'no-store')") && str_contains($routes, "header('Referrer-Policy', 'no-referrer')"), 'Authorization-code responses must prevent caching and referrer leakage.');
 $expect(str_contains($routes, 'User is no longer eligible to sign in') && str_contains($routes, '$auth->logout()'), 'Automation must reject users that became ineligible before code consumption.');
 $expect(str_contains($routes, "isAutomationHost((string) (\$_SERVER['HTTP_HOST'] ?? ''))"), 'Unauthenticated Automation routes must go directly to central SSO.');

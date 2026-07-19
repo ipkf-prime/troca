@@ -38,6 +38,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateCorrespondenceDocumentTemplateTables::class,
                     \IPKF\Database\Migrations\CreatePlatformCommercialFoundationTables::class,
                     \IPKF\Database\Migrations\CreateApplicationMigrationHistoryTable::class,
+                    \IPKF\Database\Migrations\CreateApplicationModuleRegistryTable::class,
                 ],
             ],
             'automation' => [

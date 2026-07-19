@@ -1194,10 +1194,9 @@ $adminContext = fn (): ?array => (new \App\Services\AdminPanelService())->contex
 $adminHomeUrl = function ($request): string {
     $urls = new \IPKF\Support\ApplicationUrlRegistry();
     if ($urls->isCoreHost((string) $request->host())) {
-        $pending = (new \App\Services\ModuleSsoService())->pendingResumeUrl();
-        if ($pending !== null) {
-            return $pending;
-        }
+        // A normal central-panel login must always finish on the dashboard.
+        // Module handoff only starts from an explicit module launch request.
+        (new \App\Services\ModuleSsoService())->forgetPendingIntent();
     }
 
     return $urls->adminHome((string) $request->host());
@@ -1239,7 +1238,8 @@ $router->get('/auth/module-sso/resume', function ($request, $response) {
 
     $issued = (new \App\Services\ModuleSsoService())->resumeFor($userId);
     if (($issued['ok'] ?? false) !== true) {
-        return $response->status(403)->send('403 - Forbidden');
+        (new \App\Services\ModuleSsoService())->forgetPendingIntent();
+        return $response->redirect($urls->core('/admin/dashboard'));
     }
 
     return $response->header('Cache-Control', 'no-store')->header('Referrer-Policy', 'no-referrer')->redirect((string) $issued['transfer_url']);
@@ -2087,7 +2087,28 @@ $adminPlaceholder = function ($path, $title, $message) use ($adminRender, $admin
     };
 };
 
-$router->get('/admin/settings', $adminPlaceholder('/admin/settings', 'تنظیمات', 'تنظیمات سامانه در فازهای بعدی تکمیل می‌شود.'));
+$router->get('/admin/settings', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/settings');
+    if (!is_array($context)) {
+        return $context;
+    }
+    return $adminRender($response, 'settings', [
+        'title' => 'تنظیمات ماژول‌ها',
+        'context' => $context,
+        'registry' => (new \App\Services\ApplicationModuleRegistryService())->index(),
+        'status' => (string) $request->input('status', ''),
+        'error' => (string) ($_SESSION['admin_module_registry_error'] ?? ''),
+    ]);
+});
+$router->post('/admin/settings/modules', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/settings');
+    if (!is_array($context)) {
+        return $context;
+    }
+    $result = (new \App\Services\ApplicationModuleRegistryService())->save($request->all());
+    $_SESSION['admin_module_registry_error'] = (string) ($result['error'] ?? '');
+    return $response->redirect('/admin/settings?status=' . (($result['ok'] ?? false) ? 'saved' : 'invalid'));
+});
 $router->get('/admin/users', function ($request, $response) use ($adminRender, $adminGuard) {
     $context = $adminGuard($response, '/admin/users');
 

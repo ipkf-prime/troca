@@ -13,6 +13,11 @@ $year = \App\Support\AdminFormat::digits(date('Y'));
 $runtimeVersion = \App\Support\AdminFormat::digits(\IPKF\Support\Version::CURRENT);
 $themeAssets = $themeService->assetUrls();
 $themeSource = $themeService->resolvedPresetSource($themeUserId);
+$moduleShell = is_array($context['module_shell'] ?? null) ? $context['module_shell'] : null;
+$isAutomationShell = ($moduleShell['key'] ?? '') === 'automation';
+$brandTitle = $isAutomationShell ? (string) $moduleShell['title'] : (string) ($theme['brand_name'] ?? 'پنل مدیریت تروکا');
+$brandSubtitle = $isAutomationShell ? (string) $moduleShell['subtitle'] : 'زیرساخت مدیریتی IPKF';
+$brandHome = $isAutomationShell ? (string) $moduleShell['home_url'] : '/admin/dashboard';
 
 if (!function_exists('admin_h')) {
     function admin_h($value): string
@@ -53,21 +58,24 @@ $accountNav = $context['navigation']['account'] ?? [];
     <link rel="stylesheet" href="<?= admin_h($themeAssets['admin_css']) ?>">
     <script src="<?= admin_h($themeAssets['admin_js']) ?>" defer></script>
     <style id="admin-theme-vars"><?= "\n" . $themeService->cssVariables($themeUserId) . "\n" ?></style>
+    <?php if ($isAutomationShell): ?>
+        <link rel="stylesheet" href="/assets/admin/css/automation.css?v=<?= admin_h((string) (@filemtime(BASE_PATH . '/public/assets/admin/css/automation.css') ?: '1')) ?>">
+    <?php endif; ?>
 </head>
-<body dir="rtl" data-admin-theme="<?= admin_h($theme['canonical_preset'] ?? $theme['active_preset'] ?? 'official_emerald') ?>" data-admin-theme-source="<?= admin_h($themeSource) ?>">
+<body dir="rtl" class="<?= $isAutomationShell ? 'automation-shell' : 'core-shell' ?>" data-admin-shell-kind="<?= $isAutomationShell ? 'automation' : 'core' ?>" data-admin-theme="<?= admin_h($theme['canonical_preset'] ?? $theme['active_preset'] ?? 'official_emerald') ?>" data-admin-theme-source="<?= admin_h($themeSource) ?>">
     <div class="admin-shell" data-admin-shell>
         <div class="admin-sidebar-overlay" data-admin-sidebar-overlay></div>
         <aside class="admin-sidebar" id="admin-sidebar">
             <div class="admin-sidebar__head">
-                <a class="admin-brand" href="/admin/dashboard">
+                <a class="admin-brand" href="<?= admin_h($brandHome) ?>">
                     <?php if (($theme['logo_url'] ?? '') !== ''): ?>
                         <img class="admin-brand__logo" src="<?= admin_h($theme['logo_url']) ?>" alt="">
                     <?php else: ?>
                         <span class="admin-brand__mark">IPKF</span>
                     <?php endif; ?>
                     <span>
-                        <strong><?= admin_h($theme['brand_name'] ?? 'پنل مدیریت تروکا') ?></strong>
-                        <small>زیرساخت مدیریتی IPKF</small>
+                        <strong><?= admin_h($brandTitle) ?></strong>
+                        <small><?= admin_h($brandSubtitle) ?></small>
                     </span>
                 </a>
                 <button class="admin-icon-button admin-sidebar__close" type="button" data-admin-sidebar-close aria-label="بستن منو">×</button>
@@ -96,7 +104,7 @@ $accountNav = $context['navigation']['account'] ?? [];
                     <span></span>
                 </button>
                 <div class="admin-topbar__title">
-                    <p class="admin-kicker"><?= admin_h($theme['brand_name'] ?? 'سامانه هوشمند تروکا') ?></p>
+                    <p class="admin-kicker"><?= admin_h($brandTitle) ?></p>
                     <h1><?= admin_h($title) ?></h1>
                 </div>
                 <div class="admin-topbar__actions">

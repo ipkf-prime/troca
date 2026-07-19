@@ -34,6 +34,9 @@ class AdminPanelService extends BaseService
             $this->mfa->methodsForUser($userId)
         )));
 
+        $urls = new ApplicationUrlRegistry();
+        $automationShell = $urls->isAutomationHost((string) ($_SERVER['HTTP_HOST'] ?? ''));
+
         return [
             'user' => $user,
             'user_id' => $userId,
@@ -46,12 +49,34 @@ class AdminPanelService extends BaseService
                 'recovery_codes_available' => $this->mfa->recoveryCodesAvailable($userId),
             ],
             'navigation' => [
-                'system' => $this->moduleNavigation($userId),
-                'account' => $this->navigation->accountNavigation($userId),
+                'system' => $automationShell ? $this->automationNavigation($userId) : $this->moduleNavigation($userId),
+                'account' => $automationShell ? [
+                    ['key' => 'core-panel', 'title' => 'بازگشت به پنل اصلی', 'url' => $urls->core('/admin/dashboard'), 'permission' => null],
+                    ['key' => 'logout', 'title' => 'خروج', 'url' => '/admin/logout', 'permission' => null],
+                ] : $this->navigation->accountNavigation($userId),
             ],
+            'module_shell' => $automationShell ? [
+                'key' => 'automation',
+                'title' => 'اتوماسیون اداری تروکا',
+                'subtitle' => 'مکاتبات و دبیرخانه',
+                'home_url' => '/admin/automation',
+                'core_url' => $urls->core('/admin/dashboard'),
+            ] : null,
             'dashboard_modules' => $this->dashboardModules($userId),
             'version' => Version::CURRENT,
         ];
+    }
+
+    public function automationNavigation(int $userId): array
+    {
+        $items = [
+            ['key' => 'automation-dashboard', 'title' => 'داشبورد اتوماسیون', 'url' => '/admin/automation', 'icon' => 'dashboard', 'permission' => 'automation.correspondence.view', 'active_paths' => ['/admin/automation']],
+            ['key' => 'automation-correspondences', 'title' => 'مکاتبات', 'url' => '/admin/automation/correspondences', 'icon' => 'file-lines', 'permission' => 'automation.correspondence.view', 'active_paths' => ['/admin/automation/correspondences']],
+            ['key' => 'automation-create', 'title' => 'ایجاد پیش‌نویس', 'url' => '/admin/automation/correspondences/create', 'icon' => 'circle-check', 'permission' => 'automation.correspondence.create', 'active_paths' => ['/admin/automation/correspondences/create']],
+            ['key' => 'automation-templates', 'title' => 'قالب‌های مکاتبه', 'url' => '/admin/automation/templates', 'icon' => 'palette', 'permission' => 'automation.correspondence.view', 'active_paths' => ['/admin/automation/templates']],
+        ];
+
+        return array_values(array_filter($items, fn (array $item): bool => $this->navigation->can($userId, (string) $item['permission'])));
     }
 
     public function moduleNavigation(int $userId): array
