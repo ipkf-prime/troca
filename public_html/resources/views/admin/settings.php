@@ -17,10 +17,16 @@ ob_start();
 <section class="admin-section admin-tab-workspace">
     <nav class="admin-tabs" data-admin-tabs role="tablist" aria-label="تنظیمات ماژول">
         <button class="admin-tab is-active" type="button" data-admin-tab="general">عمومی</button>
-        <button class="admin-tab" type="button" data-admin-tab="access">دامنه و ورود</button>
-        <button class="admin-tab" type="button" data-admin-tab="database">دیتابیس</button>
+        <button class="admin-tab" type="button" data-admin-tab="access" data-module-dependent-tab disabled>دامنه و ورود</button>
+        <button class="admin-tab" type="button" data-admin-tab="database" data-module-dependent-tab disabled>دیتابیس</button>
         <button class="admin-tab" type="button" data-admin-tab="registered">ماژول‌های ثبت‌شده <small><?= admin_h(\App\Support\AdminFormat::digits(count($registry['items'] ?? []))) ?></small></button>
     </nav>
+
+    <div class="admin-module-context" data-module-context hidden>
+        <span>ماژول جاری</span>
+        <strong data-module-context-name>—</strong>
+        <code dir="ltr" data-module-context-key>—</code>
+    </div>
 
     <form method="post" action="/admin/settings/modules" data-module-registry-form>
         <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
@@ -32,7 +38,7 @@ ob_start();
                 <label><span>نام نمایشی</span><input name="display_name" required data-module-field="name"></label>
                 <label><span>کلید ماژول</span><input name="module_key" required dir="ltr" pattern="[a-z][a-z0-9_-]{1,99}" data-module-field="key"></label>
                 <label class="admin-field--compact"><span>ترتیب نمایش</span><input type="number" name="sort_order" value="10" min="0"></label>
-                <label class="admin-checkbox admin-form-grid__wide"><input type="checkbox" name="is_active" value="1" checked><span>ماژول فعال باشد</span></label>
+                <label class="admin-check-field admin-module-toggle"><input type="checkbox" name="is_active" value="1" checked><span>ماژول فعال باشد</span></label>
             </div>
         </section>
 
@@ -63,7 +69,7 @@ ob_start();
             </tbody></table></div>
         </section>
 
-        <div class="admin-form-actions" data-module-save-actions><button class="admin-button" type="submit" <?= !$registry['available'] ? 'disabled' : '' ?>>ذخیره تنظیمات</button></div>
+        <div class="admin-form-actions" data-module-save-actions hidden><button class="admin-button" type="submit" <?= !$registry['available'] ? 'disabled' : '' ?>>ذخیره تنظیمات</button></div>
     </form>
 </section>
 
@@ -74,16 +80,33 @@ document.addEventListener('DOMContentLoaded', function () {
     const select = document.querySelector('[data-module-select]');
     if (!form || !select) return;
     const catalog = JSON.parse(document.getElementById('module-catalog-data')?.textContent || '{}');
+    const context = document.querySelector('[data-module-context]');
+    const contextName = document.querySelector('[data-module-context-name]');
+    const contextKey = document.querySelector('[data-module-context-key]');
+    const dependentTabs = document.querySelectorAll('[data-module-dependent-tab]');
+    const actions = document.querySelector('[data-module-save-actions]');
+    const nameInput = form.querySelector('[data-module-field="name"]');
+    const keyInput = form.querySelector('[data-module-field="key"]');
+    const refreshContext = function () {
+        const selected = select.value !== '';
+        if (context) context.hidden = !selected;
+        dependentTabs.forEach((tab) => { tab.disabled = !selected; });
+        if (actions) actions.hidden = !selected;
+        if (contextName) contextName.textContent = nameInput?.value || 'ماژول سفارشی';
+        if (contextKey) contextKey.textContent = keyInput?.value || 'custom';
+    };
     select.addEventListener('change', function () {
         const key = select.value;
         const module = catalog[key] || {};
         const values = {key: key === 'custom' ? '' : key, name: module.name || '', base_url: module.base_url || '', callback_url: module.callback_url || '', connection: module.connection || '', database: module.database || '', secret: module.secret || ''};
         Object.entries(values).forEach(([field, value]) => { const input = form.querySelector('[data-module-field="' + field + '"]'); if (input) input.value = value; });
+        refreshContext();
     });
+    nameInput?.addEventListener('input', refreshContext);
+    keyInput?.addEventListener('input', refreshContext);
     document.querySelectorAll('[data-admin-tab]').forEach(function (tab) {
         tab.addEventListener('click', function () {
-            const actions = document.querySelector('[data-module-save-actions]');
-            if (actions) actions.hidden = tab.getAttribute('data-admin-tab') === 'registered';
+            if (actions) actions.hidden = tab.getAttribute('data-admin-tab') === 'registered' || select.value === '';
         });
     });
 });
