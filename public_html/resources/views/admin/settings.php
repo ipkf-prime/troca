@@ -58,6 +58,11 @@ ob_start();
                 <label><span>میزبان</span><input name="database_host" value="localhost" dir="ltr"></label>
                 <label class="admin-field--compact"><span>پورت</span><input type="number" name="database_port" value="3306" min="1" max="65535"></label>
                 <label><span>نام دیتابیس</span><input name="database_name" dir="ltr" data-module-field="database"></label>
+                <label><span>نام کاربری دیتابیس</span><input name="database_username" dir="ltr" autocomplete="off" data-module-field="username"></label>
+                <label><span>Charset</span><select name="database_charset" dir="ltr" data-module-field="charset"><option value="utf8mb4">utf8mb4</option></select></label>
+                <label><span>SSL Mode</span><input name="database_ssl_mode" dir="ltr" placeholder="اختیاری" data-module-field="ssl_mode"></label>
+                <label class="admin-field--compact"><span>Timeout (ثانیه)</span><input type="number" name="connection_timeout" value="5" min="1" max="60" data-module-field="timeout"></label>
+                <label><span>حالت اجرا</span><select name="runtime_mode" dir="ltr" data-module-field="runtime_mode"><option value="fallback">fallback</option><option value="provisioning">provisioning</option><option value="dedicated">dedicated</option></select></label>
                 <label><span>Secret Reference</span><input name="secret_reference" dir="ltr" data-module-field="secret"></label>
             </div>
         </section>
@@ -107,6 +112,11 @@ document.addEventListener('DOMContentLoaded', function () {
             callback_url: saved.sso_callback_url || module.callback_url || '',
             connection: saved.database_connection_name || module.connection || '',
             database: saved.database_name || module.database || '',
+            username: saved.database_username || module.username || '',
+            charset: saved.database_charset || module.charset || 'utf8mb4',
+            ssl_mode: saved.database_ssl_mode || module.ssl_mode || '',
+            timeout: saved.connection_timeout || module.timeout || 5,
+            runtime_mode: saved.runtime_mode || module.runtime_mode || 'fallback',
             secret: saved.secret_reference || module.secret || ''
         };
         Object.entries(values).forEach(([field, value]) => { const input = form.querySelector('[data-module-field="' + field + '"]'); if (input) input.value = value; });
@@ -114,8 +124,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const portInput = form.querySelector('[name="database_port"]');
         const orderInput = form.querySelector('[name="sort_order"]');
         const activeInput = form.querySelector('[name="is_active"]');
-        if (hostInput) hostInput.value = saved.database_host || 'localhost';
-        if (portInput) portInput.value = saved.database_port || 3306;
+        if (hostInput) hostInput.value = saved.database_host || module.host || 'localhost';
+        if (portInput) portInput.value = saved.database_port || module.port || 3306;
         if (orderInput) orderInput.value = saved.sort_order ?? 10;
         if (activeInput) activeInput.checked = !saved.module_key || Number(saved.is_active) === 1;
         refreshContext();

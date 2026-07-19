@@ -2,6 +2,7 @@
 
 $root = dirname(__DIR__);
 $migration = file_get_contents($root . '/public_html/system/Database/Migrations/CreateApplicationModuleRegistryTable.php');
+$runtimeMigration = file_get_contents($root . '/public_html/system/Database/Migrations/ExtendApplicationModuleRegistryRuntimeConfig.php');
 $service = file_get_contents($root . '/public_html/app/Services/ApplicationModuleRegistryService.php');
 $routes = file_get_contents($root . '/public_html/routes/web.php');
 $view = file_get_contents($root . '/public_html/resources/views/admin/settings.php');
@@ -18,5 +19,7 @@ $expect(str_contains($view, 'data-module-select') && str_contains($view, 'data-a
 $expect(str_contains($service, "'accounting'") && str_contains($service, "'inventory'") && str_contains($service, "'crm'"), 'The central module catalog must be extensible beyond Automation.');
 $expect(str_contains($view, 'data-module-context') && str_contains($view, 'registered-modules-data'), 'The selected module context must remain visible and load saved module data across all tabs.');
 $expect(!str_contains($view, 'data-module-dependent-tab disabled'), 'Module settings tabs must remain available while module context is selected independently.');
+$expect(str_contains($view, 'database_username') && str_contains($view, 'connection_timeout') && str_contains($view, 'runtime_mode'), 'The module registry form must cover the complete non-secret runtime connection contract.');
+$expect(str_contains($runtimeMigration, 'database_username') && str_contains($runtimeMigration, 'database_charset') && str_contains($runtimeMigration, 'runtime_mode'), 'The runtime registry migration must persist all non-secret connection settings.');
 
 echo "Application module registry checks passed.\n";

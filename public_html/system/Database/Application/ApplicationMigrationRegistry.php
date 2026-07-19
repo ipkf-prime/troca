@@ -39,6 +39,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreatePlatformCommercialFoundationTables::class,
                     \IPKF\Database\Migrations\CreateApplicationMigrationHistoryTable::class,
                     \IPKF\Database\Migrations\CreateApplicationModuleRegistryTable::class,
+                    \IPKF\Database\Migrations\ExtendApplicationModuleRegistryRuntimeConfig::class,
                 ],
             ],
             'automation' => [

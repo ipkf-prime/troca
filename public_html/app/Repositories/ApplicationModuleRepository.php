@@ -25,15 +25,20 @@ class ApplicationModuleRepository extends BaseRepository
         $statement = $this->connection()->prepare("
             INSERT INTO application_modules
                 (module_key, display_name, base_url, sso_callback_url, database_connection_name,
-                 database_host, database_port, database_name, secret_reference, is_active, sort_order)
+                 database_host, database_port, database_name, database_username, database_charset,
+                 database_ssl_mode, connection_timeout, runtime_mode, secret_reference, is_active, sort_order)
             VALUES
                 (:module_key, :display_name, :base_url, :sso_callback_url, :database_connection_name,
-                 :database_host, :database_port, :database_name, :secret_reference, :is_active, :sort_order)
+                 :database_host, :database_port, :database_name, :database_username, :database_charset,
+                 :database_ssl_mode, :connection_timeout, :runtime_mode, :secret_reference, :is_active, :sort_order)
             ON DUPLICATE KEY UPDATE
                 display_name = VALUES(display_name), base_url = VALUES(base_url),
                 sso_callback_url = VALUES(sso_callback_url), database_connection_name = VALUES(database_connection_name),
                 database_host = VALUES(database_host), database_port = VALUES(database_port),
-                database_name = VALUES(database_name), secret_reference = VALUES(secret_reference),
+                database_name = VALUES(database_name), database_username = VALUES(database_username),
+                database_charset = VALUES(database_charset), database_ssl_mode = VALUES(database_ssl_mode),
+                connection_timeout = VALUES(connection_timeout), runtime_mode = VALUES(runtime_mode),
+                secret_reference = VALUES(secret_reference),
                 is_active = VALUES(is_active), sort_order = VALUES(sort_order)
         ");
         $statement->execute($data);

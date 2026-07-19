@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Repositories\ApplicationModuleRepository;
+use IPKF\Support\Env;
 
 class ApplicationModuleRegistryService extends BaseService
 {
@@ -23,7 +24,20 @@ class ApplicationModuleRegistryService extends BaseService
     public function catalog(): array
     {
         return [
-            'automation' => ['name' => 'اتوماسیون اداری', 'base_url' => 'https://oa-dev.troca.ir', 'callback_url' => 'https://oa-dev.troca.ir/auth/module-sso/callback', 'connection' => 'automation', 'database' => 'troca_automation', 'secret' => 'AUTOMATION_DB_PASSWORD'],
+            'automation' => [
+                'name' => 'اتوماسیون اداری', 'base_url' => 'https://oa-dev.troca.ir',
+                'callback_url' => 'https://oa-dev.troca.ir/auth/module-sso/callback',
+                'connection' => 'automation.primary',
+                'host' => (string) Env::get('AUTOMATION_DB_HOST', 'localhost'),
+                'port' => (int) Env::get('AUTOMATION_DB_PORT', 3306),
+                'database' => (string) Env::get('AUTOMATION_DB_DATABASE', ''),
+                'username' => (string) Env::get('AUTOMATION_DB_USERNAME', ''),
+                'charset' => (string) Env::get('AUTOMATION_DB_CHARSET', 'utf8mb4'),
+                'ssl_mode' => (string) Env::get('AUTOMATION_DB_SSL_MODE', ''),
+                'timeout' => (int) Env::get('AUTOMATION_DB_CONNECTION_TIMEOUT', 5),
+                'runtime_mode' => (string) Env::get('AUTOMATION_DB_MODE', 'fallback'),
+                'secret' => 'AUTOMATION_DB_PASSWORD',
+            ],
             'commerce' => ['name' => 'مدیریت بازرگانی', 'base_url' => '', 'callback_url' => '', 'connection' => 'commerce', 'database' => '', 'secret' => 'COMMERCE_DB_PASSWORD'],
             'accounting' => ['name' => 'حسابداری و مالی', 'base_url' => '', 'callback_url' => '', 'connection' => 'accounting', 'database' => '', 'secret' => 'ACCOUNTING_DB_PASSWORD'],
             'inventory' => ['name' => 'انبار و کالا', 'base_url' => '', 'callback_url' => '', 'connection' => 'inventory', 'database' => '', 'secret' => 'INVENTORY_DB_PASSWORD'],
@@ -54,6 +68,11 @@ class ApplicationModuleRegistryService extends BaseService
         }
 
         $port = max(1, min(65535, (int) ($input['database_port'] ?? 3306)));
+        $charset = strtolower(trim((string) ($input['database_charset'] ?? 'utf8mb4')));
+        $runtimeMode = strtolower(trim((string) ($input['runtime_mode'] ?? 'fallback')));
+        if ($charset !== 'utf8mb4' || !in_array($runtimeMode, ['fallback', 'provisioning', 'dedicated'], true)) {
+            return ['ok' => false, 'error' => 'Charset یا حالت اجرای ماژول معتبر نیست.'];
+        }
         $this->modules->save([
             'module_key' => $key,
             'display_name' => mb_substr($name, 0, 190),
@@ -63,6 +82,11 @@ class ApplicationModuleRegistryService extends BaseService
             'database_host' => $this->nullable($input['database_host'] ?? null, 255),
             'database_port' => $port,
             'database_name' => $this->nullable($input['database_name'] ?? null, 190),
+            'database_username' => $this->nullable($input['database_username'] ?? null, 190),
+            'database_charset' => $charset,
+            'database_ssl_mode' => $this->nullable($input['database_ssl_mode'] ?? null, 40),
+            'connection_timeout' => max(1, min(60, (int) ($input['connection_timeout'] ?? 5))),
+            'runtime_mode' => $runtimeMode,
             'secret_reference' => $this->nullable($input['secret_reference'] ?? null, 255),
             'is_active' => isset($input['is_active']) ? 1 : 0,
             'sort_order' => max(0, (int) ($input['sort_order'] ?? 0)),
