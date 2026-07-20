@@ -20,3 +20,10 @@ body.automation-shell {
 .automation-shell .admin-sidebar__head {
     border-bottom-color: rgba(255, 255, 255, .12);
 }
+
+/* Native select popups do not consistently resolve CSS custom properties. */
+.automation-shell select option,
+.automation-shell select optgroup {
+    background: #fff;
+    color: #20302c;
+}
