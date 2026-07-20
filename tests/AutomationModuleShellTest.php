@@ -15,7 +15,7 @@ $expect = static function (bool $condition, string $message): void {
 $expect(str_contains($panel, 'isAutomationHost') && str_contains($panel, 'automationNavigation'), 'Automation navigation must be selected by the request host.');
 $expect(str_contains($panel, 'بازگشت به پنل اصلی') && str_contains($panel, "'url' => '/admin/logout'"), 'Automation account menu must only provide the central-panel return and logout actions.');
 $expect(str_contains($layout, 'data-admin-shell-kind') && str_contains($layout, '/assets/admin/css/automation.css'), 'The layout must expose and load the Automation-specific shell.');
-$expect(str_contains($automationCss, '.automation-shell select option') && str_contains($automationCss, 'color: #20302c'), 'Automation native select options must remain readable on a light popup background.');
+$expect(str_contains($automationCss, '.automation-shell select option') && str_contains($automationCss, 'color-scheme: light') && str_contains($automationCss, 'color: #20302c !important'), 'Automation native select options must remain readable on a light popup background.');
 $expect(is_file($css) && filesize($css) > 300, 'Automation shell stylesheet must exist.');
 
 echo "Automation module shell checks passed.\n";

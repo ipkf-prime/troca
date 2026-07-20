@@ -21,9 +21,16 @@ body.automation-shell {
     border-bottom-color: rgba(255, 255, 255, .12);
 }
 
-/* Native select popups do not consistently resolve CSS custom properties. */
+/* Native select popups do not consistently resolve theme variables in Firefox. */
+.automation-shell select {
+    background-color: #fff !important;
+    color: #20302c !important;
+    color-scheme: light;
+}
+
 .automation-shell select option,
 .automation-shell select optgroup {
-    background: #fff;
-    color: #20302c;
+    background-color: #fff !important;
+    color: #20302c !important;
+    font-size: 14px !important;
 }
