@@ -16,7 +16,7 @@ $expect = static function (bool $condition, string $message): void {
 $expect(str_contains($service, "private const PURPOSE = 'module_sso'"), 'Module SSO must use a dedicated token purpose.');
 $expect(str_contains($service, "private const AUDIENCE = 'automation'"), 'Module SSO must bind codes to the Automation audience.');
 $expect(str_contains($service, "'automation.correspondence.view'"), 'Core must authorize Automation access before issuing a code.');
-$expect(str_contains($service, 'parse_url($path, PHP_URL_HOST)') && str_contains($service, "str_starts_with($path, '//')"), 'Return paths must reject external and scheme-relative URLs.');
+$expect(str_contains($service, "parse_url(\$path, PHP_URL_HOST)") && str_contains($service, "str_starts_with(\$path, '//')"), 'Return paths must reject external and scheme-relative URLs.');
 $expect(str_contains($tokens, 'password_hash($plain, PASSWORD_DEFAULT)'), 'Only a password hash of the authorization code may be stored.');
 $expect(str_contains($tokens, '$ttlSeconds = max(30, min(300, $ttlSeconds))'), 'Authorization-code lifetime must be bounded.');
 $expect(str_contains($repository, 'AND used_at IS NULL') && str_contains($repository, 'rowCount() === 1'), 'Authorization codes must be claimed atomically exactly once.');
