@@ -1241,7 +1241,6 @@ $router->get('/auth/module-sso/resume', function ($request, $response) {
 
     $issued = (new \App\Services\ModuleSsoService())->resumeFor($userId);
     if (($issued['ok'] ?? false) !== true) {
-        (new \App\Services\ModuleSsoService())->forgetPendingIntent();
         return $response->redirect($urls->core('/admin/dashboard'));
     }
 
@@ -1816,6 +1815,13 @@ $router->post('/admin/access', function ($request, $response) {
 
     $assignment = (new \App\Services\AccessService())->switchTo($userId, (int) $request->input('role_assignment_id', 0));
 
+    if ($assignment !== null) {
+        $pending = (new \App\Services\ModuleSsoService())->pendingResumeUrl();
+        if ($pending !== null) {
+            return $response->redirect($pending);
+        }
+    }
+
     return $response->redirect('/admin/access?status=' . ($assignment === null ? 'forbidden' : 'switched'));
 });
 
@@ -1828,6 +1834,13 @@ $router->post('/admin/profile/access', function ($request, $response) {
     }
 
     $assignment = (new \App\Services\AccessService())->switchTo($userId, (int) $request->input('role_assignment_id', 0));
+
+    if ($assignment !== null) {
+        $pending = (new \App\Services\ModuleSsoService())->pendingResumeUrl();
+        if ($pending !== null) {
+            return $response->redirect($pending);
+        }
+    }
 
     return $response->redirect('/admin/profile/access?status=' . ($assignment === null ? 'forbidden' : 'switched'));
 });
