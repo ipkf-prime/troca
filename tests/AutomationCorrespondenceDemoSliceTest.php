@@ -117,6 +117,12 @@ foreach ($viewsExpected as $view) {
 }
 
 $draftForm = file_get_contents("{$viewsPath}/automation-correspondence-form.php");
+expectAutomationDemo(
+    str_contains($draftForm, "if (\$inputKind === 'external')")
+        && str_contains($draftForm, 'name="party_reference_token[]" value=""')
+        && str_contains($draftForm, 'name="external_display_name[]" value=""'),
+    'Direction-aware party rows must only submit either an internal reference or external identity fields.'
+);
 expectAutomationDemo(str_contains($draftForm, 'type="hidden" name="direction_code"'), 'Draft direction must be fixed by the selected entry flow.');
 expectAutomationDemo(str_contains($draftForm, 'data-add-recipient'), 'Draft form must progressively add recipients.');
 expectAutomationDemo(str_contains($draftForm, "index === 0 ? 'sender'"), 'The first party must always be the sender.');

@@ -163,6 +163,11 @@ ob_start();
                             : (($initialDirection === 'incoming' && $index === 0) || ($initialDirection === 'outgoing' && $index === 1) ? 'external' : 'person');
                     }
                     $kind = $arrayValue($partyKinds, $index, (string) ($stored['target_kind_code'] ?? $defaultKind));
+                    $inputKind = $kind !== ''
+                        ? $kind
+                        : ($initialDirection === 'internal'
+                            ? 'person'
+                            : (($initialDirection === 'incoming' && $index === 0) || ($initialDirection === 'outgoing' && $index > 0) ? 'external' : 'person'));
                     $tokenValue = $arrayValue($partyTokens, $index, (string) ($stored['reference_token'] ?? ''));
                     $nameValue = $arrayValue($externalNames, $index, (string) ($stored['external_display_name'] ?? ''));
                     $organizationValue = $arrayValue($externalOrganizations, $index, (string) ($stored['external_organization_name'] ?? ''));
@@ -174,10 +179,17 @@ ob_start();
                         <div class="automation-party-row">
                             <input type="hidden" name="party_role_code[]" value="<?= admin_h($role) ?>">
                             <input type="hidden" name="party_kind[]" value="<?= admin_h($kind) ?>">
-                            <label data-party-internal><span><?= $index === 0 ? 'فرستنده داخلی' : 'گیرنده داخلی' ?></span><?= $referenceSelect($tokenValue) ?></label>
-                            <label data-party-external><span><?= $index === 0 ? 'نام فرستنده' : 'نام گیرنده' ?></span><input name="external_display_name[]" value="<?= admin_h($nameValue) ?>" maxlength="255" placeholder="نام شخص یا نماینده"></label>
-                            <label data-party-external><span>سازمان بیرونی</span><input name="external_organization_name[]" value="<?= admin_h($organizationValue) ?>" maxlength="255"></label>
-                            <label class="automation-party-row__wide" data-party-external><span>نشانی یا تماس بیرونی</span><input name="external_contact_or_address[]" value="<?= admin_h($contactValue) ?>" maxlength="1000"></label>
+                            <?php if ($inputKind === 'external'): ?>
+                                <input type="hidden" name="party_reference_token[]" value="">
+                                <label data-party-external><span><?= $index === 0 ? 'نام فرستنده یا نماینده' : 'نام گیرنده یا نماینده' ?></span><input name="external_display_name[]" value="<?= admin_h($nameValue) ?>" maxlength="255" placeholder="نام شخص یا نماینده"></label>
+                                <label data-party-external><span>سازمان بیرونی</span><input name="external_organization_name[]" value="<?= admin_h($organizationValue) ?>" maxlength="255"></label>
+                                <label class="automation-party-row__wide" data-party-external><span>نشانی یا تماس بیرونی</span><input name="external_contact_or_address[]" value="<?= admin_h($contactValue) ?>" maxlength="1000"></label>
+                            <?php else: ?>
+                                <label class="automation-party-row__wide" data-party-internal><span><?= $index === 0 ? 'فرستنده داخلی' : 'گیرنده داخلی' ?></span><?= $referenceSelect($tokenValue) ?></label>
+                                <input type="hidden" name="external_display_name[]" value="">
+                                <input type="hidden" name="external_organization_name[]" value="">
+                                <input type="hidden" name="external_contact_or_address[]" value="">
+                            <?php endif; ?>
                         </div>
                     </article>
                 <?php endfor; ?>
