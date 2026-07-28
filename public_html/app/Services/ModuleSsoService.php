@@ -9,7 +9,6 @@ class ModuleSsoService extends BaseService
 {
     private const PURPOSE = 'module_sso';
     private const SOURCE = 'core_panel';
-    private const AUDIENCE = 'automation';
     private const INTENT_KEY = 'module_sso_return_path';
 
     public function __construct(
@@ -39,7 +38,9 @@ class ModuleSsoService extends BaseService
 
     public function issueFor(int $userId, string $returnPath): array
     {
-        if (!$this->authorization->hasPermission($userId, 'automation.correspondence.view')) {
+        $module = $this->moduleForPath($returnPath);
+        $permission = $module === 'work' ? 'work.project.view' : 'automation.correspondence.view';
+        if (!$this->authorization->hasPermission($userId, $permission)) {
             return ['ok' => false, 'error' => 'forbidden'];
         }
 
@@ -52,7 +53,7 @@ class ModuleSsoService extends BaseService
             $userId,
             60,
             [
-                'audience' => self::AUDIENCE,
+                'audience' => $module,
                 'active_role_assignment_id' => (int) Session::get('active_role_assignment_id', 0),
                 'active_organizational_appointment' => (string) Session::get('active_organizational_appointment', ''),
             ]
@@ -62,7 +63,9 @@ class ModuleSsoService extends BaseService
 
         return [
             'ok' => true,
-            'transfer_url' => $this->urls->automation('/auth/module-sso/callback?code=' . rawurlencode($issued['token'])),
+            'transfer_url' => $module === 'work'
+                ? $this->urls->work('/auth/module-sso/callback?code=' . rawurlencode($issued['token']))
+                : $this->urls->automation('/auth/module-sso/callback?code=' . rawurlencode($issued['token'])),
         ];
     }
 
@@ -73,11 +76,14 @@ class ModuleSsoService extends BaseService
 
     public function consume(string $code, string $requestHost): ?array
     {
-        if (!$this->urls->isAutomationHost($requestHost)) {
+        $audience = $this->urls->isWorkHost($requestHost)
+            ? 'work'
+            : ($this->urls->isAutomationHost($requestHost) ? 'automation' : null);
+        if ($audience === null) {
             return null;
         }
 
-        $record = $this->tokens->consume($code, self::PURPOSE, self::SOURCE, ['audience' => self::AUDIENCE]);
+        $record = $this->tokens->consume($code, self::PURPOSE, self::SOURCE, ['audience' => $audience]);
         if ($record === null) {
             return null;
         }
@@ -89,12 +95,21 @@ class ModuleSsoService extends BaseService
         return $record;
     }
 
+    private function moduleForPath(string $path): string
+    {
+        $parsedPath = (string) parse_url(trim($path), PHP_URL_PATH);
+        return $parsedPath === '/admin/work' || str_starts_with($parsedPath, '/admin/work/')
+            ? 'work'
+            : 'automation';
+    }
+
     private function returnPath(string $path): string
     {
         $path = trim($path);
         $parsedPath = parse_url($path, PHP_URL_PATH);
         if (!is_string($parsedPath)
-            || ($parsedPath !== '/admin/automation' && !str_starts_with($parsedPath, '/admin/automation/'))
+            || (!($parsedPath === '/admin/automation' || str_starts_with($parsedPath, '/admin/automation/'))
+                && !($parsedPath === '/admin/work' || str_starts_with($parsedPath, '/admin/work/')))
             || str_starts_with($path, '//')
             || parse_url($path, PHP_URL_HOST) !== null
         ) {

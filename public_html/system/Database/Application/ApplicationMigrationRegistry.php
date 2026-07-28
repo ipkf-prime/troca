@@ -49,6 +49,12 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateCorrespondenceDocumentTemplateTables::class,
                 ],
             ],
+            'work' => [
+                'connection' => 'work.primary',
+                'migrations' => [
+                    \IPKF\Database\Migrations\CreateWorkManagementFoundationTables::class,
+                ],
+            ],
         ];
     }
 

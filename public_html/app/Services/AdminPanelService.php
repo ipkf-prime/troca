@@ -36,6 +36,8 @@ class AdminPanelService extends BaseService
 
         $urls = new ApplicationUrlRegistry();
         $automationShell = $urls->isAutomationHost((string) ($_SERVER['HTTP_HOST'] ?? ''));
+        $workShell = $urls->isWorkHost((string) ($_SERVER['HTTP_HOST'] ?? ''));
+        $moduleShell = $automationShell || $workShell;
 
         return [
             'user' => $user,
@@ -49,17 +51,17 @@ class AdminPanelService extends BaseService
                 'recovery_codes_available' => $this->mfa->recoveryCodesAvailable($userId),
             ],
             'navigation' => [
-                'system' => $automationShell ? $this->automationNavigation($userId) : $this->moduleNavigation($userId),
-                'account' => $automationShell ? [
+                'system' => $automationShell ? $this->automationNavigation($userId) : ($workShell ? $this->workNavigation($userId) : $this->moduleNavigation($userId)),
+                'account' => $moduleShell ? [
                     ['key' => 'core-panel', 'title' => 'بازگشت به پنل اصلی', 'url' => $urls->core('/admin/dashboard'), 'permission' => null],
                     ['key' => 'logout', 'title' => 'خروج', 'url' => '/admin/logout', 'permission' => null],
                 ] : $this->navigation->accountNavigation($userId),
             ],
-            'module_shell' => $automationShell ? [
-                'key' => 'automation',
-                'title' => 'اتوماسیون اداری تروکا',
-                'subtitle' => 'مکاتبات و دبیرخانه',
-                'home_url' => '/admin/automation',
+            'module_shell' => $moduleShell ? [
+                'key' => $workShell ? 'work' : 'automation',
+                'title' => $workShell ? 'IPKF Work Management' : 'اتوماسیون اداری تروکا',
+                'subtitle' => $workShell ? 'پروژه‌ها، Workها و تسک‌ها' : 'مکاتبات و دبیرخانه',
+                'home_url' => $workShell ? '/admin/work' : '/admin/automation',
                 'core_url' => $urls->core('/admin/dashboard'),
             ] : null,
             'dashboard_modules' => $this->dashboardModules($userId),
@@ -76,6 +78,14 @@ class AdminPanelService extends BaseService
             ['key' => 'automation-templates', 'title' => 'قالب‌های مکاتبه', 'url' => '/admin/automation/templates', 'icon' => 'palette', 'permission' => 'automation.correspondence.view', 'active_paths' => ['/admin/automation/templates']],
         ];
 
+        return array_values(array_filter($items, fn (array $item): bool => $this->navigation->can($userId, (string) $item['permission'])));
+    }
+
+    public function workNavigation(int $userId): array
+    {
+        $items = [
+            ['key' => 'work-dashboard', 'title' => 'داشبورد مدیریت کار', 'url' => '/admin/work', 'icon' => 'dashboard', 'permission' => 'work.project.view', 'active_paths' => ['/admin/work']],
+        ];
         return array_values(array_filter($items, fn (array $item): bool => $this->navigation->can($userId, (string) $item['permission'])));
     }
 
@@ -188,6 +198,20 @@ class AdminPanelService extends BaseService
                     ['key' => 'theme', 'title' => $this->fa('&#x067E;&#x0648;&#x0633;&#x062A;&#x0647; &#x067E;&#x0646;&#x0644;'), 'description' => $this->fa('&#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x0638;&#x0627;&#x0647;&#x0631; &#x0648; &#x0647;&#x0648;&#x06CC;&#x062A; &#x0628;&#x0635;&#x0631;&#x06CC; &#x067E;&#x0646;&#x0644;'), 'icon' => 'palette', 'color' => 'purple', 'url' => '/admin/theme', 'permission' => 'admin.theme.manage', 'sort_order' => 10],
                     ['key' => 'settings', 'title' => $this->fa('&#x062A;&#x0646;&#x0638;&#x06CC;&#x0645;&#x0627;&#x062A;'), 'description' => $this->fa('&#x062A;&#x0646;&#x0638;&#x06CC;&#x0645;&#x0627;&#x062A; &#x0639;&#x0645;&#x0648;&#x0645;&#x06CC; &#x0633;&#x0627;&#x0645;&#x0627;&#x0646;&#x0647;'), 'icon' => 'sliders', 'color' => 'violet', 'url' => '/admin/settings', 'permission' => 'admin.settings.manage', 'sort_order' => 20],
                     ['key' => 'pages', 'title' => $this->fa('&#x0635;&#x0641;&#x062D;&#x0627;&#x062A;'), 'description' => $this->fa('&#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x0635;&#x0641;&#x062D;&#x0627;&#x062A; &#x0648; &#x0645;&#x062D;&#x062A;&#x0648;&#x0627;&#x06CC; &#x0639;&#x0645;&#x0648;&#x0645;&#x06CC;'), 'icon' => 'file-lines', 'color' => 'fuchsia', 'url' => '/admin/pages', 'permission' => 'admin.pages.manage', 'sort_order' => 30],
+                ],
+            ],
+            [
+                'key' => 'work',
+                'title' => 'مدیریت کار',
+                'description' => 'مدیریت پروژه‌ها، Workها، تسک‌ها و پیگیری تیم',
+                'subtitle' => 'پروژه، Work و تسک',
+                'icon' => 'circle-check',
+                'color' => 'blue',
+                'url' => (new ApplicationUrlRegistry())->core('/auth/module-sso/start?return_path=' . rawurlencode('/admin/work')),
+                'permission' => 'work.project.view',
+                'sort_order' => 34,
+                'actions' => [
+                    ['key' => 'work-dashboard', 'title' => 'داشبورد مدیریت کار', 'description' => 'نمای کلی پروژه‌ها و تسک‌ها', 'icon' => 'dashboard', 'color' => 'blue', 'url' => (new ApplicationUrlRegistry())->core('/auth/module-sso/start?return_path=' . rawurlencode('/admin/work')), 'permission' => 'work.project.view', 'sort_order' => 10],
                 ],
             ],
             [

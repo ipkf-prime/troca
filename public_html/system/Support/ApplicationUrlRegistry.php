@@ -14,6 +14,11 @@ class ApplicationUrlRegistry
         return $this->moduleUrl('automation', 'AUTOMATION_APP_URL', $path);
     }
 
+    public function work(string $path = ''): string
+    {
+        return $this->moduleUrl('work', 'WORK_APP_URL', $path);
+    }
+
     public function automationLaunch(string $path = '/admin/automation', ?string $requestHost = null): string
     {
         $host = $requestHost ?? (string) ($_SERVER['HTTP_HOST'] ?? '');
@@ -36,6 +41,13 @@ class ApplicationUrlRegistry
         return is_string($host) && $host !== '' ? $this->normalizeHost($host) : null;
     }
 
+    public function workHost(): ?string
+    {
+        $url = $this->moduleBaseUrl('work', 'WORK_APP_URL');
+        $host = $url !== '' ? parse_url($url, PHP_URL_HOST) : null;
+        return is_string($host) && $host !== '' ? $this->normalizeHost($host) : null;
+    }
+
     public function guardEnabled(): bool
     {
         return filter_var(Env::get('APP_HOST_GUARD_ENABLED', false), FILTER_VALIDATE_BOOL);
@@ -45,7 +57,7 @@ class ApplicationUrlRegistry
     {
         $host = $this->normalizeHost($requestHost);
         $allowed = array_filter(array_unique(array_merge(
-            [$this->coreHost(), $this->automationHost()],
+            [$this->coreHost(), $this->automationHost(), $this->workHost()],
             array_map(fn (string $item): string => $this->normalizeHost($item), explode(',', (string) Env::get('ALLOWED_APP_HOSTS', '')))
         )));
 
@@ -55,6 +67,12 @@ class ApplicationUrlRegistry
     public function isAutomationHost(string $requestHost): bool
     {
         $configured = $this->automationHost();
+        return $configured !== null && hash_equals($configured, $this->normalizeHost($requestHost));
+    }
+
+    public function isWorkHost(string $requestHost): bool
+    {
+        $configured = $this->workHost();
         return $configured !== null && hash_equals($configured, $this->normalizeHost($requestHost));
     }
 
@@ -72,9 +90,13 @@ class ApplicationUrlRegistry
 
         $path = parse_url($requestUri, PHP_URL_PATH) ?: '/';
         $automationPath = $path === '/admin/automation' || str_starts_with($path, '/admin/automation/');
+        $workPath = $path === '/admin/work' || str_starts_with($path, '/admin/work/');
 
         if ($path === '/' && $this->isAutomationHost($requestHost)) {
             return $this->automation('/admin/automation');
+        }
+        if ($path === '/' && $this->isWorkHost($requestHost)) {
+            return $this->work('/admin/work');
         }
 
         if ($automationPath && $this->isCoreHost($requestHost)) {
@@ -84,14 +106,31 @@ class ApplicationUrlRegistry
         if ($automationPath && !$this->isAutomationHost($requestHost) && $this->automationHost() !== null) {
             return $this->automation($requestUri);
         }
+        if ($workPath && $this->isCoreHost($requestHost)) {
+            return $this->core('/auth/module-sso/start?return_path=' . rawurlencode($requestUri));
+        }
+        if ($workPath && !$this->isWorkHost($requestHost) && $this->workHost() !== null) {
+            return $this->work($requestUri);
+        }
 
         if ($this->isAutomationHost($requestHost) && $this->isCentralAuthenticationPath($path)) {
             return $this->core('/auth/module-sso/start?return_path=' . rawurlencode('/admin/automation'));
+        }
+        if ($this->isWorkHost($requestHost) && $this->isCentralAuthenticationPath($path)) {
+            return $this->core('/auth/module-sso/start?return_path=' . rawurlencode('/admin/work'));
         }
 
         if ($this->isAutomationHost($requestHost)
             && str_starts_with($path, '/admin')
             && !$automationPath
+            && $path !== '/admin/logout'
+            && $this->coreHost() !== null
+        ) {
+            return $this->core($requestUri);
+        }
+        if ($this->isWorkHost($requestHost)
+            && str_starts_with($path, '/admin')
+            && !$workPath
             && $path !== '/admin/logout'
             && $this->coreHost() !== null
         ) {
@@ -103,9 +142,13 @@ class ApplicationUrlRegistry
 
     public function adminHome(string $requestHost): string
     {
-        return $this->isAutomationHost($requestHost)
-            ? $this->automation('/admin/automation')
-            : $this->core('/admin/dashboard');
+        if ($this->isAutomationHost($requestHost)) {
+            return $this->automation('/admin/automation');
+        }
+        if ($this->isWorkHost($requestHost)) {
+            return $this->work('/admin/work');
+        }
+        return $this->core('/admin/dashboard');
     }
 
     private function url(string $key, string $path): string

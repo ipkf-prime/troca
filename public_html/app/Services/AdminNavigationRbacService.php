@@ -26,6 +26,7 @@ class AdminNavigationRbacService extends BaseService
             '/admin/my-theme' => 'account.theme.manage',
             '/admin/access' => 'access.manage',
             '/admin/automation' => 'automation.correspondence.view',
+            '/admin/work' => 'work.project.view',
             '/admin/automation/correspondences' => 'automation.correspondence.view',
             '/admin/automation/correspondences/create' => 'automation.correspondence.create',
             '/admin/automation/correspondences/{public_reference}' => 'automation.correspondence.view',

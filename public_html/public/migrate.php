@@ -15,7 +15,7 @@ if (!\IPKF\Support\Maintenance::keyIsValid($_GET['key'] ?? null)) {
 $application = trim((string) ($_GET['application'] ?? ''));
 
 if ($application !== '') {
-    $allowedApplications = ['core', 'automation'];
+    $allowedApplications = ['core', 'automation', 'work'];
 
     if (!in_array($application, $allowedApplications, true)) {
         \IPKF\Support\Maintenance::deny('/migrate.php');
@@ -38,12 +38,14 @@ if ($application !== '') {
         $runtimeMode = new \App\Services\Automation\AutomationRuntimeMode($registry);
 
         if ($application === 'automation') {
-            if (!$runtimeMode->provisioningAllowed()
-                || $definition === null
-                || $definition->usesFallback()
-                || !$definition->configured()
-            ) {
-                throw new \RuntimeException('Dedicated automation connection is required.');
+            if (!$runtimeMode->provisioningAllowed() || $definition === null
+                || $definition->usesFallback() || !$definition->configured()) {
+                throw new \RuntimeException('Dedicated application connection is required.');
+            }
+        }
+        if ($application === 'work') {
+            if ($definition === null || $definition->usesFallback() || !$definition->configured()) {
+                throw new \RuntimeException('Dedicated application connection is required.');
             }
         }
 

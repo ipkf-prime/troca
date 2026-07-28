@@ -1272,8 +1272,10 @@ $router->get('/auth/module-sso/callback', function ($request, $response) {
             // The appointment may have expired between issuance and consumption; continue without stale context.
         }
     }
+    $urls = new \IPKF\Support\ApplicationUrlRegistry();
+    $safePath = (string) $record['safe_redirect_path'];
     return $response->header('Cache-Control', 'no-store')->header('Referrer-Policy', 'no-referrer')
-        ->redirect((new \IPKF\Support\ApplicationUrlRegistry())->automation((string) $record['safe_redirect_path']));
+        ->redirect(str_starts_with($safePath, '/admin/work') ? $urls->work($safePath) : $urls->automation($safePath));
 });
 
 $adminGuard = function ($response, string $path) use ($adminRender, $adminContext) {
@@ -1281,7 +1283,8 @@ $adminGuard = function ($response, string $path) use ($adminRender, $adminContex
 
     if ($context === null) {
         $urls = new \IPKF\Support\ApplicationUrlRegistry();
-        if ($urls->isAutomationHost((string) ($_SERVER['HTTP_HOST'] ?? ''))) {
+        if ($urls->isAutomationHost((string) ($_SERVER['HTTP_HOST'] ?? ''))
+            || $urls->isWorkHost((string) ($_SERVER['HTTP_HOST'] ?? ''))) {
             $returnPath = (string) ($_SERVER['REQUEST_URI'] ?? $path);
             return $response->redirect($urls->core('/auth/module-sso/start?return_path=' . rawurlencode($returnPath)));
         }
@@ -1873,6 +1876,27 @@ $router->get('/admin/automation', function ($request, $response) use ($adminRend
     ]);
 });
 
+$router->get('/admin/work', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work');
+    if (!is_array($context)) {
+        return $context;
+    }
+    try {
+        $dashboard = (new \App\Services\Work\WorkDashboardService())->view();
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'IPKF Work Management',
+            'context' => $context,
+            'message' => 'دیتابیس Work هنوز Migration و Seed نشده است.',
+        ], 503);
+    }
+    return $adminRender($response, 'work-dashboard', [
+        'title' => 'IPKF Work Management',
+        'context' => $context,
+        'dashboard' => $dashboard,
+    ]);
+});
+
 $router->get('/admin/automation/correspondences', function ($request, $response) use ($adminRender, $adminGuard, $automationUnavailable) {
     $context = $adminGuard($response, '/admin/automation/correspondences');
 
@@ -2353,9 +2377,15 @@ $router->get('/admin/logout', function ($request, $response) {
     if ($urls->isAutomationHost((string) $request->host())) {
         return $response->redirect($urls->core('/admin/logout?federated=1&return_module=automation'));
     }
+    if ($urls->isWorkHost((string) $request->host())) {
+        return $response->redirect($urls->core('/admin/logout?federated=1&return_module=work'));
+    }
 
     if ((string) $request->input('return_module', '') === 'automation') {
         return $response->redirect($urls->core('/auth/module-sso/start?return_path=' . rawurlencode('/admin/automation')));
+    }
+    if ((string) $request->input('return_module', '') === 'work') {
+        return $response->redirect($urls->core('/auth/module-sso/start?return_path=' . rawurlencode('/admin/work')));
     }
 
     return $response->redirect($urls->core('/admin/login'));

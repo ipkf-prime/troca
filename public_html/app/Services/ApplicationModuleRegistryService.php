@@ -24,6 +24,21 @@ class ApplicationModuleRegistryService extends BaseService
     public function catalog(): array
     {
         return [
+            'work' => [
+                'name' => 'مدیریت کار', 'base_url' => 'https://work-dev.troca.ir',
+                'callback_url' => 'https://work-dev.troca.ir/auth/module-sso/callback',
+                'connection' => 'work.primary',
+                'host' => (string) Env::get('WORK_DB_HOST', 'localhost'),
+                'port' => (int) Env::get('WORK_DB_PORT', 3306),
+                'database' => (string) Env::get('WORK_DB_DATABASE', 'troca_work'),
+                'username' => (string) Env::get('WORK_DB_USERNAME', ''),
+                'charset' => (string) Env::get('WORK_DB_CHARSET', 'utf8mb4'),
+                'ssl_mode' => (string) Env::get('WORK_DB_SSL_MODE', ''),
+                'timeout' => (int) Env::get('WORK_DB_CONNECTION_TIMEOUT', 5),
+                'runtime_mode' => 'dedicated',
+                'secret' => 'WORK_DB_PASSWORD',
+                'secret_configured' => trim((string) Env::get('WORK_DB_PASSWORD', '')) !== '',
+            ],
             'automation' => [
                 'name' => 'اتوماسیون اداری', 'base_url' => 'https://oa-dev.troca.ir',
                 'callback_url' => 'https://oa-dev.troca.ir/auth/module-sso/callback',

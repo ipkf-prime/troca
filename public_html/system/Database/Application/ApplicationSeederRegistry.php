@@ -22,6 +22,7 @@ class ApplicationSeederRegistry
                     \IPKF\Database\Seeds\AuthRbacSeeder::class,
                     \IPKF\Database\Seeds\MultiSourceMetadataSeeder::class,
                     \IPKF\Database\Seeds\AutomationCorrespondencePermissionsSeeder::class,
+                    \IPKF\Database\Seeds\WorkManagementPermissionsSeeder::class,
                     \IPKF\Database\Seeds\CorrespondenceDocumentTemplateSeeder::class,
                     \IPKF\Database\Seeds\PlatformCommercialFoundationSeeder::class,
                 ],
@@ -31,6 +32,12 @@ class ApplicationSeederRegistry
                 'seeders' => [
                     \IPKF\Database\Seeds\AutomationCorrespondenceSeeder::class,
                     \IPKF\Database\Seeds\CorrespondenceDocumentTemplateSeeder::class,
+                ],
+            ],
+            'work' => [
+                'connection' => 'work.primary',
+                'seeders' => [
+                    \IPKF\Database\Seeds\WorkManagementFoundationSeeder::class,
                 ],
             ],
         ];
