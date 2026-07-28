@@ -3,6 +3,8 @@ deployment:
   tasks:
     - export CORE_DEPLOYPATH=/home/troca/dev.troca.ir/
     - export AUTOMATION_DEPLOYPATH=/home/troca/oa-dev.troca.ir/
-    - /bin/mkdir -p $CORE_DEPLOYPATH $AUTOMATION_DEPLOYPATH
+    - export WORK_DEPLOYPATH=/home/troca/work-dev.troca.ir/
+    - /bin/mkdir -p $CORE_DEPLOYPATH $AUTOMATION_DEPLOYPATH $WORK_DEPLOYPATH
     - /bin/cp -R public_html/. $CORE_DEPLOYPATH
     - /bin/cp -R public_html/. $AUTOMATION_DEPLOYPATH
+    - /bin/cp -R public_html/. $WORK_DEPLOYPATH
