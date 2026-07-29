@@ -7,10 +7,10 @@ class WorkManagementPermissionsSeeder extends Seeder
     private const PERMISSIONS = [
         ['work.project.view', 'project', 'view', 'مشاهده پروژه‌ها و Workها'],
         ['work.project.manage', 'project', 'manage', 'مدیریت پروژه‌ها و Workها'],
-        ['work.task.view', 'task', 'view', 'مشاهده تسک‌ها'],
-        ['work.task.create', 'task', 'create', 'ایجاد تسک'],
-        ['work.task.update', 'task', 'update', 'ویرایش و تغییر وضعیت تسک'],
-        ['work.task.assign', 'task', 'assign', 'تخصیص مسئول تسک'],
+        ['work.item.view', 'item', 'view', 'مشاهده تسک‌ها'],
+        ['work.item.create', 'item', 'create', 'ایجاد تسک'],
+        ['work.item.update', 'item', 'update', 'ویرایش و تغییر وضعیت تسک'],
+        ['work.item.assign', 'item', 'assign', 'تخصیص مسئول تسک'],
         ['work.audit.view', 'audit', 'view', 'مشاهده تاریخچه تغییرات Work'],
     ];
 

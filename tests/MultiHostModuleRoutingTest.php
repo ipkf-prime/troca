@@ -23,9 +23,13 @@ $expect(str_contains($middleware, '421') && str_contains($middleware, 'redirectT
 $expect(str_contains($kernel, 'ModuleHostMiddleware::class'), 'The host guard must run in the global HTTP kernel.');
 $expect(str_contains($panel, 'ApplicationUrlRegistry') && str_contains($panel, 'automationLaunch($path)'), 'Admin module links must use the central SSO launch URL.');
 $expect(str_contains($routes, '/auth/module-sso/start') && str_contains($routes, '/auth/module-sso/callback'), 'Central SSO start and Automation callback routes are required.');
-$expect(str_contains($sso, "private const AUDIENCE = 'automation'") && str_contains($sso, '60,'), 'Authorization codes must be audience-bound and short-lived.');
+$expect(str_contains($sso, '60,'), 'Authorization codes must be short-lived.');
+$expect(str_contains($sso, "'audience' => \$module"), 'Authorization codes must carry the target module audience.');
+$expect(str_contains($sso, "['audience' => \$audience]"), 'Authorization codes must be consumed only by the matching module audience.');
+$expect(str_contains($sso, "isWorkHost(\$requestHost)") && str_contains($sso, "isAutomationHost(\$requestHost)"), 'The SSO audience must be derived from the request host.');
 $expect(str_contains($sso, "'/admin/automation'") && str_contains($sso, 'safe_redirect_path'), 'SSO return paths must be constrained to Automation.');
 $expect(str_contains($env, 'AUTOMATION_APP_URL=') && str_contains($env, 'AUTH_COOKIE_DOMAIN='), 'Environment samples must document multi-host settings.');
-$expect(str_contains($deploy, '/home/troca/oa-dev.troca.ir/'), 'cPanel deployment must publish the Automation development host.');
+$expect(str_contains($deploy, 'IPKF_AUTOMATION_DEPLOYPATH') && str_contains($deploy, 'ipkf-deploy.env'), 'cPanel deployment must resolve Automation destination from the server registry.');
+$expect(!str_contains($deploy, 'troca.ir'), 'cPanel deployment must not hardcode the current domain.');
 
 echo "Multi-host module routing checks passed.\n";

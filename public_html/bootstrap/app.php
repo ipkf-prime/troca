@@ -9,7 +9,7 @@ use IPKF\Support\Config;
 use IPKF\Support\Env;
 use IPKF\Support\ErrorHandler;
 
-Env::load(BASE_PATH . '/.env');
+Env::loadLayered(BASE_PATH . '/.env');
 date_default_timezone_set(\IPKF\Support\Clock::STORAGE_TIMEZONE);
 ErrorHandler::register();
 Config::load();

@@ -3,13 +3,19 @@
 namespace App\Services;
 
 use App\Repositories\ApplicationModuleRepository;
+use IPKF\Support\ApplicationUrlRegistry;
 use IPKF\Support\Env;
+use IPKF\Support\EnvironmentSecretWriter;
+use Throwable;
 
 class ApplicationModuleRegistryService extends BaseService
 {
-    public function __construct(private ?ApplicationModuleRepository $modules = null)
-    {
+    public function __construct(
+        private ?ApplicationModuleRepository $modules = null,
+        private ?EnvironmentSecretWriter $secrets = null
+    ) {
         $this->modules ??= new ApplicationModuleRepository();
+        $this->secrets ??= new EnvironmentSecretWriter();
     }
 
     public function index(): array
@@ -23,10 +29,12 @@ class ApplicationModuleRegistryService extends BaseService
 
     public function catalog(): array
     {
+        $urls = new ApplicationUrlRegistry();
+
         return [
             'work' => [
-                'name' => 'مدیریت کار', 'base_url' => 'https://work-dev.troca.ir',
-                'callback_url' => 'https://work-dev.troca.ir/auth/module-sso/callback',
+                'name' => 'مدیریت کار و پروژه', 'base_url' => $urls->work(),
+                'callback_url' => $urls->work('/auth/module-sso/callback'),
                 'connection' => 'work.primary',
                 'host' => (string) Env::get('WORK_DB_HOST', 'localhost'),
                 'port' => (int) Env::get('WORK_DB_PORT', 3306),
@@ -35,13 +43,13 @@ class ApplicationModuleRegistryService extends BaseService
                 'charset' => (string) Env::get('WORK_DB_CHARSET', 'utf8mb4'),
                 'ssl_mode' => (string) Env::get('WORK_DB_SSL_MODE', ''),
                 'timeout' => (int) Env::get('WORK_DB_CONNECTION_TIMEOUT', 5),
-                'runtime_mode' => 'dedicated',
+                'runtime_mode' => (string) Env::get('WORK_DB_MODE', 'fallback'),
                 'secret' => 'WORK_DB_PASSWORD',
                 'secret_configured' => trim((string) Env::get('WORK_DB_PASSWORD', '')) !== '',
             ],
             'automation' => [
-                'name' => 'اتوماسیون اداری', 'base_url' => 'https://oa-dev.troca.ir',
-                'callback_url' => 'https://oa-dev.troca.ir/auth/module-sso/callback',
+                'name' => 'اتوماسیون اداری', 'base_url' => $urls->automation(),
+                'callback_url' => $urls->automation('/auth/module-sso/callback'),
                 'connection' => 'automation.primary',
                 'host' => (string) Env::get('AUTOMATION_DB_HOST', 'localhost'),
                 'port' => (int) Env::get('AUTOMATION_DB_PORT', 3306),
@@ -89,6 +97,22 @@ class ApplicationModuleRegistryService extends BaseService
         if ($charset !== 'utf8mb4' || !in_array($runtimeMode, ['fallback', 'provisioning', 'dedicated'], true)) {
             return ['ok' => false, 'error' => 'Charset یا حالت اجرای ماژول معتبر نیست.'];
         }
+
+        $catalog = $this->catalog();
+        $secretReference = (string) ($catalog[$key]['secret'] ?? '');
+        if ($secretReference === '' || preg_match('/^[A-Z][A-Z0-9_]{2,127}$/', $secretReference) !== 1) {
+            return ['ok' => false, 'error' => 'کلید رمز این ماژول تعریف نشده است.'];
+        }
+
+        $password = (string) ($input['database_password'] ?? '');
+        if ($password !== '') {
+            try {
+                $this->secrets->write($secretReference, $password);
+            } catch (Throwable) {
+                return ['ok' => false, 'error' => 'ذخیره امن رمز در ENV مشترک انجام نشد. دسترسی فایل و IPKF_SHARED_ENV را بررسی کنید.'];
+            }
+        }
+
         $this->modules->save([
             'module_key' => $key,
             'display_name' => mb_substr($name, 0, 190),
@@ -103,7 +127,7 @@ class ApplicationModuleRegistryService extends BaseService
             'database_ssl_mode' => $this->nullable($input['database_ssl_mode'] ?? null, 40),
             'connection_timeout' => max(1, min(60, (int) ($input['connection_timeout'] ?? 5))),
             'runtime_mode' => $runtimeMode,
-            'secret_reference' => $this->nullable($input['secret_reference'] ?? null, 255),
+            'secret_reference' => $secretReference,
             'is_active' => isset($input['is_active']) ? 1 : 0,
             'sort_order' => max(0, (int) ($input['sort_order'] ?? 0)),
         ]);
