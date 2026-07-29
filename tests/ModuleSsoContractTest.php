@@ -1,6 +1,9 @@
 <?php
 
 $root = dirname(__DIR__);
+require_once $root . '/public_html/system/Support/Env.php';
+require_once $root . '/public_html/system/Support/ModuleRuntimeConfig.php';
+require_once $root . '/public_html/system/Support/ApplicationUrlRegistry.php';
 $service = file_get_contents($root . '/public_html/app/Services/ModuleSsoService.php');
 $tokens = file_get_contents($root . '/public_html/app/Services/LoginTokenService.php');
 $repository = file_get_contents($root . '/public_html/app/Repositories/LoginTokenRepository.php');
@@ -28,8 +31,35 @@ $expect(str_contains($routes, "header('Cache-Control', 'no-store')") && str_cont
 $expect(str_contains($routes, 'User is no longer eligible to sign in') && str_contains($routes, '$auth->logout()'), 'Modules must reject users that became ineligible before code consumption.');
 $expect(str_contains($routes, "isAutomationHost((string) (\$_SERVER['HTTP_HOST'] ?? ''))") && str_contains($routes, "isWorkHost((string) (\$_SERVER['HTTP_HOST'] ?? ''))"), 'Unauthenticated module routes must go directly to central SSO.');
 $expect(str_contains($routes, "return_module=automation") && str_contains($routes, "return_module=work") && str_contains($routes, "input('return_module', '') === 'work'"), 'Federated logout must preserve the originating module for the next central login.');
-$urls = file_get_contents($root . '/public_html/system/Support/ApplicationUrlRegistry.php');
-$expect(str_contains($urls, "\$path === '/' && \$this->isAutomationHost(\$requestHost)"), 'The Automation host root must open the Automation dashboard instead of the central landing page.');
+$previousEnv = [];
+foreach (['APP_HOST_GUARD_ENABLED', 'CORE_APP_URL', 'AUTOMATION_APP_URL', 'WORK_APP_URL'] as $key) {
+    $previousEnv[$key] = [$_ENV[$key] ?? null, $_SERVER[$key] ?? null];
+}
+
+$_ENV['APP_HOST_GUARD_ENABLED'] = $_SERVER['APP_HOST_GUARD_ENABLED'] = 'true';
+$_ENV['CORE_APP_URL'] = $_SERVER['CORE_APP_URL'] = 'https://core.example.test';
+$_ENV['AUTOMATION_APP_URL'] = $_SERVER['AUTOMATION_APP_URL'] = 'https://automation.example.test';
+$_ENV['WORK_APP_URL'] = $_SERVER['WORK_APP_URL'] = 'https://work.example.test';
+
+$urls = new \IPKF\Support\ApplicationUrlRegistry();
+$expect($urls->redirectTarget('automation.example.test', '/') === 'https://automation.example.test/admin/automation', 'Automation host root must redirect to the Automation dashboard URL.');
+$expect($urls->redirectTarget('work.example.test', '/') === 'https://work.example.test/admin/work', 'Work host root must redirect to the Work dashboard URL.');
+$coreRootRedirect = $urls->redirectTarget('core.example.test', '/');
+$expect($coreRootRedirect === null || !str_contains($coreRootRedirect, '/admin/automation') && !str_contains($coreRootRedirect, '/admin/work'), 'Core host root must not be redirected to a module dashboard.');
+
+foreach ($previousEnv as $key => [$envValue, $serverValue]) {
+    if ($envValue === null) {
+        unset($_ENV[$key]);
+    } else {
+        $_ENV[$key] = $envValue;
+    }
+
+    if ($serverValue === null) {
+        unset($_SERVER[$key]);
+    } else {
+        $_SERVER[$key] = $serverValue;
+    }
+}
 $expect(str_contains($docs, 'AUTH_SESSION_NAME=ipkf_dev_core') && str_contains($docs, 'AUTH_SESSION_NAME=ipkf_dev_automation'), 'Core and Automation must use independent host sessions.');
 
 echo "Module SSO contract checks passed.\n";
