@@ -973,3 +973,10 @@ Version: `0.5.0-work-management-foundation-dev`
 - Work launch URLs use `ApplicationUrlRegistry::workLaunch()`.
 - Diagnostics expose Work readiness as booleans only and do not expose credentials, DSNs, SQL, row counts, tokens, or maintenance keys.
 - Existing Auth, MFA, RBAC, admin navigation, automation demo, platform commercial foundation, organization, and geography behavior remains unchanged.
+- `/admin/work` uses the shared Admin shell instead of a standalone HTML view.
+- `HEAD /admin/work` resolves through the GET route and must not return the generic route-not-found response.
+- Authenticated Work shell HTML contains `data-admin-shell-kind="work"` and `data-admin-module-ui-contract="shared-admin-shell"`.
+- Work shell HTML declares UTF-8 and Persian RTL document attributes.
+- Shared Admin assets load on the Work host: `admin.css`, `icons.css`, `admin.js`, `Vazirmatn-Arabic.woff2`, and `Vazirmatn-Latin.woff2`.
+- Runtime Work shell files do not hardcode deployment domains.
+- Work shell output is checked for mojibake before release.

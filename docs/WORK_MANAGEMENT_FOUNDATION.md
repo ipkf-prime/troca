@@ -39,6 +39,27 @@ The seven main dashboard tiles use fixed non-random colors:
 - reports: amber
 - support: rose
 
+
+## Shared Admin Shell Contract
+
+Work admin pages must render through the shared Admin shell at `resources/views/admin/layout.php`.
+Module views provide only page content, module identity, safe module asset paths, and navigation context.
+The shared shell owns the full HTML document, UTF-8 charset, Persian RTL attributes, common navigation, theme variables, `admin.css`, `icons.css`, `admin.js`, and local Vazirmatn font loading.
+
+`AdminModuleUiContract` formalizes this contract for Work and future modules. Module-specific CSS or JS must stay under `/assets/admin/` and must not use absolute domains, protocol URLs, parent-directory traversal, or non-admin asset paths.
+
+Runtime checks for Work shell deployment:
+
+- `GET /admin/work` must not return the generic `404 - Route not found` response.
+- `HEAD /admin/work` must resolve through the same GET route and return headers without a response body.
+- Authenticated `/admin/work` HTML must contain `data-admin-shell-kind="work"` and `data-admin-module-ui-contract="shared-admin-shell"`.
+- The response must include `<meta charset="UTF-8">` and `<html lang="fa" dir="rtl">`.
+- Shared assets must load from `/assets/admin/css/admin.css`, `/assets/admin/css/icons.css`, `/assets/admin/js/admin.js`, and local Vazirmatn webfonts.
+- Runtime files must not hardcode `work-dev.troca.ir` or any deployment hostname.
+- Persian text must be stored and served as UTF-8; mojibake markers such as `Ã`, `Â`, or replacement characters indicate a regression.
+
+Server-only configuration such as `IPKF_SHARED_ENV=/home/troca/config/ipkf-development.env`, `IPKF_MODULE=work`, `WORK_APP_URL`, and `WORK_DB_*` remains outside Git.
+
 ## Deployment
 
 1. Keep server-only values such as `WORK_DB_*`, `WORK_APP_URL`, `ALLOWED_APP_HOSTS`, and `DEV_MAINTENANCE_KEY` outside Git.

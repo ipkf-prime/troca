@@ -412,6 +412,7 @@ Scope:
 - Additive Work Management schema for projects, Work items, milestones, tasks, subtasks, assignments, labels, comments, private attachment metadata, and activity events.
 - Idempotent Work metadata seeding using canonical `work_statuses`, `work_projects`, and `work_items`.
 - Work dashboard shell backed by repository/service layering.
+- Shared Admin shell integration for Work with UTF-8, Persian RTL, common Admin assets, and a reusable module UI contract.
 - Multi-host Work launch through module SSO and `WORK_APP_URL`.
 - Safe Work diagnostics using booleans only.
 - Deterministic, non-random, non-repeating admin module tile colors.

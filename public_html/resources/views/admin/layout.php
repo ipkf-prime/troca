@@ -1,23 +1,13 @@
 <?php
 
 $context = $context ?? null;
-$title = $title ?? 'پنل مدیریت';
-$user = $context['user'] ?? null;
-$active = $context['active_assignment'] ?? null;
-$themeService = new \App\Services\AdminThemeService();
-$themeUserId = isset($context['user_id']) ? (int) $context['user_id'] : null;
-$theme = $themeService->theme($themeUserId);
-$avatarUrl = (string) ($user['avatar_url'] ?? $theme['default_avatar_url'] ?? '');
-$currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
-$year = \App\Support\AdminFormat::digits(date('Y'));
-$runtimeVersion = \App\Support\AdminFormat::digits(\IPKF\Support\Version::CURRENT);
-$themeAssets = $themeService->assetUrls();
-$themeSource = $themeService->resolvedPresetSource($themeUserId);
-$moduleShell = is_array($context['module_shell'] ?? null) ? $context['module_shell'] : null;
-$isAutomationShell = ($moduleShell['key'] ?? '') === 'automation';
-$brandTitle = $isAutomationShell ? (string) $moduleShell['title'] : (string) ($theme['brand_name'] ?? 'پنل مدیریت تروکا');
-$brandSubtitle = $isAutomationShell ? (string) $moduleShell['subtitle'] : 'زیرساخت مدیریتی IPKF';
-$brandHome = $isAutomationShell ? (string) $moduleShell['home_url'] : '/admin/dashboard';
+
+if (!function_exists('admin_fa')) {
+    function admin_fa(string $entities): string
+    {
+        return html_entity_decode($entities, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+}
 
 if (!function_exists('admin_h')) {
     function admin_h($value): string
@@ -45,24 +35,50 @@ if (!function_exists('admin_nav_is_active')) {
     }
 }
 
+$title = $title ?? admin_fa('&#x067E;&#x0646;&#x0644; &#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A;');
+$user = $context['user'] ?? null;
+$active = $context['active_assignment'] ?? null;
+$themeService = new \App\Services\AdminThemeService();
+$themeUserId = isset($context['user_id']) ? (int) $context['user_id'] : null;
+$theme = $themeService->theme($themeUserId);
+$avatarUrl = (string) ($user['avatar_url'] ?? $theme['default_avatar_url'] ?? '');
+$currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+$year = \App\Support\AdminFormat::digits(date('Y'));
+$runtimeVersion = \App\Support\AdminFormat::digits(\IPKF\Support\Version::CURRENT);
+$themeAssets = $themeService->assetUrls();
+$themeSource = $themeService->resolvedPresetSource($themeUserId);
+$moduleShell = is_array($context['module_shell'] ?? null) ? $context['module_shell'] : null;
+$moduleShellKey = (string) ($moduleShell['key'] ?? '');
+$isModuleShell = $moduleShellKey !== '';
+$brandTitle = $isModuleShell ? (string) ($moduleShell['title'] ?? '') : (string) ($theme['brand_name'] ?? admin_fa('&#x067E;&#x0646;&#x0644; &#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x062A;&#x0631;&#x0648;&#x06A9;&#x0627;'));
+$brandSubtitle = $isModuleShell ? (string) ($moduleShell['subtitle'] ?? '') : admin_fa('&#x0632;&#x06CC;&#x0631;&#x0633;&#x0627;&#x062E;&#x062A; &#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A;&#x06CC; IPKF');
+$brandHome = $isModuleShell ? (string) ($moduleShell['home_url'] ?? '/admin/dashboard') : '/admin/dashboard';
+$moduleAssets = \App\Services\AdminModuleUiContract::safeAssets(
+    is_array($moduleShell['assets'] ?? null) ? $moduleShell['assets'] : ['css' => [], 'js' => []]
+);
+$moduleCssAssets = $moduleAssets['css'];
+$moduleJsAssets = $moduleAssets['js'];
 $systemNav = $context['navigation']['system'] ?? [];
 $accountNav = $context['navigation']['account'] ?? [];
 ?>
 <!doctype html>
 <html lang="fa" dir="rtl">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= admin_h($title) ?> | IPKF</title>
     <link rel="stylesheet" href="<?= admin_h($themeAssets['icons_css']) ?>">
     <link rel="stylesheet" href="<?= admin_h($themeAssets['admin_css']) ?>">
-    <script src="<?= admin_h($themeAssets['admin_js']) ?>" defer></script>
     <style id="admin-theme-vars"><?= "\n" . $themeService->cssVariables($themeUserId) . "\n" ?></style>
-    <?php if ($isAutomationShell): ?>
-        <link rel="stylesheet" href="/assets/admin/css/automation.css?v=<?= admin_h((string) (@filemtime(BASE_PATH . '/public/assets/admin/css/automation.css') ?: '1')) ?>">
-    <?php endif; ?>
+    <?php foreach ($moduleCssAssets as $asset): ?>
+        <link rel="stylesheet" href="<?= admin_h($asset) ?>?v=<?= admin_h((string) (@filemtime(BASE_PATH . '/public' . $asset) ?: '1')) ?>" data-module-asset="css">
+    <?php endforeach; ?>
+    <script src="<?= admin_h($themeAssets['admin_js']) ?>" defer></script>
+    <?php foreach ($moduleJsAssets as $asset): ?>
+        <script src="<?= admin_h($asset) ?>?v=<?= admin_h((string) (@filemtime(BASE_PATH . '/public' . $asset) ?: '1')) ?>" defer data-module-asset="js"></script>
+    <?php endforeach; ?>
 </head>
-<body dir="rtl" class="<?= $isAutomationShell ? 'automation-shell' : 'core-shell' ?>" data-admin-shell-kind="<?= $isAutomationShell ? 'automation' : 'core' ?>" data-admin-theme="<?= admin_h($theme['canonical_preset'] ?? $theme['active_preset'] ?? 'official_emerald') ?>" data-admin-theme-source="<?= admin_h($themeSource) ?>">
+<body dir="rtl" class="<?= $isModuleShell ? 'admin-module-shell ' . admin_h($moduleShellKey) . '-shell' : 'core-shell' ?>" data-admin-shell-kind="<?= admin_h($isModuleShell ? $moduleShellKey : 'core') ?>" data-admin-module-ui-contract="shared-admin-shell" data-admin-theme="<?= admin_h($theme['canonical_preset'] ?? $theme['active_preset'] ?? 'official_emerald') ?>" data-admin-theme-source="<?= admin_h($themeSource) ?>">
     <div class="admin-shell" data-admin-shell>
         <div class="admin-sidebar-overlay" data-admin-sidebar-overlay></div>
         <aside class="admin-sidebar" id="admin-sidebar">
@@ -78,9 +94,9 @@ $accountNav = $context['navigation']['account'] ?? [];
                         <small><?= admin_h($brandSubtitle) ?></small>
                     </span>
                 </a>
-                <button class="admin-icon-button admin-sidebar__close" type="button" data-admin-sidebar-close aria-label="بستن منو">×</button>
+                <button class="admin-icon-button admin-sidebar__close" type="button" data-admin-sidebar-close aria-label="<?= admin_h(admin_fa('&#x0628;&#x0633;&#x062A;&#x0646; &#x0645;&#x0646;&#x0648;')) ?>">&times;</button>
             </div>
-            <nav class="admin-nav" aria-label="منوی سامانه">
+            <nav class="admin-nav" aria-label="<?= admin_h(admin_fa('&#x0645;&#x0646;&#x0648;&#x06CC; &#x0633;&#x0627;&#x0645;&#x0627;&#x0646;&#x0647;')) ?>">
                 <?php foreach ($systemNav as $item): ?>
                     <?php $href = (string) ($item['url'] ?? '#'); ?>
                     <a class="<?= admin_nav_is_active($item, $currentPath) ? 'is-active' : '' ?>" href="<?= admin_h($href) ?>">
@@ -98,7 +114,7 @@ $accountNav = $context['navigation']['account'] ?? [];
 
         <div class="admin-main">
             <header class="admin-topbar">
-                <button class="admin-icon-button admin-sidebar-toggle" type="button" data-admin-sidebar-toggle aria-controls="admin-sidebar" aria-label="باز کردن منو">
+                <button class="admin-icon-button admin-sidebar-toggle" type="button" data-admin-sidebar-toggle aria-controls="admin-sidebar" aria-label="<?= admin_h(admin_fa('&#x0628;&#x0627;&#x0632; &#x06A9;&#x0631;&#x062F;&#x0646; &#x0645;&#x0646;&#x0648;')) ?>">
                     <span></span>
                     <span></span>
                     <span></span>
@@ -109,7 +125,7 @@ $accountNav = $context['navigation']['account'] ?? [];
                 </div>
                 <div class="admin-topbar__actions">
                     <?php if (($theme['show_active_role'] ?? true) === true): ?>
-                        <span class="admin-role"><?= admin_h($active['role_title'] ?? 'بدون نقش فعال') ?></span>
+                        <span class="admin-role"><?= admin_h($active['role_title'] ?? admin_fa('&#x0628;&#x062F;&#x0648;&#x0646; &#x0646;&#x0642;&#x0634; &#x0641;&#x0639;&#x0627;&#x0644;')) ?></span>
                     <?php endif; ?>
                     <div class="admin-user-menu" data-admin-user-menu>
                         <button class="admin-user-menu__trigger" type="button" data-admin-user-menu-toggle aria-haspopup="true" aria-expanded="false">
@@ -117,9 +133,9 @@ $accountNav = $context['navigation']['account'] ?? [];
                                 <img class="admin-avatar" src="<?= admin_h($avatarUrl) ?>" alt="">
                             <?php endif; ?>
                             <?php if (($theme['show_user_name'] ?? true) === true): ?>
-                                <span><?= admin_h($user['name'] ?? 'کاربر') ?></span>
+                                <span><?= admin_h($user['name'] ?? admin_fa('&#x06A9;&#x0627;&#x0631;&#x0628;&#x0631;')) ?></span>
                             <?php endif; ?>
-                            <b aria-hidden="true">▾</b>
+                            <b aria-hidden="true">&#x25BE;</b>
                         </button>
                         <div class="admin-dropdown" role="menu">
                             <?php foreach ($accountNav as $item): ?>
@@ -139,9 +155,9 @@ $accountNav = $context['navigation']['account'] ?? [];
 
             <?php if (($theme['footer_enabled'] ?? true) === true): ?>
                 <footer class="admin-footer">
-                    <span><?= admin_h($theme['footer_text'] ?? 'کلیه حقوق این سامانه متعلق به سامانه هوشمند تروکا می‌باشد.') ?></span>
+                    <span><?= admin_h($theme['footer_text'] ?? admin_fa('&#x06A9;&#x0644;&#x06CC;&#x0647; &#x062D;&#x0642;&#x0648;&#x0642; &#x0627;&#x06CC;&#x0646; &#x0633;&#x0627;&#x0645;&#x0627;&#x0646;&#x0647; &#x0645;&#x062A;&#x0639;&#x0644;&#x0642; &#x0628;&#x0647; &#x062A;&#x0631;&#x0648;&#x06A9;&#x0627; &#x0645;&#x06CC;&#x200C;&#x0628;&#x0627;&#x0634;&#x062F;.')) ?></span>
                     <span class="admin-footer__meta">
-                        <span>نسخه <?= admin_h($runtimeVersion) ?></span>
+                        <span><?= admin_h(admin_fa('&#x0646;&#x0633;&#x062E;&#x0647;')) ?> <?= admin_h($runtimeVersion) ?></span>
                         <span><?= admin_h($year) ?></span>
                     </span>
                 </footer>

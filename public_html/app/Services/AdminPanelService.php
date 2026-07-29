@@ -38,6 +38,28 @@ class AdminPanelService extends BaseService
         $automationShell = $urls->isAutomationHost((string) ($_SERVER['HTTP_HOST'] ?? ''));
         $workShell = $urls->isWorkHost((string) ($_SERVER['HTTP_HOST'] ?? ''));
         $moduleShell = $automationShell || $workShell;
+        $moduleShellContext = null;
+
+        if ($workShell) {
+            $moduleShellContext = AdminModuleUiContract::shell(
+                'work',
+                'IPKF Work Management',
+                $this->fa('&#x067E;&#x0631;&#x0648;&#x0698;&#x0647;&#x200C;&#x0647;&#x0627;&#x060C; &#x06A9;&#x0627;&#x0631;&#x0647;&#x0627; &#x0648; &#x062A;&#x0633;&#x06A9;&#x200C;&#x0647;&#x0627;'),
+                '/admin/work',
+                $urls->core('/admin/dashboard')
+            );
+        }
+
+        if ($automationShell) {
+            $moduleShellContext = AdminModuleUiContract::shell(
+                'automation',
+                $this->fa('&#x0627;&#x062A;&#x0648;&#x0645;&#x0627;&#x0633;&#x06CC;&#x0648;&#x0646; &#x0627;&#x062F;&#x0627;&#x0631;&#x06CC; &#x062A;&#x0631;&#x0648;&#x06A9;&#x0627;'),
+                $this->fa('&#x0645;&#x06A9;&#x0627;&#x062A;&#x0628;&#x0627;&#x062A; &#x0648; &#x062F;&#x0628;&#x06CC;&#x0631;&#x062E;&#x0627;&#x0646;&#x0647;'),
+                '/admin/automation',
+                $urls->core('/admin/dashboard'),
+                ['css' => ['/assets/admin/css/automation.css']]
+            );
+        }
 
         return [
             'user' => $user,
@@ -53,17 +75,11 @@ class AdminPanelService extends BaseService
             'navigation' => [
                 'system' => $automationShell ? $this->automationNavigation($userId) : ($workShell ? $this->workNavigation($userId) : $this->moduleNavigation($userId)),
                 'account' => $moduleShell ? [
-                    ['key' => 'core-panel', 'title' => 'بازگشت به پنل اصلی', 'url' => $urls->core('/admin/dashboard'), 'permission' => null],
-                    ['key' => 'logout', 'title' => 'خروج', 'url' => '/admin/logout', 'permission' => null],
+                    ['key' => 'core-panel', 'title' => $this->fa('&#x0628;&#x0627;&#x0632;&#x06AF;&#x0634;&#x062A; &#x0628;&#x0647; &#x067E;&#x0646;&#x0644; &#x0627;&#x0635;&#x0644;&#x06CC;'), 'url' => $urls->core('/admin/dashboard'), 'permission' => null],
+                    ['key' => 'logout', 'title' => $this->fa('&#x062E;&#x0631;&#x0648;&#x062C;'), 'url' => '/admin/logout', 'permission' => null],
                 ] : $this->navigation->accountNavigation($userId),
             ],
-            'module_shell' => $moduleShell ? [
-                'key' => $workShell ? 'work' : 'automation',
-                'title' => $workShell ? 'IPKF Work Management' : 'اتوماسیون اداری تروکا',
-                'subtitle' => $workShell ? 'پروژه‌ها، Workها و تسک‌ها' : 'مکاتبات و دبیرخانه',
-                'home_url' => $workShell ? '/admin/work' : '/admin/automation',
-                'core_url' => $urls->core('/admin/dashboard'),
-            ] : null,
+            'module_shell' => $moduleShellContext,
             'dashboard_modules' => $this->dashboardModules($userId),
             'version' => Version::CURRENT,
         ];
@@ -72,10 +88,10 @@ class AdminPanelService extends BaseService
     public function automationNavigation(int $userId): array
     {
         $items = [
-            ['key' => 'automation-dashboard', 'title' => 'داشبورد اتوماسیون', 'url' => '/admin/automation', 'icon' => 'dashboard', 'permission' => 'automation.correspondence.view', 'active_paths' => ['/admin/automation']],
-            ['key' => 'automation-correspondences', 'title' => 'مکاتبات', 'url' => '/admin/automation/correspondences', 'icon' => 'file-lines', 'permission' => 'automation.correspondence.view', 'active_paths' => ['/admin/automation/correspondences']],
-            ['key' => 'automation-create', 'title' => 'ایجاد پیش‌نویس', 'url' => '/admin/automation/correspondences/create', 'icon' => 'circle-check', 'permission' => 'automation.correspondence.create', 'active_paths' => ['/admin/automation/correspondences/create']],
-            ['key' => 'automation-templates', 'title' => 'قالب‌های مکاتبه', 'url' => '/admin/automation/templates', 'icon' => 'palette', 'permission' => 'automation.correspondence.view', 'active_paths' => ['/admin/automation/templates']],
+            ['key' => 'automation-dashboard', 'title' => $this->fa('&#x062F;&#x0627;&#x0634;&#x0628;&#x0648;&#x0631;&#x062F; &#x0627;&#x062A;&#x0648;&#x0645;&#x0627;&#x0633;&#x06CC;&#x0648;&#x0646;'), 'url' => '/admin/automation', 'icon' => 'dashboard', 'permission' => 'automation.correspondence.view', 'active_paths' => ['/admin/automation']],
+            ['key' => 'automation-correspondences', 'title' => $this->fa('&#x0645;&#x06A9;&#x0627;&#x062A;&#x0628;&#x0627;&#x062A;'), 'url' => '/admin/automation/correspondences', 'icon' => 'file-lines', 'permission' => 'automation.correspondence.view', 'active_paths' => ['/admin/automation/correspondences']],
+            ['key' => 'automation-create', 'title' => $this->fa('&#x0627;&#x06CC;&#x062C;&#x0627;&#x062F; &#x067E;&#x06CC;&#x0634;&#x200C;&#x0646;&#x0648;&#x06CC;&#x0633;'), 'url' => '/admin/automation/correspondences/create', 'icon' => 'circle-check', 'permission' => 'automation.correspondence.create', 'active_paths' => ['/admin/automation/correspondences/create']],
+            ['key' => 'automation-templates', 'title' => $this->fa('&#x0642;&#x0627;&#x0644;&#x0628;&#x200C;&#x0647;&#x0627;&#x06CC; &#x0645;&#x06A9;&#x0627;&#x062A;&#x0628;&#x0647;'), 'url' => '/admin/automation/templates', 'icon' => 'palette', 'permission' => 'automation.correspondence.view', 'active_paths' => ['/admin/automation/templates']],
         ];
 
         return array_values(array_filter($items, fn (array $item): bool => $this->navigation->can($userId, (string) $item['permission'])));
@@ -84,8 +100,9 @@ class AdminPanelService extends BaseService
     public function workNavigation(int $userId): array
     {
         $items = [
-            ['key' => 'work-dashboard', 'title' => 'داشبورد مدیریت کار', 'url' => '/admin/work', 'icon' => 'dashboard', 'permission' => 'work.project.view', 'active_paths' => ['/admin/work']],
+            ['key' => 'work-dashboard', 'title' => $this->fa('&#x062F;&#x0627;&#x0634;&#x0628;&#x0648;&#x0631;&#x062F; &#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x06A9;&#x0627;&#x0631;'), 'url' => '/admin/work', 'icon' => 'dashboard', 'permission' => 'work.project.view', 'active_paths' => ['/admin/work']],
         ];
+
         return array_values(array_filter($items, fn (array $item): bool => $this->navigation->can($userId, (string) $item['permission'])));
     }
 

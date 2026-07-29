@@ -57,6 +57,10 @@ class Response
             }
         }
 
+        if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? '')) === 'HEAD') {
+            return;
+        }
+
         echo $this->content;
     }
 }

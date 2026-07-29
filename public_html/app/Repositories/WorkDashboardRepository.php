@@ -23,6 +23,7 @@ class WorkDashboardRepository
             'works' => $scalar("SELECT COUNT(*) FROM work_items wi INNER JOIN work_statuses ws ON ws.id = wi.status_id WHERE wi.item_type = 'work' AND wi.archived_at IS NULL AND ws.is_closed = 0"),
             'open_tasks' => $scalar("SELECT COUNT(*) FROM work_items wi INNER JOIN work_statuses ws ON ws.id = wi.status_id WHERE wi.item_type IN ('task', 'subtask') AND wi.archived_at IS NULL AND ws.is_closed = 0"),
             'overdue_tasks' => $scalar("SELECT COUNT(*) FROM work_items wi INNER JOIN work_statuses ws ON ws.id = wi.status_id WHERE wi.item_type IN ('task', 'subtask') AND wi.due_at < UTC_TIMESTAMP() AND wi.archived_at IS NULL AND ws.is_closed = 0"),
+            'statuses' => $scalar("SELECT COUNT(*) FROM work_statuses WHERE is_active = 1"),
         ];
     }
 
