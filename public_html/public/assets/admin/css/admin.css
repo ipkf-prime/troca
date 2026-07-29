@@ -722,7 +722,9 @@ body.admin-sidebar-locked {
     --module-color-b: #115e59;
 }
 
-.admin-action-tile--cyan {
+.admin-module-launcher__tile--cyan,
+.admin-action-tile--cyan,
+.admin-module-hub--cyan {
     --module-color-a: #0891b2;
     --module-color-b: #0e7490;
 }
@@ -734,17 +736,23 @@ body.admin-sidebar-locked {
     --module-color-b: #6d28d9;
 }
 
-.admin-action-tile--violet {
+.admin-module-launcher__tile--violet,
+.admin-action-tile--violet,
+.admin-module-hub--violet {
     --module-color-a: #6d28d9;
     --module-color-b: #5b21b6;
 }
 
-.admin-action-tile--fuchsia {
+.admin-module-launcher__tile--fuchsia,
+.admin-action-tile--fuchsia,
+.admin-module-hub--fuchsia {
     --module-color-a: #a21caf;
     --module-color-b: #86198f;
 }
 
-.admin-action-tile--indigo {
+.admin-module-launcher__tile--indigo,
+.admin-action-tile--indigo,
+.admin-module-hub--indigo {
     --module-color-a: #4f46e5;
     --module-color-b: #4338ca;
 }

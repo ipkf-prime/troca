@@ -6,7 +6,7 @@ business modules.
 
 ## Version
 
-Current version: `0.4.8-platform-commercial-foundation-dev`
+Current version: `0.5.0-work-management-foundation-dev`
 
 ## Requirements
 
@@ -121,13 +121,16 @@ The only operational canonical geography in this stable baseline is the official
 
 Dynamic organization architecture is documented in `docs/DYNAMIC_ORGANIZATION_CORE.md`. Existing `organizations` rows and legacy compatibility fields remain intact; no organization type or relationship is hardcoded in PHP.
 
-The v0.4.7 stable baseline is `0.4.7-automation-foundation`. It adds the additive correspondence domain foundation for دبیرخانه, incoming/outgoing/internal correspondence, immutable versions, normalized parties, registry books, official registrations, relations, referrals, personal/unit cartable derivation, append-only events, and private attachment metadata.
+The v0.4.7 stable baseline is `0.4.7-automation-foundation`. It adds the additive correspondence domain foundation for ط¯ط¨غŒط±ط®ط§ظ†ظ‡, incoming/outgoing/internal correspondence, immutable versions, normalized parties, registry books, official registrations, relations, referrals, personal/unit cartable derivation, append-only events, and private attachment metadata.
 
 This milestone is schema and metadata only. It adds no operational correspondence UI, editor, upload/download endpoint, notification delivery, numbering API, workflow designer, signature, OCR, PDF generation, public tracking, external API, or operational record. Future official number allocation must use a database transaction and row-level lock on the registry book.
 
-The active development milestone is `0.4.8-platform-commercial-foundation-dev`. It adds the platform commercial foundation for application/module catalogs, installation and topology registries, licensing metadata, entitlement contracts, and auditable provisioning records. It does not enforce licensing on current routes, create infrastructure, switch runtime databases, or seed operational installation/license/customer data.
+The active development milestone is `0.5.0-work-management-foundation-dev`. It adds the Work Management foundation on the multi-application runtime: a dedicated `work.primary` connection, application-aware Work migration and seed paths, a Work dashboard shell, and deterministic module tile colors. It does not add customer-facing CRM, ERP, Bot, Marketplace, or operational correspondence workflow features.
 
 The same development milestone now includes a named multi-database runtime foundation. `core.primary` remains the current core database. `automation.primary` resolves to a dedicated automation database only when optional `AUTOMATION_DB_*` values are complete; otherwise it safely falls back to the core PDO connection so the existing automation foundation remains usable in the current single-database deployment.
+The Work Management foundation uses the dedicated `work.primary` connection when `WORK_DB_*` values are configured. The `/admin/work` dashboard reads from the canonical `work_items`, `work_projects`, and `work_statuses` schema, while `/migrate.php?application=work` and `/seed.php?application=work` remain protected by debug mode and `DEV_MAINTENANCE_KEY`.
+
+The admin module launcher uses fixed, non-random, non-repeating colors for the seven main tiles: users blue, organization teal, system purple, work green, automation indigo, reports amber, and support rose.
 
 Set:
 

@@ -29,6 +29,16 @@ class ApplicationUrlRegistry
         return $this->core('/auth/module-sso/start?return_path=' . rawurlencode($path));
     }
 
+    public function workLaunch(string $path = '/admin/work', ?string $requestHost = null): string
+    {
+        $host = $requestHost ?? (string) ($_SERVER['HTTP_HOST'] ?? '');
+        if ($this->isWorkHost($host)) {
+            return $this->work($path);
+        }
+
+        return $this->core('/auth/module-sso/start?return_path=' . rawurlencode($path));
+    }
+
     public function coreHost(): ?string
     {
         return $this->configuredHost('CORE_APP_URL');
@@ -88,26 +98,47 @@ class ApplicationUrlRegistry
 
         $path = parse_url($requestUri, PHP_URL_PATH) ?: '/';
         $automationPath = $path === '/admin/automation' || str_starts_with($path, '/admin/automation/');
+        $workPath = $path === '/admin/work' || str_starts_with($path, '/admin/work/');
+        $modulePath = $automationPath || $workPath;
+        $requestIsAutomation = $this->isAutomationHost($requestHost);
+        $requestIsWork = $this->isWorkHost($requestHost);
+        $requestIsModule = $requestIsAutomation || $requestIsWork;
 
-        if ($path === '/' && $this->isAutomationHost($requestHost)) {
+        if ($path === '/' && $requestIsAutomation) {
             return $this->automation('/admin/automation');
+        }
+
+        if ($path === '/' && $requestIsWork) {
+            return $this->work('/admin/work');
         }
 
         if ($automationPath && $this->isCoreHost($requestHost)) {
             return $this->core('/auth/module-sso/start?return_path=' . rawurlencode($requestUri));
         }
 
-        if ($automationPath && !$this->isAutomationHost($requestHost) && $this->automationHost() !== null) {
+        if ($workPath && $this->isCoreHost($requestHost)) {
+            return $this->core('/auth/module-sso/start?return_path=' . rawurlencode($requestUri));
+        }
+
+        if ($automationPath && !$requestIsAutomation && $this->automationHost() !== null) {
             return $this->automation($requestUri);
         }
 
-        if ($this->isAutomationHost($requestHost) && $this->isCentralAuthenticationPath($path)) {
+        if ($workPath && !$requestIsWork && $this->workHost() !== null) {
+            return $this->work($requestUri);
+        }
+
+        if ($requestIsAutomation && $this->isCentralAuthenticationPath($path)) {
             return $this->core('/auth/module-sso/start?return_path=' . rawurlencode('/admin/automation'));
         }
 
-        if ($this->isAutomationHost($requestHost)
+        if ($requestIsWork && $this->isCentralAuthenticationPath($path)) {
+            return $this->core('/auth/module-sso/start?return_path=' . rawurlencode('/admin/work'));
+        }
+
+        if ($requestIsModule
             && str_starts_with($path, '/admin')
-            && !$automationPath
+            && !$modulePath
             && $path !== '/admin/logout'
             && $this->coreHost() !== null
         ) {
@@ -119,9 +150,15 @@ class ApplicationUrlRegistry
 
     public function adminHome(string $requestHost): string
     {
-        return $this->isAutomationHost($requestHost)
-            ? $this->automation('/admin/automation')
-            : $this->core('/admin/dashboard');
+        if ($this->isAutomationHost($requestHost)) {
+            return $this->automation('/admin/automation');
+        }
+
+        if ($this->isWorkHost($requestHost)) {
+            return $this->work('/admin/work');
+        }
+
+        return $this->core('/admin/dashboard');
     }
 
     private function url(string $key, string $path): string

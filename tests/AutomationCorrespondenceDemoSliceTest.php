@@ -24,7 +24,7 @@ function expectAutomationDemo(bool $condition, string $message): void
     }
 }
 
-expectAutomationDemo($version === '0.4.8-platform-commercial-foundation-dev', 'Runtime version must remain the v0.4.8 development marker.');
+expectAutomationDemo($version === '0.5.0-work-management-foundation-dev', 'Runtime version must remain the v0.5.0 Work Management development marker.');
 
 $serviceClasses = [
     'AutomationOperationalRuntime',

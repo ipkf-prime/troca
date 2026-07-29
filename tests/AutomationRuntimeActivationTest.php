@@ -147,6 +147,6 @@ foreach ([
 
 expectAutomationRuntime(str_contains($projectContext, 'Guarded Automation runtime modes'), 'Project context must mention guarded runtime modes.');
 expectAutomationRuntime(str_contains($checklist, 'Guarded Automation Runtime Activation'), 'Release checklist must include runtime activation checks.');
-expectAutomationRuntime(str_contains(file_get_contents($root . '/public_html/VERSION'), '0.4.8-platform-commercial-foundation-dev'), 'Runtime version must remain unchanged.');
+expectAutomationRuntime(str_contains(file_get_contents($root . '/public_html/VERSION'), '0.5.0-work-management-foundation-dev'), 'Runtime version must remain the active Work Management development marker.');
 
 echo "Automation runtime activation structural tests passed.\n";

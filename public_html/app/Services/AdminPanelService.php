@@ -202,32 +202,32 @@ class AdminPanelService extends BaseService
             ],
             [
                 'key' => 'work',
-                'title' => 'مدیریت کار',
-                'description' => 'مدیریت پروژه‌ها، Workها، تسک‌ها و پیگیری تیم',
-                'subtitle' => 'پروژه، Work و تسک',
+                'title' => $this->fa('&#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x06A9;&#x0627;&#x0631;'),
+                'description' => $this->fa('&#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x067E;&#x0631;&#x0648;&#x0698;&#x0647;&#x200C;&#x0647;&#x0627;&#x060C; Work&#x0647;&#x0627;&#x060C; &#x062A;&#x0633;&#x06A9;&#x200C;&#x0647;&#x0627; &#x0648; &#x067E;&#x06CC;&#x06AF;&#x06CC;&#x0631;&#x06CC; &#x062A;&#x06CC;&#x0645;'),
+                'subtitle' => $this->fa('&#x067E;&#x0631;&#x0648;&#x0698;&#x0647;&#x060C; Work &#x0648; &#x062A;&#x0633;&#x06A9;'),
                 'icon' => 'circle-check',
-                'color' => 'blue',
-                'url' => (new ApplicationUrlRegistry())->core('/auth/module-sso/start?return_path=' . rawurlencode('/admin/work')),
+                'color' => 'green',
+                'url' => '/admin/work',
                 'permission' => 'work.project.view',
                 'sort_order' => 34,
                 'actions' => [
-                    ['key' => 'work-dashboard', 'title' => 'داشبورد مدیریت کار', 'description' => 'نمای کلی پروژه‌ها و تسک‌ها', 'icon' => 'dashboard', 'color' => 'blue', 'url' => (new ApplicationUrlRegistry())->core('/auth/module-sso/start?return_path=' . rawurlencode('/admin/work')), 'permission' => 'work.project.view', 'sort_order' => 10],
+                    ['key' => 'work-dashboard', 'title' => $this->fa('&#x062F;&#x0627;&#x0634;&#x0628;&#x0648;&#x0631;&#x062F; &#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x06A9;&#x0627;&#x0631;'), 'description' => $this->fa('&#x0646;&#x0645;&#x0627;&#x06CC; &#x06A9;&#x0644;&#x06CC; &#x067E;&#x0631;&#x0648;&#x0698;&#x0647;&#x200C;&#x0647;&#x0627; &#x0648; &#x062A;&#x0633;&#x06A9;&#x200C;&#x0647;&#x0627;'), 'icon' => 'dashboard', 'color' => 'green', 'url' => '/admin/work', 'permission' => 'work.project.view', 'sort_order' => 10],
                 ],
             ],
             [
                 'key' => 'automation',
-                'title' => 'اتوماسیون اداری',
-                'description' => 'مکاتبات اداری، پیش نویس‌ها، نسخه‌ها، طرف‌ها و تاریخچه رویدادها',
-                'subtitle' => 'مکاتبات، نسخه‌ها و طرف‌های نامه',
+                'title' => $this->fa('&#x0627;&#x062A;&#x0648;&#x0645;&#x0627;&#x0633;&#x06CC;&#x0648;&#x0646; &#x0627;&#x062F;&#x0627;&#x0631;&#x06CC;'),
+                'description' => $this->fa('&#x0645;&#x06A9;&#x0627;&#x062A;&#x0628;&#x0627;&#x062A; &#x0627;&#x062F;&#x0627;&#x0631;&#x06CC;&#x060C; &#x067E;&#x06CC;&#x0634; &#x0646;&#x0648;&#x06CC;&#x0633;&#x200C;&#x0647;&#x0627;&#x060C; &#x0646;&#x0633;&#x062E;&#x0647;&#x200C;&#x0647;&#x0627;&#x060C; &#x0637;&#x0631;&#x0641;&#x200C;&#x0647;&#x0627; &#x0648; &#x062A;&#x0627;&#x0631;&#x06CC;&#x062E;&#x0686;&#x0647; &#x0631;&#x0648;&#x06CC;&#x062F;&#x0627;&#x062F;&#x0647;&#x0627;'),
+                'subtitle' => $this->fa('&#x0645;&#x06A9;&#x0627;&#x062A;&#x0628;&#x0627;&#x062A;&#x060C; &#x0646;&#x0633;&#x062E;&#x0647;&#x200C;&#x0647;&#x0627; &#x0648; &#x0637;&#x0631;&#x0641;&#x200C;&#x0647;&#x0627;&#x06CC; &#x0646;&#x0627;&#x0645;&#x0647;'),
                 'icon' => 'file-lines',
-                'color' => 'teal',
+                'color' => 'indigo',
                 'url' => '/admin/automation',
                 'permission' => 'automation.correspondence.view',
                 'sort_order' => 35,
                 'actions' => [
-                    ['key' => 'automation-dashboard', 'title' => 'داشبورد مکاتبات', 'description' => 'نمای کلی پیش نویس‌ها و مکاتبات اخیر', 'icon' => 'dashboard', 'color' => 'teal', 'url' => '/admin/automation', 'permission' => 'automation.correspondence.view', 'sort_order' => 10],
-                    ['key' => 'automation-correspondences', 'title' => 'مکاتبات', 'description' => 'جستجو، فیلتر و مشاهده مکاتبات', 'icon' => 'file-lines', 'color' => 'blue', 'url' => '/admin/automation/correspondences', 'permission' => 'automation.correspondence.view', 'sort_order' => 20],
-                    ['key' => 'automation-create', 'title' => 'ایجاد پیش نویس', 'description' => 'ثبت مکاتبه و نسخه اول', 'icon' => 'circle-check', 'color' => 'green', 'url' => '/admin/automation/correspondences/create', 'permission' => 'automation.correspondence.create', 'sort_order' => 30],
+                    ['key' => 'automation-dashboard', 'title' => $this->fa('&#x062F;&#x0627;&#x0634;&#x0628;&#x0648;&#x0631;&#x062F; &#x0645;&#x06A9;&#x0627;&#x062A;&#x0628;&#x0627;&#x062A;'), 'description' => $this->fa('&#x0646;&#x0645;&#x0627;&#x06CC; &#x06A9;&#x0644;&#x06CC; &#x067E;&#x06CC;&#x0634; &#x0646;&#x0648;&#x06CC;&#x0633;&#x200C;&#x0647;&#x0627; &#x0648; &#x0645;&#x06A9;&#x0627;&#x062A;&#x0628;&#x0627;&#x062A; &#x0627;&#x062E;&#x06CC;&#x0631;'), 'icon' => 'dashboard', 'color' => 'indigo', 'url' => '/admin/automation', 'permission' => 'automation.correspondence.view', 'sort_order' => 10],
+                    ['key' => 'automation-correspondences', 'title' => $this->fa('&#x0645;&#x06A9;&#x0627;&#x062A;&#x0628;&#x0627;&#x062A;'), 'description' => $this->fa('&#x062C;&#x0633;&#x062A;&#x062C;&#x0648;&#x060C; &#x0641;&#x06CC;&#x0644;&#x062A;&#x0631; &#x0648; &#x0645;&#x0634;&#x0627;&#x0647;&#x062F;&#x0647; &#x0645;&#x06A9;&#x0627;&#x062A;&#x0628;&#x0627;&#x062A;'), 'icon' => 'file-lines', 'color' => 'blue', 'url' => '/admin/automation/correspondences', 'permission' => 'automation.correspondence.view', 'sort_order' => 20],
+                    ['key' => 'automation-create', 'title' => $this->fa('&#x0627;&#x06CC;&#x062C;&#x0627;&#x062F; &#x067E;&#x06CC;&#x0634; &#x0646;&#x0648;&#x06CC;&#x0633;'), 'description' => $this->fa('&#x062B;&#x0628;&#x062A; &#x0645;&#x06A9;&#x0627;&#x062A;&#x0628;&#x0647; &#x0648; &#x0646;&#x0633;&#x062E;&#x0647; &#x0627;&#x0648;&#x0644;'), 'icon' => 'circle-check', 'color' => 'green', 'url' => '/admin/automation/correspondences/create', 'permission' => 'automation.correspondence.create', 'sort_order' => 30],
                 ],
             ],
             [
@@ -256,8 +256,12 @@ class AdminPanelService extends BaseService
 
         $urls = new ApplicationUrlRegistry();
         foreach ($definitions as &$module) {
-            $isAutomation = ($module['key'] ?? '') === 'automation';
-            $qualify = fn (string $path): string => $isAutomation ? $urls->automationLaunch($path) : $urls->core($path);
+            $moduleKey = (string) ($module['key'] ?? '');
+            $qualify = match ($moduleKey) {
+                'automation' => fn (string $path): string => $urls->automationLaunch($path),
+                'work' => fn (string $path): string => $urls->workLaunch($path),
+                default => fn (string $path): string => $urls->core($path),
+            };
             $module['url'] = $qualify((string) ($module['url'] ?? '/'));
             foreach ($module['actions'] ?? [] as &$action) {
                 $action['url'] = $qualify((string) ($action['url'] ?? '/'));

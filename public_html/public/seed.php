@@ -86,6 +86,14 @@ if ($application !== '') {
             throw new \RuntimeException('Standalone automation schema is not ready.');
         }
 
+        if ($application === 'work'
+            && (!$tableExists('work_statuses')
+                || !$tableExists('work_projects')
+                || !$tableExists('work_items'))
+        ) {
+            throw new \RuntimeException('Standalone work schema is not ready.');
+        }
+
         $executed = (new \IPKF\Database\Application\ApplicationSeederRunner())
             ->run($seederRegistry->seedersFor($application));
 
