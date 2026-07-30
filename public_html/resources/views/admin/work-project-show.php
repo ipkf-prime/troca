@@ -83,11 +83,11 @@ ob_start();
 <section class="admin-section">
     <h3>مدیریت اجرایی</h3>
     <div class="admin-action-grid">
-        <article class="admin-action-card">
+        <a class="admin-action-card" href="<?= admin_h($projectUrl . '/members') ?>">
             <div class="admin-action-card__icon"><?= \App\Support\AdminIcon::html('users') ?></div>
             <div><h4>اعضای پروژه</h4><p>افزودن مدیر، عضو و ناظر پروژه</p></div>
-            <span class="admin-pill">مرحله بعد</span>
-        </article>
+            <span class="admin-pill">مدیریت اعضا</span>
+        </a>
         <article class="admin-action-card">
             <div class="admin-action-card__icon"><?= \App\Support\AdminIcon::html('status') ?></div>
             <div><h4>کارها و تسک‌ها</h4><p>ساخت کار، نقطه عطف، تسک و زیرتسک</p></div>

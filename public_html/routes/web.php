@@ -2171,6 +2171,123 @@ $router->post('/admin/work/projects/{public_reference}/restore', function ($requ
     return $response->redirect('/admin/work/projects/' . rawurlencode($publicReference));
 });
 
+$router->get('/admin/work/projects/{public_reference}/members', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/members');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $page = (new \App\Services\Work\WorkProjectMemberService())->view((string) $request->route('public_reference'));
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'اعضای پروژه',
+            'context' => $context,
+            'message' => 'اطلاعات اعضای پروژه در حال حاضر در دسترس نیست.',
+        ], 503);
+    }
+
+    if (($page['ok'] ?? false) !== true) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'پروژه پیدا نشد',
+            'context' => $context,
+            'message' => 'پروژه مورد نظر پیدا نشد.',
+        ], 404);
+    }
+
+    return $adminRender($response, 'work-project-members', [
+        'title' => 'اعضای پروژه',
+        'context' => $context,
+        'page' => $page,
+        'errors' => [],
+    ]);
+});
+
+$router->post('/admin/work/projects/{public_reference}/members', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/members');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $publicReference = (string) $request->route('public_reference');
+    try {
+        $service = new \App\Services\Work\WorkProjectMemberService();
+        $result = $service->add($publicReference, $request->all(), (int) $context['user_id'], $context);
+
+        if (($result['ok'] ?? false) === true) {
+            return $response->redirect('/admin/work/projects/' . rawurlencode($publicReference) . '/members?saved=1');
+        }
+        if (($result['not_found'] ?? false) === true) {
+            return $adminRender($response, 'placeholder', [
+                'title' => 'پروژه پیدا نشد',
+                'context' => $context,
+                'message' => 'پروژه مورد نظر پیدا نشد.',
+            ], 404);
+        }
+
+        $page = $service->view($publicReference);
+        return $adminRender($response, 'work-project-members', [
+            'title' => 'اعضای پروژه',
+            'context' => $context,
+            'page' => $page,
+            'errors' => $result['errors'] ?? ['member' => 'ثبت عضو انجام نشد.'],
+        ], 422);
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'اعضای پروژه',
+            'context' => $context,
+            'message' => 'ثبت عضو پروژه در حال حاضر انجام نشد.',
+        ], 503);
+    }
+});
+
+$router->post('/admin/work/projects/{public_reference}/members/{member_id}/role', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/members');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $publicReference = (string) $request->route('public_reference');
+    try {
+        $updated = (new \App\Services\Work\WorkProjectMemberService())->updateRole(
+            $publicReference,
+            (int) $request->route('member_id'),
+            $request->all(),
+            (int) $context['user_id'],
+            $context
+        );
+    } catch (\Throwable) {
+        $updated = false;
+    }
+
+    return $response->redirect(
+        '/admin/work/projects/' . rawurlencode($publicReference) . '/members?' . ($updated ? 'updated=1' : 'error=1')
+    );
+});
+
+$router->post('/admin/work/projects/{public_reference}/members/{member_id}/remove', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/members');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $publicReference = (string) $request->route('public_reference');
+    try {
+        $removed = (new \App\Services\Work\WorkProjectMemberService())->remove(
+            $publicReference,
+            (int) $request->route('member_id'),
+            (int) $context['user_id'],
+            $context
+        );
+    } catch (\Throwable) {
+        $removed = false;
+    }
+
+    return $response->redirect(
+        '/admin/work/projects/' . rawurlencode($publicReference) . '/members?' . ($removed ? 'removed=1' : 'error=1')
+    );
+});
+
 $router->get('/admin/automation/correspondences', function ($request, $response) use ($adminRender, $adminGuard, $automationUnavailable) {
     $context = $adminGuard($response, '/admin/automation/correspondences');
 
