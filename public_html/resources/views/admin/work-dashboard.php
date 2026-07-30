@@ -23,17 +23,15 @@ $cards = [
 ];
 
 ob_start();
+require __DIR__ . '/work-ui-styles.php';
 ?>
 <section class="admin-page work-dashboard" data-admin-module-page="work">
-    <div class="admin-section__header">
-        <div>
-            <h2><?= admin_h(admin_fa('&#x062F;&#x0627;&#x0634;&#x0628;&#x0648;&#x0631;&#x062F; &#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x06A9;&#x0627;&#x0631;')) ?></h2>
-            <p class="admin-muted"><?= admin_h(admin_fa('&#x0645;&#x0631;&#x06A9;&#x0632; &#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x067E;&#x0631;&#x0648;&#x0698;&#x0647;&#x200C;&#x0647;&#x0627;&#x060C; &#x06A9;&#x0627;&#x0631;&#x0647;&#x0627; &#x0648; &#x062A;&#x0633;&#x06A9;&#x200C;&#x0647;&#x0627;&#x06CC; &#x062A;&#x06CC;&#x0645;')) ?></p>
-        </div>
+    <div class="admin-section__header work-dashboard__toolbar">
+        <p class="admin-muted"><?= admin_h(admin_fa('&#x0645;&#x0631;&#x06A9;&#x0632; &#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x067E;&#x0631;&#x0648;&#x0698;&#x0647;&#x200C;&#x0647;&#x0627;&#x060C; &#x06A9;&#x0627;&#x0631;&#x0647;&#x0627; &#x0648; &#x062A;&#x0633;&#x06A9;&#x200C;&#x0647;&#x0627;&#x06CC; &#x062A;&#x06CC;&#x0645;')) ?></p>
         <a class="admin-button" href="/admin/work/projects">مدیریت پروژه‌ها</a>
     </div>
 
-    <section class="admin-action-grid" aria-label="<?= admin_h(admin_fa('&#x0628;&#x062E;&#x0634;&#x200C;&#x0647;&#x0627;&#x06CC; Work')) ?>">
+    <section class="admin-action-grid" aria-label="بخش‌های مدیریت کار">
         <?php foreach ($cards as $card): ?>
             <article class="admin-action-tile admin-action-tile--<?= admin_h($card['color']) ?>">
                 <span class="admin-action-tile__icon">

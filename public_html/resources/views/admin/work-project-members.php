@@ -17,6 +17,7 @@ $projectUrl = '/admin/work/projects/' . rawurlencode($projectReference);
 $isArchived = !empty($project['archived_at']);
 
 ob_start();
+require __DIR__ . '/work-ui-styles.php';
 ?>
 <nav class="admin-breadcrumb" aria-label="breadcrumb">
     <a href="/admin/dashboard">داشبورد</a><span>/</span>
@@ -26,7 +27,7 @@ ob_start();
     <span>اعضا</span>
 </nav>
 
-<section class="admin-module-hub admin-module-hub--green">
+<section class="admin-module-hub admin-module-hub--green work-ui-compact-hub">
     <div class="admin-module-hub__icon"><?= \App\Support\AdminIcon::html('users') ?></div>
     <div>
         <h2>اعضای پروژه</h2>
@@ -55,45 +56,43 @@ ob_start();
 <?php endif; ?>
 
 <?php if (!$isArchived): ?>
-<section class="admin-section">
-    <div class="admin-section__header">
+<section class="admin-section work-compact-section">
+    <div class="work-section-heading">
         <div><h3>افزودن عضو</h3><p class="admin-muted">کاربر سامانه و نقش او در پروژه را انتخاب کنید.</p></div>
     </div>
 
     <?php if ($users === []): ?>
         <div class="admin-empty-state">همه کاربران فعال سامانه عضو این پروژه هستند.</div>
     <?php else: ?>
-        <form method="post" action="<?= admin_h($projectUrl . '/members') ?>">
+        <form method="post" action="<?= admin_h($projectUrl . '/members') ?>" class="work-members-inline-form">
             <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
-            <div class="admin-form-grid">
-                <label>
-                    <span>کاربر</span>
-                    <select name="user_id" required>
-                        <option value="">انتخاب کاربر</option>
-                        <?php foreach ($users as $candidate): ?>
-                            <option value="<?= admin_h((int) ($candidate['id'] ?? 0)) ?>">
-                                <?= admin_h($candidate['display_name'] ?? '') ?><?= !empty($candidate['username']) ? ' — ' . admin_h($candidate['username']) : '' ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-                <label>
-                    <span>نقش در پروژه</span>
-                    <select name="role_code" required>
-                        <?php foreach ($roleOptions as $roleCode => $roleLabel): ?>
-                            <option value="<?= admin_h($roleCode) ?>"<?= $roleCode === 'member' ? ' selected' : '' ?>><?= admin_h($roleLabel) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-            </div>
-            <div class="admin-form-actions"><button class="admin-button" type="submit">افزودن عضو</button></div>
+            <label>
+                <span>کاربر</span>
+                <select name="user_id" required>
+                    <option value="">انتخاب کاربر</option>
+                    <?php foreach ($users as $candidate): ?>
+                        <option value="<?= admin_h((int) ($candidate['id'] ?? 0)) ?>">
+                            <?= admin_h($candidate['display_name'] ?? '') ?><?= !empty($candidate['username']) ? ' — ' . admin_h($candidate['username']) : '' ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <label>
+                <span>نقش در پروژه</span>
+                <select name="role_code" required>
+                    <?php foreach ($roleOptions as $roleCode => $roleLabel): ?>
+                        <option value="<?= admin_h($roleCode) ?>"<?= $roleCode === 'member' ? ' selected' : '' ?>><?= admin_h($roleLabel) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <button class="admin-button" type="submit">افزودن عضو</button>
         </form>
     <?php endif; ?>
 </section>
 <?php endif; ?>
 
-<section class="admin-section">
-    <div class="admin-section__header">
+<section class="admin-section work-compact-section">
+    <div class="work-section-heading">
         <div><h3>فهرست اعضا</h3><p class="admin-muted"><?= admin_h(\App\Support\AdminFormat::digits(count($members))) ?> عضو فعال</p></div>
     </div>
 
@@ -113,7 +112,7 @@ ob_start();
                             <?php if ($isOwner || $isArchived): ?>
                                 <span class="admin-pill"><?= admin_h($member['role_title'] ?? '') ?></span>
                             <?php else: ?>
-                                <form method="post" action="<?= admin_h($projectUrl . '/members/' . $memberId . '/role') ?>" class="admin-form-actions">
+                                <form method="post" action="<?= admin_h($projectUrl . '/members/' . $memberId . '/role') ?>" class="work-member-role-form">
                                     <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
                                     <select name="role_code" aria-label="نقش عضو">
                                         <?php foreach ($roleOptions as $roleCode => $roleLabel): ?>

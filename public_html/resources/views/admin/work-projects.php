@@ -14,6 +14,7 @@ $statusOptions = $list['status_options'] ?? [];
 $total = (int) ($list['total'] ?? count($items));
 
 ob_start();
+require __DIR__ . '/work-ui-styles.php';
 ?>
 <nav class="admin-breadcrumb" aria-label="breadcrumb">
     <a href="/admin/dashboard">داشبورد</a>
@@ -23,7 +24,7 @@ ob_start();
     <span>پروژه‌ها</span>
 </nav>
 
-<section class="admin-module-hub admin-module-hub--green">
+<section class="admin-module-hub admin-module-hub--green work-ui-compact-hub">
     <div class="admin-module-hub__icon">
         <?= \App\Support\AdminIcon::html('organization') ?>
     </div>

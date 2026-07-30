@@ -19,6 +19,7 @@ $startDateFa = \App\Support\PersianDate::fromGregorianDate((string) ($form['star
 $targetDateFa = \App\Support\PersianDate::fromGregorianDate((string) ($form['target_date'] ?? ''));
 
 ob_start();
+require __DIR__ . '/work-ui-styles.php';
 ?>
 <nav class="admin-breadcrumb" aria-label="breadcrumb">
     <a href="/admin/dashboard">داشبورد</a><span>/</span>
@@ -27,7 +28,7 @@ ob_start();
     <span><?= admin_h($formHeading) ?></span>
 </nav>
 
-<section class="admin-module-hub admin-module-hub--green">
+<section class="admin-module-hub admin-module-hub--green work-ui-compact-hub">
     <div class="admin-module-hub__icon"><?= \App\Support\AdminIcon::html('organization') ?></div>
     <div>
         <h2><?= admin_h($formHeading) ?></h2>
@@ -49,11 +50,12 @@ ob_start();
     </section>
 <?php endif; ?>
 
-<section class="admin-section">
+<section class="admin-section work-compact-section">
     <form method="post" action="<?= admin_h($formAction) ?>">
         <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
-        <div class="admin-form-grid">
-            <label class="admin-form-grid__wide">
+
+        <div class="work-form-primary">
+            <label class="work-field-wide">
                 <span>عنوان پروژه</span>
                 <input name="title" value="<?= admin_h($form['title'] ?? '') ?>" maxlength="255" required autofocus>
             </label>
@@ -84,16 +86,6 @@ ob_start();
                         </option>
                     <?php endforeach; ?>
                 </select>
-            </label>
-
-            <label>
-                <span>عنوان سازمان</span>
-                <input name="organization_snapshot" value="<?= admin_h($form['organization_snapshot'] ?? '') ?>" maxlength="255" placeholder="اختیاری">
-            </label>
-
-            <label>
-                <span>شناسه سازمان</span>
-                <input name="organization_reference" value="<?= admin_h($form['organization_reference'] ?? '') ?>" maxlength="100" dir="ltr" placeholder="اختیاری">
             </label>
 
             <label>
@@ -129,12 +121,27 @@ ob_start();
                     <button type="button" class="admin-persian-date__toggle" data-persian-date-toggle aria-label="انتخاب تاریخ هدف"><?= \App\Support\AdminIcon::html('calendar') ?></button>
                 </div>
             </label>
-
-            <label class="admin-form-grid__wide">
-                <span>شرح پروژه</span>
-                <textarea name="description" rows="7" maxlength="20000" placeholder="هدف، محدوده و خروجی مورد انتظار پروژه"><?= admin_h($form['description'] ?? '') ?></textarea>
-            </label>
         </div>
+
+        <details class="work-form-more"<?= trim((string) ($form['organization_snapshot'] ?? '')) !== '' || trim((string) ($form['organization_reference'] ?? '')) !== '' || trim((string) ($form['description'] ?? '')) !== '' ? ' open' : '' ?>>
+            <summary>اطلاعات تکمیلی</summary>
+            <div class="admin-form-grid">
+                <label>
+                    <span>عنوان سازمان</span>
+                    <input name="organization_snapshot" value="<?= admin_h($form['organization_snapshot'] ?? '') ?>" maxlength="255" placeholder="اختیاری">
+                </label>
+
+                <label>
+                    <span>شناسه سازمان</span>
+                    <input name="organization_reference" value="<?= admin_h($form['organization_reference'] ?? '') ?>" maxlength="100" dir="ltr" placeholder="اختیاری">
+                </label>
+
+                <label class="admin-form-grid__wide">
+                    <span>شرح پروژه</span>
+                    <textarea name="description" rows="4" maxlength="20000" placeholder="هدف، محدوده و خروجی مورد انتظار پروژه"><?= admin_h($form['description'] ?? '') ?></textarea>
+                </label>
+            </div>
+        </details>
 
         <div class="admin-form-actions">
             <button class="admin-button" type="submit"><?= $isEdit ? 'ذخیره تغییرات' : 'ایجاد پروژه' ?></button>
