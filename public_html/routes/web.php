@@ -1234,6 +1234,7 @@ $router->get('/test', function ($req, $res) {
 });
 
 $adminRender = function ($response, string $view, array $data = [], int $status = 200) {
+    $httpStatus = $status;
     $path = BASE_PATH . '/resources/views/admin/' . $view . '.php';
 
     if (!is_readable($path)) {
@@ -1246,7 +1247,7 @@ $adminRender = function ($response, string $view, array $data = [], int $status 
     $content = ob_get_clean() ?: '';
 
     return $response
-        ->status($status)
+        ->status($httpStatus)
         ->header('Content-Type', 'text/html; charset=UTF-8')
         ->send($content);
 };

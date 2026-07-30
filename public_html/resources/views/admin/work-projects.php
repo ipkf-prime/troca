@@ -9,7 +9,7 @@ if (!function_exists('admin_h')) {
 $list = $list ?? [];
 $items = $list['items'] ?? [];
 $q = (string) ($list['q'] ?? '');
-$status = (string) ($list['status'] ?? '');
+$selectedStatus = (string) ($list['status'] ?? '');
 $statusOptions = $list['status_options'] ?? [];
 $total = (int) ($list['total'] ?? count($items));
 
@@ -50,13 +50,13 @@ ob_start();
                 >
                 <select name="status" aria-label="وضعیت پروژه">
                     <?php foreach ($statusOptions as $code => $title): ?>
-                        <option value="<?= admin_h($code) ?>"<?= $status === $code ? ' selected' : '' ?>>
+                        <option value="<?= admin_h($code) ?>"<?= $selectedStatus === $code ? ' selected' : '' ?>>
                             <?= admin_h($title) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
                 <button class="admin-button" type="submit">اعمال فیلتر</button>
-                <?php if ($q !== '' || $status !== ''): ?>
+                <?php if ($q !== '' || $selectedStatus !== ''): ?>
                     <a class="admin-button admin-button--soft" href="/admin/work/projects">بازنشانی</a>
                 <?php endif; ?>
             </div>
@@ -70,7 +70,7 @@ ob_start();
 
     <?php if ($items === []): ?>
         <div class="admin-empty-state">
-            <?= ($q === '' && $status === '') ? 'هنوز پروژه‌ای ثبت نشده است.' : 'پروژه‌ای مطابق فیلترها پیدا نشد.' ?>
+            <?= ($q === '' && $selectedStatus === '') ? 'هنوز پروژه‌ای ثبت نشده است.' : 'پروژه‌ای مطابق فیلترها پیدا نشد.' ?>
         </div>
     <?php else: ?>
         <div class="admin-table-wrap">
