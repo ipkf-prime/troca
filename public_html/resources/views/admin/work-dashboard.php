@@ -30,6 +30,7 @@ ob_start();
             <h2><?= admin_h(admin_fa('&#x062F;&#x0627;&#x0634;&#x0628;&#x0648;&#x0631;&#x062F; &#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x06A9;&#x0627;&#x0631;')) ?></h2>
             <p class="admin-muted"><?= admin_h(admin_fa('&#x0645;&#x0631;&#x06A9;&#x0632; &#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x067E;&#x0631;&#x0648;&#x0698;&#x0647;&#x200C;&#x0647;&#x0627;&#x060C; &#x06A9;&#x0627;&#x0631;&#x0647;&#x0627; &#x0648; &#x062A;&#x0633;&#x06A9;&#x200C;&#x0647;&#x0627;&#x06CC; &#x062A;&#x06CC;&#x0645;')) ?></p>
         </div>
+        <a class="admin-button" href="/admin/work/projects">مدیریت پروژه‌ها</a>
     </div>
 
     <section class="admin-action-grid" aria-label="<?= admin_h(admin_fa('&#x0628;&#x062E;&#x0634;&#x200C;&#x0647;&#x0627;&#x06CC; Work')) ?>">

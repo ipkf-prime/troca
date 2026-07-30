@@ -1958,6 +1958,29 @@ $router->get('/admin/work', function ($request, $response) use ($adminRender, $a
     ]);
 });
 
+$router->get('/admin/work/projects', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $list = (new \App\Services\Work\WorkProjectService())->index($request->all());
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'پروژه‌های مدیریت کار',
+            'context' => $context,
+            'message' => 'فهرست پروژه‌های مدیریت کار در حال حاضر در دسترس نیست.',
+        ], 503);
+    }
+
+    return $adminRender($response, 'work-projects', [
+        'title' => 'پروژه‌های مدیریت کار',
+        'context' => $context,
+        'list' => $list,
+    ]);
+});
+
 $router->get('/admin/automation/correspondences', function ($request, $response) use ($adminRender, $adminGuard, $automationUnavailable) {
     $context = $adminGuard($response, '/admin/automation/correspondences');
 
