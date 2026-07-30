@@ -49,9 +49,9 @@ ob_start();
                     placeholder="عنوان، کد یا شناسه پروژه"
                 >
                 <select name="status" aria-label="وضعیت پروژه">
-                    <?php foreach ($statusOptions as $code => $title): ?>
+                    <?php foreach ($statusOptions as $code => $statusTitle): ?>
                         <option value="<?= admin_h($code) ?>"<?= $selectedStatus === $code ? ' selected' : '' ?>>
-                            <?= admin_h($title) ?>
+                            <?= admin_h($statusTitle) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
