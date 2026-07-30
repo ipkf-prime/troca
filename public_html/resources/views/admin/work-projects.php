@@ -62,6 +62,7 @@ ob_start();
             </div>
         </form>
 
+        <a class="admin-button" href="/admin/work/projects/create">ایجاد پروژه</a>
         <div class="admin-users-total">
             <span>تعداد پروژه‌ها</span>
             <strong><?= admin_h(\App\Support\AdminFormat::digits($total)) ?></strong>
@@ -86,13 +87,15 @@ ob_start();
                         <th>آیتم‌ها</th>
                         <th>باز</th>
                         <th>تاریخ هدف</th>
+                        <th>عملیات</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($items as $project): ?>
+                        <?php $projectUrl = '/admin/work/projects/' . rawurlencode((string) ($project['public_reference'] ?? '')); ?>
                         <tr>
                             <td>
-                                <strong><?= admin_h($project['title'] ?? '') ?></strong>
+                                <a href="<?= admin_h($projectUrl) ?>"><strong><?= admin_h($project['title'] ?? '') ?></strong></a>
                                 <?php if (!empty($project['organization_snapshot'])): ?>
                                     <small class="admin-muted"><?= admin_h($project['organization_snapshot']) ?></small>
                                 <?php endif; ?>
@@ -105,6 +108,9 @@ ob_start();
                             <td><?= admin_h(\App\Support\AdminFormat::digits((int) ($project['item_count'] ?? 0))) ?></td>
                             <td><?= admin_h(\App\Support\AdminFormat::digits((int) ($project['open_item_count'] ?? 0))) ?></td>
                             <td dir="ltr"><?= admin_h($project['target_date'] ?: '—') ?></td>
+                            <td>
+                                <a class="admin-button admin-button--soft admin-button--compact" href="<?= admin_h($projectUrl) ?>">مشاهده</a>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

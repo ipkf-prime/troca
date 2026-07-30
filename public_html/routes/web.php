@@ -1982,6 +1982,195 @@ $router->get('/admin/work/projects', function ($request, $response) use ($adminR
     ]);
 });
 
+$router->get('/admin/work/projects/create', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/create');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $formResult = (new \App\Services\Work\WorkProjectService())->form();
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'ایجاد پروژه',
+            'context' => $context,
+            'message' => 'فرم ایجاد پروژه در حال حاضر در دسترس نیست.',
+        ], 503);
+    }
+
+    return $adminRender($response, 'work-project-form', [
+        'title' => 'ایجاد پروژه',
+        'context' => $context,
+        'form' => $formResult['form'],
+        'options' => $formResult['options'],
+        'errors' => [],
+        'isEdit' => false,
+    ]);
+});
+
+$router->post('/admin/work/projects', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/create');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $service = new \App\Services\Work\WorkProjectService();
+        $result = $service->create($request->all(), (int) $context['user_id'], $context);
+
+        if (($result['ok'] ?? false) === true) {
+            return $response->redirect('/admin/work/projects/' . rawurlencode((string) $result['public_reference']) . '?saved=1');
+        }
+
+        $formResult = $service->form();
+        return $adminRender($response, 'work-project-form', [
+            'title' => 'ایجاد پروژه',
+            'context' => $context,
+            'form' => ($result['form'] ?? []) + $formResult['form'],
+            'options' => $formResult['options'],
+            'errors' => $result['errors'] ?? ['invalid' => 'اطلاعات پروژه معتبر نیست.'],
+            'isEdit' => false,
+        ], 422);
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'ایجاد پروژه',
+            'context' => $context,
+            'message' => 'ثبت پروژه در حال حاضر انجام نشد.',
+        ], 503);
+    }
+});
+
+$router->get('/admin/work/projects/{public_reference}', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $result = (new \App\Services\Work\WorkProjectService())->detail((string) $request->route('public_reference'));
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'جزئیات پروژه',
+            'context' => $context,
+            'message' => 'اطلاعات پروژه در حال حاضر در دسترس نیست.',
+        ], 503);
+    }
+
+    if (($result['ok'] ?? false) !== true) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'پروژه پیدا نشد',
+            'context' => $context,
+            'message' => 'پروژه مورد نظر پیدا نشد.',
+        ], 404);
+    }
+
+    return $adminRender($response, 'work-project-show', [
+        'title' => (string) ($result['project']['title'] ?? 'جزئیات پروژه'),
+        'context' => $context,
+        'project' => $result['project'],
+    ]);
+});
+
+$router->get('/admin/work/projects/{public_reference}/edit', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/edit');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $result = (new \App\Services\Work\WorkProjectService())->form((string) $request->route('public_reference'));
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'ویرایش پروژه',
+            'context' => $context,
+            'message' => 'فرم ویرایش پروژه در حال حاضر در دسترس نیست.',
+        ], 503);
+    }
+
+    if (($result['ok'] ?? false) !== true) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'پروژه پیدا نشد',
+            'context' => $context,
+            'message' => 'پروژه مورد نظر پیدا نشد.',
+        ], 404);
+    }
+
+    return $adminRender($response, 'work-project-form', [
+        'title' => 'ویرایش پروژه',
+        'context' => $context,
+        'form' => $result['form'],
+        'options' => $result['options'],
+        'errors' => [],
+        'isEdit' => true,
+    ]);
+});
+
+$router->post('/admin/work/projects/{public_reference}', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/edit');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $publicReference = (string) $request->route('public_reference');
+
+    try {
+        $service = new \App\Services\Work\WorkProjectService();
+        $result = $service->update($publicReference, $request->all(), (int) $context['user_id'], $context);
+
+        if (($result['ok'] ?? false) === true) {
+            return $response->redirect('/admin/work/projects/' . rawurlencode($publicReference) . '?saved=1');
+        }
+
+        if (($result['not_found'] ?? false) === true) {
+            return $adminRender($response, 'placeholder', [
+                'title' => 'پروژه پیدا نشد',
+                'context' => $context,
+                'message' => 'پروژه مورد نظر پیدا نشد.',
+            ], 404);
+        }
+
+        $formResult = $service->form($publicReference);
+        return $adminRender($response, 'work-project-form', [
+            'title' => 'ویرایش پروژه',
+            'context' => $context,
+            'form' => ($result['form'] ?? []) + ($formResult['form'] ?? []),
+            'options' => $formResult['options'] ?? [],
+            'errors' => $result['errors'] ?? ['invalid' => 'اطلاعات پروژه معتبر نیست.'],
+            'isEdit' => true,
+        ], 422);
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'ویرایش پروژه',
+            'context' => $context,
+            'message' => 'ذخیره تغییرات پروژه در حال حاضر انجام نشد.',
+        ], 503);
+    }
+});
+
+$router->post('/admin/work/projects/{public_reference}/archive', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $publicReference = (string) $request->route('public_reference');
+    (new \App\Services\Work\WorkProjectService())->archive($publicReference, (int) $context['user_id'], $context);
+
+    return $response->redirect('/admin/work/projects?status=archived');
+});
+
+$router->post('/admin/work/projects/{public_reference}/restore', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $publicReference = (string) $request->route('public_reference');
+    (new \App\Services\Work\WorkProjectService())->restore($publicReference, (int) $context['user_id'], $context);
+
+    return $response->redirect('/admin/work/projects/' . rawurlencode($publicReference));
+});
+
 $router->get('/admin/automation/correspondences', function ($request, $response) use ($adminRender, $adminGuard, $automationUnavailable) {
     $context = $adminGuard($response, '/admin/automation/correspondences');
 
