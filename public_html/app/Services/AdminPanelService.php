@@ -43,8 +43,8 @@ class AdminPanelService extends BaseService
         if ($workShell) {
             $moduleShellContext = AdminModuleUiContract::shell(
                 'work',
-                'IPKF Work Management',
-                $this->fa('&#x067E;&#x0631;&#x0648;&#x0698;&#x0647;&#x200C;&#x0647;&#x0627;&#x060C; &#x06A9;&#x0627;&#x0631;&#x0647;&#x0627; &#x0648; &#x062A;&#x0633;&#x06A9;&#x200C;&#x0647;&#x0627;'),
+                'مدیریت کار تروکا',
+                'پروژه‌ها، کارها و تسک‌ها',
                 '/admin/work',
                 $urls->core('/admin/dashboard')
             );
@@ -101,6 +101,7 @@ class AdminPanelService extends BaseService
     {
         $items = [
             ['key' => 'work-dashboard', 'title' => $this->fa('&#x062F;&#x0627;&#x0634;&#x0628;&#x0648;&#x0631;&#x062F; &#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x06A9;&#x0627;&#x0631;'), 'url' => '/admin/work', 'icon' => 'dashboard', 'permission' => 'work.project.view', 'active_paths' => ['/admin/work']],
+            ['key' => 'work-projects', 'title' => 'پروژه‌ها', 'url' => '/admin/work/projects', 'icon' => 'organization', 'permission' => 'work.project.view', 'active_paths' => ['/admin/work/projects', '/admin/work/projects/*']],
         ];
 
         return array_values(array_filter($items, fn (array $item): bool => $this->navigation->can($userId, (string) $item['permission'])));

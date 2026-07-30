@@ -15,6 +15,8 @@ $formAction = $isEdit
     ? '/admin/work/projects/' . rawurlencode($projectReference)
     : '/admin/work/projects';
 $formHeading = $isEdit ? 'ویرایش پروژه' : 'ایجاد پروژه';
+$startDateFa = \App\Support\PersianDate::fromGregorianDate((string) ($form['start_date'] ?? ''));
+$targetDateFa = \App\Support\PersianDate::fromGregorianDate((string) ($form['target_date'] ?? ''));
 
 ob_start();
 ?>
@@ -96,12 +98,36 @@ ob_start();
 
             <label>
                 <span>تاریخ شروع</span>
-                <input type="date" name="start_date" value="<?= admin_h($form['start_date'] ?? '') ?>">
+                <div class="admin-persian-date" data-persian-datepicker>
+                    <input
+                        type="text"
+                        name="start_date_fa"
+                        data-persian-date-input
+                        inputmode="numeric"
+                        autocomplete="off"
+                        placeholder="۱۴۰۵/۰۵/۰۸"
+                        value="<?= admin_h($startDateFa) ?>"
+                    >
+                    <input type="hidden" name="start_date" data-persian-date-output value="<?= admin_h($form['start_date'] ?? '') ?>">
+                    <button type="button" class="admin-persian-date__toggle" data-persian-date-toggle aria-label="انتخاب تاریخ شروع"><?= \App\Support\AdminIcon::html('calendar') ?></button>
+                </div>
             </label>
 
             <label>
                 <span>تاریخ هدف</span>
-                <input type="date" name="target_date" value="<?= admin_h($form['target_date'] ?? '') ?>">
+                <div class="admin-persian-date" data-persian-datepicker>
+                    <input
+                        type="text"
+                        name="target_date_fa"
+                        data-persian-date-input
+                        inputmode="numeric"
+                        autocomplete="off"
+                        placeholder="۱۴۰۵/۰۶/۳۱"
+                        value="<?= admin_h($targetDateFa) ?>"
+                    >
+                    <input type="hidden" name="target_date" data-persian-date-output value="<?= admin_h($form['target_date'] ?? '') ?>">
+                    <button type="button" class="admin-persian-date__toggle" data-persian-date-toggle aria-label="انتخاب تاریخ هدف"><?= \App\Support\AdminIcon::html('calendar') ?></button>
+                </div>
             </label>
 
             <label class="admin-form-grid__wide">

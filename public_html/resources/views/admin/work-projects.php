@@ -103,11 +103,11 @@ ob_start();
                             <td dir="ltr"><?= admin_h($project['code'] ?? '') ?></td>
                             <td><span class="admin-pill"><?= admin_h($project['status_title'] ?? '') ?></span></td>
                             <td><?= admin_h($project['visibility_title'] ?? '') ?></td>
-                            <td dir="ltr"><?= admin_h($project['owner_user_reference'] ?: '—') ?></td>
+                            <td><?= admin_h((($project['owner_display_name'] ?? '') ?: (($project['owner_user_reference'] ?? '') ?: '—'))) ?></td>
                             <td><?= admin_h(\App\Support\AdminFormat::digits((int) ($project['member_count'] ?? 0))) ?></td>
                             <td><?= admin_h(\App\Support\AdminFormat::digits((int) ($project['item_count'] ?? 0))) ?></td>
                             <td><?= admin_h(\App\Support\AdminFormat::digits((int) ($project['open_item_count'] ?? 0))) ?></td>
-                            <td dir="ltr"><?= admin_h($project['target_date'] ?: '—') ?></td>
+                            <td><?= admin_h(\App\Support\PersianDate::fromGregorianDate((string) ($project['target_date'] ?? '')) ?: '—') ?></td>
                             <td>
                                 <a class="admin-button admin-button--soft admin-button--compact" href="<?= admin_h($projectUrl) ?>">مشاهده</a>
                             </td>

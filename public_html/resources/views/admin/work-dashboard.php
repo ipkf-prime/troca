@@ -17,7 +17,7 @@ $summary = $dashboard['summary'] ?? [];
 $tasks = $dashboard['recent_tasks'] ?? [];
 $cards = [
     ['title' => admin_fa('&#x067E;&#x0631;&#x0648;&#x0698;&#x0647;&#x200C;&#x0647;&#x0627;'), 'description' => admin_fa('&#x0646;&#x0645;&#x0627;&#x06CC; &#x06A9;&#x0644;&#x06CC; &#x067E;&#x0631;&#x0648;&#x0698;&#x0647;&#x200C;&#x0647;&#x0627;&#x06CC; &#x0641;&#x0639;&#x0627;&#x0644;'), 'value' => (int) ($summary['projects'] ?? 0), 'icon' => 'organization', 'color' => 'green'],
-    ['title' => admin_fa('&#x06A9;&#x0627;&#x0631;&#x0647;&#x0627;'), 'description' => admin_fa('&#x06A9;&#x0627;&#x0631;&#x0647;&#x0627;&#x06CC; &#x0628;&#x0627;&#x0632; &#x062F;&#x0631; &#x0633;&#x0627;&#x062E;&#x062A;&#x0627;&#x0631; Work'), 'value' => (int) ($summary['works'] ?? 0), 'icon' => 'circle-check', 'color' => 'teal'],
+    ['title' => 'کارها', 'description' => 'کارهای باز در ساختار مدیریت کار', 'value' => (int) ($summary['works'] ?? 0), 'icon' => 'circle-check', 'color' => 'teal'],
     ['title' => admin_fa('&#x06A9;&#x0627;&#x0631;&#x0647;&#x0627;&#x06CC; &#x0645;&#x0646;'), 'description' => admin_fa('&#x0627;&#x062A;&#x0635;&#x0627;&#x0644; &#x0628;&#x0647; &#x062A;&#x062E;&#x0635;&#x06CC;&#x0635;&#x200C;&#x0647;&#x0627; &#x062F;&#x0631; &#x0645;&#x0631;&#x062D;&#x0644;&#x0647; &#x0628;&#x0639;&#x062F; &#x062A;&#x06A9;&#x0645;&#x06CC;&#x0644; &#x0645;&#x06CC;&#x200C;&#x0634;&#x0648;&#x062F;'), 'value' => admin_fa('&#x0622;&#x0645;&#x0627;&#x062F;&#x0647;'), 'icon' => 'users', 'color' => 'blue'],
     ['title' => admin_fa('&#x0648;&#x0636;&#x0639;&#x06CC;&#x062A;&#x200C;&#x0647;&#x0627;'), 'description' => admin_fa('&#x0648;&#x0636;&#x0639;&#x06CC;&#x062A;&#x200C;&#x0647;&#x0627;&#x06CC; &#x0633;&#x06CC;&#x0633;&#x062A;&#x0645;&#x06CC; &#x0628;&#x0631;&#x0627;&#x06CC; &#x06A9;&#x0627;&#x0631;&#x0647;&#x0627; &#x0648; &#x062A;&#x0633;&#x06A9;&#x200C;&#x0647;&#x0627;'), 'value' => (int) ($summary['statuses'] ?? 0), 'icon' => 'sliders', 'color' => 'purple'],
 ];
@@ -58,7 +58,7 @@ ob_start();
                     <thead>
                         <tr>
                             <th><?= admin_h(admin_fa('&#x062A;&#x0633;&#x06A9;')) ?></th>
-                            <th><?= admin_h(admin_fa('&#x067E;&#x0631;&#x0648;&#x0698;&#x0647; / Work')) ?></th>
+                            <th>پروژه / کار</th>
                             <th><?= admin_h(admin_fa('&#x0648;&#x0636;&#x0639;&#x06CC;&#x062A;')) ?></th>
                             <th><?= admin_h(admin_fa('&#x0627;&#x0648;&#x0644;&#x0648;&#x06CC;&#x062A;')) ?></th>
                             <th><?= admin_h(admin_fa('&#x067E;&#x06CC;&#x0634;&#x0631;&#x0641;&#x062A;')) ?></th>

@@ -11,6 +11,8 @@ $projectReference = (string) ($project['public_reference'] ?? '');
 $projectUrl = '/admin/work/projects/' . rawurlencode($projectReference);
 $isArchived = !empty($project['archived_at']);
 $saved = isset($_GET['saved']);
+$startDateFa = \App\Support\PersianDate::fromGregorianDate((string) ($project['start_date'] ?? ''));
+$targetDateFa = \App\Support\PersianDate::fromGregorianDate((string) ($project['target_date'] ?? ''));
 
 ob_start();
 ?>
@@ -59,10 +61,10 @@ ob_start();
 
     <dl class="admin-field-list">
         <div><span>شناسه عمومی</span><strong dir="ltr"><?= admin_h($projectReference) ?></strong></div>
-        <div><span>مالک</span><strong dir="ltr"><?= admin_h($project['owner_user_reference'] ?: '—') ?></strong></div>
+        <div><span>مالک</span><strong><?= admin_h((($project['owner_display_name'] ?? '') ?: (($project['owner_user_reference'] ?? '') ?: '—'))) ?></strong></div>
         <div><span>سازمان</span><strong><?= admin_h($project['organization_snapshot'] ?: '—') ?></strong></div>
-        <div><span>تاریخ شروع</span><strong dir="ltr"><?= admin_h($project['start_date'] ?: '—') ?></strong></div>
-        <div><span>تاریخ هدف</span><strong dir="ltr"><?= admin_h($project['target_date'] ?: '—') ?></strong></div>
+        <div><span>تاریخ شروع</span><strong><?= admin_h($startDateFa !== '' ? $startDateFa : '—') ?></strong></div>
+        <div><span>تاریخ هدف</span><strong><?= admin_h($targetDateFa !== '' ? $targetDateFa : '—') ?></strong></div>
         <div><span>اعضا</span><strong><?= admin_h(\App\Support\AdminFormat::digits((int) ($project['member_count'] ?? 0))) ?></strong></div>
         <div><span>کل آیتم‌ها</span><strong><?= admin_h(\App\Support\AdminFormat::digits((int) ($project['item_count'] ?? 0))) ?></strong></div>
         <div><span>آیتم‌های باز</span><strong><?= admin_h(\App\Support\AdminFormat::digits((int) ($project['open_item_count'] ?? 0))) ?></strong></div>
@@ -88,7 +90,7 @@ ob_start();
         </article>
         <article class="admin-action-card">
             <div class="admin-action-card__icon"><?= \App\Support\AdminIcon::html('status') ?></div>
-            <div><h4>کارها و تسک‌ها</h4><p>ساخت Work، Milestone، Task و Subtask</p></div>
+            <div><h4>کارها و تسک‌ها</h4><p>ساخت کار، نقطه عطف، تسک و زیرتسک</p></div>
             <span class="admin-pill">مرحله بعد</span>
         </article>
     </div>

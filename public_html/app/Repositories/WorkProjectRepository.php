@@ -51,6 +51,9 @@ class WorkProjectRepository
                 p.title,
                 p.description,
                 p.owner_user_reference,
+                MAX(CASE WHEN pm.user_reference = p.owner_user_reference AND pm.left_at IS NULL
+                    THEN pm.display_name_snapshot
+                END) AS owner_display_name,
                 p.organization_reference,
                 p.organization_snapshot,
                 p.start_date,
@@ -91,6 +94,12 @@ class WorkProjectRepository
         $statement = $this->db->prepare("
             SELECT
                 p.*,
+                (SELECT pm_owner.display_name_snapshot
+                   FROM work_project_members pm_owner
+                  WHERE pm_owner.project_id = p.id
+                    AND pm_owner.user_reference = p.owner_user_reference
+                    AND pm_owner.left_at IS NULL
+                  LIMIT 1) AS owner_display_name,
                 (SELECT COUNT(*)
                    FROM work_project_members pm
                   WHERE pm.project_id = p.id

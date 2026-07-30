@@ -1947,13 +1947,13 @@ $router->get('/admin/work', function ($request, $response) use ($adminRender, $a
         $dashboard = (new \App\Services\Work\WorkDashboardService())->view();
     } catch (\Throwable) {
         return $adminRender($response, 'placeholder', [
-            'title' => 'IPKF Work Management',
+            'title' => 'داشبورد مدیریت کار',
             'context' => $context,
             'message' => html_entity_decode('&#x062F;&#x0627;&#x0634;&#x0628;&#x0648;&#x0631;&#x062F; Work &#x0647;&#x0646;&#x0648;&#x0632; &#x0622;&#x0645;&#x0627;&#x062F;&#x0647; &#x0646;&#x06CC;&#x0633;&#x062A;. &#x0627;&#x0628;&#x062A;&#x062F;&#x0627; migration &#x0648; seed &#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x06A9;&#x0627;&#x0631; &#x0631;&#x0627; &#x0627;&#x062C;&#x0631;&#x0627; &#x06A9;&#x0646;&#x06CC;&#x062F;.', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
         ], 503);
     }
     return $adminRender($response, 'work-dashboard', [
-        'title' => 'IPKF Work Management',
+        'title' => 'داشبورد مدیریت کار',
         'context' => $context,
         'dashboard' => $dashboard,
     ]);
