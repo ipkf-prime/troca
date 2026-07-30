@@ -1377,7 +1377,7 @@ $router->get('/admin/login', function ($request, $response) use ($adminRender, $
     }
 
     return $adminRender($response, 'login', [
-        'title' => 'ظˆط±ظˆط¯ ط¨ظ‡ ظ¾ظ†ظ„ ظ…ط¯غŒط±غŒطھ',
+        'title' => 'ورود به پنل مدیریت',
         'error' => null,
         'login' => '',
     ]);
@@ -1389,7 +1389,7 @@ $router->get('/admin/forgot-password', function ($request, $response) use ($admi
     }
 
     return $adminRender($response, 'forgot-password', [
-        'title' => 'ط¨ط§ط²غŒط§ط¨غŒ ع©ظ„ظ…ظ‡ ط¹ط¨ظˆط±',
+        'title' => 'بازیابی کلمه عبور',
         'sent' => false,
         'identifier' => '',
     ]);
@@ -1401,7 +1401,7 @@ $router->post('/admin/forgot-password', function ($request, $response) use ($adm
     }
 
     return $adminRender($response, 'forgot-password', [
-        'title' => 'ط¨ط§ط²غŒط§ط¨غŒ ع©ظ„ظ…ظ‡ ط¹ط¨ظˆط±',
+        'title' => 'بازیابی کلمه عبور',
         'sent' => true,
         'identifier' => trim((string) $request->input('login', '')),
     ]);
@@ -1415,8 +1415,8 @@ $router->post('/admin/login', function ($request, $response) use ($adminRender, 
 
     if ($user === null) {
         return $adminRender($response, 'login', [
-            'title' => 'ظˆط±ظˆط¯ ط¨ظ‡ ظ¾ظ†ظ„ ظ…ط¯غŒط±غŒطھ',
-            'error' => 'ط§ط·ظ„ط§ط¹ط§طھ ظˆط±ظˆط¯ ظ…ط¹طھط¨ط± ظ†غŒط³طھ.',
+            'title' => 'ورود به پنل مدیریت',
+            'error' => 'اطلاعات ورود معتبر نیست.',
             'login' => $login,
         ], 422);
     }
@@ -1438,7 +1438,7 @@ $router->get('/admin/mfa', function ($request, $response) use ($adminRender, $ad
     }
 
     return $adminRender($response, 'mfa', [
-        'title' => 'ط±ظ…ط² غŒع©ط¨ط§ط±ظ…طµط±ظپ',
+        'title' => 'رمز یکبارمصرف',
         'error' => null,
     ]);
 });
@@ -1453,8 +1453,8 @@ $router->post('/admin/mfa', function ($request, $response) use ($adminRender, $a
 
     if ($userId === null) {
         return $adminRender($response, 'mfa', [
-            'title' => 'ط±ظ…ط² غŒع©ط¨ط§ط±ظ…طµط±ظپ',
-            'error' => 'ط±ظ…ط² ظˆط§ط±ط¯ ط´ط¯ظ‡ ظ…ط¹طھط¨ط± ظ†غŒط³طھ.',
+            'title' => 'رمز یکبارمصرف',
+            'error' => 'رمز وارد شده معتبر نیست.',
         ], 422);
     }
 
@@ -1473,7 +1473,7 @@ $router->get('/admin/mfa/recovery', function ($request, $response) use ($adminRe
     }
 
     return $adminRender($response, 'mfa-recovery', [
-        'title' => 'ع©ط¯ ط¨ط§ط²غŒط§ط¨غŒ',
+        'title' => 'کد بازیابی',
         'error' => null,
     ]);
 });
@@ -1484,8 +1484,8 @@ $router->post('/admin/mfa/recovery', function ($request, $response) use ($adminR
 
     if ($userId === null) {
         return $adminRender($response, 'mfa-recovery', [
-            'title' => 'ع©ط¯ ط¨ط§ط²غŒط§ط¨غŒ',
-            'error' => 'ع©ط¯ ط¨ط§ط²غŒط§ط¨غŒ ظ…ط¹طھط¨ط± ظ†غŒط³طھ.',
+            'title' => 'کد بازیابی',
+            'error' => 'کد بازیابی معتبر نیست.',
         ], 422);
     }
 
@@ -1502,7 +1502,7 @@ $router->get('/admin/dashboard', function ($request, $response) use ($adminRende
     }
 
     return $adminRender($response, 'dashboard', [
-        'title' => 'ط¯ط§ط´ط¨ظˆط±ط¯ ظ…ط¯غŒط±غŒطھ',
+        'title' => 'داشبورد مدیریت',
         'context' => $context,
     ]);
 });
@@ -1532,9 +1532,9 @@ $adminModuleHub = function (string $key, string $title) use ($adminRender, $admi
     };
 };
 
-$router->get('/admin/modules/users', $adminModuleHub('users', 'ظ…ط¯غŒط±غŒطھ ع©ط§ط±ط¨ط±ط§ظ†'));
-$router->get('/admin/modules/organization', $adminModuleHub('organization', 'ط³ط§ط®طھط§ط± ط³ط§ط²ظ…ط§ظ†غŒ'));
-$router->get('/admin/modules/system', $adminModuleHub('system', 'ظ…ط¯غŒط±غŒطھ ط³ط§ظ…ط§ظ†ظ‡'));
+$router->get('/admin/modules/users', $adminModuleHub('users', 'مدیریت کاربران'));
+$router->get('/admin/modules/organization', $adminModuleHub('organization', 'ساختار سازمانی'));
+$router->get('/admin/modules/system', $adminModuleHub('system', 'مدیریت سامانه'));
 
 $router->get('/admin/profile', function ($request, $response) use ($adminRender, $adminGuard) {
     $context = $adminGuard($response, '/admin/profile');
@@ -1544,7 +1544,7 @@ $router->get('/admin/profile', function ($request, $response) use ($adminRender,
     }
 
     return $adminRender($response, 'profile', [
-        'title' => 'ظ¾ط±ظˆظپط§غŒظ„ ع©ط§ط±ط¨ط±',
+        'title' => 'پروفایل کاربر',
         'context' => $context,
     ]);
 });
@@ -1557,7 +1557,7 @@ $router->get('/admin/profile/access', function ($request, $response) use ($admin
     }
 
     return $adminRender($response, 'profile-access', [
-        'title' => 'ظ†ظ‚ط´â€Œظ‡ط§ ظˆ ط¯ط³طھط±ط³غŒâ€Œظ‡ط§غŒ ظ…ظ†',
+        'title' => 'نقش‌ها و دسترسی‌های من',
         'context' => $context,
         'status' => trim((string) $request->input('status', '')),
     ]);
@@ -1571,7 +1571,7 @@ $router->get('/admin/account', function ($request, $response) use ($adminRender,
     }
 
     return $adminRender($response, 'account', [
-        'title' => 'ط§ط·ظ„ط§ط¹ط§طھ ط­ط³ط§ط¨',
+        'title' => 'اطلاعات حساب',
         'context' => $context,
     ]);
 });
@@ -1584,7 +1584,7 @@ $router->get('/admin/security', function ($request, $response) use ($adminRender
     }
 
     return $adminRender($response, 'security', [
-        'title' => 'ط§ظ…ظ†غŒطھ ظˆ ظˆط±ظˆط¯',
+        'title' => 'امنیت و ورود',
         'context' => $context,
     ]);
 });
@@ -1597,7 +1597,7 @@ $router->get('/admin/password', function ($request, $response) use ($adminRender
     }
 
     return $adminRender($response, 'password', [
-        'title' => 'طھط؛غŒغŒط± ع©ظ„ظ…ظ‡ ط¹ط¨ظˆط±',
+        'title' => 'تغییر کلمه عبور',
         'context' => $context,
         'status' => trim((string) $request->input('status', '')),
         'error' => '',
@@ -1617,10 +1617,10 @@ $router->post('/admin/password', function ($request, $response) use ($adminRende
 
     if (strlen($password) < 8 || $password !== $confirmation) {
         return $adminRender($response, 'password', [
-            'title' => 'طھط؛غŒغŒط± ع©ظ„ظ…ظ‡ ط¹ط¨ظˆط±',
+            'title' => 'تغییر کلمه عبور',
             'context' => $context,
             'status' => '',
-            'error' => 'ع©ظ„ظ…ظ‡ ط¹ط¨ظˆط± ط¬ط¯غŒط¯ ظ…ط¹طھط¨ط± ظ†غŒط³طھ غŒط§ ط¨ط§ طھع©ط±ط§ط± ط¢ظ† غŒع©ط³ط§ظ† ظ†غŒط³طھ.',
+            'error' => 'کلمه عبور جدید معتبر نیست یا با تکرار آن یکسان نیست.',
         ], 422);
     }
 
@@ -1628,10 +1628,10 @@ $router->post('/admin/password', function ($request, $response) use ($adminRende
 
     if (!$changed) {
         return $adminRender($response, 'password', [
-            'title' => 'طھط؛غŒغŒط± ع©ظ„ظ…ظ‡ ط¹ط¨ظˆط±',
+            'title' => 'تغییر کلمه عبور',
             'context' => $context,
             'status' => '',
-            'error' => 'ع©ظ„ظ…ظ‡ ط¹ط¨ظˆط± ظپط¹ظ„غŒ ظ…ط¹طھط¨ط± ظ†غŒط³طھ.',
+            'error' => 'کلمه عبور فعلی معتبر نیست.',
         ], 422);
     }
 
@@ -1648,7 +1648,7 @@ $router->get('/admin/my-theme', function ($request, $response) use ($adminRender
     $theme = new \App\Services\AdminThemeService();
 
     return $adminRender($response, 'my-theme', [
-        'title' => 'ظ¾ظˆط³طھظ‡ ظ†ظ…ط§غŒط´غŒ ظ…ظ†',
+        'title' => 'پوسته نمایشی من',
         'context' => $context,
         'theme' => $theme->personalTheme((int) $context['user_id']),
         'presets' => $theme->presets(),
@@ -1670,7 +1670,7 @@ $router->post('/admin/my-theme', function ($request, $response) use ($adminRende
 
     if (!$result['ok']) {
         return $adminRender($response, 'my-theme', [
-            'title' => 'ظ¾ظˆط³طھظ‡ ظ†ظ…ط§غŒط´غŒ ظ…ظ†',
+            'title' => 'پوسته نمایشی من',
             'context' => $context,
             'theme' => $theme->personalTheme((int) $context['user_id']),
             'presets' => $theme->presets(),
@@ -1691,7 +1691,7 @@ $router->get('/admin/access', function ($request, $response) use ($adminRender, 
     }
 
     return $adminRender($response, 'access', [
-        'title' => 'ط³ط·ط­ ط¯ط³طھط±ط³غŒ ظپط¹ط§ظ„',
+        'title' => 'سطح دسترسی فعال',
         'context' => $context,
         'status' => trim((string) $request->input('status', '')),
     ]);
@@ -1707,7 +1707,7 @@ $router->get('/admin/theme', function ($request, $response) use ($adminRender, $
     $theme = new \App\Services\AdminThemeService();
 
     return $adminRender($response, 'theme', [
-        'title' => 'ظ¾ظˆط³طھظ‡ ظ¾ظ†ظ„',
+        'title' => 'پوسته پنل',
         'context' => $context,
         'theme' => $theme->systemTheme(),
         'presets' => $theme->presets(),
@@ -1729,7 +1729,7 @@ $router->post('/admin/theme', function ($request, $response) use ($adminRender, 
 
     if (!(new \App\Services\AuthorizationService())->hasPermission((int) $context['user_id'], 'admin.theme.manage')) {
         return $adminRender($response, 'theme', [
-            'title' => 'ظ¾ظˆط³طھظ‡ ظ¾ظ†ظ„',
+            'title' => 'پوسته پنل',
             'context' => $context,
             'theme' => (new \App\Services\AdminThemeService())->systemTheme(),
             'presets' => (new \App\Services\AdminThemeService())->presets(),
@@ -1747,7 +1747,7 @@ $router->post('/admin/theme', function ($request, $response) use ($adminRender, 
 
     if (!$result['ok']) {
         return $adminRender($response, 'theme', [
-            'title' => 'ظ¾ظˆط³طھظ‡ ظ¾ظ†ظ„',
+            'title' => 'پوسته پنل',
             'context' => $context,
             'theme' => $theme->systemTheme(),
             'presets' => $theme->presets(),
@@ -1911,9 +1911,9 @@ $router->post('/admin/profile/access', function ($request, $response) {
 
 $automationUnavailable = function ($response, array $context) use ($adminRender) {
     return $adminRender($response, 'placeholder', [
-        'title' => 'ط§طھظˆظ…ط§ط³غŒظˆظ† ط§ط¯ط§ط±غŒ',
+        'title' => 'اتوماسیون اداری',
         'context' => $context,
-        'message' => 'ط²غŒط±ط³ط§ط®طھ ط¹ظ…ظ„غŒط§طھغŒ ط§طھظˆظ…ط§ط³غŒظˆظ† ط¯ط± ط­ط§ظ„ ط­ط§ط¶ط± ط¯ط± ط¯ط³طھط±ط³ ظ†غŒط³طھ. ط§طھطµط§ظ„ ط§ط®طھطµط§طµغŒ غŒط§ ع¯ط§ط±ط¯ cutover ط¢ظ…ط§ط¯ظ‡ ظ†غŒط³طھ.',
+        'message' => 'زیرساخت عملیاتی اتوماسیون در حال حاضر در دسترس نیست. اتصال اختصاصی یا گارد cutover آماده نیست.',
     ], 503);
 };
 
@@ -1931,7 +1931,7 @@ $router->get('/admin/automation', function ($request, $response) use ($adminRend
     }
 
     return $adminRender($response, 'automation-dashboard', [
-        'title' => 'ط§طھظˆظ…ط§ط³غŒظˆظ† ط§ط¯ط§ط±غŒ',
+        'title' => 'اتوماسیون اداری',
         'context' => $context,
         'dashboard' => $dashboard,
     ]);
@@ -1972,7 +1972,7 @@ $router->get('/admin/automation/correspondences', function ($request, $response)
     }
 
     return $adminRender($response, 'automation-correspondences', [
-        'title' => 'ظ…ع©ط§طھط¨ط§طھ ط§ط¯ط§ط±غŒ',
+        'title' => 'مکاتبات اداری',
         'context' => $context,
         'list' => $list,
     ]);
@@ -1986,7 +1986,7 @@ $router->get('/admin/automation/templates', function ($request, $response) use (
     } catch (\Throwable) {
         return $automationUnavailable($response, $context);
     }
-    return $adminRender($response, 'automation-templates', ['title' => 'ظ‚ط§ظ„ط¨â€Œظ‡ط§غŒ ط§ط³طھط§ظ†ط¯ط§ط±ط¯ ظ†ط§ظ…ظ‡', 'context' => $context, 'templates' => $templates]);
+    return $adminRender($response, 'automation-templates', ['title' => 'قالب‌های استاندارد نامه', 'context' => $context, 'templates' => $templates]);
 });
 
 $router->get('/admin/automation/correspondences/create', function ($request, $response) use ($adminRender, $adminGuard, $automationUnavailable) {
@@ -2008,7 +2008,7 @@ $router->get('/admin/automation/correspondences/create', function ($request, $re
         : 'outgoing';
 
     return $adminRender($response, 'automation-correspondence-form', [
-        'title' => 'ط§غŒط¬ط§ط¯ ظ¾غŒط´ ظ†ظˆغŒط³ ظ…ع©ط§طھط¨ظ‡',
+        'title' => 'ایجاد پیش نویس مکاتبه',
         'context' => $context,
         'form' => $form['form'],
         'options' => $form['options'],
@@ -2036,7 +2036,7 @@ $router->post('/admin/automation/correspondences', function ($request, $response
 
         $form = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->form();
         return $adminRender($response, 'automation-correspondence-form', [
-            'title' => 'ط§غŒط¬ط§ط¯ ظ¾غŒط´ ظ†ظˆغŒط³ ظ…ع©ط§طھط¨ظ‡',
+            'title' => 'ایجاد پیش نویس مکاتبه',
             'context' => $context,
             'form' => $request->all() + $form['form'],
             'options' => $form['options'],
@@ -2064,11 +2064,11 @@ $router->get('/admin/automation/correspondences/{public_reference}/edit', functi
     }
 
     if (($form['ok'] ?? false) !== true) {
-        return $adminRender($response, 'placeholder', ['title' => 'ظ…ع©ط§طھط¨ظ‡ ظ¾غŒط¯ط§ ظ†ط´ط¯', 'context' => $context, 'message' => 'ظ…ع©ط§طھط¨ظ‡ ظ…ظˆط±ط¯ ظ†ط¸ط± ظ¾غŒط¯ط§ ظ†ط´ط¯.'], 404);
+        return $adminRender($response, 'placeholder', ['title' => 'مکاتبه پیدا نشد', 'context' => $context, 'message' => 'مکاتبه مورد نظر پیدا نشد.'], 404);
     }
 
     return $adminRender($response, 'automation-correspondence-form', [
-        'title' => 'ظˆغŒط±ط§غŒط´ ظ¾غŒط´ ظ†ظˆغŒط³ ظ…ع©ط§طھط¨ظ‡',
+        'title' => 'ویرایش پیش نویس مکاتبه',
         'context' => $context,
         'form' => $form['form'],
         'options' => $form['options'],
@@ -2097,7 +2097,7 @@ $router->post('/admin/automation/correspondences/{public_reference}/versions', f
 
         $form = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->form($publicReference);
         return $adminRender($response, 'automation-correspondence-form', [
-            'title' => 'ظˆغŒط±ط§غŒط´ ظ¾غŒط´ ظ†ظˆغŒط³ ظ…ع©ط§طھط¨ظ‡',
+            'title' => 'ویرایش پیش نویس مکاتبه',
             'context' => $context,
             'form' => $request->all() + ($form['form'] ?? []),
             'options' => $form['options'] ?? [],
@@ -2162,11 +2162,11 @@ $router->get('/admin/automation/correspondences/{public_reference}', function ($
     }
 
     if ($detail === null) {
-        return $adminRender($response, 'placeholder', ['title' => 'ظ…ع©ط§طھط¨ظ‡ ظ¾غŒط¯ط§ ظ†ط´ط¯', 'context' => $context, 'message' => 'ظ…ع©ط§طھط¨ظ‡ ظ…ظˆط±ط¯ ظ†ط¸ط± ظ¾غŒط¯ط§ ظ†ط´ط¯.'], 404);
+        return $adminRender($response, 'placeholder', ['title' => 'مکاتبه پیدا نشد', 'context' => $context, 'message' => 'مکاتبه مورد نظر پیدا نشد.'], 404);
     }
 
     return $adminRender($response, 'automation-correspondence-detail', [
-        'title' => 'ط¬ط²ط¦غŒط§طھ ظ…ع©ط§طھط¨ظ‡',
+        'title' => 'جزئیات مکاتبه',
         'context' => $context,
         'detail' => $detail,
         'attachmentStatus' => (string) $request->input('attachment_status', ''),
@@ -2196,7 +2196,7 @@ $router->get('/admin/settings', function ($request, $response) use ($adminRender
     $registryError = (string) ($_SESSION['admin_module_registry_error'] ?? '');
     unset($_SESSION['admin_module_registry_error']);
     return $adminRender($response, 'settings', [
-        'title' => 'طھظ†ط¸غŒظ…ط§طھ ظ…ط§عکظˆظ„â€Œظ‡ط§',
+        'title' => 'تنظیمات ماژول‌ها',
         'context' => $context,
         'registry' => (new \App\Services\ApplicationModuleRegistryService())->index(),
         'status' => (string) $request->input('status', ''),
@@ -2225,7 +2225,7 @@ $router->get('/admin/users', function ($request, $response) use ($adminRender, $
     ]);
 
     return $adminRender($response, 'users', [
-        'title' => 'ع©ط§ط±ط¨ط±ط§ظ†',
+        'title' => 'کاربران',
         'context' => $context,
         'list' => $list,
     ]);
@@ -2245,7 +2245,7 @@ $adminUserDetailRoute = function (string $routePattern, string $tab) use ($admin
 
         if ($id === false) {
             return $adminRender($response, 'user-not-found', [
-                'title' => 'ع©ط§ط±ط¨ط± ظ¾غŒط¯ط§ ظ†ط´ط¯',
+                'title' => 'کاربر پیدا نشد',
                 'context' => $context,
             ], 404);
         }
@@ -2258,13 +2258,13 @@ $adminUserDetailRoute = function (string $routePattern, string $tab) use ($admin
 
         if ($detail === null) {
             return $adminRender($response, 'user-not-found', [
-                'title' => 'ع©ط§ط±ط¨ط± ظ¾غŒط¯ط§ ظ†ط´ط¯',
+                'title' => 'کاربر پیدا نشد',
                 'context' => $context,
             ], 404);
         }
 
         return $adminRender($response, 'user-detail', [
-            'title' => 'ط¬ط²ط¦غŒط§طھ ع©ط§ط±ط¨ط±',
+            'title' => 'جزئیات کاربر',
             'context' => $context,
             'detail' => $detail,
         ]);
@@ -2290,7 +2290,7 @@ $router->get('/admin/org-units', function ($request, $response) use ($adminRende
     ]);
 
     return $adminRender($response, 'org-units', [
-        'title' => 'ظˆط§ط­ط¯ظ‡ط§غŒ ط³ط§ط²ظ…ط§ظ†غŒ',
+        'title' => 'واحدهای سازمانی',
         'context' => $context,
         'list' => $list,
     ]);
@@ -2308,7 +2308,7 @@ $router->get('/admin/positions', function ($request, $response) use ($adminRende
     ]);
 
     return $adminRender($response, 'positions', [
-        'title' => 'ط³ظ…طھâ€Œظ‡ط§',
+        'title' => 'سمت‌ها',
         'context' => $context,
         'list' => $list,
     ]);
@@ -2317,7 +2317,7 @@ $router->get('/admin/organization-setup', function ($request, $response) use ($a
     $context = $adminGuard($response, '/admin/organization-setup');
     if (!is_array($context)) { return $context; }
     return $adminRender($response, 'organization-setup', [
-        'title' => 'ط±ط§ظ‡â€Œط§ظ†ط¯ط§ط²غŒ ط³ط§ط®طھط§ط± ط³ط§ط²ظ…ط§ظ†غŒ', 'context' => $context,
+        'title' => 'راه‌اندازی ساختار سازمانی', 'context' => $context,
         'workspace' => (new \App\Services\Organization\OrganizationSetupService())->workspace(),
     ]);
 });
@@ -2335,19 +2335,19 @@ $router->post('/admin/organization-setup', function ($request, $response) use ($
         };
         if ($action === 'create_organization') {
             $service->createOrganization(['title_fa'=>$request->input('title_fa',''),'title_en'=>$request->input('title_en',''),'short_title'=>$request->input('short_title',''),'parent_reference'=>$request->input('parent_reference',''),'sort_order'=>$request->input('sort_order',0)]);
-            $_SESSION['admin_flash_message'] = 'ط³ط§ط²ظ…ط§ظ† ط¨ط§ ظ…ظˆظپظ‚غŒطھ ط«ط¨طھ ط´ط¯.';
+            $_SESSION['admin_flash_message'] = 'سازمان با موفقیت ثبت شد.';
         } elseif ($action === 'create_unit') {
             $service->createUnit(['organization_reference'=>$request->input('organization_reference',''),'parent_reference'=>$request->input('parent_reference',''),'title_fa'=>$request->input('title_fa',''),'title_en'=>$request->input('title_en',''),'code'=>$request->input('code',''),'sort_order'=>$request->input('sort_order',0),'description'=>$request->input('description','')]);
-            $_SESSION['admin_flash_message'] = 'ظˆط§ط­ط¯ ط³ط§ط²ظ…ط§ظ†غŒ ط¨ط§ ظ…ظˆظپظ‚غŒطھ ط«ط¨طھ ط´ط¯.';
+            $_SESSION['admin_flash_message'] = 'واحد سازمانی با موفقیت ثبت شد.';
         } elseif ($action === 'create_position') {
             $service->createOrganizationPosition(['organization_reference'=>$request->input('organization_reference',''),'unit_reference'=>$request->input('unit_reference',''),'title_fa'=>$request->input('title_fa',''),'title_en'=>$request->input('title_en',''),'code'=>$request->input('code',''),'headcount_limit'=>$request->input('headcount_limit',1),'sort_order'=>$request->input('sort_order',0),'is_head'=>$request->input('is_head',null)]);
-            $_SESSION['admin_flash_message'] = 'ظ¾ط³طھ ط³ط§ط²ظ…ط§ظ†غŒ ط¨ط§ ظ…ظˆظپظ‚غŒطھ طھط¹ط±غŒظپ ط´ط¯.';
+            $_SESSION['admin_flash_message'] = 'پست سازمانی با موفقیت تعریف شد.';
         } elseif ($action === 'link_user_person') {
             $service->linkUserToPerson(['user_id'=>$request->input('user_id',0),'person_reference'=>$request->input('person_reference','')]);
-            $_SESSION['admin_flash_message'] = 'ط­ط³ط§ط¨ ع©ط§ط±ط¨ط±غŒ ط¨ظ‡ ط´ط®طµ ظ…طھطµظ„ ط´ط¯.';
-        } else { throw new \RuntimeException('ط¹ظ…ظ„غŒط§طھ ط§ظ†طھط®ط§ط¨â€Œط´ط¯ظ‡ ظ…ط¹طھط¨ط± ظ†غŒط³طھ.'); }
+            $_SESSION['admin_flash_message'] = 'حساب کاربری به شخص متصل شد.';
+        } else { throw new \RuntimeException('عملیات انتخاب‌شده معتبر نیست.'); }
     } catch (\Throwable $e) {
-        $_SESSION['admin_flash_error'] = $e instanceof \RuntimeException ? $e->getMessage() : 'ط«ط¨طھ ط§ط·ظ„ط§ط¹ط§طھ ط³ط§ط²ظ…ط§ظ†غŒ ظ…ظ…ع©ظ† ظ†ط´ط¯.';
+        $_SESSION['admin_flash_error'] = $e instanceof \RuntimeException ? $e->getMessage() : 'ثبت اطلاعات سازمانی ممکن نشد.';
     }
     return $response->redirect('/admin/organization-setup');
 });
@@ -2355,7 +2355,7 @@ $router->get('/admin/organization-chart', function ($request, $response) use ($a
     $context = $adminGuard($response, '/admin/organization-chart');
     if (!is_array($context)) { return $context; }
     return $adminRender($response, 'organization-chart', [
-        'title' => 'ع†ط§ط±طھ ط³ط§ط²ظ…ط§ظ†غŒ', 'context' => $context,
+        'title' => 'چارت سازمانی', 'context' => $context,
         'chart' => (new \App\Services\Organization\OrganizationOperationsService())->chart(),
     ]);
 });
@@ -2364,7 +2364,7 @@ $router->get('/admin/appointments', function ($request, $response) use ($adminRe
     if (!is_array($context)) { return $context; }
     $service = new \App\Services\Organization\OrganizationOperationsService();
     return $adminRender($response, 'appointments', [
-        'title' => 'ظ¾ط³طھ ظˆ ط§ظ†طھطµط§ط¨', 'context' => $context,
+        'title' => 'پست و انتصاب', 'context' => $context,
         'list' => $service->appointments((string)$request->input('q','')),
         'options' => $service->formOptions(),
     ]);
@@ -2379,8 +2379,8 @@ $router->post('/admin/appointments', function ($request, $response) use ($adminG
             'valid_from'=>$request->input('valid_from',''), 'valid_to'=>$request->input('valid_to',''),
             'appointment_reference'=>$request->input('appointment_reference',''), 'description'=>$request->input('description',''),
         ]);
-        $_SESSION['admin_flash_message']='ط§ظ†طھطµط§ط¨ ط¨ط§ ظ…ظˆظپظ‚غŒطھ ط«ط¨طھ ط´ط¯.';
-    } catch (\Throwable $e) { $_SESSION['admin_flash_error']=$e instanceof \RuntimeException ? $e->getMessage() : 'ط«ط¨طھ ط§ظ†طھطµط§ط¨ ظ…ظ…ع©ظ† ظ†ط´ط¯.'; }
+        $_SESSION['admin_flash_message']='انتصاب با موفقیت ثبت شد.';
+    } catch (\Throwable $e) { $_SESSION['admin_flash_error']=$e instanceof \RuntimeException ? $e->getMessage() : 'ثبت انتصاب ممکن نشد.'; }
     return $response->redirect('/admin/appointments');
 });
 $router->get('/admin/profile/organizational-context', function ($request, $response) use ($adminRender, $adminGuard) {
@@ -2388,7 +2388,7 @@ $router->get('/admin/profile/organizational-context', function ($request, $respo
     if (!is_array($context)) { return $context; }
     $resolver = new \App\Services\Organization\UserOrganizationalContextResolver();
     return $adminRender($response, 'organizational-context', [
-        'title'=>'ط¬ط§غŒع¯ط§ظ‡ ط³ط§ط²ظ…ط§ظ†غŒ ظپط¹ط§ظ„','context'=>$context,
+        'title'=>'جایگاه سازمانی فعال','context'=>$context,
         'appointments'=>$resolver->activeAppointmentsForUser((int)$context['user_id']),
         'current'=>$resolver->current((int)$context['user_id']),
     ]);
@@ -2396,14 +2396,14 @@ $router->get('/admin/profile/organizational-context', function ($request, $respo
 $router->post('/admin/profile/organizational-context', function ($request, $response) use ($adminGuard) {
     $context = $adminGuard($response, '/admin/profile/organizational-context');
     if (!is_array($context)) { return $context; }
-    try { (new \App\Services\Organization\UserOrganizationalContextResolver())->switchContext((int)$context['user_id'],(string)$request->input('appointment_reference','')); $_SESSION['admin_flash_message']='ط¬ط§غŒع¯ط§ظ‡ ظپط¹ط§ظ„ طھط؛غŒغŒط± ع©ط±ط¯.'; }
-    catch (\Throwable) { $_SESSION['admin_flash_error']='ط§ظ†طھط®ط§ط¨ ط§غŒظ† ط¬ط§غŒع¯ط§ظ‡ ظ…ط¬ط§ط² ظ†غŒط³طھ.'; }
+    try { (new \App\Services\Organization\UserOrganizationalContextResolver())->switchContext((int)$context['user_id'],(string)$request->input('appointment_reference','')); $_SESSION['admin_flash_message']='جایگاه فعال تغییر کرد.'; }
+    catch (\Throwable) { $_SESSION['admin_flash_error']='انتخاب این جایگاه مجاز نیست.'; }
     return $response->redirect('/admin/profile/organizational-context');
 });
 
-$router->get('/admin/pages', $adminPlaceholder('/admin/pages', 'طµظپط­ط§طھ ط¯ط§ط®ظ„غŒ', 'ظ…ط¯غŒط±غŒطھ طµظپط­ط§طھ ط¯ط§ط®ظ„غŒ ظ‡ظ†ظˆط² ظپط¹ط§ظ„ ظ†ط´ط¯ظ‡ ط§ط³طھ.'));
-$router->get('/admin/reports', $adminPlaceholder('/admin/reports', 'ع¯ط²ط§ط±ط´â€Œظ‡ط§', 'ع¯ط²ط§ط±ط´â€Œظ‡ط§غŒ ظ…ط¯غŒط±غŒطھغŒ ط¯ط± ظ†ط³ط®ظ‡â€Œظ‡ط§غŒ ط¨ط¹ط¯غŒ ط§ط¶ط§ظپظ‡ ظ…غŒâ€Œط´ظˆط¯.'));
-$router->get('/admin/support', $adminPlaceholder('/admin/support', 'ظ¾ط´طھغŒط¨ط§ظ†غŒ', 'ظ…ط³غŒط±ظ‡ط§غŒ ظ¾ط´طھغŒط¨ط§ظ†غŒ ظˆ ط±ط§ظ‡ظ†ظ…ط§غŒ ط¯ط§ط®ظ„غŒ ط¯ط± ظپط§ط² ط¨ط¹ط¯غŒ طھع©ظ…غŒظ„ ظ…غŒâ€Œط´ظˆط¯.'));
+$router->get('/admin/pages', $adminPlaceholder('/admin/pages', 'صفحات داخلی', 'مدیریت صفحات داخلی هنوز فعال نشده است.'));
+$router->get('/admin/reports', $adminPlaceholder('/admin/reports', 'گزارش‌ها', 'گزارش‌های مدیریتی در نسخه‌های بعدی اضافه می‌شود.'));
+$router->get('/admin/support', $adminPlaceholder('/admin/support', 'پشتیبانی', 'مسیرهای پشتیبانی و راهنمای داخلی در فاز بعدی تکمیل می‌شود.'));
 
 $router->get('/admin/navigation/debug', function ($request, $response) use ($adminGuard) {
     if (!\IPKF\Support\Env::isDebug()) {
