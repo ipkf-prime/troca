@@ -290,3 +290,75 @@
     }
 }
 </style>
+
+<script data-work-persian-digits>
+(() => {
+    const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+    const skipTags = new Set([
+        'SCRIPT',
+        'STYLE',
+        'TEXTAREA',
+        'INPUT',
+        'SELECT',
+        'OPTION',
+        'CODE',
+        'PRE'
+    ]);
+
+    const convert = value =>
+        String(value).replace(/[0-9]/g, digit => persianDigits[Number(digit)]);
+
+    const normalize = root => {
+        const walker = document.createTreeWalker(
+            root,
+            NodeFilter.SHOW_TEXT
+        );
+
+        const nodes = [];
+
+        while (walker.nextNode()) {
+            nodes.push(walker.currentNode);
+        }
+
+        nodes.forEach(node => {
+            const parent = node.parentElement;
+
+            if (
+                !parent ||
+                skipTags.has(parent.tagName) ||
+                parent.closest('[data-latin-digits]')
+            ) {
+                return;
+            }
+
+            const value = convert(node.nodeValue ?? '');
+
+            if (value !== node.nodeValue) {
+                node.nodeValue = value;
+            }
+        });
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        normalize(document.body);
+
+        new MutationObserver(records => {
+            records.forEach(record => {
+                record.addedNodes.forEach(node => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        normalize(node);
+                    } else if (
+                        node.nodeType === Node.TEXT_NODE &&
+                        node.parentElement
+                    ) {
+                        normalize(node.parentElement);
+                    }
+                });
+            });
+        }).observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    });
+})();
+</script>
