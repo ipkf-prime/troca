@@ -49,7 +49,7 @@ require __DIR__ . '/work-ui-styles.php';
                 <a class="admin-button" href="<?= admin_h($projectUrl . '/edit') ?>">ویرایش پروژه</a>
                 <form method="post" action="<?= admin_h($projectUrl . '/archive') ?>" onsubmit="return confirm('پروژه بایگانی شود؟');">
                     <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
-                    <button class="admin-button admin-button--soft" type="submit">بایگانی</button>
+                    <button class="admin-button work-button--danger" type="submit">بایگانی</button>
                 </form>
             <?php else: ?>
                 <form method="post" action="<?= admin_h($projectUrl . '/restore') ?>">
@@ -64,12 +64,12 @@ require __DIR__ . '/work-ui-styles.php';
         <a class="admin-action-card" href="<?= admin_h($projectUrl . '/members') ?>">
             <div class="admin-action-card__icon"><?= \App\Support\AdminIcon::html('users') ?></div>
             <div><h4>اعضای پروژه</h4><p>افزودن مدیر، عضو و ناظر پروژه</p></div>
-            <span class="admin-pill">مدیریت اعضا</span>
+            <span class="work-action-button work-action-button--navigate">مدیریت اعضا</span>
         </a>
         <article class="admin-action-card">
             <div class="admin-action-card__icon"><?= \App\Support\AdminIcon::html('status') ?></div>
             <div><h4>کارها و تسک‌ها</h4><p>ساخت کار، نقطه عطف، تسک و زیرتسک</p></div>
-            <span class="admin-pill">مرحله بعد</span>
+            <span class="work-action-button work-action-button--disabled" aria-disabled="true">مرحله بعد</span>
         </article>
     </div>
 

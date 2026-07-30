@@ -48,6 +48,63 @@
     margin: 0;
 }
 
+
+.work-dashboard__intro {
+    margin: 0 0 1rem;
+}
+
+.work-dashboard-card-link {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.work-dashboard-card-link:hover {
+    transform: translateY(-2px);
+}
+
+.work-dashboard-card-link:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .28);
+    outline-offset: 3px;
+}
+
+.work-action-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.25rem;
+    padding: .45rem .8rem;
+    border-radius: .65rem;
+    font-size: .82rem;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.work-action-button--navigate {
+    background: #2563eb;
+    color: #fff;
+    box-shadow: 0 .35rem .8rem rgba(37, 99, 235, .18);
+}
+
+.work-action-button--disabled {
+    border: 1px solid #cbd5e1;
+    background: #e2e8f0;
+    color: #64748b;
+    box-shadow: none;
+}
+
+.work-button--danger {
+    border-color: #b91c1c;
+    background: #b91c1c;
+    color: #fff;
+}
+
+.work-button--danger:hover {
+    border-color: #991b1b;
+    background: #991b1b;
+}
+
 .work-project-summary {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
