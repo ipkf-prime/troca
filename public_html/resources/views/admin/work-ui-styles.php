@@ -1,30 +1,41 @@
 <style>
 /* Compact, shared presentation for IPKF Work pages. */
 .work-ui-compact-hub {
+    display: flex;
+    align-items: center;
     min-height: 0;
-    padding: 1rem 1.25rem;
-    gap: 1rem;
+    padding: .65rem .9rem;
+    gap: .75rem;
     border-radius: 1rem;
 }
 
+.work-ui-compact-hub > div:not(.admin-module-hub__icon) {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
 .work-ui-compact-hub .admin-module-hub__icon {
-    width: 3.25rem;
-    height: 3.25rem;
-    min-width: 3.25rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    min-width: 2.75rem;
 }
 
 .work-ui-compact-hub h2 {
-    margin: 0 0 .15rem;
-    font-size: 1.3rem;
-    line-height: 1.45;
+    margin: 0 0 .1rem;
+    font-size: 1.12rem;
+    line-height: 1.35;
 }
 
 .work-ui-compact-hub p {
     margin: 0;
+    font-size: .86rem;
+    line-height: 1.4;
 }
 
 .work-ui-compact-hub .admin-module-hub__back {
-    padding: .55rem .85rem;
+    flex: 0 0 auto;
+    margin-inline-start: auto;
+    padding: .45rem .75rem;
     white-space: nowrap;
 }
 
@@ -191,7 +202,18 @@
 
 @media (max-width: 760px) {
     .work-ui-compact-hub {
-        padding: .85rem 1rem;
+        flex-wrap: wrap;
+        padding: .65rem .8rem;
+        gap: .55rem .65rem;
+    }
+
+    .work-ui-compact-hub > div:not(.admin-module-hub__icon) {
+        flex: 1 1 calc(100% - 3.5rem);
+    }
+
+    .work-ui-compact-hub .admin-module-hub__back {
+        margin-inline-start: auto;
+        padding: .42rem .7rem;
     }
 
     .work-project-summary,
