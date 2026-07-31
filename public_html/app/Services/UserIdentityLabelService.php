@@ -89,15 +89,15 @@ class UserIdentityLabelService
     public function labelFromRow(array $row): string
     {
         foreach ([
+            'full_name',
+            'display_name',
+            'name',
             'email',
             'user_email',
             'person_email',
             'mobile',
             'user_mobile',
             'person_mobile',
-            'full_name',
-            'display_name',
-            'name',
             'username',
         ] as $field) {
             $value = trim((string) ($row[$field] ?? ''));
@@ -111,8 +111,17 @@ class UserIdentityLabelService
 
     public function optionLabelFromRow(array $row): string
     {
+        $fullName = $this->firstValue($row, ['full_name', 'display_name', 'name']);
         $email = $this->firstValue($row, ['email', 'user_email', 'person_email']);
         $mobile = $this->firstValue($row, ['mobile', 'user_mobile', 'person_mobile']);
+
+        if ($fullName !== '') {
+            $contact = $email !== '' ? $email : $mobile;
+
+            return $contact !== ''
+                ? $fullName . ' — ' . $contact
+                : $fullName;
+        }
 
         if ($email !== '' && $mobile !== '') {
             return $email . ' — ' . $mobile;

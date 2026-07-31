@@ -15,6 +15,46 @@ $saved = isset($_GET['saved']);
 $startDateFa = \App\Support\PersianDate::fromGregorianDate((string) ($project['start_date'] ?? ''));
 $targetDateFa = \App\Support\PersianDate::fromGregorianDate((string) ($project['target_date'] ?? ''));
 $identityLabels = new \App\Services\UserIdentityLabelService();
+$timeline = is_array($project['timeline'] ?? null)
+    ? $project['timeline']
+    : [];
+$canViewTimeline = !empty($access['can_view_audit']);
+
+$timelineDetail = static function (array $entry): string {
+    $payload = is_array($entry['payload'] ?? null)
+        ? $entry['payload']
+        : [];
+    $parts = [];
+
+    if (!empty($entry['item_title'])) {
+        $parts[] = (string) $entry['item_title'];
+    }
+
+    foreach (['title', 'original_name', 'display_name'] as $field) {
+        $value = trim((string) ($payload[$field] ?? ''));
+
+        if ($value !== '' && !in_array($value, $parts, true)) {
+            $parts[] = $value;
+        }
+    }
+
+    if (!empty($payload['role_code'])) {
+        $parts[] = match ((string) $payload['role_code']) {
+            'manager' => 'مدیر پروژه',
+            'member' => 'عضو پروژه',
+            'observer' => 'ناظر',
+            default => (string) $payload['role_code'],
+        };
+    }
+
+    if (array_key_exists('completed', $payload)) {
+        $parts[] = !empty($payload['completed'])
+            ? 'انجام شد'
+            : 'باز شد';
+    }
+
+    return implode(' — ', array_values(array_unique($parts)));
+};
 $project['owner_display_name'] = $identityLabels->labelForReference(
     (string) ($project['owner_user_reference'] ?? ''),
     (string) ($project['owner_display_name'] ?? '')
@@ -23,6 +63,115 @@ $project['owner_display_name'] = $identityLabels->labelForReference(
 ob_start();
 require __DIR__ . '/work-ui-styles.php';
 ?>
+<style>
+.work-project-timeline {
+    margin-top: 1rem;
+    padding: 1rem 1.1rem;
+}
+
+.work-project-timeline__header {
+    align-items: center;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    margin-bottom: .85rem;
+}
+
+.work-project-timeline__header h3,
+.work-project-timeline__header p {
+    margin: 0;
+}
+
+.work-project-timeline__list {
+    display: grid;
+    position: relative;
+}
+
+.work-project-timeline__list::before {
+    background: color-mix(
+        in srgb,
+        var(--admin-primary) 20%,
+        var(--admin-border)
+    );
+    bottom: .8rem;
+    content: "";
+    position: absolute;
+    right: .55rem;
+    top: .8rem;
+    width: 2px;
+}
+
+.work-project-timeline__entry {
+    display: grid;
+    gap: .25rem;
+    grid-template-columns: 1.2rem minmax(0, 1fr);
+    padding: .55rem 0;
+    position: relative;
+}
+
+.work-project-timeline__dot {
+    background: var(--admin-primary);
+    border: 3px solid var(--admin-surface);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px color-mix(
+        in srgb,
+        var(--admin-primary) 28%,
+        transparent
+    );
+    height: .8rem;
+    margin-top: .3rem;
+    position: relative;
+    width: .8rem;
+    z-index: 1;
+}
+
+.work-project-timeline__body {
+    background: var(--admin-surface-muted);
+    border: 1px solid var(--admin-border);
+    border-radius: .75rem;
+    padding: .65rem .75rem;
+}
+
+.work-project-timeline__top {
+    align-items: start;
+    display: flex;
+    gap: .75rem;
+    justify-content: space-between;
+}
+
+.work-project-timeline__top strong {
+    display: block;
+}
+
+.work-project-timeline__time {
+    color: var(--admin-text-muted);
+    direction: rtl;
+    flex: 0 0 auto;
+    font-size: .72rem;
+    white-space: nowrap;
+}
+
+.work-project-timeline__meta {
+    color: var(--admin-text-muted);
+    font-size: .76rem;
+    margin-top: .25rem;
+}
+
+.work-project-timeline__detail {
+    margin: .35rem 0 0;
+}
+
+@media (max-width: 640px) {
+    .work-project-timeline__top {
+        display: block;
+    }
+
+    .work-project-timeline__time {
+        display: block;
+        margin-top: .2rem;
+    }
+}
+</style>
 <nav class="admin-breadcrumb" aria-label="breadcrumb">
     <a href="/admin/dashboard">داشبورد</a><span>/</span>
     <a href="/admin/work">مدیریت کار</a><span>/</span>
@@ -100,6 +249,92 @@ require __DIR__ . '/work-ui-styles.php';
         </div>
     <?php endif; ?>
 </section>
+
+<?php if ($canViewTimeline): ?>
+<section class="admin-section work-project-timeline">
+    <div class="work-project-timeline__header">
+        <div>
+            <h3>تایم‌لاین پروژه</h3>
+            <p class="admin-muted">
+                تاریخچه رویدادها و تغییرات اجرایی پروژه
+            </p>
+        </div>
+        <span class="admin-pill">
+            <?= admin_h(
+                \App\Support\AdminFormat::digits(count($timeline))
+            ) ?> رویداد
+        </span>
+    </div>
+
+    <?php if ($timeline === []): ?>
+        <div class="admin-empty-state">
+            هنوز رویدادی برای این پروژه ثبت نشده است.
+        </div>
+    <?php else: ?>
+        <div class="work-project-timeline__list">
+            <?php foreach ($timeline as $entry): ?>
+                <?php
+                $itemReference = (string) (
+                    $entry['item_reference'] ?? ''
+                );
+                $detail = $timelineDetail($entry);
+                $occurredAt = \App\Support\AdminFormat::jalaliDateTime(
+                    (string) ($entry['occurred_at'] ?? '')
+                );
+                ?>
+                <article class="work-project-timeline__entry">
+                    <span
+                        class="work-project-timeline__dot"
+                        aria-hidden="true"
+                    ></span>
+
+                    <div class="work-project-timeline__body">
+                        <div class="work-project-timeline__top">
+                            <div>
+                                <strong>
+                                    <?= admin_h(
+                                        $entry['event_title'] ?? ''
+                                    ) ?>
+                                </strong>
+                                <div class="work-project-timeline__meta">
+                                    توسط
+                                    <?= admin_h(
+                                        $entry['actor_label'] ?? 'کاربر'
+                                    ) ?>
+                                </div>
+                            </div>
+
+                            <time class="work-project-timeline__time">
+                                <?= admin_h(
+                                    $occurredAt !== ''
+                                        ? $occurredAt
+                                        : '—'
+                                ) ?>
+                            </time>
+                        </div>
+
+                        <?php if ($detail !== ''): ?>
+                            <p class="work-project-timeline__detail">
+                                <?php if ($itemReference !== ''): ?>
+                                    <a href="<?= admin_h(
+                                        $projectUrl
+                                        . '/items/'
+                                        . rawurlencode($itemReference)
+                                    ) ?>">
+                                        <?= admin_h($detail) ?>
+                                    </a>
+                                <?php else: ?>
+                                    <?= admin_h($detail) ?>
+                                <?php endif; ?>
+                            </p>
+                        <?php endif; ?>
+                    </div>
+                </article>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+</section>
+<?php endif; ?>
 <?php
 $content = ob_get_clean();
 require __DIR__ . '/layout.php';

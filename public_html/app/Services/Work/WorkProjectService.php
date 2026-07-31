@@ -3,17 +3,23 @@
 namespace App\Services\Work;
 
 use App\Repositories\WorkProjectRepository;
+use App\Repositories\WorkProjectTimelineRepository;
 use App\Services\BaseService;
+use App\Services\UserIdentityLabelService;
 use DateTimeImmutable;
 
 class WorkProjectService extends BaseService
 {
     public function __construct(
         private ?WorkProjectRepository $projects = null,
-        private ?WorkReferenceDataService $references = null
+        private ?WorkReferenceDataService $references = null,
+        private ?WorkProjectTimelineRepository $timeline = null,
+        private ?UserIdentityLabelService $identities = null
     ) {
         $this->projects ??= new WorkProjectRepository();
         $this->references ??= new WorkReferenceDataService();
+        $this->timeline ??= new WorkProjectTimelineRepository();
+        $this->identities ??= new UserIdentityLabelService();
     }
 
     public function index(array $filters = []): array
@@ -50,10 +56,61 @@ class WorkProjectService extends BaseService
     public function detail(string $publicReference): array
     {
         $project = $this->projects->findByReference(trim($publicReference));
+        if ($project === null) {
+            return ['ok' => false];
+        }
 
-        return $project === null
-            ? ['ok' => false]
-            : ['ok' => true, 'project' => $this->decorate($project)];
+        $project = $this->decorate($project);
+        $timeline = $this->timeline->entries((int) $project['id']);
+
+        $references = [];
+        $fallbacks = [];
+
+        foreach ($timeline as $entry) {
+            $reference = (string) ($entry['actor_user_reference'] ?? '');
+            if ($reference === '') {
+                continue;
+            }
+
+            $references[] = $reference;
+            $fallbacks[$reference] = (string) (
+                $entry['actor_display_name_snapshot'] ?? ''
+            );
+        }
+
+        $actorLabels = $this->identities->labelsForReferences(
+            $references,
+            $fallbacks
+        );
+
+        foreach ($timeline as &$entry) {
+            $payload = json_decode(
+                (string) ($entry['payload_json'] ?? ''),
+                true
+            );
+
+            $entry['payload'] = is_array($payload) ? $payload : [];
+            $entry['event_title'] = $this->timelineEventTitle(
+                (string) ($entry['event_type'] ?? '')
+            );
+
+            $actorReference = (string) (
+                $entry['actor_user_reference'] ?? ''
+            );
+
+            $entry['actor_label'] = $actorLabels[$actorReference]
+                ?? $this->identities->labelForReference(
+                    $actorReference,
+                    (string) (
+                        $entry['actor_display_name_snapshot'] ?? ''
+                    )
+                );
+        }
+        unset($entry);
+
+        $project['timeline'] = $timeline;
+
+        return ['ok' => true, 'project' => $project];
     }
 
     public function form(?string $publicReference = null): array
@@ -321,6 +378,28 @@ class WorkProjectService extends BaseService
     private function visibilityTitle(string $code): string
     {
         return $this->visibilityOptions()[$code] ?? 'خصوصی';
+    }
+
+
+    private function timelineEventTitle(string $eventType): string
+    {
+        return match ($eventType) {
+            'project_created' => 'ایجاد پروژه',
+            'project_updated' => 'ویرایش پروژه',
+            'project_archived' => 'بایگانی پروژه',
+            'project_restored' => 'بازیابی پروژه',
+            'project_member_saved' => 'افزودن یا فعال‌سازی عضو',
+            'project_member_role_changed' => 'تغییر نقش عضو',
+            'project_member_removed' => 'خروج عضو از پروژه',
+            'work_item_created' => 'ایجاد آیتم',
+            'work_item_updated' => 'ویرایش آیتم',
+            'work_item_archived' => 'بایگانی آیتم',
+            'work_comment_added' => 'ثبت دیدگاه',
+            'work_checklist_added' => 'افزودن مورد چک‌لیست',
+            'work_checklist_toggled' => 'تغییر وضعیت چک‌لیست',
+            'work_attachment_uploaded' => 'بارگذاری پیوست',
+            default => $eventType,
+        };
     }
 
     private function actorDisplayName(array $context, int $userId): string
