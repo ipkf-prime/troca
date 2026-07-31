@@ -15,6 +15,8 @@ $list = $list ?? [];
 $items = $list['items'] ?? [];
 $pagination = $list['pagination'] ?? [];
 $q = (string) ($list['q'] ?? '');
+$sort = (string) ($list['sort'] ?? 'created_at');
+$dir = (string) ($list['dir'] ?? 'desc');
 $ok = (bool) ($list['ok'] ?? false);
 $total = (int) ($pagination['total'] ?? 0);
 $page = (int) ($pagination['page'] ?? 1);
@@ -24,18 +26,174 @@ $canCreate = (bool) ($canCreate ?? false);
 $canUpdate = (bool) ($canUpdate ?? false);
 $status = (string) ($status ?? '');
 
-$pageUrl = static function (int $targetPage) use ($q): string {
-    $params = ['page' => $targetPage];
+$baseQuery = [
+    'q' => $q,
+    'sort' => $sort,
+    'dir' => $dir,
+];
 
-    if ($q !== '') {
-        $params['q'] = $q;
-    }
+$pageUrl = static function (
+    int $targetPage
+) use ($baseQuery): string {
+    return '/admin/users?' . http_build_query(
+        array_filter(
+            $baseQuery + ['page' => $targetPage],
+            static fn ($value): bool =>
+                $value !== null && $value !== ''
+        )
+    );
+};
 
-    return '/admin/users?' . http_build_query($params);
+$sortUrl = static function (
+    string $column,
+    string $defaultDirection = 'asc'
+) use ($q, $sort, $dir): string {
+    return \App\Support\AdminTableSort::url(
+        '/admin/users',
+        $column,
+        $sort,
+        $dir,
+        ['q' => $q],
+        $defaultDirection
+    );
+};
+
+$sortIndicator = static function (
+    string $column
+) use ($sort, $dir): string {
+    return \App\Support\AdminTableSort::indicator(
+        $column,
+        $sort,
+        $dir
+    );
 };
 
 ob_start();
 ?>
+<style>
+.admin-users-toolbar {
+    align-items:end;
+    display:grid;
+    gap:.7rem;
+    grid-template-columns:minmax(18rem,1fr) auto auto;
+}
+
+.admin-users-search {
+    min-width:0;
+}
+
+.admin-users-search__row {
+    display:grid;
+    gap:.55rem;
+    grid-template-columns:2.5rem minmax(12rem,1fr) auto auto;
+}
+
+.admin-users-toolbar__action {
+    align-items:center;
+    display:flex;
+}
+
+.admin-users-total {
+    min-width:6.5rem;
+    white-space:nowrap;
+}
+
+.admin-users-table {
+    table-layout:auto;
+    width:100%;
+}
+
+.admin-users-table col.col-index { width:3.4rem; }
+.admin-users-table col.col-username { width:7.5rem; }
+.admin-users-table col.col-status { width:7.5rem; }
+.admin-users-table col.col-actions { width:11rem; }
+
+.admin-sort-link {
+    align-items:center;
+    background:transparent;
+    border:0;
+    color:inherit;
+    display:inline-flex;
+    font:inherit;
+    gap:.3rem;
+    padding:0;
+    text-decoration:none;
+    white-space:nowrap;
+}
+
+.admin-sort-link__indicator {
+    color:var(--admin-text-muted);
+    font-size:.72rem;
+    min-width:.8rem;
+}
+
+.admin-sort-link.is-active {
+    color:var(--admin-primary);
+}
+
+.admin-users-highest-role {
+    align-items:center;
+    display:inline-flex;
+    gap:.35rem;
+    max-width:14rem;
+}
+
+.admin-users-highest-role .admin-pill {
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.admin-users-role-count {
+    color:var(--admin-text-muted);
+    font-size:.66rem;
+    white-space:nowrap;
+}
+
+@media (max-width:1050px) {
+    .admin-users-toolbar {
+        grid-template-columns:minmax(15rem,1fr) auto;
+    }
+
+    .admin-users-total {
+        grid-column:2;
+        grid-row:1;
+    }
+
+    .admin-users-toolbar__action {
+        grid-column:2;
+        grid-row:2;
+    }
+}
+
+@media (max-width:760px) {
+    .admin-users-toolbar {
+        align-items:stretch;
+        grid-template-columns:1fr 1fr;
+    }
+
+    .admin-users-search {
+        grid-column:1/-1;
+        grid-row:2;
+    }
+
+    .admin-users-search__row {
+        grid-template-columns:2.5rem minmax(0,1fr);
+    }
+
+    .admin-users-search__row button,
+    .admin-users-search__row a {
+        width:100%;
+    }
+
+    .admin-users-toolbar__action,
+    .admin-users-total {
+        grid-column:auto;
+        grid-row:1;
+    }
+}
+</style>
+
 <nav class="admin-breadcrumb" aria-label="breadcrumb">
     <a href="/admin/dashboard">داشبورد</a>
     <span aria-hidden="true">/</span>
@@ -72,6 +230,16 @@ ob_start();
             method="get"
             action="/admin/users"
         >
+            <input
+                type="hidden"
+                name="sort"
+                value="<?= admin_h($sort) ?>"
+            >
+            <input
+                type="hidden"
+                name="dir"
+                value="<?= admin_h($dir) ?>"
+            >
             <label for="admin-users-q">جستجو در کاربران</label>
             <div class="admin-users-search__row">
                 <span class="admin-users-search__icon">
@@ -91,7 +259,13 @@ ob_start();
                 <?php if ($q !== ''): ?>
                     <a
                         class="admin-button admin-button--soft"
-                        href="/admin/users"
+                        href="<?= admin_h(
+                            '/admin/users?'
+                            . http_build_query([
+                                'sort' => $sort,
+                                'dir' => $dir,
+                            ])
+                        ) ?>"
                     >
                         بازنشانی
                     </a>
@@ -99,21 +273,21 @@ ob_start();
             </div>
         </form>
 
-        <div style="display:flex;align-items:center;gap:.65rem">
-            <?php if ($canCreate): ?>
+        <?php if ($canCreate): ?>
+            <div class="admin-users-toolbar__action">
                 <a class="admin-button" href="/admin/users/create">
                     ایجاد کاربر
                 </a>
-            <?php endif; ?>
-
-            <div class="admin-users-total">
-                <span>تعداد کل</span>
-                <strong>
-                    <?= admin_h(
-                        \App\Support\AdminFormat::digits($total)
-                    ) ?>
-                </strong>
             </div>
+        <?php endif; ?>
+
+        <div class="admin-users-total">
+            <span>تعداد کل</span>
+            <strong>
+                <?= admin_h(
+                    \App\Support\AdminFormat::digits($total)
+                ) ?>
+            </strong>
         </div>
     </div>
 
@@ -130,17 +304,52 @@ ob_start();
     <?php else: ?>
         <div class="admin-users-table-wrap">
             <table class="admin-table admin-users-table">
+                <colgroup>
+                    <col class="col-index">
+                    <col>
+                    <col class="col-username">
+                    <col>
+                    <col>
+                    <col class="col-status">
+                    <col>
+                    <col>
+                    <col>
+                    <col class="col-actions">
+                </colgroup>
                 <thead>
                     <tr>
                         <th>ردیف</th>
-                        <th>نام کامل</th>
-                        <th>نام کاربری</th>
-                        <th>موبایل</th>
-                        <th>ایمیل</th>
-                        <th>وضعیت حساب</th>
-                        <th>نقش‌های فعال</th>
-                        <th>واحد اصلی</th>
-                        <th>تاریخ ایجاد</th>
+                        <?php foreach ([
+                            'name' => ['نام کامل', 'asc'],
+                            'username' => ['نام کاربری', 'asc'],
+                            'mobile' => ['موبایل', 'asc'],
+                            'email' => ['ایمیل', 'asc'],
+                            'status' => ['وضعیت حساب', 'asc'],
+                            'role' => ['بالاترین نقش', 'desc'],
+                            'org_unit' => ['واحد اصلی', 'asc'],
+                            'created_at' => ['تاریخ ایجاد', 'desc'],
+                        ] as $column => [$label, $defaultDirection]): ?>
+                            <th>
+                                <a
+                                    class="admin-sort-link<?= $sort === $column
+                                        ? ' is-active'
+                                        : '' ?>"
+                                    href="<?= admin_h(
+                                        $sortUrl(
+                                            $column,
+                                            $defaultDirection
+                                        )
+                                    ) ?>"
+                                >
+                                    <span><?= admin_h($label) ?></span>
+                                    <span class="admin-sort-link__indicator">
+                                        <?= admin_h(
+                                            $sortIndicator($column)
+                                        ) ?>
+                                    </span>
+                                </a>
+                            </th>
+                        <?php endforeach; ?>
                         <th>عملیات</th>
                     </tr>
                 </thead>
@@ -188,38 +397,24 @@ ob_start();
                                 </span>
                             </td>
                             <td>
-                                <?php if (($user['roles'] ?? []) !== []): ?>
-                                    <span class="admin-role-stack">
-                                        <?php foreach (
-                                            array_slice(
-                                                $user['roles'],
-                                                0,
-                                                2
-                                            ) as $role
-                                        ): ?>
-                                            <span class="admin-pill">
-                                                <?= admin_h($role) ?>
-                                            </span>
-                                        <?php endforeach; ?>
-
-                                        <?php if (
-                                            (int) $user['role_count'] > 2
-                                        ): ?>
-                                            <span class="admin-pill admin-pill--muted">
-                                                +<?= admin_h(
-                                                    \App\Support\AdminFormat::digits(
-                                                        ((int) $user['role_count'])
-                                                        - 2
-                                                    )
-                                                ) ?>
-                                            </span>
-                                        <?php endif; ?>
+                                <span class="admin-users-highest-role">
+                                    <span class="admin-pill">
+                                        <?= admin_h(
+                                            $user['highest_role']
+                                        ) ?>
                                     </span>
-                                <?php else: ?>
-                                    <?= admin_h(
-                                        $user['role_summary']
-                                    ) ?>
-                                <?php endif; ?>
+                                    <?php if (
+                                        (int) $user['role_count'] > 1
+                                    ): ?>
+                                        <small class="admin-users-role-count">
+                                            +<?= admin_h(
+                                                \App\Support\AdminFormat::digits(
+                                                    (int) $user['role_count'] - 1
+                                                )
+                                            ) ?>
+                                        </small>
+                                    <?php endif; ?>
+                                </span>
                             </td>
                             <td>
                                 <?= admin_h(
@@ -309,8 +504,20 @@ ob_start();
                             </dt>
                             <dd>
                                 <?= admin_h(
-                                    $user['role_summary']
+                                    $user['highest_role']
                                 ) ?>
+                                <?php if (
+                                    (int) $user['role_count'] > 1
+                                ): ?>
+                                    <small class="admin-muted">
+                                        +<?= admin_h(
+                                            \App\Support\AdminFormat::digits(
+                                                (int) $user['role_count'] - 1
+                                            )
+                                        ) ?>
+                                        نقش دیگر
+                                    </small>
+                                <?php endif; ?>
                             </dd>
                         </div>
                         <div>

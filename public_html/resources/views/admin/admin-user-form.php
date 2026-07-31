@@ -22,6 +22,19 @@ $isEdit = !empty($page['is_edit']);
 $userId = (int) ($form['id'] ?? 0);
 $formAction = $isEdit ? '/admin/users/' . $userId : '/admin/users';
 $selectedRoleIds = array_map('intval', is_array($form['role_ids'] ?? null) ? $form['role_ids'] : []);
+$baseRoleId = 0;
+foreach ($roles as $roleDefinition) {
+    if ((string) ($roleDefinition['code'] ?? '') === 'user') {
+        $baseRoleId = (int) ($roleDefinition['id'] ?? 0);
+        break;
+    }
+}
+if (
+    $baseRoleId > 0
+    && !in_array($baseRoleId, $selectedRoleIds, true)
+) {
+    $selectedRoleIds[] = $baseRoleId;
+}
 $status = (string) ($status ?? '');
 $requestedTab = trim((string) ($_GET['tab'] ?? ''));
 
@@ -75,7 +88,7 @@ ob_start();
 .access-chip { background:var(--admin-surface); border:1px solid var(--admin-border); border-radius:999px; font-size:.66rem; font-weight:800; padding:.25rem .5rem; }
 .access-summary__empty { color:var(--admin-text-muted); font-size:.69rem; }
 .role-table { border:1px solid var(--admin-border); border-radius:.75rem; overflow:hidden; }
-.role-table__head, .role-row { align-items:center; display:grid; gap:.6rem; grid-template-columns:1.25rem minmax(11rem,1.35fr) minmax(8rem,.75fr) minmax(8rem,.75fr); }
+.role-table__head, .role-row { align-items:center; display:grid; gap:.55rem; grid-template-columns:1.25rem minmax(9rem,1.15fr) minmax(6.5rem,.65fr) minmax(7.5rem,.75fr) minmax(7.5rem,.75fr) minmax(10rem,1fr); }
 .role-table__head { background:var(--admin-surface-muted); border-bottom:1px solid var(--admin-border); color:var(--admin-text-muted); font-size:.68rem; font-weight:800; min-height:2.55rem; padding:.42rem .7rem; }
 .role-table__body { max-height:24rem; overflow:auto; }
 .role-row { border-top:1px solid var(--admin-border); cursor:pointer; min-height:3.25rem; padding:.48rem .7rem; }
@@ -84,10 +97,13 @@ ob_start();
 .role-row.is-selected { background:color-mix(in srgb,var(--admin-primary-soft) 72%,var(--admin-surface)); }
 .role-row[hidden], .role-empty { display:none; }
 .role-row input { height:1rem; margin:0; width:1rem; }
-.role-row__identity strong, .role-row__identity small { display:block; }
-.role-row__identity strong { font-size:.77rem; }
-.role-row__identity small { color:var(--admin-text-muted); direction:ltr; font-size:.63rem; }
-.role-row__meta { color:var(--admin-text-muted); font-size:.69rem; }
+.role-row__identity strong { display:block; font-size:.77rem; }
+.role-row__code { background:var(--admin-surface); border:1px solid var(--admin-border); border-radius:.45rem; color:var(--admin-text-muted); direction:ltr; display:inline-flex; font-size:.63rem; justify-content:flex-start; max-width:100%; overflow:hidden; padding:.22rem .38rem; text-overflow:ellipsis; white-space:nowrap; }
+.role-row__meta { color:var(--admin-text); font-size:.69rem; min-width:0; }
+.role-row__meta small { color:var(--admin-text-muted); display:none; font-size:.62rem; margin-bottom:.12rem; }
+.role-row__scope { overflow-wrap:anywhere; }
+.role-row.is-base { box-shadow:inset -3px 0 0 var(--admin-primary); }
+.role-row__badge { background:var(--admin-primary-soft); border-radius:999px; color:var(--admin-primary); display:inline-flex; font-size:.6rem; margin-top:.18rem; padding:.12rem .35rem; }
 .role-empty.is-visible { display:block; color:var(--admin-text-muted); font-size:.74rem; padding:1.1rem; text-align:center; }
 .permission-next { align-items:center; background:var(--admin-surface-muted); border:1px dashed var(--admin-border); border-radius:.75rem; display:flex; gap:.75rem; justify-content:space-between; padding:.65rem .75rem; }
 .permission-next strong { font-size:.74rem; }
@@ -95,7 +111,8 @@ ob_start();
 .user-actions { bottom:.5rem; box-shadow:0 8px 24px rgb(15 23 42/.08); display:flex; gap:.45rem; justify-content:space-between; margin-top:.8rem; padding:.5rem; position:sticky; z-index:20; }
 .user-actions > div { display:flex; flex-wrap:wrap; gap:.4rem; }
 @media (max-width:1100px) { .user-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .access-tools { grid-template-columns:1fr 1fr; } .access-tools .user-field:last-child { grid-column:1/-1; } }
-@media (max-width:760px) { .user-grid,.user-grid--2,.access-tools,.access-summary { grid-template-columns:1fr; } .user-field--wide,.access-tools .user-field:last-child { grid-column:auto; } .role-table__head { display:none; } .role-row { grid-template-columns:1.25rem minmax(0,1fr); } .role-row__meta { display:none; } .user-editor__head p { display:none; } .user-actions,.permission-next { display:grid; } }
+@media (max-width:1050px) { .role-table__head { display:none; } .role-row { align-items:start; grid-template-columns:1.25rem minmax(0,1fr) minmax(0,1fr); } .role-row__identity { grid-column:2/-1; } .role-row__code { grid-column:2; } .role-row__meta { background:var(--admin-surface); border:1px solid var(--admin-border); border-radius:.55rem; min-height:2.8rem; padding:.4rem .5rem; } .role-row__meta small { display:block; } }
+@media (max-width:760px) { .user-grid,.user-grid--2,.access-tools,.access-summary { grid-template-columns:1fr; } .user-field--wide,.access-tools .user-field:last-child { grid-column:auto; } .role-row { grid-template-columns:1.25rem minmax(0,1fr); } .role-row__identity,.role-row__code,.role-row__meta { grid-column:2; } .user-editor__head p { display:none; } .user-actions,.permission-next { display:grid; } }
 </style>
 
 <div class="user-editor" data-user-editor data-active-tab="<?= admin_h($activeTab) ?>">
@@ -195,11 +212,131 @@ ob_start();
             <section class="access-card">
                 <div class="access-card__head"><div><h3>نقش‌های کاربر</h3><p>نقش پایه «کاربر» همیشه فعال است.</p></div><span class="admin-pill"><span data-role-count><?= count($selectedRoleIds) ?></span> نقش فعال</span></div>
                 <div class="access-summary"><span class="access-summary__title">انتخاب‌های فعلی</span><div class="access-summary__content"><div class="access-summary__chips" data-role-summary></div><span class="access-summary__empty" data-role-summary-empty>فقط نقش پایه کاربر فعال است.</span></div></div>
-                <div class="role-table" style="margin-top:.75rem"><div class="role-table__head"><span>انتخاب</span><span>عنوان نقش</span><span>نوع دسترسی</span><span>حوزه دسترسی</span></div><div class="role-table__body" data-role-list>
-                    <?php foreach ($roles as $role): ?><?php $roleId=(int)($role['id']??0);$roleCode=(string)($role['code']??'');$isBase=$roleCode==='user';$selected=$isBase||in_array($roleId,$selectedRoleIds,true); ?>
-                    <label class="role-row<?= $selected ? ' is-selected' : '' ?>" data-role-row data-kind="<?= admin_h($role['role_kind_code']??'uncategorized') ?>" data-area="<?= admin_h($role['role_area_code']??'global') ?>" data-search="<?= admin_h(strtolower((string)($role['title']??'').' '.$roleCode)) ?>"><input type="checkbox" name="role_ids[]" value="<?= $roleId ?>" data-role-checkbox data-title="<?= admin_h($role['title']??'') ?>" <?= $selected?'checked':'' ?> <?= $isBase?'disabled':'' ?>><?php if($isBase):?><input type="hidden" name="role_ids[]" value="<?= $roleId ?>"><?php endif;?><span class="role-row__identity"><strong><?= admin_h($role['title']??'') ?></strong><small><?= admin_h($roleCode) ?></small></span><span class="role-row__meta"><?= admin_h($role['role_kind_title']??'سایر') ?></span><span class="role-row__meta"><?= admin_h($role['role_area_title']??'سراسری') ?></span></label>
-                    <?php endforeach; ?><div class="role-empty" data-role-empty>نقشی مطابق فیلتر پیدا نشد.</div>
-                </div></div>
+                <div class="role-table" style="margin-top:.75rem">
+                    <div class="role-table__head">
+                        <span>انتخاب</span>
+                        <?php foreach ([
+                            'title' => 'عنوان نقش',
+                            'code' => 'کد نقش',
+                            'kind' => 'نوع دسترسی',
+                            'area' => 'حوزه دسترسی',
+                            'scope' => 'مرجع حوزه',
+                        ] as $roleSortKey => $roleSortLabel): ?>
+                            <button
+                                type="button"
+                                class="admin-sort-link"
+                                data-role-sort="<?= admin_h($roleSortKey) ?>"
+                            >
+                                <?= admin_h($roleSortLabel) ?>
+                                <span class="admin-sort-link__indicator">↕</span>
+                            </button>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <div class="role-table__body" data-role-list>
+                        <?php foreach ($roles as $role): ?>
+                            <?php
+                            $roleId = (int) ($role['id'] ?? 0);
+                            $roleCode = (string) ($role['code'] ?? '');
+                            $roleTitle = (string) ($role['title'] ?? '');
+                            $kindTitle = (string) (
+                                $role['role_kind_title'] ?? 'سایر'
+                            );
+                            $areaTitle = (string) (
+                                $role['role_area_title'] ?? 'سراسری'
+                            );
+                            $areaCode = (string) (
+                                $role['role_area_code'] ?? 'global'
+                            );
+                            $scopeReference = $areaCode === 'global'
+                                ? 'کل سامانه'
+                                : 'هنگام انتصاب تعیین می‌شود';
+                            $isBase = $roleCode === 'user';
+                            $selected = $isBase
+                                || in_array(
+                                    $roleId,
+                                    $selectedRoleIds,
+                                    true
+                                );
+                            ?>
+                            <label
+                                class="role-row<?= $selected
+                                    ? ' is-selected'
+                                    : '' ?><?= $isBase
+                                    ? ' is-base'
+                                    : '' ?>"
+                                data-role-row
+                                data-kind="<?= admin_h(
+                                    $role['role_kind_code']
+                                    ?? 'uncategorized'
+                                ) ?>"
+                                data-area="<?= admin_h($areaCode) ?>"
+                                data-search="<?= admin_h(
+                                    strtolower(
+                                        $roleTitle . ' ' . $roleCode
+                                    )
+                                ) ?>"
+                                data-sort-title="<?= admin_h($roleTitle) ?>"
+                                data-sort-code="<?= admin_h($roleCode) ?>"
+                                data-sort-kind="<?= admin_h($kindTitle) ?>"
+                                data-sort-area="<?= admin_h($areaTitle) ?>"
+                                data-sort-scope="<?= admin_h(
+                                    $scopeReference
+                                ) ?>"
+                            >
+                                <input
+                                    type="checkbox"
+                                    name="role_ids[]"
+                                    value="<?= $roleId ?>"
+                                    data-role-checkbox
+                                    data-title="<?= admin_h($roleTitle) ?>"
+                                    <?= $selected ? ' checked' : '' ?>
+                                    <?= $isBase ? ' disabled' : '' ?>
+                                >
+
+                                <?php if ($isBase): ?>
+                                    <input
+                                        type="hidden"
+                                        name="role_ids[]"
+                                        value="<?= $roleId ?>"
+                                    >
+                                <?php endif; ?>
+
+                                <span class="role-row__identity">
+                                    <strong><?= admin_h($roleTitle) ?></strong>
+                                    <?php if ($isBase): ?>
+                                        <span class="role-row__badge">
+                                            نقش پیش‌فرض
+                                        </span>
+                                    <?php endif; ?>
+                                </span>
+
+                                <code class="role-row__code">
+                                    <?= admin_h($roleCode) ?>
+                                </code>
+
+                                <span class="role-row__meta">
+                                    <small>نوع دسترسی</small>
+                                    <?= admin_h($kindTitle) ?>
+                                </span>
+
+                                <span class="role-row__meta">
+                                    <small>حوزه دسترسی</small>
+                                    <?= admin_h($areaTitle) ?>
+                                </span>
+
+                                <span class="role-row__meta role-row__scope">
+                                    <small>مرجع حوزه</small>
+                                    <?= admin_h($scopeReference) ?>
+                                </span>
+                            </label>
+                        <?php endforeach; ?>
+
+                        <div class="role-empty" data-role-empty>
+                            نقشی مطابق فیلتر پیدا نشد.
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <section class="access-card"><div class="permission-next"><div><strong>مجوزهای ریزدانه</strong><small>مدیریت مستقیم Permissionها در مرحله توسعه دسترسی‌ها به همین تب اضافه می‌شود.</small></div><span class="admin-pill">مرحله بعد</span></div></section>
@@ -234,7 +371,48 @@ ob_start();
     const normalize=value=>String(value||'').trim().toLocaleLowerCase('fa');
     const filter=()=>{let visible=0;rows.forEach(row=>{const show=(kind?.value==='all'||row.dataset.kind===kind?.value)&&(area?.value==='all'||row.dataset.area===area?.value)&&(!normalize(search?.value)||normalize(row.dataset.search).includes(normalize(search?.value)));row.hidden=!show;if(show)visible++;});empty?.classList.toggle('is-visible',visible===0);};
     const selection=()=>{const checked=[...root.querySelectorAll('[data-role-checkbox]:checked')];rows.forEach(row=>row.classList.toggle('is-selected',Boolean(row.querySelector('[data-role-checkbox]')?.checked)));if(summary){summary.textContent='';checked.filter(item=>!item.disabled).forEach(item=>{const chip=document.createElement('span');chip.className='access-chip';chip.textContent=item.dataset.title||'';summary.appendChild(chip);});}if(summaryEmpty)summaryEmpty.hidden=checked.filter(item=>!item.disabled).length>0;counts.forEach(count=>count.textContent=String(checked.length));};
-    kind?.addEventListener('change',filter); area?.addEventListener('change',filter); search?.addEventListener('input',filter); rows.forEach(row=>row.querySelector('[data-role-checkbox]')?.addEventListener('change',selection)); filter(); selection();
+    const roleList=root.querySelector('[data-role-list]');
+    let roleSort={key:'title',dir:'asc'};
+    const sortRoles=key=>{
+        roleSort={
+            key,
+            dir:roleSort.key===key&&roleSort.dir==='asc'
+                ?'desc'
+                :'asc'
+        };
+        const dataKey=`sort${key.charAt(0).toUpperCase()+key.slice(1)}`;
+        const sorted=[...rows].sort((a,b)=>{
+            const left=normalize(a.dataset[dataKey]);
+            const right=normalize(b.dataset[dataKey]);
+            const compared=left.localeCompare(right,'fa');
+            return roleSort.dir==='asc'?compared:-compared;
+        });
+        sorted.forEach(row=>roleList?.insertBefore(row,empty));
+        root.querySelectorAll('[data-role-sort]').forEach(button=>{
+            const indicator=button.querySelector('.admin-sort-link__indicator');
+            if(indicator){
+                indicator.textContent=button.dataset.roleSort===key
+                    ?(roleSort.dir==='asc'?'↑':'↓')
+                    :'↕';
+            }
+        });
+    };
+    root.querySelectorAll('[data-role-sort]').forEach(button=>
+        button.addEventListener(
+            'click',
+            ()=>sortRoles(button.dataset.roleSort||'title')
+        )
+    );
+    kind?.addEventListener('change',filter);
+    area?.addEventListener('change',filter);
+    search?.addEventListener('input',filter);
+    rows.forEach(row=>
+        row.querySelector('[data-role-checkbox]')
+            ?.addEventListener('change',selection)
+    );
+    sortRoles('title');
+    filter();
+    selection();
 })();
 </script>
 <?php

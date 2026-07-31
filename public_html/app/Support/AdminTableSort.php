@@ -5,90 +5,86 @@ namespace App\Support;
 final class AdminTableSort
 {
     public static function resolve(
-        array $input,
-        array $allowedColumns,
-        string $defaultColumn,
+        mixed $sort,
+        mixed $direction,
+        array $allowed,
+        string $defaultSort,
         string $defaultDirection = 'asc'
     ): array {
-        $source = is_array($_GET ?? null) ? array_merge($_GET, $input) : $input;
-        $column = trim((string) ($source['sort'] ?? $defaultColumn));
+        $sort = trim((string) $sort);
+        $direction = strtolower(trim((string) $direction));
 
-        if (!array_key_exists($column, $allowedColumns)) {
-            $column = $defaultColumn;
+        if (!array_key_exists($sort, $allowed)) {
+            $sort = $defaultSort;
         }
 
-        $direction = strtolower(trim((string) ($source['dir'] ?? $defaultDirection)));
         if (!in_array($direction, ['asc', 'desc'], true)) {
-            $direction = strtolower($defaultDirection) === 'desc' ? 'desc' : 'asc';
+            $direction = strtolower($defaultDirection) === 'desc'
+                ? 'desc'
+                : 'asc';
         }
 
         return [
-            'column' => $column,
-            'direction' => $direction,
-            'expression' => (string) $allowedColumns[$column],
-            'sql' => (string) $allowedColumns[$column] . ' ' . strtoupper($direction),
+            'sort' => $sort,
+            'dir' => $direction,
         ];
+    }
+
+    public static function directionFor(
+        string $column,
+        string $activeSort,
+        string $activeDirection,
+        string $defaultDirection = 'asc'
+    ): string {
+        if ($column !== $activeSort) {
+            return strtolower($defaultDirection) === 'desc'
+                ? 'desc'
+                : 'asc';
+        }
+
+        return strtolower($activeDirection) === 'asc'
+            ? 'desc'
+            : 'asc';
     }
 
     public static function url(
         string $basePath,
-        array $query,
         string $column,
-        string $currentColumn,
-        string $currentDirection,
-        string $fragment = ''
+        string $activeSort,
+        string $activeDirection,
+        array $query = [],
+        string $defaultDirection = 'asc'
     ): string {
-        $query = self::cleanQuery($query);
+        unset($query['page']);
+
         $query['sort'] = $column;
-        $query['dir'] = $currentColumn === $column && strtolower($currentDirection) === 'asc'
-            ? 'desc'
-            : 'asc';
+        $query['dir'] = self::directionFor(
+            $column,
+            $activeSort,
+            $activeDirection,
+            $defaultDirection
+        );
 
-        $encoded = http_build_query($query, '', '&', PHP_QUERY_RFC3986);
-        $url = $basePath . ($encoded === '' ? '' : '?' . $encoded);
-
-        return $fragment === '' ? $url : $url . '#' . ltrim($fragment, '#');
+        return $basePath . '?' . http_build_query(
+            array_filter(
+                $query,
+                static fn ($value): bool =>
+                    $value !== null && $value !== ''
+            )
+        );
     }
 
     public static function indicator(
         string $column,
-        string $currentColumn,
-        string $currentDirection
+        string $activeSort,
+        string $activeDirection
     ): string {
-        if ($column !== $currentColumn) {
+        if ($column !== $activeSort) {
             return '↕';
         }
 
-        return strtolower($currentDirection) === 'desc' ? '↓' : '↑';
-    }
-
-    public static function ariaSort(
-        string $column,
-        string $currentColumn,
-        string $currentDirection
-    ): string {
-        if ($column !== $currentColumn) {
-            return 'none';
-        }
-
-        return strtolower($currentDirection) === 'desc'
-            ? 'descending'
-            : 'ascending';
-    }
-
-    private static function cleanQuery(array $query): array
-    {
-        unset($query['page']);
-
-        foreach ($query as $key => $value) {
-            if ($value === null || $value === '' || is_array($value)) {
-                unset($query[$key]);
-                continue;
-            }
-
-            $query[$key] = (string) $value;
-        }
-
-        return $query;
+        return strtolower($activeDirection) === 'asc'
+            ? '↑'
+            : '↓';
     }
 }
