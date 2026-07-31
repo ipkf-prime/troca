@@ -99,10 +99,7 @@ class AdminUserManagementRepository extends BaseRepository
             WHERE {$where}
             ORDER BY
                 CASE WHEN roles.code = 'user' THEN 0 ELSE 1 END,
-                role_kinds.title ASC,
-                role_areas.title ASC,
-                roles.priority ASC,
-                roles.title ASC,
+                roles.code ASC,
                 roles.id ASC
         ");
 
@@ -252,6 +249,57 @@ class AdminUserManagementRepository extends BaseRepository
               AND roles.is_active = 1
         ");
         $statement->execute([$userId, $roleCode]);
+
+        return (int) $statement->fetchColumn() > 0;
+    }
+
+    public function nationalCodeExists(
+        string $nationalCode,
+        ?int $exceptUserId = null
+    ): bool {
+        $nationalCode = preg_replace(
+            '/\D+/',
+            '',
+            $nationalCode
+        ) ?: '';
+
+        if (
+            $nationalCode === ''
+            || !Database::columnExists(
+                'persons',
+                'national_code'
+            )
+        ) {
+            return false;
+        }
+
+        $sql = "
+            SELECT COUNT(*)
+            FROM persons
+            LEFT JOIN users
+              ON users.person_id = persons.id
+             AND users.deleted_at IS NULL
+            WHERE persons.national_code = ?
+        ";
+        $parameters = [$nationalCode];
+
+        if ($exceptUserId !== null) {
+            $sql .= "
+              AND persons.id <> COALESCE(
+                  (
+                      SELECT target.person_id
+                      FROM users AS target
+                      WHERE target.id = ?
+                      LIMIT 1
+                  ),
+                  0
+              )
+            ";
+            $parameters[] = $exceptUserId;
+        }
+
+        $statement = $this->connection()->prepare($sql);
+        $statement->execute($parameters);
 
         return (int) $statement->fetchColumn() > 0;
     }
@@ -439,6 +487,70 @@ class AdminUserManagementRepository extends BaseRepository
             }
 
             $this->syncGlobalRoles($userId, $roleIds);
+
+            $db->commit();
+
+            return true;
+        } catch (Throwable $exception) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+
+            throw $exception;
+        }
+    }
+
+    public function updateOwnProfile(
+        int $userId,
+        array $data
+    ): bool {
+        $db = $this->connection();
+        $db->beginTransaction();
+
+        try {
+            $current = $this->findForForm($userId);
+
+            if ($current === null) {
+                throw new RuntimeException(
+                    'user_not_found'
+                );
+            }
+
+            $personId = (int) (
+                $current['person_id'] ?? 0
+            );
+
+            if ($personId < 1) {
+                throw new RuntimeException(
+                    'person_not_found'
+                );
+            }
+
+            $payload = array_merge($current, $data, [
+                'person_type' => (string) (
+                    $current['person_type']
+                    ?? 'individual'
+                ),
+                'email' => $current['email'] ?? null,
+                'email_norm' => $current['email'] ?? null,
+                'mobile' => $current['mobile'] ?? null,
+                'mobile_norm' => $current['mobile'] ?? null,
+                'full_name' => trim(
+                    (string) $data['first_name']
+                    . ' '
+                    . (string) $data['last_name']
+                ),
+            ]);
+
+            $this->updatePerson($personId, $payload);
+            $this->syncPersonProfile(
+                $personId,
+                $payload
+            );
+            $this->syncPrimaryAddress(
+                $personId,
+                $payload
+            );
 
             $db->commit();
 
@@ -960,7 +1072,7 @@ class AdminUserManagementRepository extends BaseRepository
             (int) ($data['province_id'] ?? 0) > 0 ? (int) $data['province_id'] : null,
             (int) ($data['city_id'] ?? 0) > 0 ? (int) $data['city_id'] : null,
             $data['district'] !== '' ? $data['district'] : null,
-            $data['address_line'] !== '' ? $data['address_line'] : null,
+            (string) ($data['address_line'] ?? ''),
             $data['postal_code'] !== '' ? $data['postal_code'] : null,
         ];
 

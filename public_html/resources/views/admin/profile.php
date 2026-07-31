@@ -111,7 +111,10 @@ ob_start();
         </div>
 
         <div class="account-actions" style="margin-top:.7rem">
-            <a class="admin-button" href="/admin/security">
+            <a class="admin-button" href="/admin/profile/edit">
+                ویرایش هویت و نشانی
+            </a>
+            <a class="admin-button admin-button--soft" href="/admin/security">
                 تنظیمات امنیتی
             </a>
             <a

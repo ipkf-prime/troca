@@ -11,6 +11,11 @@ $accountLinks = [
         'paths' => ['/admin/profile'],
     ],
     [
+        'href' => '/admin/profile/edit',
+        'label' => 'هویت و نشانی',
+        'paths' => ['/admin/profile/edit'],
+    ],
+    [
         'href' => '/admin/account',
         'label' => 'اطلاعات حساب',
         'paths' => ['/admin/account'],
