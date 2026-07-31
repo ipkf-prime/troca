@@ -2,7 +2,12 @@
 if (!function_exists('admin_h')) {
     function admin_h($value): string
     {
-        return htmlspecialchars((string) ($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+        return htmlspecialchars(
+            (string) ($value ?? ''),
+            ENT_QUOTES | ENT_SUBSTITUTE,
+            'UTF-8',
+            false
+        );
     }
 }
 
@@ -15,6 +20,9 @@ $total = (int) ($pagination['total'] ?? 0);
 $page = (int) ($pagination['page'] ?? 1);
 $perPage = (int) ($pagination['per_page'] ?? 20);
 $lastPage = (int) ($pagination['last_page'] ?? 1);
+$canCreate = (bool) ($canCreate ?? false);
+$canUpdate = (bool) ($canUpdate ?? false);
+$status = (string) ($status ?? '');
 
 $pageUrl = static function (int $targetPage) use ($q): string {
     $params = ['page' => $targetPage];
@@ -42,35 +50,82 @@ ob_start();
     </div>
     <div>
         <h2>کاربران</h2>
-        <p>مشاهده حساب‌های کاربری و وضعیت دسترسی آن‌ها</p>
+        <p>ایجاد، مشاهده و مدیریت حساب‌های کاربری و دسترسی‌ها</p>
     </div>
-    <a class="admin-module-hub__back" href="/admin/modules/users">بازگشت به مدیریت کاربران</a>
+    <a class="admin-module-hub__back" href="/admin/modules/users">
+        بازگشت به مدیریت کاربران
+    </a>
 </section>
+
+<?php if ($status === 'created'): ?>
+    <section class="admin-section">
+        <div class="admin-alert admin-alert--success">
+            کاربر جدید با موفقیت ایجاد شد.
+        </div>
+    </section>
+<?php endif; ?>
 
 <section class="admin-section admin-users-panel">
     <div class="admin-users-toolbar">
-        <form class="admin-users-search" method="get" action="/admin/users">
+        <form
+            class="admin-users-search"
+            method="get"
+            action="/admin/users"
+        >
             <label for="admin-users-q">جستجو در کاربران</label>
             <div class="admin-users-search__row">
-                <span class="admin-users-search__icon"><?= \App\Support\AdminIcon::html('search') ?></span>
-                <input id="admin-users-q" type="search" name="q" value="<?= admin_h($q) ?>" maxlength="80" placeholder="نام، نام کاربری، موبایل یا ایمیل">
-                <button class="admin-button" type="submit">جستجو</button>
+                <span class="admin-users-search__icon">
+                    <?= \App\Support\AdminIcon::html('search') ?>
+                </span>
+                <input
+                    id="admin-users-q"
+                    type="search"
+                    name="q"
+                    value="<?= admin_h($q) ?>"
+                    maxlength="80"
+                    placeholder="نام، نام کاربری، موبایل یا ایمیل"
+                >
+                <button class="admin-button" type="submit">
+                    جستجو
+                </button>
                 <?php if ($q !== ''): ?>
-                    <a class="admin-button admin-button--soft" href="/admin/users">بازنشانی</a>
+                    <a
+                        class="admin-button admin-button--soft"
+                        href="/admin/users"
+                    >
+                        بازنشانی
+                    </a>
                 <?php endif; ?>
             </div>
         </form>
-        <div class="admin-users-total">
-            <span>تعداد کل</span>
-            <strong><?= admin_h(\App\Support\AdminFormat::digits($total)) ?></strong>
+
+        <div style="display:flex;align-items:center;gap:.65rem">
+            <?php if ($canCreate): ?>
+                <a class="admin-button" href="/admin/users/create">
+                    ایجاد کاربر
+                </a>
+            <?php endif; ?>
+
+            <div class="admin-users-total">
+                <span>تعداد کل</span>
+                <strong>
+                    <?= admin_h(
+                        \App\Support\AdminFormat::digits($total)
+                    ) ?>
+                </strong>
+            </div>
         </div>
     </div>
 
     <?php if (!$ok): ?>
-        <div class="admin-alert">امکان دریافت فهرست کاربران در حال حاضر وجود ندارد.</div>
+        <div class="admin-alert">
+            امکان دریافت فهرست کاربران در حال حاضر وجود ندارد.
+        </div>
     <?php elseif ($items === []): ?>
         <div class="admin-empty-state">
-            <?= $q === '' ? 'هنوز کاربری ثبت نشده است.' : 'کاربری مطابق جستجو پیدا نشد.' ?>
+            <?= $q === ''
+                ? 'هنوز کاربری ثبت نشده است.'
+                : 'کاربری مطابق جستجو پیدا نشد.' ?>
         </div>
     <?php else: ?>
         <div class="admin-users-table-wrap">
@@ -86,44 +141,122 @@ ob_start();
                         <th>نقش‌های فعال</th>
                         <th>واحد اصلی</th>
                         <th>تاریخ ایجاد</th>
-                        <th>جزئیات</th>
+                        <th>عملیات</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($items as $index => $user): ?>
                         <tr>
-                            <td><?= admin_h(\App\Support\AdminFormat::digits((($page - 1) * $perPage) + $index + 1)) ?></td>
                             <td>
-                                <a class="admin-users-identity admin-users-identity--link" href="<?= admin_h($user['detail_url']) ?>">
+                                <?= admin_h(
+                                    \App\Support\AdminFormat::digits(
+                                        (($page - 1) * $perPage)
+                                        + $index
+                                        + 1
+                                    )
+                                ) ?>
+                            </td>
+                            <td>
+                                <a
+                                    class="admin-users-identity admin-users-identity--link"
+                                    href="<?= admin_h(
+                                        $user['detail_url']
+                                    ) ?>"
+                                >
                                     <?= \App\Support\AdminIcon::html('user') ?>
-                                    <strong><?= admin_h($user['name']) ?></strong>
+                                    <strong>
+                                        <?= admin_h($user['name']) ?>
+                                    </strong>
                                 </a>
                             </td>
-                            <td dir="ltr"><?= admin_h($user['username']) ?></td>
-                            <td dir="ltr"><?= admin_h($user['mobile']) ?></td>
-                            <td dir="ltr"><?= admin_h($user['email']) ?></td>
+                            <td dir="ltr">
+                                <?= admin_h($user['username']) ?>
+                            </td>
+                            <td dir="ltr">
+                                <?= admin_h($user['mobile']) ?>
+                            </td>
+                            <td dir="ltr">
+                                <?= admin_h($user['email']) ?>
+                            </td>
                             <td>
-                                <span class="admin-status-badge admin-status-badge--<?= admin_h($user['status']['code']) ?>">
-                                    <?= admin_h($user['status']['label']) ?>
+                                <span class="admin-status-badge admin-status-badge--<?= admin_h(
+                                    $user['status']['code']
+                                ) ?>">
+                                    <?= admin_h(
+                                        $user['status']['label']
+                                    ) ?>
                                 </span>
                             </td>
                             <td>
                                 <?php if (($user['roles'] ?? []) !== []): ?>
                                     <span class="admin-role-stack">
-                                        <?php foreach (array_slice($user['roles'], 0, 2) as $role): ?>
-                                            <span class="admin-pill"><?= admin_h($role) ?></span>
+                                        <?php foreach (
+                                            array_slice(
+                                                $user['roles'],
+                                                0,
+                                                2
+                                            ) as $role
+                                        ): ?>
+                                            <span class="admin-pill">
+                                                <?= admin_h($role) ?>
+                                            </span>
                                         <?php endforeach; ?>
-                                        <?php if ((int) $user['role_count'] > 2): ?>
-                                            <span class="admin-pill admin-pill--muted">+<?= admin_h(\App\Support\AdminFormat::digits(((int) $user['role_count']) - 2)) ?></span>
+
+                                        <?php if (
+                                            (int) $user['role_count'] > 2
+                                        ): ?>
+                                            <span class="admin-pill admin-pill--muted">
+                                                +<?= admin_h(
+                                                    \App\Support\AdminFormat::digits(
+                                                        ((int) $user['role_count'])
+                                                        - 2
+                                                    )
+                                                ) ?>
+                                            </span>
                                         <?php endif; ?>
                                     </span>
                                 <?php else: ?>
-                                    <?= admin_h($user['role_summary']) ?>
+                                    <?= admin_h(
+                                        $user['role_summary']
+                                    ) ?>
                                 <?php endif; ?>
                             </td>
-                            <td><?= admin_h($user['primary_org_unit']) ?></td>
-                            <td dir="ltr"><?= admin_h(\App\Support\AdminFormat::digits($user['created_at'])) ?></td>
-                            <td><a class="admin-button admin-button--soft admin-button--compact" href="<?= admin_h($user['detail_url']) ?>">مشاهده</a></td>
+                            <td>
+                                <?= admin_h(
+                                    $user['primary_org_unit']
+                                ) ?>
+                            </td>
+                            <td dir="ltr">
+                                <?= admin_h(
+                                    \App\Support\AdminFormat::digits(
+                                        $user['created_at']
+                                    )
+                                ) ?>
+                            </td>
+                            <td>
+                                <div class="admin-form-actions">
+                                    <a
+                                        class="admin-button admin-button--soft admin-button--compact"
+                                        href="<?= admin_h(
+                                            $user['detail_url']
+                                        ) ?>"
+                                    >
+                                        مشاهده
+                                    </a>
+                                    <?php if ($canUpdate): ?>
+                                        <a
+                                            class="admin-button admin-button--soft admin-button--compact"
+                                            href="<?= admin_h(
+                                                '/admin/users/'
+                                                . (int) $user['id']
+                                                . '/edit'
+                                            ) ?>"
+                                        >
+                                            ویرایش
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -134,34 +267,87 @@ ob_start();
             <?php foreach ($items as $user): ?>
                 <article class="admin-user-card">
                     <header>
-                        <span class="admin-user-card__icon"><?= \App\Support\AdminIcon::html('user') ?></span>
+                        <span class="admin-user-card__icon">
+                            <?= \App\Support\AdminIcon::html('user') ?>
+                        </span>
                         <div>
                             <strong><?= admin_h($user['name']) ?></strong>
-                            <small dir="ltr"><?= admin_h($user['username']) ?></small>
+                            <small dir="ltr">
+                                <?= admin_h($user['username']) ?>
+                            </small>
                         </div>
-                        <span class="admin-status-badge admin-status-badge--<?= admin_h($user['status']['code']) ?>">
+                        <span class="admin-status-badge admin-status-badge--<?= admin_h(
+                            $user['status']['code']
+                        ) ?>">
                             <?= admin_h($user['status']['label']) ?>
                         </span>
                     </header>
+
                     <dl>
                         <div>
-                            <dt><?= \App\Support\AdminIcon::html('mobile') ?> موبایل</dt>
-                            <dd dir="ltr"><?= admin_h($user['mobile']) ?></dd>
+                            <dt>
+                                <?= \App\Support\AdminIcon::html('mobile') ?>
+                                موبایل
+                            </dt>
+                            <dd dir="ltr">
+                                <?= admin_h($user['mobile']) ?>
+                            </dd>
                         </div>
                         <div>
-                            <dt><?= \App\Support\AdminIcon::html('email') ?> ایمیل</dt>
-                            <dd dir="ltr"><?= admin_h($user['email']) ?></dd>
+                            <dt>
+                                <?= \App\Support\AdminIcon::html('email') ?>
+                                ایمیل
+                            </dt>
+                            <dd dir="ltr">
+                                <?= admin_h($user['email']) ?>
+                            </dd>
                         </div>
                         <div>
-                            <dt><?= \App\Support\AdminIcon::html('roles') ?> نقش‌ها</dt>
-                            <dd><?= admin_h($user['role_summary']) ?></dd>
+                            <dt>
+                                <?= \App\Support\AdminIcon::html('roles') ?>
+                                نقش‌ها
+                            </dt>
+                            <dd>
+                                <?= admin_h(
+                                    $user['role_summary']
+                                ) ?>
+                            </dd>
                         </div>
                         <div>
-                            <dt><?= \App\Support\AdminIcon::html('calendar') ?> تاریخ ایجاد</dt>
-                            <dd dir="ltr"><?= admin_h(\App\Support\AdminFormat::digits($user['created_at'])) ?></dd>
+                            <dt>
+                                <?= \App\Support\AdminIcon::html('calendar') ?>
+                                تاریخ ایجاد
+                            </dt>
+                            <dd dir="ltr">
+                                <?= admin_h(
+                                    \App\Support\AdminFormat::digits(
+                                        $user['created_at']
+                                    )
+                                ) ?>
+                            </dd>
                         </div>
                     </dl>
-                    <a class="admin-button admin-button--soft" href="<?= admin_h($user['detail_url']) ?>">مشاهده جزئیات</a>
+
+                    <div class="admin-form-actions">
+                        <a
+                            class="admin-button admin-button--soft"
+                            href="<?= admin_h($user['detail_url']) ?>"
+                        >
+                            مشاهده جزئیات
+                        </a>
+                        <?php if ($canUpdate): ?>
+                            <a
+                                class="admin-button admin-button--soft"
+                                href="<?= admin_h(
+                                    '/admin/users/'
+                                    . (int) $user['id']
+                                    . '/edit'
+                                ) ?>"
+                            >
+                                ویرایش
+                            </a>
+                        <?php endif; ?>
+                    </div>
                 </article>
             <?php endforeach; ?>
         </div>
@@ -169,13 +355,45 @@ ob_start();
 
     <?php if ($ok && $total > 0): ?>
         <div class="admin-pagination">
-            <span>صفحه <?= admin_h(\App\Support\AdminFormat::digits($page)) ?> از <?= admin_h(\App\Support\AdminFormat::digits($lastPage)) ?></span>
+            <span>
+                صفحه
+                <?= admin_h(
+                    \App\Support\AdminFormat::digits($page)
+                ) ?>
+                از
+                <?= admin_h(
+                    \App\Support\AdminFormat::digits($lastPage)
+                ) ?>
+            </span>
             <div>
-                <?php if (($pagination['has_previous'] ?? false) === true): ?>
-                    <a class="admin-button admin-button--soft" href="<?= admin_h($pageUrl((int) $pagination['previous_page'])) ?>">قبلی</a>
+                <?php if (
+                    ($pagination['has_previous'] ?? false) === true
+                ): ?>
+                    <a
+                        class="admin-button admin-button--soft"
+                        href="<?= admin_h(
+                            $pageUrl(
+                                (int) $pagination['previous_page']
+                            )
+                        ) ?>"
+                    >
+                        قبلی
+                    </a>
                 <?php endif; ?>
-                <?php if (($pagination['has_next'] ?? false) === true): ?>
-                    <a class="admin-button" href="<?= admin_h($pageUrl((int) $pagination['next_page'])) ?>">بعدی</a>
+
+                <?php if (
+                    ($pagination['has_next'] ?? false) === true
+                ): ?>
+                    <a
+                        class="admin-button"
+                        href="<?= admin_h(
+                            $pageUrl(
+                                (int) $pagination['next_page']
+                            )
+                        ) ?>"
+                    >
+                        بعدی
+                    </a>
                 <?php endif; ?>
             </div>
         </div>
