@@ -90,11 +90,8 @@ class WorkProjectService extends BaseService
     public function create(array $input, int $userId, array $context = []): array
     {
         $data = $this->normalize($input);
+        $data['code'] = $this->uniqueCodeForTitle((string) $data['title']);
         $errors = $this->validate($data);
-
-        if ($data['code'] !== '' && $this->projects->codeExists($data['code'])) {
-            $errors['code'] = 'کد پروژه قبلاً استفاده شده است.';
-        }
 
         if ($errors !== []) {
             return ['ok' => false, 'errors' => $errors, 'form' => $data];
@@ -107,10 +104,10 @@ class WorkProjectService extends BaseService
 
         try {
             $reference = $this->projects->create($data, $actorReference, $actorDisplayName);
-        } catch (\PDOException $exception) {
+        } catch (\PDOException) {
             return [
                 'ok' => false,
-                'errors' => ['code' => 'ثبت پروژه انجام نشد. کد پروژه را بررسی کنید.'],
+                'errors' => ['save' => 'ثبت پروژه انجام نشد. دوباره تلاش کنید.'],
                 'form' => $data,
             ];
         }
@@ -134,11 +131,8 @@ class WorkProjectService extends BaseService
 
         $data = $this->normalize($input);
         $data['public_reference'] = $publicReference;
+        $data['code'] = (string) ($current['code'] ?? '');
         $errors = $this->validate($data);
-
-        if ($data['code'] !== '' && $this->projects->codeExists($data['code'], $publicReference)) {
-            $errors['code'] = 'کد پروژه قبلاً استفاده شده است.';
-        }
 
         if ($errors !== []) {
             return ['ok' => false, 'errors' => $errors, 'form' => $data];
@@ -177,13 +171,9 @@ class WorkProjectService extends BaseService
 
     private function normalize(array $input): array
     {
-        $code = strtolower(trim((string) ($input['code'] ?? '')));
-        $code = preg_replace('/[\s_]+/u', '-', $code) ?? $code;
-        $code = preg_replace('/-+/', '-', $code) ?? $code;
-
         return [
             'public_reference' => trim((string) ($input['public_reference'] ?? '')),
-            'code' => trim($code, '-'),
+            'code' => '',
             'title' => trim((string) ($input['title'] ?? '')),
             'description' => trim((string) ($input['description'] ?? '')) ?: null,
             'organization_reference' => trim((string) ($input['organization_reference'] ?? '')) ?: null,
@@ -207,7 +197,7 @@ class WorkProjectService extends BaseService
         }
 
         if ($data['code'] === '' || preg_match('/^[a-z0-9][a-z0-9-]{1,78}[a-z0-9]$/', (string) $data['code']) !== 1) {
-            $errors['code'] = 'کد پروژه باید ۳ تا ۸۰ نویسه و فقط شامل حروف انگلیسی کوچک، عدد و خط تیره باشد.';
+            $errors['code'] = 'ساخت کد داخلی پروژه انجام نشد.';
         }
 
         if ($data['description'] !== null && $this->length((string) $data['description']) > 20000) {
@@ -243,6 +233,50 @@ class WorkProjectService extends BaseService
         }
 
         return $errors;
+    }
+
+    private function uniqueCodeForTitle(string $title): string
+    {
+        $base = $this->slugifyTitle($title);
+        if ($base === '') {
+            $base = 'project-' . substr(bin2hex(random_bytes(5)), 0, 10);
+        }
+
+        $base = substr($base, 0, 72);
+        $candidate = $base;
+        $counter = 2;
+
+        while ($this->projects->codeExists($candidate)) {
+            $suffix = '-' . $counter;
+            $candidate = substr($base, 0, 80 - strlen($suffix)) . $suffix;
+            $counter++;
+        }
+
+        return $candidate;
+    }
+
+    private function slugifyTitle(string $title): string
+    {
+        $title = strtr($title, [
+            '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
+            '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
+            'آ' => 'a', 'ا' => 'a', 'أ' => 'a', 'إ' => 'a',
+            'ب' => 'b', 'پ' => 'p', 'ت' => 't', 'ث' => 's',
+            'ج' => 'j', 'چ' => 'ch', 'ح' => 'h', 'خ' => 'kh',
+            'د' => 'd', 'ذ' => 'z', 'ر' => 'r', 'ز' => 'z', 'ژ' => 'zh',
+            'س' => 's', 'ش' => 'sh', 'ص' => 's', 'ض' => 'z',
+            'ط' => 't', 'ظ' => 'z', 'ع' => 'a', 'غ' => 'gh',
+            'ف' => 'f', 'ق' => 'gh', 'ک' => 'k', 'ك' => 'k',
+            'گ' => 'g', 'ل' => 'l', 'م' => 'm', 'ن' => 'n',
+            'و' => 'o', 'ؤ' => 'o', 'ه' => 'h', 'ة' => 'h',
+            'ی' => 'i', 'ي' => 'i', 'ئ' => 'y', 'ء' => '',
+        ]);
+
+        $title = strtolower($title);
+        $title = preg_replace('/[^a-z0-9]+/', '-', $title) ?? '';
+        $title = trim(preg_replace('/-+/', '-', $title) ?? '', '-');
+
+        return strlen($title) >= 3 ? $title : '';
     }
 
     private function decorate(array $project): array

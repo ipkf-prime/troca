@@ -36,7 +36,7 @@ require __DIR__ . '/work-ui-styles.php';
 </section>
 
 <section class="admin-section">
-    <div class="admin-users-toolbar">
+    <div class="admin-users-toolbar work-projects-toolbar">
         <form class="admin-users-search" method="get" action="/admin/work/projects">
             <label for="work-projects-q">جستجو در پروژه‌ها</label>
             <div class="admin-users-search__row">
@@ -47,7 +47,7 @@ require __DIR__ . '/work-ui-styles.php';
                     name="q"
                     value="<?= admin_h($q) ?>"
                     maxlength="120"
-                    placeholder="عنوان، کد یا شناسه پروژه"
+                    placeholder="عنوان یا شناسه پروژه"
                 >
                 <select name="status" aria-label="وضعیت پروژه">
                     <?php foreach ($statusOptions as $code => $statusTitle): ?>
@@ -56,17 +56,21 @@ require __DIR__ . '/work-ui-styles.php';
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <button class="admin-button" type="submit">اعمال فیلتر</button>
-                <?php if ($q !== '' || $selectedStatus !== ''): ?>
-                    <a class="admin-button admin-button--soft" href="/admin/work/projects">بازنشانی</a>
-                <?php endif; ?>
+                <div class="work-project-filter-actions">
+                    <button class="admin-button" type="submit">اعمال فیلتر</button>
+                    <?php if ($q !== '' || $selectedStatus !== ''): ?>
+                        <a class="admin-button admin-button--soft" href="/admin/work/projects">بازنشانی</a>
+                    <?php endif; ?>
+                </div>
             </div>
         </form>
 
-        <a class="admin-button" href="/admin/work/projects/create">ایجاد پروژه</a>
-        <div class="admin-users-total">
-            <span>تعداد پروژه‌ها</span>
-            <strong><?= admin_h(\App\Support\AdminFormat::digits($total)) ?></strong>
+        <div class="work-projects-toolbar__meta">
+            <a class="admin-button" href="/admin/work/projects/create">ایجاد پروژه</a>
+            <div class="work-project-count">
+                <span>تعداد پروژه‌ها:</span>
+                <strong><?= admin_h(\App\Support\AdminFormat::digits($total)) ?></strong>
+            </div>
         </div>
     </div>
 
@@ -79,35 +83,37 @@ require __DIR__ . '/work-ui-styles.php';
             <table class="admin-table">
                 <thead>
                     <tr>
+                        <th>ردیف</th>
                         <th>پروژه</th>
-                        <th>کد</th>
                         <th>وضعیت</th>
                         <th>دسترسی</th>
                         <th>مالک</th>
                         <th>اعضا</th>
                         <th>آیتم‌ها</th>
                         <th>باز</th>
+                        <th>تاریخ ایجاد</th>
                         <th>تاریخ هدف</th>
                         <th>عملیات</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($items as $project): ?>
+                    <?php foreach ($items as $index => $project): ?>
                         <?php $projectUrl = '/admin/work/projects/' . rawurlencode((string) ($project['public_reference'] ?? '')); ?>
                         <tr>
+                            <td><?= admin_h(\App\Support\AdminFormat::digits($index + 1)) ?></td>
                             <td>
                                 <a href="<?= admin_h($projectUrl) ?>"><strong><?= admin_h($project['title'] ?? '') ?></strong></a>
                                 <?php if (!empty($project['organization_snapshot'])): ?>
                                     <small class="admin-muted"><?= admin_h($project['organization_snapshot']) ?></small>
                                 <?php endif; ?>
                             </td>
-                            <td dir="ltr"><?= admin_h($project['code'] ?? '') ?></td>
                             <td><span class="admin-pill"><?= admin_h($project['status_title'] ?? '') ?></span></td>
                             <td><?= admin_h($project['visibility_title'] ?? '') ?></td>
                             <td><?= admin_h((($project['owner_display_name'] ?? '') ?: (($project['owner_user_reference'] ?? '') ?: '—'))) ?></td>
                             <td><?= admin_h(\App\Support\AdminFormat::digits((int) ($project['member_count'] ?? 0))) ?></td>
                             <td><?= admin_h(\App\Support\AdminFormat::digits((int) ($project['item_count'] ?? 0))) ?></td>
                             <td><?= admin_h(\App\Support\AdminFormat::digits((int) ($project['open_item_count'] ?? 0))) ?></td>
+                            <td><?= admin_h(\App\Support\AdminFormat::jalaliDateTime((string) ($project['created_at'] ?? '')) ?: '—') ?></td>
                             <td><?= admin_h(\App\Support\PersianDate::fromGregorianDate((string) ($project['target_date'] ?? '')) ?: '—') ?></td>
                             <td>
                                 <a class="admin-button admin-button--soft admin-button--compact" href="<?= admin_h($projectUrl) ?>">مشاهده</a>

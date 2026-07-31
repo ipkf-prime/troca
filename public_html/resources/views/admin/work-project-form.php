@@ -58,12 +58,9 @@ require __DIR__ . '/work-ui-styles.php';
             <label class="work-field-wide">
                 <span>عنوان پروژه</span>
                 <input name="title" value="<?= admin_h($form['title'] ?? '') ?>" maxlength="255" required autofocus>
-            </label>
-
-            <label>
-                <span>کد پروژه</span>
-                <input name="code" value="<?= admin_h($form['code'] ?? '') ?>" maxlength="80" dir="ltr" placeholder="example-project" required>
-                <small class="admin-muted">حروف انگلیسی کوچک، عدد و خط تیره</small>
+                <?php if (!$isEdit): ?>
+                    <small class="admin-muted">کد داخلی پروژه به‌صورت خودکار از روی عنوان ساخته می‌شود.</small>
+                <?php endif; ?>
             </label>
 
             <label>

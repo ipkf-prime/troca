@@ -290,6 +290,68 @@
     grid-column: span 2;
 }
 
+.work-projects-toolbar {
+    align-items: flex-end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: space-between;
+}
+
+.work-projects-toolbar .admin-users-search {
+    flex: 1 1 46rem;
+    min-width: 0;
+}
+
+.work-projects-toolbar .admin-users-search__row {
+    align-items: center;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: .65rem;
+}
+
+.work-projects-toolbar .admin-users-search__row input {
+    min-width: 14rem;
+}
+
+.work-project-filter-actions,
+.work-projects-toolbar__meta,
+.work-project-count {
+    align-items: center;
+    display: flex;
+}
+
+.work-project-filter-actions {
+    flex: 0 0 auto;
+    gap: .5rem;
+}
+
+.work-projects-toolbar__meta {
+    flex: 0 0 auto;
+    gap: .75rem;
+}
+
+.work-project-count {
+    background: var(--admin-surface-muted);
+    border: 1px solid var(--admin-border);
+    border-radius: .7rem;
+    gap: .4rem;
+    min-height: 2.5rem;
+    padding: .45rem .75rem;
+    white-space: nowrap;
+}
+
+.work-project-count span {
+    color: var(--admin-text-muted);
+    font-size: .78rem;
+    font-weight: 700;
+}
+
+.work-project-count strong {
+    color: var(--admin-primary);
+    font-size: 1rem;
+}
+
 @media (max-width: 1100px) {
     .work-items-filter,
     .work-item-form-grid {
@@ -299,6 +361,10 @@
     .work-items-filter__search,
     .work-item-field-wide {
         grid-column: 1 / -1;
+    }
+
+    .work-projects-toolbar .admin-users-search__row {
+        flex-wrap: wrap;
     }
 }
 
@@ -311,6 +377,11 @@
     .work-items-filter__search,
     .work-item-field-wide {
         grid-column: auto;
+    }
+
+    .work-projects-toolbar__meta {
+        justify-content: space-between;
+        width: 100%;
     }
 }
 
