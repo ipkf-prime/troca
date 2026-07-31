@@ -1123,6 +1123,12 @@ button[type="submit"]:hover,
     color: var(--admin-primary-hover);
 }
 
+.admin-button--soft:hover,
+.admin-button--soft:focus-visible {
+    background: var(--admin-primary-hover);
+    color: #fff;
+}
+
 .admin-button--compact {
     min-height: 34px;
     padding: 6px 12px;
