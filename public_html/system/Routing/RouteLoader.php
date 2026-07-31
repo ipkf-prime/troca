@@ -17,6 +17,7 @@ class RouteLoader
             BASE_PATH . '/routes/work-item-detail.php',
             BASE_PATH . '/routes/work-settings.php',
             BASE_PATH . '/routes/work-project-access.php',
+            BASE_PATH . '/routes/account-security.php',
         ] as $routeFile) {
             if (is_readable($routeFile)) {
                 require $routeFile;
