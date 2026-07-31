@@ -7,6 +7,7 @@ class WorkManagementPermissionsSeeder extends Seeder
     private const PERMISSIONS = [
         ['work.project.view', 'project', 'view', 'مشاهده پروژه‌ها و Workها'],
         ['work.project.manage', 'project', 'manage', 'مدیریت پروژه‌ها و Workها'],
+        ['work.project.admin', 'project', 'admin', 'دسترسی مدیریتی سراسری به همه پروژه‌های Work'],
         ['work.item.view', 'item', 'view', 'مشاهده تسک‌ها'],
         ['work.item.create', 'item', 'create', 'ایجاد تسک'],
         ['work.item.update', 'item', 'update', 'ویرایش و تغییر وضعیت تسک'],
@@ -31,6 +32,7 @@ class WorkManagementPermissionsSeeder extends Seeder
         if ($roleId === false) {
             return;
         }
+
         $assign = $this->db->prepare("
             INSERT IGNORE INTO role_permissions (role_id, permission_id, created_at)
             SELECT ?, id, CURRENT_TIMESTAMP FROM permissions WHERE code = ?

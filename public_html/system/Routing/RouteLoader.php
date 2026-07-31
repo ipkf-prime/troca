@@ -12,14 +12,14 @@ class RouteLoader
 
         require BASE_PATH . '/routes/web.php';
 
-        $workItemDetailRoutes = BASE_PATH . '/routes/work-item-detail.php';
-        if (is_readable($workItemDetailRoutes)) {
-            require $workItemDetailRoutes;
-        }
-
-        $workSettingsRoutes = BASE_PATH . '/routes/work-settings.php';
-        if (is_readable($workSettingsRoutes)) {
-            require $workSettingsRoutes;
+        foreach ([
+            BASE_PATH . '/routes/work-item-detail.php',
+            BASE_PATH . '/routes/work-settings.php',
+            BASE_PATH . '/routes/work-project-access.php',
+        ] as $routeFile) {
+            if (is_readable($routeFile)) {
+                require $routeFile;
+            }
         }
     }
 }
