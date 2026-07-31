@@ -68,6 +68,62 @@
     outline-offset: 3px;
 }
 
+.work-my-toolbar {
+    align-items: center;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: .55rem;
+    margin: .8rem 0 1rem;
+    min-width: 0;
+}
+
+.work-my-scopes,
+.work-my-search {
+    align-items: center;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: .45rem;
+}
+
+.work-my-scopes {
+    flex: 0 0 auto;
+}
+
+.work-my-search {
+    flex: 1 1 auto;
+    margin: 0;
+    min-width: 14rem;
+}
+
+.work-my-search input {
+    flex: 1 1 auto;
+    min-width: 10rem;
+}
+
+.work-my-scopes .admin-button,
+.work-my-search .admin-button {
+    min-height: 2.25rem;
+    padding: .4rem .68rem;
+    white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+    .work-my-toolbar {
+        align-items: stretch;
+        flex-wrap: wrap;
+    }
+
+    .work-my-scopes {
+        max-width: 100%;
+        overflow-x: auto;
+        padding-bottom: .2rem;
+    }
+
+    .work-my-search {
+        flex: 1 1 100%;
+    }
+}
+
 .work-action-button {
     display: inline-flex;
     align-items: center;

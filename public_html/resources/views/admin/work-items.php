@@ -105,12 +105,13 @@ require __DIR__ . '/work-ui-styles.php';
                     <?php foreach ($items as $item): ?>
                         <?php
                         $dueDate = \App\Support\AdminFormat::jalaliDate(substr((string) ($item['due_at'] ?? ''), 0, 10));
-                        $editUrl = $baseUrl . '/' . rawurlencode((string) ($item['public_reference'] ?? '')) . '/edit';
+                        $detailUrl = $baseUrl . '/' . rawurlencode((string) ($item['public_reference'] ?? ''));
+                        $editUrl = $detailUrl . '/edit';
                         ?>
                         <tr>
                             <td>
                                 <div class="work-item-title" style="--work-item-depth:<?= (int) ($item['depth'] ?? 0) ?>">
-                                    <strong><?= admin_h($item['title'] ?? '') ?></strong>
+                                    <a href="<?= admin_h($detailUrl) ?>"><strong><?= admin_h($item['title'] ?? '') ?></strong></a>
                                     <small class="admin-muted"><?= admin_h($item['public_reference'] ?? '') ?></small>
                                 </div>
                             </td>
@@ -120,7 +121,12 @@ require __DIR__ . '/work-ui-styles.php';
                             <td><?= admin_h(($item['assignee_name'] ?? '') ?: '—') ?></td>
                             <td><?= admin_h($dueDate !== '' ? $dueDate : '—') ?></td>
                             <td><?= admin_h(\App\Support\AdminFormat::digits((int) ($item['progress_percent'] ?? 0))) ?>٪</td>
-                            <td><a class="admin-button admin-button--soft" href="<?= admin_h($editUrl) ?>">ویرایش</a></td>
+                            <td>
+                                <div class="admin-form-actions">
+                                    <a class="admin-button admin-button--soft admin-button--compact" href="<?= admin_h($detailUrl) ?>">مشاهده</a>
+                                    <a class="admin-button admin-button--soft admin-button--compact" href="<?= admin_h($editUrl) ?>">ویرایش</a>
+                                </div>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

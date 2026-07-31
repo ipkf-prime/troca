@@ -92,41 +92,42 @@ require __DIR__ . '/work-ui-styles.php';
             </div>
         </div>
 
-        <div class="admin-form-actions">
-            <?php foreach ($scopeOptions as $scopeCode => $scopeTitle): ?>
-                <?php
-                $scopeUrl = '/admin/work?scope=' . rawurlencode((string) $scopeCode) . '#my-work';
-                $scopeCount = (int) ($myCounts[$scopeCode] ?? 0);
-                ?>
-                <a
-                    class="admin-button<?= $currentScope === $scopeCode ? '' : ' admin-button--soft' ?>"
-                    href="<?= admin_h($scopeUrl) ?>"
-                >
-                    <?= admin_h($scopeTitle) ?>
-                    (<?= admin_h(\App\Support\AdminFormat::digits($scopeCount)) ?>)
-                </a>
-            <?php endforeach; ?>
-        </div>
+        <div class="work-my-toolbar">
+            <div class="work-my-scopes">
+                <?php foreach ($scopeOptions as $scopeCode => $scopeTitle): ?>
+                    <?php
+                    $scopeUrl = '/admin/work?scope=' . rawurlencode((string) $scopeCode) . '#my-work';
+                    $scopeCount = (int) ($myCounts[$scopeCode] ?? 0);
+                    ?>
+                    <a
+                        class="admin-button admin-button--compact<?= $currentScope === $scopeCode ? '' : ' admin-button--soft' ?>"
+                        href="<?= admin_h($scopeUrl) ?>"
+                    >
+                        <?= admin_h($scopeTitle) ?>
+                        (<?= admin_h(\App\Support\AdminFormat::digits($scopeCount)) ?>)
+                    </a>
+                <?php endforeach; ?>
+            </div>
 
-        <form method="get" action="/admin/work" class="admin-users-search">
-            <input type="hidden" name="scope" value="<?= admin_h($currentScope) ?>">
-            <div class="admin-users-search__row">
+            <form method="get" action="/admin/work" class="work-my-search">
+                <input type="hidden" name="scope" value="<?= admin_h($currentScope) ?>">
                 <input
                     type="search"
                     name="q"
                     value="<?= admin_h($currentQuery) ?>"
                     maxlength="120"
                     placeholder="جست‌وجو در عنوان کار یا پروژه"
+                    aria-label="جست‌وجو در کارهای من"
                 >
-                <button class="admin-button" type="submit">جست‌وجو</button>
+                <button class="admin-button admin-button--compact" type="submit">جست‌وجو</button>
                 <?php if ($currentQuery !== ''): ?>
                     <a
-                        class="admin-button admin-button--soft"
+                        class="admin-button admin-button--soft admin-button--compact"
                         href="<?= admin_h('/admin/work?scope=' . rawurlencode($currentScope) . '#my-work') ?>"
                     >بازنشانی</a>
                 <?php endif; ?>
-            </div>
-        </form>
+            </form>
+        </div>
 
         <?php if ($myItems === []): ?>
             <p class="admin-empty-state">موردی مطابق این فیلتر پیدا نشد.</p>

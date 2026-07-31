@@ -11,5 +11,10 @@ class RouteLoader
         $router = $app->router();
 
         require BASE_PATH . '/routes/web.php';
+
+        $workItemDetailRoutes = BASE_PATH . '/routes/work-item-detail.php';
+        if (is_readable($workItemDetailRoutes)) {
+            require $workItemDetailRoutes;
+        }
     }
 }
