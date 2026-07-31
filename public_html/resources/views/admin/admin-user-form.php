@@ -66,7 +66,18 @@ foreach ($verificationParts as $part) {
 }
 $requestedTab = trim((string) ($_GET['tab'] ?? ''));
 
-$contactErrorKeys = ['email', 'mobile', 'contact', 'province_id', 'county_id', 'city_id', 'address_type_id', 'postal_code', 'address_line'];
+$contactErrorKeys = [
+    'email',
+    'mobile',
+    'contact',
+    'geography',
+    'province_location_id',
+    'county_location_id',
+    'city_location_id',
+    'address_type_id',
+    'postal_code',
+    'address_line',
+];
 $accessErrorKeys = ['role_ids', 'access_kind', 'access_area', 'permissions'];
 $activeTab = in_array($requestedTab, ['account', 'contact', 'access'], true) ? $requestedTab : 'account';
 foreach (array_keys($errors) as $key) {
@@ -240,12 +251,17 @@ ob_start();
             </div>
 
             <div class="user-block">
-                <div class="user-block__head"><div><h3>نشانی اصلی</h3><p>استان، شهرستان، شهر و نشانی کامل به‌صورت یک رکورد اصلی ذخیره می‌شوند.</p></div></div>
+                <div class="user-block__head"><div><h3>نشانی اصلی</h3><p>انتخاب‌ها از جغرافیای پویای سامانه خوانده و محل دقیق در پرونده شخص ذخیره می‌شود.</p></div></div>
+                    <?php if ($provinces === []): ?>
+                        <div class="admin-alert admin-alert--danger user-field--wide">
+                            داده جغرافیایی فعال پیدا نشد. Migration و داده‌های مرجع جغرافیا را بررسی کنید.
+                        </div>
+                    <?php endif; ?>
                 <div class="user-grid">
                     <label class="user-field"><span>نوع نشانی</span><select name="address_type_id"><option value="0">انتخاب نشده</option><?php foreach ($addressTypes as $option): ?><option value="<?= (int)($option['id'] ?? 0) ?>" <?= (int)($form['address_type_id'] ?? 0) === (int)($option['id'] ?? 0) ? 'selected' : '' ?>><?= admin_h($option['title'] ?? '') ?></option><?php endforeach; ?></select></label>
-                    <label class="user-field"><span>استان</span><select name="province_id" data-province><option value="0">انتخاب نشده</option><?php foreach ($provinces as $option): ?><option value="<?= (int)($option['id'] ?? 0) ?>" <?= (int)($form['province_id'] ?? 0) === (int)($option['id'] ?? 0) ? 'selected' : '' ?>><?= admin_h($option['title'] ?? '') ?></option><?php endforeach; ?></select></label>
-                    <label class="user-field"><span>شهرستان</span><select name="county_id" data-county><option value="0">انتخاب نشده</option><?php foreach ($counties as $option): ?><option value="<?= (int)($option['id'] ?? 0) ?>" data-province-id="<?= (int)($option['province_id'] ?? 0) ?>" <?= (int)($form['county_id'] ?? 0) === (int)($option['id'] ?? 0) ? 'selected' : '' ?>><?= admin_h($option['title'] ?? '') ?></option><?php endforeach; ?></select></label>
-                    <label class="user-field"><span>شهر</span><select name="city_id" data-city><option value="0">انتخاب نشده</option><?php foreach ($cities as $option): ?><option value="<?= (int)($option['id'] ?? 0) ?>" data-province-id="<?= (int)($option['province_id'] ?? 0) ?>" data-county-id="<?= (int)($option['county_id'] ?? 0) ?>" <?= (int)($form['city_id'] ?? 0) === (int)($option['id'] ?? 0) ? 'selected' : '' ?>><?= admin_h($option['title'] ?? '') ?></option><?php endforeach; ?></select></label>
+                    <label class="user-field"><span>استان</span><select name="province_location_id" data-province><option value="0">انتخاب نشده</option><?php foreach ($provinces as $option): ?><option value="<?= (int)($option['id'] ?? 0) ?>" <?= (int)($form['province_location_id'] ?? 0) === (int)($option['id'] ?? 0) ? 'selected' : '' ?>><?= admin_h($option['title'] ?? '') ?></option><?php endforeach; ?></select></label>
+                    <label class="user-field"><span>شهرستان</span><select name="county_location_id" data-county><option value="0">انتخاب نشده</option><?php foreach ($counties as $option): ?><option value="<?= (int)($option['id'] ?? 0) ?>" data-province-id="<?= (int)($option['province_location_id'] ?? 0) ?>" <?= (int)($form['county_location_id'] ?? 0) === (int)($option['id'] ?? 0) ? 'selected' : '' ?>><?= admin_h($option['title'] ?? '') ?></option><?php endforeach; ?></select></label>
+                    <label class="user-field"><span>شهر</span><select name="city_location_id" data-city><option value="0">انتخاب نشده</option><?php foreach ($cities as $option): ?><option value="<?= (int)($option['id'] ?? 0) ?>" data-province-id="<?= (int)($option['province_location_id'] ?? 0) ?>" data-county-id="<?= (int)($option['county_location_id'] ?? 0) ?>" <?= (int)($form['city_location_id'] ?? 0) === (int)($option['id'] ?? 0) ? 'selected' : '' ?>><?= admin_h($option['title'] ?? '') ?></option><?php endforeach; ?></select></label>
                     <label class="user-field"><span>ناحیه یا محله</span><input name="district" value="<?= admin_h($form['district'] ?? '') ?>" maxlength="150"></label>
                     <label class="user-field"><span>کد پستی</span><input name="postal_code" value="<?= admin_h($form['postal_code'] ?? '') ?>" maxlength="10" inputmode="numeric" dir="ltr"></label>
                     <label class="user-field user-field--wide"><span>نشانی کامل</span><textarea name="address_line" maxlength="500"><?= admin_h($form['address_line'] ?? '') ?></textarea></label>

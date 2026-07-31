@@ -58,14 +58,14 @@ class SelfProfileService extends BaseService
             'identity_serial' => (string) (
                 $existing['identity_serial'] ?? ''
             ),
-            'province_id' => (int) (
-                $existing['province_id'] ?? 0
+            'province_location_id' => (int) (
+                $existing['province_location_id'] ?? 0
             ),
-            'county_id' => (int) (
-                $existing['county_id'] ?? 0
+            'county_location_id' => (int) (
+                $existing['county_location_id'] ?? 0
             ),
-            'city_id' => (int) (
-                $existing['city_id'] ?? 0
+            'city_location_id' => (int) (
+                $existing['city_location_id'] ?? 0
             ),
             'address_type_id' => (int) (
                 $existing['address_type_id'] ?? 0
@@ -155,17 +155,17 @@ class SelfProfileService extends BaseService
             )),
             50
         );
-        $provinceId = max(
+        $provinceLocationId = max(
             0,
-            (int) ($input['province_id'] ?? 0)
+            (int) ($input['province_location_id'] ?? 0)
         );
-        $countyId = max(
+        $countyLocationId = max(
             0,
-            (int) ($input['county_id'] ?? 0)
+            (int) ($input['county_location_id'] ?? 0)
         );
-        $cityId = max(
+        $cityLocationId = max(
             0,
-            (int) ($input['city_id'] ?? 0)
+            (int) ($input['city_location_id'] ?? 0)
         );
         $addressTypeId = max(
             0,
@@ -230,31 +230,14 @@ class SelfProfileService extends BaseService
         }
 
         if (
-            $provinceId > 0
-            && !$this->users->validProvinceId(
-                $provinceId
+            !$this->users->validGeographicSelection(
+                $provinceLocationId,
+                $countyLocationId,
+                $cityLocationId
             )
         ) {
-            $errors['province_id'] =
-                'استان انتخاب‌شده معتبر نیست.';
-        }
-
-        if (
-            $countyId > 0
-            && !$this->users->validCountyId(
-                $countyId
-            )
-        ) {
-            $errors['county_id'] =
-                'شهرستان انتخاب‌شده معتبر نیست.';
-        }
-
-        if (
-            $cityId > 0
-            && !$this->users->validCityId($cityId)
-        ) {
-            $errors['city_id'] =
-                'شهر انتخاب‌شده معتبر نیست.';
+            $errors['geography'] =
+                'ترکیب استان، شهرستان و شهر معتبر نیست.';
         }
 
         if (
@@ -285,9 +268,9 @@ class SelfProfileService extends BaseService
             'birth_place' => $birthPlace,
             'identity_number' => $identityNumber,
             'identity_serial' => $identitySerial,
-            'province_id' => $provinceId,
-            'county_id' => $countyId,
-            'city_id' => $cityId,
+            'province_location_id' => $provinceLocationId,
+            'county_location_id' => $countyLocationId,
+            'city_location_id' => $cityLocationId,
             'address_type_id' => $addressTypeId,
             'district' => $district,
             'postal_code' => $postalCode,
@@ -329,17 +312,17 @@ class SelfProfileService extends BaseService
                         $identitySerial !== ''
                             ? $identitySerial
                             : null,
-                    'province_id' =>
-                        $provinceId > 0
-                            ? $provinceId
+                    'province_location_id' =>
+                        $provinceLocationId > 0
+                            ? $provinceLocationId
                             : null,
-                    'county_id' =>
-                        $countyId > 0
-                            ? $countyId
+                    'county_location_id' =>
+                        $countyLocationId > 0
+                            ? $countyLocationId
                             : null,
-                    'city_id' =>
-                        $cityId > 0
-                            ? $cityId
+                    'city_location_id' =>
+                        $cityLocationId > 0
+                            ? $cityLocationId
                             : null,
                     'address_type_id' =>
                         $addressTypeId > 0

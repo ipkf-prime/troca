@@ -78,9 +78,9 @@ class AdminUserManagementService extends BaseService
             'mobile_verified' => false,
             'contact_email_label' => 'ایمیل اصلی',
             'contact_mobile_label' => 'موبایل اصلی',
-            'province_id' => 0,
-            'county_id' => 0,
-            'city_id' => 0,
+            'province_location_id' => 0,
+            'county_location_id' => 0,
+            'city_location_id' => 0,
             'address_type_id' => 0,
             'district' => '',
             'postal_code' => '',
@@ -330,9 +330,9 @@ class AdminUserManagementService extends BaseService
         $mobileVerified = false;
         $contactEmailLabel = $this->limit(trim((string) ($input['contact_email_label'] ?? 'ایمیل اصلی')), 100);
         $contactMobileLabel = $this->limit(trim((string) ($input['contact_mobile_label'] ?? 'موبایل اصلی')), 100);
-        $provinceId = max(0, (int) ($input['province_id'] ?? 0));
-        $countyId = max(0, (int) ($input['county_id'] ?? 0));
-        $cityId = max(0, (int) ($input['city_id'] ?? 0));
+        $provinceLocationId = max(0, (int) ($input['province_location_id'] ?? 0));
+        $countyLocationId = max(0, (int) ($input['county_location_id'] ?? 0));
+        $cityLocationId = max(0, (int) ($input['city_location_id'] ?? 0));
         $addressTypeId = max(0, (int) ($input['address_type_id'] ?? 0));
         $district = $this->limit(trim((string) ($input['district'] ?? '')), 150);
         $postalCode = preg_replace('/\D+/', '', (string) ($input['postal_code'] ?? '')) ?: '';
@@ -406,14 +406,15 @@ class AdminUserManagementService extends BaseService
             $errors['status'] = 'وضعیت حساب معتبر نیست.';
             $status = 'active';
         }
-        if ($provinceId > 0 && !$this->users->validProvinceId($provinceId)) {
-            $errors['province_id'] = 'استان انتخاب‌شده معتبر نیست.';
-        }
-        if ($countyId > 0 && !$this->users->validCountyId($countyId)) {
-            $errors['county_id'] = 'شهرستان انتخاب‌شده معتبر نیست.';
-        }
-        if ($cityId > 0 && !$this->users->validCityId($cityId)) {
-            $errors['city_id'] = 'شهر انتخاب‌شده معتبر نیست.';
+        if (
+            !$this->users->validGeographicSelection(
+                $provinceLocationId,
+                $countyLocationId,
+                $cityLocationId
+            )
+        ) {
+            $errors['geography'] =
+                'ترکیب استان، شهرستان و شهر معتبر نیست.';
         }
         if ($addressTypeId > 0 && !$this->users->validAddressTypeId($addressTypeId)) {
             $errors['address_type_id'] = 'نوع نشانی معتبر نیست.';
@@ -451,9 +452,9 @@ class AdminUserManagementService extends BaseService
             'mobile_verified' => $mobileVerified,
             'contact_email_label' => $contactEmailLabel,
             'contact_mobile_label' => $contactMobileLabel,
-            'province_id' => $provinceId,
-            'county_id' => $countyId,
-            'city_id' => $cityId,
+            'province_location_id' => $provinceLocationId,
+            'county_location_id' => $countyLocationId,
+            'city_location_id' => $cityLocationId,
             'address_type_id' => $addressTypeId,
             'district' => $district,
             'postal_code' => $postalCode,
@@ -490,9 +491,9 @@ class AdminUserManagementService extends BaseService
                 'mobile_verified' => $mobileVerified,
                 'contact_email_label' => $contactEmailLabel,
                 'contact_mobile_label' => $contactMobileLabel,
-                'province_id' => $provinceId > 0 ? $provinceId : null,
-                'county_id' => $countyId > 0 ? $countyId : null,
-                'city_id' => $cityId > 0 ? $cityId : null,
+                'province_location_id' => $provinceLocationId > 0 ? $provinceLocationId : null,
+                'county_location_id' => $countyLocationId > 0 ? $countyLocationId : null,
+                'city_location_id' => $cityLocationId > 0 ? $cityLocationId : null,
                 'address_type_id' => $addressTypeId > 0 ? $addressTypeId : null,
                 'district' => $district,
                 'postal_code' => $postalCode,

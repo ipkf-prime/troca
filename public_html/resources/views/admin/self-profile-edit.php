@@ -242,6 +242,12 @@ ob_start();
                 </div>
             </div>
 
+            <?php if ($provinces === []): ?>
+                <div class="admin-alert admin-alert--danger">
+                    داده جغرافیایی فعال پیدا نشد. Migration و داده‌های مرجع جغرافیا را بررسی کنید.
+                </div>
+            <?php endif; ?>
+
             <div class="self-profile-grid">
                 <label class="self-profile-field">
                     <span>نوع نشانی</span>
@@ -268,7 +274,7 @@ ob_start();
 
                 <label class="self-profile-field">
                     <span>استان</span>
-                    <select name="province_id" data-province>
+                    <select name="province_location_id" data-province>
                         <option value="0">انتخاب نشده</option>
                         <?php foreach ($provinces as $option): ?>
                             <option
@@ -276,7 +282,7 @@ ob_start();
                                     $option['id'] ?? 0
                                 ) ?>"
                                 <?= (int) (
-                                    $form['province_id'] ?? 0
+                                    $form['province_location_id'] ?? 0
                                 ) === (int) (
                                     $option['id'] ?? 0
                                 ) ? 'selected' : '' ?>
@@ -291,7 +297,7 @@ ob_start();
 
                 <label class="self-profile-field">
                     <span>شهرستان</span>
-                    <select name="county_id" data-county>
+                    <select name="county_location_id" data-county>
                         <option value="0">انتخاب نشده</option>
                         <?php foreach ($counties as $option): ?>
                             <option
@@ -299,10 +305,10 @@ ob_start();
                                     $option['id'] ?? 0
                                 ) ?>"
                                 data-province-id="<?= (int) (
-                                    $option['province_id'] ?? 0
+                                    $option['province_location_id'] ?? 0
                                 ) ?>"
                                 <?= (int) (
-                                    $form['county_id'] ?? 0
+                                    $form['county_location_id'] ?? 0
                                 ) === (int) (
                                     $option['id'] ?? 0
                                 ) ? 'selected' : '' ?>
@@ -317,7 +323,7 @@ ob_start();
 
                 <label class="self-profile-field">
                     <span>شهر</span>
-                    <select name="city_id" data-city>
+                    <select name="city_location_id" data-city>
                         <option value="0">انتخاب نشده</option>
                         <?php foreach ($cities as $option): ?>
                             <option
@@ -325,13 +331,13 @@ ob_start();
                                     $option['id'] ?? 0
                                 ) ?>"
                                 data-province-id="<?= (int) (
-                                    $option['province_id'] ?? 0
+                                    $option['province_location_id'] ?? 0
                                 ) ?>"
                                 data-county-id="<?= (int) (
-                                    $option['county_id'] ?? 0
+                                    $option['county_location_id'] ?? 0
                                 ) ?>"
                                 <?= (int) (
-                                    $form['city_id'] ?? 0
+                                    $form['city_location_id'] ?? 0
                                 ) === (int) (
                                     $option['id'] ?? 0
                                 ) ? 'selected' : '' ?>

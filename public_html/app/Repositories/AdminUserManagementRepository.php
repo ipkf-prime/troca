@@ -9,6 +9,8 @@ use Throwable;
 
 class AdminUserManagementRepository extends BaseRepository
 {
+    private ?array $dynamicGeographyCache = null;
+
     public function findForForm(int $userId): ?array
     {
         $profileJoin = Database::tableExists('person_profiles')
@@ -134,21 +136,40 @@ class AdminUserManagementRepository extends BaseRepository
 
     public function formOptions(): array
     {
+        $geography = $this->dynamicGeographyOptions();
+
+        if ($geography['provinces'] === []) {
+            $geography = [
+                'source' => 'legacy',
+                'provinces' => $this->idOptions('provinces'),
+                'counties' => $this->countyOptions(),
+                'cities' => $this->idOptions(
+                    'cities',
+                    ['province_id', 'county_id']
+                ),
+            ];
+        }
+
         return [
             'person_types' => $this->codeOptions(
                 'person_types',
                 [
-                    ['code' => 'individual', 'title' => 'شخص حقیقی'],
-                    ['code' => 'legal', 'title' => 'شخص حقوقی'],
+                    [
+                        'code' => 'individual',
+                        'title' => 'شخص حقیقی',
+                    ],
+                    [
+                        'code' => 'legal',
+                        'title' => 'شخص حقوقی',
+                    ],
                 ]
             ),
-            'provinces' => $this->idOptions('provinces'),
-            'counties' => $this->countyOptions(),
-            'cities' => $this->idOptions(
-                'cities',
-                ['province_id', 'county_id']
-            ),
-            'address_types' => $this->idOptions('address_types'),
+            'geography_source' => $geography['source'],
+            'provinces' => $geography['provinces'],
+            'counties' => $geography['counties'],
+            'cities' => $geography['cities'],
+            'address_types' =>
+                $this->idOptions('address_types'),
         ];
     }
 
@@ -187,6 +208,119 @@ class AdminUserManagementRepository extends BaseRepository
     public function validAddressTypeId(int $id): bool
     {
         return $this->validLookupId('address_types', $id);
+    }
+
+    public function validGeographicLocationId(
+        int $id,
+        string $levelCode
+    ): bool {
+        if ($id < 1) {
+            return false;
+        }
+
+        if (
+            Database::tableExists('geographic_locations')
+            && Database::tableExists(
+                'geographic_level_types'
+            )
+        ) {
+            $statement = $this->connection()->prepare("
+                SELECT COUNT(*)
+                FROM geographic_locations AS locations
+                INNER JOIN geographic_level_types AS levels
+                  ON levels.id = locations.level_type_id
+                WHERE locations.id = ?
+                  AND locations.status = 'active'
+                  AND levels.status = 'active'
+                  AND levels.code = ?
+            ");
+            $statement->execute([$id, $levelCode]);
+
+            return (int) $statement->fetchColumn() > 0;
+        }
+
+        return match ($levelCode) {
+            'province' => $this->validProvinceId($id),
+            'county' => $this->validCountyId($id),
+            'city' => $this->validCityId($id),
+            default => false,
+        };
+    }
+
+    public function validGeographicSelection(
+        int $provinceId,
+        int $countyId,
+        int $cityId
+    ): bool {
+        if (
+            !Database::tableExists('geographic_locations')
+            || !Database::tableExists(
+                'geographic_level_types'
+            )
+        ) {
+            return ($provinceId < 1
+                    || $this->validProvinceId($provinceId))
+                && ($countyId < 1
+                    || $this->validCountyId($countyId))
+                && ($cityId < 1
+                    || $this->validCityId($cityId));
+        }
+
+        if (
+            $provinceId > 0
+            && !$this->validGeographicLocationId(
+                $provinceId,
+                'province'
+            )
+        ) {
+            return false;
+        }
+
+        if (
+            $countyId > 0
+            && !$this->validGeographicLocationId(
+                $countyId,
+                'county'
+            )
+        ) {
+            return false;
+        }
+
+        if (
+            $cityId > 0
+            && !$this->validGeographicLocationId(
+                $cityId,
+                'city'
+            )
+        ) {
+            return false;
+        }
+
+        $targetId = $cityId > 0
+            ? $cityId
+            : ($countyId > 0 ? $countyId : $provinceId);
+
+        if ($targetId < 1) {
+            return true;
+        }
+
+        $selection = $this->geographicSelection(
+            $targetId
+        );
+
+        if ($selection === null) {
+            return false;
+        }
+
+        return ($provinceId < 1
+                || $selection['province_location_id']
+                    === $provinceId)
+            && ($countyId < 1
+                || $selection['county_location_id']
+                    === $countyId)
+            && ($cityId < 1
+                || $selection['city_location_id']
+                    === $cityId);
     }
 
     public function roleIdsByIds(array $roleIds, bool $includeProtected): array
@@ -594,11 +728,25 @@ class AdminUserManagementRepository extends BaseRepository
         }
 
         $addresses = [];
-        $addressPresent = trim((string) ($form['address_line'] ?? '')) !== ''
-            || (int) ($form['province_id'] ?? 0) > 0
-            || (int) ($form['city_id'] ?? 0) > 0
-            || trim((string) ($form['district'] ?? '')) !== ''
-            || trim((string) ($form['postal_code'] ?? '')) !== '';
+        $addressPresent =
+            trim((string) (
+                $form['address_line'] ?? ''
+            )) !== ''
+            || (int) (
+                $form['province_location_id'] ?? 0
+            ) > 0
+            || (int) (
+                $form['county_location_id'] ?? 0
+            ) > 0
+            || (int) (
+                $form['city_location_id'] ?? 0
+            ) > 0
+            || trim((string) (
+                $form['district'] ?? ''
+            )) !== ''
+            || trim((string) (
+                $form['postal_code'] ?? ''
+            )) !== '';
 
         if ($addressPresent) {
             $options = $this->formOptions();
@@ -610,11 +758,15 @@ class AdminUserManagementRepository extends BaseRepository
                 ),
                 'province' => $this->optionTitle(
                     $options['provinces'],
-                    (int) ($form['province_id'] ?? 0)
+                    (int) (
+                        $form['province_location_id'] ?? 0
+                    )
                 ),
                 'city' => $this->optionTitle(
                     $options['cities'],
-                    (int) ($form['city_id'] ?? 0)
+                    (int) (
+                        $form['city_location_id'] ?? 0
+                    )
                 ),
                 'district' => (string) ($form['district'] ?? ''),
                 'postal_code' => (string) ($form['postal_code'] ?? ''),
@@ -862,33 +1014,103 @@ class AdminUserManagementRepository extends BaseRepository
     {
         $result = [
             'address_type_id' => 0,
+            'province_location_id' => 0,
+            'county_location_id' => 0,
+            'city_location_id' => 0,
+            'geographic_location_id' => 0,
             'district' => '',
             'address_line' => '',
             'postal_code' => '',
         ];
 
-        if ($personId < 1 || !Database::tableExists('person_addresses')) {
+        if (
+            $personId < 1
+            || !Database::tableExists('person_addresses')
+        ) {
             return $result;
         }
 
-        $statement = $this->connection()->prepare("
-            SELECT
-                address_type_id,
-                province_id,
-                city_id,
-                district,
-                address_line,
-                postal_code
-            FROM person_addresses
-            WHERE person_id = ?
-              AND status = 'active'
-            ORDER BY is_primary DESC, id ASC
-            LIMIT 1
-        ");
+        $select = [
+            'address_type_id',
+            'district',
+            'address_line',
+            'postal_code',
+        ];
+
+        foreach ([
+            'province_id',
+            'city_id',
+            'geographic_location_id',
+        ] as $column) {
+            $select[] = Database::columnExists(
+                'person_addresses',
+                $column
+            )
+                ? $column
+                : "NULL AS {$column}";
+        }
+
+        $statement = $this->connection()->prepare(
+            'SELECT '
+            . implode(', ', $select)
+            . "
+              FROM person_addresses
+              WHERE person_id = ?
+                AND status = 'active'
+              ORDER BY is_primary DESC, id ASC
+              LIMIT 1"
+        );
         $statement->execute([$personId]);
         $address = $statement->fetch(PDO::FETCH_ASSOC);
 
-        return $address ? array_merge($result, $address) : $result;
+        if (!$address) {
+            return $result;
+        }
+
+        $result = array_merge($result, [
+            'address_type_id' => (int) (
+                $address['address_type_id'] ?? 0
+            ),
+            'geographic_location_id' => (int) (
+                $address['geographic_location_id'] ?? 0
+            ),
+            'district' => (string) (
+                $address['district'] ?? ''
+            ),
+            'address_line' => (string) (
+                $address['address_line'] ?? ''
+            ),
+            'postal_code' => (string) (
+                $address['postal_code'] ?? ''
+            ),
+        ]);
+
+        $geographicLocationId = (int) (
+            $address['geographic_location_id'] ?? 0
+        );
+
+        if ($geographicLocationId > 0) {
+            $selection = $this->geographicSelection(
+                $geographicLocationId
+            );
+
+            if ($selection !== null) {
+                return array_merge(
+                    $result,
+                    $selection
+                );
+            }
+        }
+
+        // Compatibility with old rows until they are edited.
+        $result['province_location_id'] = (int) (
+            $address['province_id'] ?? 0
+        );
+        $result['city_location_id'] = (int) (
+            $address['city_id'] ?? 0
+        );
+
+        return $result;
     }
 
     private function syncPrimaryContacts(int $personId, array $data): void
@@ -1035,27 +1257,47 @@ class AdminUserManagementRepository extends BaseRepository
         return null;
     }
 
-    private function syncPrimaryAddress(int $personId, array $data): void
-    {
+    private function syncPrimaryAddress(
+        int $personId,
+        array $data
+    ): void {
         if (!Database::tableExists('person_addresses')) {
             return;
         }
 
-        $addressTypeId = (int) ($data['address_type_id'] ?? 0);
-        $hasAddress = (int) ($data['province_id'] ?? 0) > 0
-            || (int) ($data['city_id'] ?? 0) > 0
-            || trim((string) ($data['district'] ?? '')) !== ''
-            || trim((string) ($data['address_line'] ?? '')) !== ''
-            || trim((string) ($data['postal_code'] ?? '')) !== '';
+        $provinceLocationId = (int) (
+            $data['province_location_id'] ?? 0
+        );
+        $countyLocationId = (int) (
+            $data['county_location_id'] ?? 0
+        );
+        $cityLocationId = (int) (
+            $data['city_location_id'] ?? 0
+        );
+        $geographicLocationId = $cityLocationId > 0
+            ? $cityLocationId
+            : (
+                $countyLocationId > 0
+                    ? $countyLocationId
+                    : $provinceLocationId
+            );
+        $addressTypeId = (int) (
+            $data['address_type_id'] ?? 0
+        );
+        $district = trim((string) (
+            $data['district'] ?? ''
+        ));
+        $addressLine = trim((string) (
+            $data['address_line'] ?? ''
+        ));
+        $postalCode = trim((string) (
+            $data['postal_code'] ?? ''
+        ));
 
-        if (!$hasAddress) {
-            return;
-        }
-
-        if ($addressTypeId < 1) {
-            $options = $this->idOptions('address_types');
-            $addressTypeId = (int) ($options[0]['id'] ?? 0);
-        }
+        $hasAddress = $geographicLocationId > 0
+            || $district !== ''
+            || $addressLine !== ''
+            || $postalCode !== '';
 
         $existing = $this->connection()->prepare("
             SELECT id
@@ -1067,50 +1309,98 @@ class AdminUserManagementRepository extends BaseRepository
         $existing->execute([$personId]);
         $addressId = $existing->fetchColumn();
 
-        $values = [
-            $addressTypeId > 0 ? $addressTypeId : null,
-            (int) ($data['province_id'] ?? 0) > 0 ? (int) $data['province_id'] : null,
-            (int) ($data['city_id'] ?? 0) > 0 ? (int) $data['city_id'] : null,
-            $data['district'] !== '' ? $data['district'] : null,
-            (string) ($data['address_line'] ?? ''),
-            $data['postal_code'] !== '' ? $data['postal_code'] : null,
-        ];
+        if (!$hasAddress) {
+            if ($addressId !== false) {
+                $this->connection()->prepare("
+                    UPDATE person_addresses
+                    SET is_primary = 0,
+                        status = 'inactive',
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                ")->execute([(int) $addressId]);
+            }
 
-        if ($addressId !== false) {
-            $statement = $this->connection()->prepare("
-                UPDATE person_addresses
-                SET address_type_id = ?,
-                    province_id = ?,
-                    city_id = ?,
-                    district = ?,
-                    address_line = ?,
-                    postal_code = ?,
-                    is_primary = 1,
-                    status = 'active',
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE id = ?
-            ");
-            $statement->execute(array_merge($values, [(int) $addressId]));
             return;
         }
 
-        $statement = $this->connection()->prepare("
-            INSERT INTO person_addresses (
-                person_id,
-                address_type_id,
-                province_id,
-                city_id,
-                district,
-                address_line,
-                postal_code,
-                is_primary,
-                status,
-                created_at,
-                updated_at
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, 1, 'active', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        ");
-        $statement->execute(array_merge([$personId], $values));
+        if ($addressTypeId < 1) {
+            $addressTypes = $this->idOptions(
+                'address_types'
+            );
+            $addressTypeId = (int) (
+                $addressTypes[0]['id'] ?? 0
+            );
+        }
+
+        $fields = [
+            'address_type_id' =>
+                $addressTypeId > 0
+                    ? $addressTypeId
+                    : null,
+            'district' =>
+                $district !== '' ? $district : null,
+            'address_line' => $addressLine,
+            'postal_code' =>
+                $postalCode !== '' ? $postalCode : null,
+            'is_primary' => 1,
+            'status' => 'active',
+        ];
+
+        if (Database::columnExists(
+            'person_addresses',
+            'geographic_location_id'
+        )) {
+            $fields['geographic_location_id'] =
+                $geographicLocationId > 0
+                    ? $geographicLocationId
+                    : null;
+        }
+
+        if ($addressId !== false) {
+            $set = [];
+            $values = [];
+
+            foreach ($fields as $column => $value) {
+                $set[] = "{$column} = ?";
+                $values[] = $value;
+            }
+
+            $set[] = 'updated_at = CURRENT_TIMESTAMP';
+            $values[] = (int) $addressId;
+
+            $statement = $this->connection()->prepare(
+                'UPDATE person_addresses SET '
+                . implode(', ', $set)
+                . ' WHERE id = ?'
+            );
+            $statement->execute($values);
+
+            return;
+        }
+
+        $columns = ['person_id'];
+        $values = [$personId];
+        $placeholders = ['?'];
+
+        foreach ($fields as $column => $value) {
+            $columns[] = $column;
+            $values[] = $value;
+            $placeholders[] = '?';
+        }
+
+        $columns[] = 'created_at';
+        $columns[] = 'updated_at';
+        $placeholders[] = 'CURRENT_TIMESTAMP';
+        $placeholders[] = 'CURRENT_TIMESTAMP';
+
+        $statement = $this->connection()->prepare(
+            'INSERT INTO person_addresses ('
+            . implode(', ', $columns)
+            . ') VALUES ('
+            . implode(', ', $placeholders)
+            . ')'
+        );
+        $statement->execute($values);
     }
 
     private function globalRoleIdsForUser(int $userId): array
@@ -1213,6 +1503,266 @@ class AdminUserManagementRepository extends BaseRepository
             ");
             $insert->execute([$userId, $roleId]);
         }
+    }
+
+    private function dynamicGeographyOptions(): array
+    {
+        $graph = $this->dynamicGeographyGraph();
+
+        if ($graph['nodes'] === []) {
+            return [
+                'source' => 'dynamic',
+                'provinces' => [],
+                'counties' => [],
+                'cities' => [],
+            ];
+        }
+
+        $provinces = [];
+        $counties = [];
+        $cities = [];
+
+        foreach ($graph['nodes'] as $node) {
+            $id = (int) $node['id'];
+            $title = (string) $node['title'];
+            $level = (string) $node['level_code'];
+
+            if ($level === 'province') {
+                $provinces[] = [
+                    'id' => $id,
+                    'title' => $title,
+                ];
+                continue;
+            }
+
+            $selection = $this->geographicSelection(
+                $id
+            );
+
+            if ($selection === null) {
+                continue;
+            }
+
+            if ($level === 'county') {
+                $counties[] = [
+                    'id' => $id,
+                    'title' => $title,
+                    'province_id' =>
+                        $selection[
+                            'province_location_id'
+                        ],
+                ];
+                continue;
+            }
+
+            if ($level === 'city') {
+                $cities[] = [
+                    'id' => $id,
+                    'title' => $title,
+                    'province_id' =>
+                        $selection[
+                            'province_location_id'
+                        ],
+                    'county_id' =>
+                        $selection[
+                            'county_location_id'
+                        ],
+                ];
+            }
+        }
+
+        $sort = static function (
+            array &$items
+        ): void {
+            usort(
+                $items,
+                static fn (
+                    array $left,
+                    array $right
+                ): int => strnatcasecmp(
+                    (string) $left['title'],
+                    (string) $right['title']
+                )
+            );
+        };
+
+        $sort($provinces);
+        $sort($counties);
+        $sort($cities);
+
+        return [
+            'source' => 'dynamic',
+            'provinces' => $provinces,
+            'counties' => $counties,
+            'cities' => $cities,
+        ];
+    }
+
+    private function geographicSelection(
+        int $locationId
+    ): ?array {
+        if ($locationId < 1) {
+            return null;
+        }
+
+        $graph = $this->dynamicGeographyGraph();
+        $nodes = $graph['nodes'];
+        $parents = $graph['parents'];
+
+        if (!isset($nodes[$locationId])) {
+            return null;
+        }
+
+        $selection = [
+            'province_location_id' => 0,
+            'county_location_id' => 0,
+            'city_location_id' => 0,
+            'geographic_location_id' => $locationId,
+        ];
+        $currentId = $locationId;
+        $visited = [];
+
+        for ($depth = 0; $depth < 12; $depth++) {
+            if (
+                isset($visited[$currentId])
+                || !isset($nodes[$currentId])
+            ) {
+                break;
+            }
+
+            $visited[$currentId] = true;
+            $level = (string) (
+                $nodes[$currentId]['level_code'] ?? ''
+            );
+
+            if ($level === 'province') {
+                $selection['province_location_id'] =
+                    $currentId;
+            } elseif ($level === 'county') {
+                $selection['county_location_id'] =
+                    $currentId;
+            } elseif ($level === 'city') {
+                $selection['city_location_id'] =
+                    $currentId;
+            }
+
+            if (!isset($parents[$currentId])) {
+                break;
+            }
+
+            $currentId = (int) $parents[$currentId];
+        }
+
+        return $selection;
+    }
+
+    private function dynamicGeographyGraph(): array
+    {
+        if ($this->dynamicGeographyCache !== null) {
+            return $this->dynamicGeographyCache;
+        }
+
+        $empty = [
+            'nodes' => [],
+            'parents' => [],
+        ];
+
+        if (
+            !Database::tableExists(
+                'geographic_locations'
+            )
+            || !Database::tableExists(
+                'geographic_level_types'
+            )
+            || !Database::tableExists(
+                'geographic_location_relations'
+            )
+        ) {
+            return $this->dynamicGeographyCache =
+                $empty;
+        }
+
+        $statement = $this->connection()->query("
+            SELECT
+                locations.id,
+                locations.title,
+                levels.code AS level_code
+            FROM geographic_locations AS locations
+            INNER JOIN geographic_level_types AS levels
+              ON levels.id = locations.level_type_id
+            WHERE locations.status = 'active'
+              AND levels.status = 'active'
+              AND levels.code IN (
+                  'province',
+                  'county',
+                  'district',
+                  'city'
+              )
+            ORDER BY
+                levels.hierarchy_order ASC,
+                locations.title ASC,
+                locations.id ASC
+        ");
+
+        $nodes = [];
+
+        foreach (
+            $statement->fetchAll(PDO::FETCH_ASSOC) ?: []
+            as $row
+        ) {
+            $nodes[(int) $row['id']] = [
+                'id' => (int) $row['id'],
+                'title' => (string) $row['title'],
+                'level_code' =>
+                    (string) $row['level_code'],
+            ];
+        }
+
+        if ($nodes === []) {
+            return $this->dynamicGeographyCache =
+                $empty;
+        }
+
+        $relations = $this->connection()->query("
+            SELECT
+                parent_location_id,
+                child_location_id,
+                is_primary
+            FROM geographic_location_relations
+            WHERE status = 'active'
+            ORDER BY is_primary DESC, id ASC
+        ");
+        $parents = [];
+
+        foreach (
+            $relations->fetchAll(PDO::FETCH_ASSOC)
+                ?: []
+            as $relation
+        ) {
+            $childId = (int) (
+                $relation['child_location_id'] ?? 0
+            );
+            $parentId = (int) (
+                $relation['parent_location_id'] ?? 0
+            );
+
+            if (
+                $childId < 1
+                || $parentId < 1
+                || !isset($nodes[$childId])
+                || !isset($nodes[$parentId])
+                || isset($parents[$childId])
+            ) {
+                continue;
+            }
+
+            $parents[$childId] = $parentId;
+        }
+
+        return $this->dynamicGeographyCache = [
+            'nodes' => $nodes,
+            'parents' => $parents,
+        ];
     }
 
     private function codeOptions(string $table, array $fallback): array
