@@ -14,12 +14,19 @@ $isEdit = (bool) ($isEdit ?? false);
 $projectReference = (string) ($project['public_reference'] ?? '');
 $itemReference = (string) ($form['public_reference'] ?? '');
 $baseUrl = '/admin/work/projects/' . rawurlencode($projectReference) . '/items';
-$formAction = $isEdit
-    ? $baseUrl . '/' . rawurlencode($itemReference)
-    : $baseUrl;
+$formAction = $isEdit ? $baseUrl . '/' . rawurlencode($itemReference) : $baseUrl;
 $formHeading = $isEdit ? 'ویرایش آیتم' : 'ایجاد آیتم';
 $startDateFa = \App\Support\PersianDate::fromGregorianDate((string) ($form['start_date'] ?? ''));
 $dueDateFa = \App\Support\PersianDate::fromGregorianDate((string) ($form['due_date'] ?? ''));
+$identityLabels = new \App\Services\UserIdentityLabelService();
+
+foreach (($options['members'] ?? []) as &$identityMember) {
+    $identityMember['display_name_snapshot'] = $identityLabels->labelForReference(
+        (string) ($identityMember['user_reference'] ?? ''),
+        (string) ($identityMember['display_name_snapshot'] ?? '')
+    );
+}
+unset($identityMember);
 
 ob_start();
 require __DIR__ . '/work-ui-styles.php';
@@ -35,10 +42,7 @@ require __DIR__ . '/work-ui-styles.php';
 
 <section class="admin-module-hub admin-module-hub--green work-ui-compact-hub">
     <div class="admin-module-hub__icon"><?= \App\Support\AdminIcon::html('circle-check') ?></div>
-    <div>
-        <h2><?= admin_h($formHeading) ?></h2>
-        <p><?= admin_h($project['title'] ?? '') ?></p>
-    </div>
+    <div><h2><?= admin_h($formHeading) ?></h2><p><?= admin_h($project['title'] ?? '') ?></p></div>
     <a class="admin-module-hub__back" href="<?= admin_h($baseUrl) ?>">بازگشت</a>
 </section>
 
@@ -46,9 +50,7 @@ require __DIR__ . '/work-ui-styles.php';
     <section class="admin-section">
         <div class="admin-alert admin-alert--danger" role="alert">
             <strong>ثبت اطلاعات انجام نشد.</strong>
-            <ul>
-                <?php foreach ($errors as $error): ?><li><?= admin_h($error) ?></li><?php endforeach; ?>
-            </ul>
+            <ul><?php foreach ($errors as $error): ?><li><?= admin_h($error) ?></li><?php endforeach; ?></ul>
         </div>
     </section>
 <?php endif; ?>
@@ -67,9 +69,7 @@ require __DIR__ . '/work-ui-styles.php';
                 <span>نوع آیتم</span>
                 <?php if ($isEdit): ?>
                     <input type="hidden" name="item_type" value="<?= admin_h($form['item_type'] ?? 'task') ?>">
-                    <select disabled>
-                        <option><?= admin_h(($options['types'][$form['item_type'] ?? 'task'] ?? 'تسک')) ?></option>
-                    </select>
+                    <select disabled><option><?= admin_h(($options['types'][$form['item_type'] ?? 'task'] ?? 'تسک')) ?></option></select>
                 <?php else: ?>
                     <select name="item_type" required>
                         <?php foreach (($options['types'] ?? []) as $code => $label): ?>
@@ -110,12 +110,12 @@ require __DIR__ . '/work-ui-styles.php';
             </label>
 
             <label>
-                <span>مسئول</span>
+                <span>مسئول (ایمیل یا موبایل)</span>
                 <select name="assignee_reference">
                     <option value="">بدون مسئول</option>
                     <?php foreach (($options['members'] ?? []) as $member): ?>
                         <option value="<?= admin_h($member['user_reference'] ?? '') ?>"<?= (string) ($form['assignee_reference'] ?? '') === (string) ($member['user_reference'] ?? '') ? ' selected' : '' ?>>
-                            <?= admin_h($member['display_name_snapshot'] ?? '') ?>
+                            <?= admin_h($member['display_name_snapshot'] ?? 'کاربر') ?>
                         </option>
                     <?php endforeach; ?>
                 </select>

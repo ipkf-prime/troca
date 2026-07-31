@@ -4,6 +4,7 @@ namespace App\Services\Work;
 
 use App\Repositories\WorkProjectMemberRepository;
 use App\Services\BaseService;
+use App\Services\UserIdentityLabelService;
 
 class WorkProjectMemberService extends BaseService
 {
@@ -13,9 +14,12 @@ class WorkProjectMemberService extends BaseService
         'observer' => 'ناظر',
     ];
 
-    public function __construct(private ?WorkProjectMemberRepository $members = null)
-    {
+    public function __construct(
+        private ?WorkProjectMemberRepository $members = null,
+        private ?UserIdentityLabelService $identities = null
+    ) {
         $this->members ??= new WorkProjectMemberRepository();
+        $this->identities ??= new UserIdentityLabelService();
     }
 
     public function view(string $publicReference): array
@@ -27,12 +31,31 @@ class WorkProjectMemberService extends BaseService
 
         $items = $this->members->members((int) $project['id']);
         $activeReferences = [];
+        $references = [];
+        $fallbacks = [];
+
+        foreach ($items as $item) {
+            $reference = (string) ($item['user_reference'] ?? '');
+            if ($reference !== '') {
+                $references[] = $reference;
+                $fallbacks[$reference] = (string) ($item['display_name_snapshot'] ?? '');
+            }
+        }
+
+        $labels = $this->identities->labelsForReferences($references, $fallbacks);
+
         foreach ($items as &$item) {
+            $reference = (string) ($item['user_reference'] ?? '');
+            $item['identity_label'] = $labels[$reference]
+                ?? $this->identities->labelForReference(
+                    $reference,
+                    (string) ($item['display_name_snapshot'] ?? '')
+                );
             $item['role_title'] = $this->roleTitle((string) ($item['role_code'] ?? ''));
             $item['joined_date_fa'] = \App\Support\PersianDate::fromGregorianDate(
                 substr((string) ($item['joined_at'] ?? ''), 0, 10)
             );
-            $activeReferences[(string) ($item['user_reference'] ?? '')] = true;
+            $activeReferences[$reference] = true;
         }
         unset($item);
 
@@ -43,7 +66,7 @@ class WorkProjectMemberService extends BaseService
                 continue;
             }
 
-            $user['display_name'] = $this->userDisplayName($user);
+            $user['display_name'] = $this->identities->optionLabelFromRow($user);
             $users[] = $user;
         }
 
@@ -88,7 +111,7 @@ class WorkProjectMemberService extends BaseService
         $this->members->saveMember(
             (int) $project['id'],
             $userId,
-            $this->userDisplayName($user),
+            $this->identities->labelFromRow($user) ?: 'کاربر',
             $roleCode,
             'user:' . $actorUserId,
             $this->actorDisplayName($context, $actorUserId)
@@ -143,31 +166,13 @@ class WorkProjectMemberService extends BaseService
 
     private function roleTitle(string $roleCode): string
     {
-        return $roleCode === 'owner' ? 'مالک پروژه' : (self::ROLE_OPTIONS[$roleCode] ?? $roleCode);
-    }
-
-    private function userDisplayName(array $user): string
-    {
-        foreach (['full_name', 'username', 'email', 'mobile'] as $field) {
-            $value = trim((string) ($user[$field] ?? ''));
-            if ($value !== '') {
-                return $value;
-            }
-        }
-
-        return 'کاربر #' . (int) ($user['id'] ?? 0);
+        return $roleCode === 'owner'
+            ? 'مالک پروژه'
+            : (self::ROLE_OPTIONS[$roleCode] ?? $roleCode);
     }
 
     private function actorDisplayName(array $context, int $userId): string
     {
-        $user = is_array($context['user'] ?? null) ? $context['user'] : [];
-        foreach (['name', 'display_name', 'full_name', 'username'] as $field) {
-            $value = trim((string) ($user[$field] ?? $context[$field] ?? ''));
-            if ($value !== '') {
-                return $value;
-            }
-        }
-
-        return 'کاربر #' . $userId;
+        return $this->userIdentityLabel($userId, $context);
     }
 }

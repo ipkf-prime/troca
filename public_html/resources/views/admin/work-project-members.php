@@ -15,6 +15,20 @@ $errors = $errors ?? [];
 $projectReference = (string) ($project['public_reference'] ?? '');
 $projectUrl = '/admin/work/projects/' . rawurlencode($projectReference);
 $isArchived = !empty($project['archived_at']);
+$identityLabels = new \App\Services\UserIdentityLabelService();
+
+foreach ($members as &$identityMember) {
+    $identityMember['identity_label'] = $identityLabels->labelForReference(
+        (string) ($identityMember['user_reference'] ?? ''),
+        (string) ($identityMember['display_name_snapshot'] ?? '')
+    );
+}
+unset($identityMember);
+
+foreach ($users as &$identityCandidate) {
+    $identityCandidate['display_name'] = $identityLabels->optionLabelFromRow($identityCandidate);
+}
+unset($identityCandidate);
 
 ob_start();
 require __DIR__ . '/work-ui-styles.php';
@@ -29,10 +43,7 @@ require __DIR__ . '/work-ui-styles.php';
 
 <section class="admin-module-hub admin-module-hub--green work-ui-compact-hub">
     <div class="admin-module-hub__icon"><?= \App\Support\AdminIcon::html('users') ?></div>
-    <div>
-        <h2>اعضای پروژه</h2>
-        <p><?= admin_h($project['title'] ?? '') ?></p>
-    </div>
+    <div><h2>اعضای پروژه</h2><p><?= admin_h($project['title'] ?? '') ?></p></div>
     <a class="admin-module-hub__back" href="<?= admin_h($projectUrl) ?>">بازگشت به پروژه</a>
 </section>
 
@@ -67,12 +78,12 @@ require __DIR__ . '/work-ui-styles.php';
         <form method="post" action="<?= admin_h($projectUrl . '/members') ?>" class="work-members-inline-form">
             <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
             <label>
-                <span>کاربر</span>
+                <span>ایمیل یا شماره موبایل کاربر</span>
                 <select name="user_id" required>
                     <option value="">انتخاب کاربر</option>
                     <?php foreach ($users as $candidate): ?>
                         <option value="<?= admin_h((int) ($candidate['id'] ?? 0)) ?>">
-                            <?= admin_h($candidate['display_name'] ?? '') ?><?= !empty($candidate['username']) ? ' — ' . admin_h($candidate['username']) : '' ?>
+                            <?= admin_h($candidate['display_name'] ?? 'کاربر') ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -101,13 +112,12 @@ require __DIR__ . '/work-ui-styles.php';
     <?php else: ?>
         <div class="admin-table-wrap">
             <table class="admin-table">
-                <thead><tr><th>عضو</th><th>شناسه کاربر</th><th>نقش</th><th>تاریخ عضویت</th><th>عملیات</th></tr></thead>
+                <thead><tr><th>ایمیل / موبایل</th><th>نقش</th><th>تاریخ عضویت</th><th>عملیات</th></tr></thead>
                 <tbody>
                 <?php foreach ($members as $member): ?>
                     <?php $memberId = (int) ($member['id'] ?? 0); $isOwner = (string) ($member['role_code'] ?? '') === 'owner'; ?>
                     <tr>
-                        <td><strong><?= admin_h($member['display_name_snapshot'] ?? '') ?></strong></td>
-                        <td dir="ltr"><?= admin_h($member['user_reference'] ?? '—') ?></td>
+                        <td dir="ltr"><strong><?= admin_h($member['identity_label'] ?? 'کاربر') ?></strong></td>
                         <td>
                             <?php if ($isOwner || $isArchived): ?>
                                 <span class="admin-pill"><?= admin_h($member['role_title'] ?? '') ?></span>

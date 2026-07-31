@@ -325,14 +325,7 @@ class WorkProjectService extends BaseService
 
     private function actorDisplayName(array $context, int $userId): string
     {
-        foreach (['display_name', 'full_name', 'username'] as $field) {
-            $value = trim((string) ($context[$field] ?? ''));
-            if ($value !== '') {
-                return $value;
-            }
-        }
-
-        return 'کاربر #' . $userId;
+        return $this->userIdentityLabel($userId, $context);
     }
 
     private function validDate(string $date): bool

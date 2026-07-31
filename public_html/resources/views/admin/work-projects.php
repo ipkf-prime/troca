@@ -14,6 +14,14 @@ $selectedSort = (string) ($list['sort'] ?? 'updated_at');
 $selectedDirection = (string) ($list['dir'] ?? 'desc');
 $statusOptions = $list['status_options'] ?? [];
 $total = (int) ($list['total'] ?? count($items));
+$identityLabels = new \App\Services\UserIdentityLabelService();
+foreach ($items as &$identityProject) {
+    $identityProject['owner_display_name'] = $identityLabels->labelForReference(
+        (string) ($identityProject['owner_user_reference'] ?? ''),
+        (string) ($identityProject['owner_display_name'] ?? '')
+    );
+}
+unset($identityProject);
 $canCreate = !empty($list['can_create']);
 $sortQuery = ['q' => $q, 'status' => $selectedStatus];
 $sortUrl = static fn (string $column): string => \App\Support\AdminTableSort::url(
@@ -140,7 +148,7 @@ require __DIR__ . '/work-stage5-ui.php';
                             </td>
                             <td><span class="admin-pill"><?= admin_h($project['status_title'] ?? '') ?></span></td>
                             <td><?= admin_h($project['visibility_title'] ?? '') ?></td>
-                            <td><?= admin_h((($project['owner_display_name'] ?? '') ?: (($project['owner_user_reference'] ?? '') ?: '—'))) ?></td>
+                            <td><?= admin_h(($project['owner_display_name'] ?? '') ?: '—') ?></td>
                             <td><?= admin_h(\App\Support\AdminFormat::digits((int) ($project['member_count'] ?? 0))) ?></td>
                             <td><?= admin_h(\App\Support\AdminFormat::digits((int) ($project['item_count'] ?? 0))) ?></td>
                             <td><?= admin_h(\App\Support\AdminFormat::digits((int) ($project['open_item_count'] ?? 0))) ?></td>

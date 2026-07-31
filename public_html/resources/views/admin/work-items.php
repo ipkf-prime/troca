@@ -20,6 +20,16 @@ $canEditAll = !empty($access['is_platform_admin'])
     || in_array((string) ($access['role_code'] ?? ''), ['owner', 'manager'], true);
 $saved = isset($_GET['saved']);
 $archived = isset($_GET['archived']);
+$identityLabels = new \App\Services\UserIdentityLabelService();
+foreach ($items as &$identityItem) {
+    $identityItem['assignee_name'] = empty($identityItem['assignee_reference'])
+        ? ''
+        : $identityLabels->labelForReference(
+            (string) $identityItem['assignee_reference'],
+            (string) ($identityItem['assignee_name'] ?? '')
+        );
+}
+unset($identityItem);
 $sort = \App\Support\AdminTableSort::resolve(
     [],
     [

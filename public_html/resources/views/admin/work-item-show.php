@@ -19,6 +19,30 @@ $baseUrl = '/admin/work/projects/' . rawurlencode($projectReference) . '/items';
 $itemUrl = $baseUrl . '/' . rawurlencode($itemReference);
 $isLocked = !empty($item['is_locked']);
 $csrf = (new \IPKF\Security\Csrf())->token();
+$identityLabels = new \App\Services\UserIdentityLabelService();
+
+if (!empty($item['assignee_reference'])) {
+    $item['assignee_name'] = $identityLabels->labelForReference(
+        (string) $item['assignee_reference'],
+        (string) ($item['assignee_name'] ?? '')
+    );
+}
+
+foreach ($comments as &$identityComment) {
+    $identityComment['author_display_name_snapshot'] = $identityLabels->labelForReference(
+        (string) ($identityComment['author_user_reference'] ?? ''),
+        (string) ($identityComment['author_display_name_snapshot'] ?? '')
+    );
+}
+unset($identityComment);
+
+foreach ($activities as &$identityActivity) {
+    $identityActivity['actor_display_name_snapshot'] = $identityLabels->labelForReference(
+        (string) ($identityActivity['actor_user_reference'] ?? ''),
+        (string) ($identityActivity['actor_display_name_snapshot'] ?? '')
+    );
+}
+unset($identityActivity);
 
 $startDate = \App\Support\AdminFormat::jalaliDate(substr((string) ($item['start_at'] ?? ''), 0, 10));
 $dueDate = \App\Support\AdminFormat::jalaliDate(substr((string) ($item['due_at'] ?? ''), 0, 10));
