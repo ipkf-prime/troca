@@ -12,6 +12,8 @@ class WorkManagementPermissionsSeeder extends Seeder
         ['work.item.update', 'item', 'update', 'ویرایش و تغییر وضعیت تسک'],
         ['work.item.assign', 'item', 'assign', 'تخصیص مسئول تسک'],
         ['work.audit.view', 'audit', 'view', 'مشاهده تاریخچه تغییرات Work'],
+        ['work.settings.view', 'settings', 'view', 'مشاهده تنظیمات مدیریت کار'],
+        ['work.settings.manage', 'settings', 'manage', 'مدیریت تعاریف و تنظیمات Work'],
     ];
 
     public function run(): void

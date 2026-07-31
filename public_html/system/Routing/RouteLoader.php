@@ -16,5 +16,10 @@ class RouteLoader
         if (is_readable($workItemDetailRoutes)) {
             require $workItemDetailRoutes;
         }
+
+        $workSettingsRoutes = BASE_PATH . '/routes/work-settings.php';
+        if (is_readable($workSettingsRoutes)) {
+            require $workSettingsRoutes;
+        }
     }
 }

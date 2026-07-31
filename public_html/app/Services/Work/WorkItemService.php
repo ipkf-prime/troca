@@ -8,9 +8,12 @@ use DateTimeImmutable;
 
 class WorkItemService extends BaseService
 {
-    public function __construct(private ?WorkItemRepository $items = null)
-    {
+    public function __construct(
+        private ?WorkItemRepository $items = null,
+        private ?WorkReferenceDataService $references = null
+    ) {
         $this->items ??= new WorkItemRepository();
+        $this->references ??= new WorkReferenceDataService();
     }
 
     public function index(string $projectReference, array $filters = []): array
@@ -407,22 +410,12 @@ class WorkItemService extends BaseService
 
     private function typeOptions(): array
     {
-        return [
-            'work' => 'کار',
-            'milestone' => 'نقطه عطف',
-            'task' => 'تسک',
-            'subtask' => 'زیرتسک',
-        ];
+        return $this->references->itemTypes();
     }
 
     private function priorityOptions(): array
     {
-        return [
-            'low' => 'کم',
-            'normal' => 'عادی',
-            'high' => 'زیاد',
-            'urgent' => 'فوری',
-        ];
+        return $this->references->itemPriorities();
     }
 
     private function actorDisplayName(array $context, int $userId): string

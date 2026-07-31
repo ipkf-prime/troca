@@ -10,10 +10,12 @@ class WorkMyItemsService extends BaseService
 {
     public function __construct(
         private ?WorkMyItemsRepository $items = null,
-        private ?AuthService $auth = null
+        private ?AuthService $auth = null,
+        private ?WorkReferenceDataService $references = null
     ) {
         $this->items ??= new WorkMyItemsRepository();
         $this->auth ??= new AuthService();
+        $this->references ??= new WorkReferenceDataService();
     }
 
     public function view(array $filters = []): array
@@ -76,22 +78,12 @@ class WorkMyItemsService extends BaseService
 
     private function typeOptions(): array
     {
-        return [
-            'work' => 'کار',
-            'milestone' => 'نقطه عطف',
-            'task' => 'تسک',
-            'subtask' => 'زیرتسک',
-        ];
+        return $this->references->itemTypes();
     }
 
     private function priorityOptions(): array
     {
-        return [
-            'low' => 'کم',
-            'normal' => 'عادی',
-            'high' => 'زیاد',
-            'urgent' => 'فوری',
-        ];
+        return $this->references->itemPriorities();
     }
 
     private function limit(string $value, int $length): string

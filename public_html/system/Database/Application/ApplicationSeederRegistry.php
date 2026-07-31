@@ -38,6 +38,7 @@ class ApplicationSeederRegistry
                 'connection' => 'work.primary',
                 'seeders' => [
                     \IPKF\Database\Seeds\WorkManagementFoundationSeeder::class,
+                    \IPKF\Database\Seeds\WorkReferenceDataSeeder::class,
                 ],
             ],
         ];

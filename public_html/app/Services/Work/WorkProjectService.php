@@ -8,9 +8,12 @@ use DateTimeImmutable;
 
 class WorkProjectService extends BaseService
 {
-    public function __construct(private ?WorkProjectRepository $projects = null)
-    {
+    public function __construct(
+        private ?WorkProjectRepository $projects = null,
+        private ?WorkReferenceDataService $references = null
+    ) {
         $this->projects ??= new WorkProjectRepository();
+        $this->references ??= new WorkReferenceDataService();
     }
 
     public function index(array $filters = []): array
@@ -307,22 +310,12 @@ class WorkProjectService extends BaseService
 
     private function projectStatusOptions(): array
     {
-        return [
-            'active' => 'فعال',
-            'paused' => 'متوقف',
-            'completed' => 'تکمیل‌شده',
-            'cancelled' => 'لغوشده',
-        ];
+        return $this->references->projectStatuses();
     }
 
     private function visibilityOptions(): array
     {
-        return [
-            'private' => 'خصوصی',
-            'members' => 'اعضای پروژه',
-            'organization' => 'سازمانی',
-            'public' => 'عمومی',
-        ];
+        return $this->references->projectVisibilities();
     }
 
     private function visibilityTitle(string $code): string

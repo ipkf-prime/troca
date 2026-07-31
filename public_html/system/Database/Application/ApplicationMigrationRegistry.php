@@ -53,6 +53,7 @@ class ApplicationMigrationRegistry
                 'connection' => 'work.primary',
                 'migrations' => [
                     \IPKF\Database\Migrations\CreateWorkManagementFoundationTables::class,
+                    \IPKF\Database\Migrations\CreateModuleReferenceDataTables::class,
                 ],
             ],
         ];

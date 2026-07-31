@@ -20,9 +20,12 @@ class WorkItemDetailService extends BaseService
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
     ];
 
-    public function __construct(private ?WorkItemDetailRepository $details = null)
-    {
+    public function __construct(
+        private ?WorkItemDetailRepository $details = null,
+        private ?WorkReferenceDataService $references = null
+    ) {
         $this->details ??= new WorkItemDetailRepository();
+        $this->references ??= new WorkReferenceDataService();
     }
 
     public function view(string $projectReference, string $itemReference): array
@@ -332,22 +335,12 @@ class WorkItemDetailService extends BaseService
 
     private function typeTitle(string $type): string
     {
-        return [
-            'work' => 'کار',
-            'milestone' => 'نقطه عطف',
-            'task' => 'تسک',
-            'subtask' => 'زیرتسک',
-        ][$type] ?? $type;
+        return $this->references->itemTypes()[$type] ?? $type;
     }
 
     private function priorityTitle(string $priority): string
     {
-        return [
-            'low' => 'کم',
-            'normal' => 'عادی',
-            'high' => 'زیاد',
-            'urgent' => 'فوری',
-        ][$priority] ?? $priority;
+        return $this->references->itemPriorities()[$priority] ?? $priority;
     }
 
     private function eventTitle(string $eventType): string

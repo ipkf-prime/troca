@@ -102,6 +102,7 @@ class AdminPanelService extends BaseService
         $items = [
             ['key' => 'work-dashboard', 'title' => $this->fa('&#x062F;&#x0627;&#x0634;&#x0628;&#x0648;&#x0631;&#x062F; &#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x06A9;&#x0627;&#x0631;'), 'url' => '/admin/work', 'icon' => 'dashboard', 'permission' => 'work.project.view', 'active_paths' => ['/admin/work']],
             ['key' => 'work-projects', 'title' => 'پروژه‌ها', 'url' => '/admin/work/projects', 'icon' => 'organization', 'permission' => 'work.project.view', 'active_paths' => ['/admin/work/projects', '/admin/work/projects/*']],
+            ['key' => 'work-settings', 'title' => 'تنظیمات', 'url' => '/admin/work/settings', 'icon' => 'sliders', 'permission' => 'work.settings.view', 'active_paths' => ['/admin/work/settings', '/admin/work/settings/*']],
         ];
 
         return array_values(array_filter($items, fn (array $item): bool => $this->navigation->can($userId, (string) $item['permission'])));

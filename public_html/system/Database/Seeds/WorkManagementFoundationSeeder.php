@@ -14,19 +14,10 @@ class WorkManagementFoundationSeeder extends Seeder
     private function seedStatuses(): void
     {
         $statement = $this->db->prepare("
-            INSERT INTO work_statuses
+            INSERT IGNORE INTO work_statuses
                 (code, title, category, color, sort_order, is_closed, is_system, is_active, created_at, updated_at)
             VALUES
                 (?, ?, ?, ?, ?, ?, 1, 1, UTC_TIMESTAMP(), UTC_TIMESTAMP())
-            ON DUPLICATE KEY UPDATE
-                title = VALUES(title),
-                category = VALUES(category),
-                color = VALUES(color),
-                sort_order = VALUES(sort_order),
-                is_closed = VALUES(is_closed),
-                is_system = 1,
-                is_active = 1,
-                updated_at = UTC_TIMESTAMP()
         ");
 
         foreach ($this->statuses() as $status) {
