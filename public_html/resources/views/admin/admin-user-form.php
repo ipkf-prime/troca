@@ -24,7 +24,508 @@ $activeTab = in_array($requestedTab, ['account', 'access'], true) ? $requestedTa
 ob_start();
 ?>
 <style>
-.user-editor{display:grid;gap:.7rem}.user-editor__head{align-items:center;background:var(--admin-surface);border:1px solid var(--admin-border);border-radius:.9rem;display:flex;justify-content:space-between;min-height:4rem;padding:.65rem .8rem}.user-editor__title{align-items:center;display:flex;gap:.6rem}.user-editor__icon{align-items:center;background:var(--admin-primary-soft);border-radius:.65rem;color:var(--admin-primary);display:inline-flex;height:2.45rem;justify-content:center;width:2.45rem}.user-editor__head h2{font-size:1.02rem;margin:0}.user-editor__head p{color:var(--admin-text-muted);font-size:.72rem;margin:.1rem 0 0}.user-editor__tabs{background:var(--admin-surface);border:1px solid var(--admin-border);border-radius:.78rem;display:flex;gap:.25rem;padding:.28rem}.user-editor__tab{appearance:none;background:transparent;border:0;border-radius:.58rem;color:var(--admin-text-muted);cursor:pointer;font:inherit;font-size:.78rem;font-weight:800;min-height:2.3rem;padding:.35rem .8rem}.user-editor__tab[aria-selected=true]{background:var(--admin-primary-soft);color:var(--admin-primary)}.user-editor__panel{background:var(--admin-surface);border:1px solid var(--admin-border);border-radius:.9rem;padding:.8rem}.user-editor__panel[hidden]{display:none}.user-block+.user-block{border-top:1px solid var(--admin-border);margin-top:.8rem;padding-top:.8rem}.user-block__head{margin-bottom:.55rem}.user-block__head h3{font-size:.84rem;margin:0}.user-block__head p{color:var(--admin-text-muted);font-size:.68rem;margin:.08rem 0 0}.user-grid{display:grid;gap:.6rem;grid-template-columns:repeat(2,minmax(0,1fr))}.user-grid--3{grid-template-columns:repeat(3,minmax(0,1fr))}.user-field{min-width:0}.user-field--wide{grid-column:1/-1}.user-field>span{display:block;font-size:.72rem;font-weight:800;margin-bottom:.22rem}.user-field>small{color:var(--admin-text-muted);display:block;font-size:.63rem;margin-top:.18rem}.user-field input,.user-field select{min-height:2.35rem}.user-checks{display:flex;flex-wrap:wrap;gap:.45rem}.user-check{align-items:center;background:var(--admin-surface-muted);border:1px solid var(--admin-border);border-radius:.62rem;display:flex;font-size:.7rem;gap:.35rem;min-height:2.25rem;padding:.3rem .55rem}.user-check input{height:1rem;margin:0;width:1rem}.access-tools{align-items:end;display:grid;gap:.5rem;grid-template-columns:repeat(3,minmax(0,1fr))}.access-summary{align-items:center;background:var(--admin-primary-soft);border:1px solid color-mix(in srgb,var(--admin-primary) 24%,transparent);border-radius:.66rem;display:flex;flex-wrap:wrap;gap:.4rem;justify-content:space-between;margin-top:.6rem;min-height:2.45rem;padding:.4rem .6rem}.access-summary__chips{display:flex;flex-wrap:wrap;gap:.28rem}.access-chip{background:var(--admin-surface);border:1px solid var(--admin-border);border-radius:999px;font-size:.64rem;font-weight:800;padding:.22rem .45rem}.role-list{border:1px solid var(--admin-border);border-radius:.7rem;margin-top:.6rem;max-height:22rem;overflow:auto}.role-row{align-items:center;border-top:1px solid var(--admin-border);cursor:pointer;display:grid;gap:.5rem;grid-template-columns:1.1rem minmax(9rem,1.2fr) minmax(7rem,.7fr) minmax(7rem,.7fr);min-height:2.9rem;padding:.4rem .6rem}.role-row:first-child{border-top:0}.role-row:hover{background:var(--admin-surface-muted)}.role-row.is-selected{background:color-mix(in srgb,var(--admin-primary-soft) 70%,var(--admin-surface))}.role-row[hidden]{display:none}.role-row input{height:1rem;margin:0;width:1rem}.role-row strong,.role-row small{display:block}.role-row strong{font-size:.74rem}.role-row small{color:var(--admin-text-muted);direction:ltr;font-size:.61rem}.role-row__meta{color:var(--admin-text-muted);font-size:.66rem}.role-empty{color:var(--admin-text-muted);display:none;font-size:.72rem;padding:1rem;text-align:center}.role-empty.is-visible{display:block}.permission-next{align-items:center;background:var(--admin-surface-muted);border:1px dashed var(--admin-border);border-radius:.7rem;display:flex;gap:.7rem;justify-content:space-between;margin-top:.65rem;padding:.55rem .65rem}.permission-next strong{font-size:.72rem}.permission-next small{color:var(--admin-text-muted);display:block;font-size:.64rem;margin-top:.1rem}.user-actions{background:color-mix(in srgb,var(--admin-surface) 93%,transparent);border:1px solid var(--admin-border);border-radius:.75rem;bottom:.5rem;box-shadow:0 8px 24px rgb(15 23 42 / .08);display:flex;gap:.4rem;justify-content:space-between;margin-top:.7rem;padding:.45rem;position:sticky;z-index:20}.user-actions>div{display:flex;flex-wrap:wrap;gap:.4rem}@media(max-width:900px){.access-tools,.user-grid--3{grid-template-columns:1fr 1fr}.access-tools .user-field:last-child{grid-column:1/-1}.role-row{grid-template-columns:1.1rem minmax(0,1fr)}.role-row__meta{display:none}}@media(max-width:640px){.user-editor__head p{display:none}.user-editor__tabs{display:grid;grid-template-columns:1fr 1fr}.user-grid,.user-grid--3,.access-tools{grid-template-columns:1fr}.access-tools .user-field:last-child,.user-field--wide{grid-column:auto}.user-actions{display:grid}.permission-next{align-items:stretch;display:grid}}
+.user-editor {
+    display: grid;
+    gap: .85rem;
+}
+
+.user-editor__head {
+    align-items: center;
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: .9rem;
+    display: flex;
+    justify-content: space-between;
+    min-height: 4rem;
+    padding: .7rem .9rem;
+}
+
+.user-editor__title {
+    align-items: center;
+    display: flex;
+    gap: .65rem;
+}
+
+.user-editor__icon {
+    align-items: center;
+    background: var(--admin-primary-soft);
+    border: 1px solid color-mix(
+        in srgb,
+        var(--admin-primary) 22%,
+        transparent
+    );
+    border-radius: .65rem;
+    color: var(--admin-primary);
+    display: inline-flex;
+    height: 2.45rem;
+    justify-content: center;
+    width: 2.45rem;
+}
+
+.user-editor__head h2 {
+    font-size: 1.02rem;
+    line-height: 1.55;
+    margin: 0;
+}
+
+.user-editor__head p {
+    color: var(--admin-text-muted);
+    font-size: .72rem;
+    line-height: 1.7;
+    margin: .08rem 0 0;
+}
+
+.user-editor__tabs {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: .78rem;
+    display: flex;
+    gap: .25rem;
+    padding: .3rem;
+}
+
+.user-editor__tab {
+    align-items: center;
+    appearance: none;
+    background: transparent;
+    border: 0;
+    border-radius: .58rem;
+    color: var(--admin-text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    font: inherit;
+    font-size: .78rem;
+    font-weight: 800;
+    gap: .35rem;
+    justify-content: center;
+    min-height: 2.35rem;
+    padding: .38rem .85rem;
+}
+
+.user-editor__tab[aria-selected="true"] {
+    background: var(--admin-primary-soft);
+    color: var(--admin-primary);
+}
+
+.user-editor__tab-count {
+    align-items: center;
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: .65rem;
+    height: 1.3rem;
+    justify-content: center;
+    min-width: 1.3rem;
+    padding-inline: .25rem;
+}
+
+.user-editor__panel {
+    background: transparent;
+    border: 0;
+    padding: 0;
+}
+
+.user-editor__panel[hidden] {
+    display: none;
+}
+
+.user-block {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: .9rem;
+    padding: .9rem;
+}
+
+.user-block + .user-block {
+    margin-top: .75rem;
+}
+
+.user-block__head {
+    margin-bottom: .7rem;
+}
+
+.user-block__head h3 {
+    font-size: .86rem;
+    line-height: 1.55;
+    margin: 0;
+}
+
+.user-block__head p {
+    color: var(--admin-text-muted);
+    font-size: .69rem;
+    line-height: 1.75;
+    margin: .1rem 0 0;
+}
+
+.user-grid {
+    display: grid;
+    gap: .65rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.user-grid--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.user-field {
+    min-width: 0;
+}
+
+.user-field--wide {
+    grid-column: 1 / -1;
+}
+
+.user-field > span {
+    color: var(--admin-text);
+    display: block;
+    font-size: .74rem;
+    font-weight: 800;
+    margin-bottom: .26rem;
+}
+
+.user-field > small {
+    color: var(--admin-text-muted);
+    display: block;
+    font-size: .64rem;
+    line-height: 1.7;
+    margin-top: .2rem;
+}
+
+.user-field input,
+.user-field select {
+    min-height: 2.42rem;
+}
+
+.user-checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .45rem;
+}
+
+.user-check {
+    align-items: center;
+    background: var(--admin-surface-muted);
+    border: 1px solid var(--admin-border);
+    border-radius: .62rem;
+    display: flex;
+    font-size: .71rem;
+    gap: .38rem;
+    min-height: 2.3rem;
+    padding: .32rem .58rem;
+}
+
+.user-check input {
+    height: 1rem;
+    margin: 0;
+    width: 1rem;
+}
+
+.access-card {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: .9rem;
+    padding: .9rem;
+}
+
+.access-card + .access-card {
+    margin-top: .75rem;
+}
+
+.access-card__head {
+    align-items: center;
+    display: flex;
+    gap: .8rem;
+    justify-content: space-between;
+    margin-bottom: .7rem;
+}
+
+.access-card__head h3 {
+    font-size: .86rem;
+    line-height: 1.55;
+    margin: 0;
+}
+
+.access-card__head p {
+    color: var(--admin-text-muted);
+    font-size: .69rem;
+    line-height: 1.75;
+    margin: .1rem 0 0;
+}
+
+.access-tools {
+    align-items: end;
+    display: grid;
+    gap: .65rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.access-summary {
+    align-items: center;
+    background: var(--admin-primary-soft);
+    border: 1px solid color-mix(
+        in srgb,
+        var(--admin-primary) 24%,
+        transparent
+    );
+    border-radius: .72rem;
+    display: grid;
+    gap: .55rem;
+    grid-template-columns: auto minmax(0, 1fr);
+    min-height: 3rem;
+    padding: .55rem .7rem;
+}
+
+.access-summary__title {
+    font-size: .73rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.access-summary__content {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    justify-content: flex-start;
+}
+
+.access-summary__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .3rem;
+}
+
+.access-chip {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 999px;
+    font-size: .66rem;
+    font-weight: 800;
+    padding: .25rem .5rem;
+}
+
+.access-summary__empty {
+    color: var(--admin-text-muted);
+    font-size: .69rem;
+}
+
+.role-table {
+    border: 1px solid var(--admin-border);
+    border-radius: .75rem;
+    overflow: hidden;
+}
+
+.role-table__head,
+.role-row {
+    align-items: center;
+    display: grid;
+    gap: .6rem;
+    grid-template-columns:
+        1.25rem
+        minmax(11rem, 1.35fr)
+        minmax(8rem, .75fr)
+        minmax(8rem, .75fr);
+}
+
+.role-table__head {
+    background: var(--admin-surface-muted);
+    border-bottom: 1px solid var(--admin-border);
+    color: var(--admin-text-muted);
+    font-size: .68rem;
+    font-weight: 800;
+    min-height: 2.55rem;
+    padding: .42rem .7rem;
+}
+
+.role-table__body {
+    max-height: 24rem;
+    overflow: auto;
+}
+
+.role-row {
+    border-top: 1px solid var(--admin-border);
+    cursor: pointer;
+    min-height: 3.25rem;
+    padding: .48rem .7rem;
+}
+
+.role-row:first-child {
+    border-top: 0;
+}
+
+.role-row:hover {
+    background: var(--admin-surface-muted);
+}
+
+.role-row.is-selected {
+    background: color-mix(
+        in srgb,
+        var(--admin-primary-soft) 72%,
+        var(--admin-surface)
+    );
+}
+
+.role-row[hidden] {
+    display: none;
+}
+
+.role-row input {
+    height: 1rem;
+    margin: 0;
+    width: 1rem;
+}
+
+.role-row__identity strong,
+.role-row__identity small {
+    display: block;
+}
+
+.role-row__identity strong {
+    color: var(--admin-text);
+    font-size: .77rem;
+    line-height: 1.55;
+}
+
+.role-row__identity small {
+    color: var(--admin-text-muted);
+    direction: ltr;
+    font-size: .63rem;
+    line-height: 1.5;
+    margin-top: .04rem;
+}
+
+.role-row__meta {
+    color: var(--admin-text-muted);
+    font-size: .69rem;
+    line-height: 1.65;
+}
+
+.role-empty {
+    color: var(--admin-text-muted);
+    display: none;
+    font-size: .74rem;
+    padding: 1.1rem;
+    text-align: center;
+}
+
+.role-empty.is-visible {
+    display: block;
+}
+
+.permission-next {
+    align-items: center;
+    background: var(--admin-surface-muted);
+    border: 1px dashed var(--admin-border);
+    border-radius: .75rem;
+    display: flex;
+    gap: .75rem;
+    justify-content: space-between;
+    padding: .65rem .75rem;
+}
+
+.permission-next strong {
+    font-size: .74rem;
+}
+
+.permission-next small {
+    color: var(--admin-text-muted);
+    display: block;
+    font-size: .65rem;
+    line-height: 1.75;
+    margin-top: .1rem;
+}
+
+.user-actions {
+    background: color-mix(
+        in srgb,
+        var(--admin-surface) 94%,
+        transparent
+    );
+    border: 1px solid var(--admin-border);
+    border-radius: .78rem;
+    bottom: .5rem;
+    box-shadow: 0 8px 24px rgb(15 23 42 / .08);
+    display: flex;
+    gap: .45rem;
+    justify-content: space-between;
+    margin-top: .8rem;
+    padding: .5rem;
+    position: sticky;
+    z-index: 20;
+}
+
+.user-actions > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+}
+
+@media (max-width: 900px) {
+    .access-tools,
+    .user-grid--3 {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .access-tools .user-field:last-child {
+        grid-column: 1 / -1;
+    }
+
+    .role-table__head,
+    .role-row {
+        grid-template-columns:
+            1.25rem
+            minmax(0, 1fr)
+            minmax(7rem, .65fr);
+    }
+
+    .role-table__head span:last-child,
+    .role-row__meta:last-child {
+        display: none;
+    }
+}
+
+@media (max-width: 640px) {
+    .user-editor__head p {
+        display: none;
+    }
+
+    .user-editor__tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .user-grid,
+    .user-grid--3,
+    .access-tools,
+    .access-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .access-tools .user-field:last-child,
+    .user-field--wide {
+        grid-column: auto;
+    }
+
+    .role-table__head {
+        display: none;
+    }
+
+    .role-row {
+        grid-template-columns: 1.25rem minmax(0, 1fr);
+        min-height: 3.6rem;
+    }
+
+    .role-row__meta {
+        display: none;
+    }
+
+    .user-actions,
+    .permission-next {
+        align-items: stretch;
+        display: grid;
+    }
+}
 </style>
 
 <div class="user-editor" data-user-editor data-active-tab="<?= admin_h($activeTab) ?>">
@@ -50,7 +551,10 @@ ob_start();
 
     <div class="user-editor__tabs" role="tablist">
         <button class="user-editor__tab" type="button" role="tab" data-user-tab="account" aria-selected="<?= $activeTab === 'account' ? 'true' : 'false' ?>">حساب و هویت</button>
-        <button class="user-editor__tab" type="button" role="tab" data-user-tab="access" aria-selected="<?= $activeTab === 'access' ? 'true' : 'false' ?>">نقش و دسترسی (<span data-role-count><?= count($selectedRoleIds) ?></span>)</button>
+        <button class="user-editor__tab" type="button" role="tab" data-user-tab="access" aria-selected="<?= $activeTab === 'access' ? 'true' : 'false' ?>">نقش و دسترسی
+            <span class="user-editor__tab-count" data-role-count>
+                <?= count($selectedRoleIds) ?>
+            </span></button>
     </div>
 
     <form method="post" action="<?= admin_h($formAction) ?>">
@@ -88,39 +592,224 @@ ob_start();
             </div>
         </section>
 
-        <section class="user-editor__panel" data-user-panel="access" <?= $activeTab === 'access' ? '' : 'hidden' ?>>
-            <div class="user-block">
-                <div class="user-block__head"><h3>نوع و حوزه سطح دسترسی</h3><p>این طبقه‌بندی مستقیماً از ساختار RBAC خوانده می‌شود.</p></div>
+        <section
+            class="user-editor__panel"
+            data-user-panel="access"
+            <?= $activeTab === 'access' ? '' : 'hidden' ?>
+        >
+            <section class="access-card">
+                <div class="access-card__head">
+                    <div>
+                        <h3>فیلتر نقش‌ها</h3>
+                        <p>
+                            نقش‌ها را بر اساس نوع سطح دسترسی، حوزه و عنوان
+                            محدود کنید.
+                        </p>
+                    </div>
+                </div>
+
                 <div class="access-tools">
-                    <label class="user-field"><span>نوع سطح دسترسی</span><select name="access_kind" data-kind-filter><?php foreach ($roleKinds as $kind): ?><option value="<?= admin_h($kind['code'] ?? 'all') ?>"<?= (string) ($form['access_kind'] ?? 'all') === (string) ($kind['code'] ?? 'all') ? ' selected' : '' ?>><?= admin_h($kind['title'] ?? '') ?></option><?php endforeach; ?></select></label>
-                    <label class="user-field"><span>حوزه دسترسی</span><select name="access_area" data-area-filter><?php foreach ($roleAreas as $area): ?><option value="<?= admin_h($area['code'] ?? 'all') ?>"<?= (string) ($form['access_area'] ?? 'all') === (string) ($area['code'] ?? 'all') ? ' selected' : '' ?>><?= admin_h($area['title'] ?? '') ?></option><?php endforeach; ?></select></label>
-                    <label class="user-field"><span>جست‌وجوی نقش</span><input type="search" name="role_search" value="<?= admin_h($form['role_search'] ?? '') ?>" maxlength="80" placeholder="عنوان یا کد نقش" data-role-search></label>
+                    <label class="user-field">
+                        <span>نوع سطح دسترسی</span>
+                        <select name="access_kind" data-kind-filter>
+                            <?php foreach ($roleKinds as $kind): ?>
+                                <option
+                                    value="<?= admin_h(
+                                        $kind['code'] ?? 'all'
+                                    ) ?>"
+                                    <?= (string) (
+                                        $form['access_kind'] ?? 'all'
+                                    ) === (string) (
+                                        $kind['code'] ?? 'all'
+                                    ) ? ' selected' : '' ?>
+                                >
+                                    <?= admin_h(
+                                        $kind['title'] ?? ''
+                                    ) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+
+                    <label class="user-field">
+                        <span>حوزه دسترسی</span>
+                        <select name="access_area" data-area-filter>
+                            <?php foreach ($roleAreas as $area): ?>
+                                <option
+                                    value="<?= admin_h(
+                                        $area['code'] ?? 'all'
+                                    ) ?>"
+                                    <?= (string) (
+                                        $form['access_area'] ?? 'all'
+                                    ) === (string) (
+                                        $area['code'] ?? 'all'
+                                    ) ? ' selected' : '' ?>
+                                >
+                                    <?= admin_h(
+                                        $area['title'] ?? ''
+                                    ) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+
+                    <label class="user-field">
+                        <span>جست‌وجوی نقش</span>
+                        <input
+                            type="search"
+                            name="role_search"
+                            value="<?= admin_h(
+                                $form['role_search'] ?? ''
+                            ) ?>"
+                            maxlength="80"
+                            placeholder="عنوان یا کد نقش"
+                            data-role-search
+                        >
+                    </label>
+                </div>
+            </section>
+
+            <section class="access-card">
+                <div class="access-card__head">
+                    <div>
+                        <h3>نقش‌های کاربر</h3>
+                        <p>
+                            نقش پایه «کاربر» همواره فعال است؛ نقش‌های دیگر
+                            را از فهرست انتخاب کنید.
+                        </p>
+                    </div>
+                    <span class="admin-pill">
+                        <span data-role-count><?= count($selectedRoleIds) ?></span>
+                        نقش فعال
+                    </span>
                 </div>
 
-                <div class="access-summary"><strong style="font-size:.7rem">نقش‌های انتخاب‌شده</strong><div class="access-summary__chips" data-role-summary></div><span style="color:var(--admin-text-muted);font-size:.68rem" data-role-summary-empty>فقط نقش پایه کاربر فعال است.</span></div>
-
-                <div class="role-list" data-role-list>
-                    <?php foreach ($roles as $role): ?>
-                        <?php
-                        $roleId = (int) ($role['id'] ?? 0);
-                        $roleCode = (string) ($role['code'] ?? '');
-                        $roleTitle = (string) ($role['title'] ?? '');
-                        $isBase = $roleCode === 'user';
-                        $selected = $isBase || in_array($roleId, $selectedRoleIds, true);
-                        ?>
-                        <label class="role-row<?= $selected ? ' is-selected' : '' ?>" data-role-row data-kind="<?= admin_h($role['role_kind_code'] ?? 'uncategorized') ?>" data-area="<?= admin_h($role['role_area_code'] ?? 'global') ?>" data-search="<?= admin_h(strtolower($roleTitle . ' ' . $roleCode)) ?>">
-                            <input type="checkbox" name="role_ids[]" value="<?= $roleId ?>" data-role-checkbox data-title="<?= admin_h($roleTitle) ?>"<?= $selected ? ' checked' : '' ?><?= $isBase ? ' disabled' : '' ?>>
-                            <?php if ($isBase): ?><input type="hidden" name="role_ids[]" value="<?= $roleId ?>"><?php endif; ?>
-                            <span><strong><?= admin_h($roleTitle) ?></strong><small><?= admin_h($roleCode) ?></small></span>
-                            <span class="role-row__meta"><?= admin_h($role['role_kind_title'] ?? 'سایر') ?></span>
-                            <span class="role-row__meta"><?= admin_h($role['role_area_title'] ?? 'سراسری') ?></span>
-                        </label>
-                    <?php endforeach; ?>
-                    <div class="role-empty" data-role-empty>نقشی مطابق فیلتر پیدا نشد.</div>
+                <div class="access-summary">
+                    <span class="access-summary__title">
+                        انتخاب‌های فعلی
+                    </span>
+                    <div class="access-summary__content">
+                        <div
+                            class="access-summary__chips"
+                            data-role-summary
+                        ></div>
+                        <span
+                            class="access-summary__empty"
+                            data-role-summary-empty
+                        >
+                            فقط نقش پایه کاربر فعال است.
+                        </span>
+                    </div>
                 </div>
 
-                <div class="permission-next"><div><strong>مجوزهای ریزدانه</strong><small>مدیریت مستقیم Permissionها در مرحله توسعه دسترسی‌ها به همین تب اضافه می‌شود.</small></div><span class="admin-pill">مرحله بعد</span></div>
-            </div>
+                <div class="role-table" style="margin-top:.75rem">
+                    <div class="role-table__head" aria-hidden="true">
+                        <span>انتخاب</span>
+                        <span>عنوان نقش</span>
+                        <span>نوع دسترسی</span>
+                        <span>حوزه دسترسی</span>
+                    </div>
+
+                    <div class="role-table__body" data-role-list>
+                        <?php foreach ($roles as $role): ?>
+                            <?php
+                            $roleId = (int) ($role['id'] ?? 0);
+                            $roleCode = (string) (
+                                $role['code'] ?? ''
+                            );
+                            $roleTitle = (string) (
+                                $role['title'] ?? ''
+                            );
+                            $isBase = $roleCode === 'user';
+                            $selected = $isBase || in_array(
+                                $roleId,
+                                $selectedRoleIds,
+                                true
+                            );
+                            ?>
+                            <label
+                                class="role-row<?= $selected
+                                    ? ' is-selected'
+                                    : '' ?>"
+                                data-role-row
+                                data-kind="<?= admin_h(
+                                    $role['role_kind_code']
+                                    ?? 'uncategorized'
+                                ) ?>"
+                                data-area="<?= admin_h(
+                                    $role['role_area_code']
+                                    ?? 'global'
+                                ) ?>"
+                                data-search="<?= admin_h(
+                                    strtolower(
+                                        $roleTitle
+                                        . ' '
+                                        . $roleCode
+                                    )
+                                ) ?>"
+                            >
+                                <input
+                                    type="checkbox"
+                                    name="role_ids[]"
+                                    value="<?= $roleId ?>"
+                                    data-role-checkbox
+                                    data-title="<?= admin_h(
+                                        $roleTitle
+                                    ) ?>"
+                                    <?= $selected ? ' checked' : '' ?>
+                                    <?= $isBase ? ' disabled' : '' ?>
+                                >
+
+                                <?php if ($isBase): ?>
+                                    <input
+                                        type="hidden"
+                                        name="role_ids[]"
+                                        value="<?= $roleId ?>"
+                                    >
+                                <?php endif; ?>
+
+                                <span class="role-row__identity">
+                                    <strong>
+                                        <?= admin_h($roleTitle) ?>
+                                    </strong>
+                                    <small><?= admin_h($roleCode) ?></small>
+                                </span>
+
+                                <span class="role-row__meta">
+                                    <?= admin_h(
+                                        $role['role_kind_title']
+                                        ?? 'سایر'
+                                    ) ?>
+                                </span>
+
+                                <span class="role-row__meta">
+                                    <?= admin_h(
+                                        $role['role_area_title']
+                                        ?? 'سراسری'
+                                    ) ?>
+                                </span>
+                            </label>
+                        <?php endforeach; ?>
+
+                        <div class="role-empty" data-role-empty>
+                            نقشی مطابق فیلتر پیدا نشد.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="access-card">
+                <div class="permission-next">
+                    <div>
+                        <strong>مجوزهای ریزدانه</strong>
+                        <small>
+                            مدیریت مستقیم Permissionها در مرحله توسعه
+                            دسترسی‌ها به همین تب اضافه می‌شود.
+                        </small>
+                    </div>
+                    <span class="admin-pill">مرحله بعد</span>
+                </div>
+            </section>
         </section>
 
         <footer class="user-actions">
@@ -151,7 +840,7 @@ ob_start();
     const empty = root.querySelector('[data-role-empty]');
     const summary = root.querySelector('[data-role-summary]');
     const summaryEmpty = root.querySelector('[data-role-summary-empty]');
-    const count = root.querySelector('[data-role-count]');
+    const counts = [...root.querySelectorAll('[data-role-count]')];
     const norm = value => String(value || '').trim().toLocaleLowerCase('fa');
 
     const filter = () => {
@@ -170,7 +859,7 @@ ob_start();
         summary.textContent = '';
         checked.filter(c => !c.disabled).forEach(c => { const chip = document.createElement('span'); chip.className = 'access-chip'; chip.textContent = c.dataset.title || ''; summary.appendChild(chip); });
         summaryEmpty.hidden = checked.some(c => !c.disabled);
-        count.textContent = String(checked.length);
+        counts.forEach(count => { count.textContent = String(checked.length); });
     };
     kind?.addEventListener('change', filter); area?.addEventListener('change', filter); search?.addEventListener('input', filter);
     rows.forEach(row => row.querySelector('[data-role-checkbox]')?.addEventListener('change', selection));
