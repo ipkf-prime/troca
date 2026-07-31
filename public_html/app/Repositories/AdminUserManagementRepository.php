@@ -53,16 +53,52 @@ class AdminUserManagementRepository extends BaseRepository
                 roles.code,
                 roles.title,
                 roles.priority,
-                roles.is_system
+                roles.is_system,
+                roles.role_kind_id,
+                roles.role_area_id,
+                COALESCE(role_kinds.code, 'uncategorized') AS role_kind_code,
+                COALESCE(role_kinds.title, 'سایر') AS role_kind_title,
+                COALESCE(role_areas.code, 'global') AS role_area_code,
+                COALESCE(role_areas.title, 'سراسری') AS role_area_title
             FROM roles
+            LEFT JOIN role_kinds ON role_kinds.id = roles.role_kind_id
+            LEFT JOIN role_areas ON role_areas.id = roles.role_area_id
             WHERE {$where}
             ORDER BY
                 CASE WHEN roles.code = 'user' THEN 0 ELSE 1 END,
+                role_kinds.title ASC,
+                role_areas.title ASC,
                 roles.priority ASC,
                 roles.title ASC,
                 roles.id ASC
         ");
 
+        return $statement->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function roleKinds(bool $includeProtected): array
+    {
+        $protected = $includeProtected ? '' : " AND roles.code <> 'super_admin'";
+        $statement = $this->connection()->query("
+            SELECT DISTINCT role_kinds.id, role_kinds.code, role_kinds.title
+            FROM role_kinds
+            INNER JOIN roles ON roles.role_kind_id = role_kinds.id
+            WHERE roles.is_active = 1 {$protected}
+            ORDER BY role_kinds.title ASC, role_kinds.id ASC
+        ");
+        return $statement->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function roleAreas(bool $includeProtected): array
+    {
+        $protected = $includeProtected ? '' : " AND roles.code <> 'super_admin'";
+        $statement = $this->connection()->query("
+            SELECT DISTINCT role_areas.id, role_areas.code, role_areas.title
+            FROM role_areas
+            INNER JOIN roles ON roles.role_area_id = role_areas.id
+            WHERE roles.is_active = 1 {$protected}
+            ORDER BY role_areas.title ASC, role_areas.id ASC
+        ");
         return $statement->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 

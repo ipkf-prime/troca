@@ -65,6 +65,9 @@ class AdminUserManagementService extends BaseService
             'email_verified' => false,
             'mobile_verified' => false,
             'role_ids' => [],
+            'access_kind' => 'all',
+            'access_area' => 'all',
+            'role_search' => '',
         ];
 
         if ($existing !== null) {
@@ -97,6 +100,9 @@ class AdminUserManagementService extends BaseService
                     'intval',
                     $existing['role_ids'] ?? []
                 ),
+                'access_kind' => 'all',
+                'access_area' => 'all',
+                'role_search' => '',
             ];
         }
 
@@ -108,6 +114,14 @@ class AdminUserManagementService extends BaseService
             'ok' => true,
             'form' => $form,
             'roles' => $this->users->roles($includeProtected),
+            'role_kinds' => $this->accessOptions(
+                $this->users->roleKinds($includeProtected),
+                'همه انواع دسترسی'
+            ),
+            'role_areas' => $this->accessOptions(
+                $this->users->roleAreas($includeProtected),
+                'همه حوزه‌ها'
+            ),
             'status_options' => [
                 'active' => 'فعال',
                 'inactive' => 'غیرفعال',
@@ -373,6 +387,9 @@ class AdminUserManagementService extends BaseService
             'email_verified' => $emailVerified,
             'mobile_verified' => $mobileVerified,
             'role_ids' => array_map('intval', $roleIdsRaw),
+            'access_kind' => trim((string) ($input['access_kind'] ?? 'all')) ?: 'all',
+            'access_area' => trim((string) ($input['access_area'] ?? 'all')) ?: 'all',
+            'role_search' => $this->limit(trim((string) ($input['role_search'] ?? '')), 80),
         ];
 
         return [
@@ -424,6 +441,9 @@ class AdminUserManagementService extends BaseService
             'email_verified',
             'mobile_verified',
             'role_ids',
+            'access_kind',
+            'access_area',
+            'role_search',
         ] as $field) {
             if (array_key_exists($field, $old)) {
                 $form[$field] = $old[$field];
@@ -431,6 +451,15 @@ class AdminUserManagementService extends BaseService
         }
 
         return $form;
+    }
+
+    private function accessOptions(array $rows, string $allTitle): array
+    {
+        return array_merge([[
+            'id' => 0,
+            'code' => 'all',
+            'title' => $allTitle,
+        ]], array_values($rows));
     }
 
     private function limit(string $value, int $length): string
