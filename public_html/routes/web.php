@@ -2171,6 +2171,234 @@ $router->post('/admin/work/projects/{public_reference}/restore', function ($requ
     return $response->redirect('/admin/work/projects/' . rawurlencode($publicReference));
 });
 
+$router->get('/admin/work/projects/{public_reference}/items', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/items');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $page = (new \App\Services\Work\WorkItemService())->index(
+            (string) $request->route('public_reference'),
+            $request->all()
+        );
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'کارها و تسک‌ها',
+            'context' => $context,
+            'message' => 'فهرست کارها و تسک‌ها در حال حاضر در دسترس نیست.',
+        ], 503);
+    }
+
+    if (($page['ok'] ?? false) !== true) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'پروژه پیدا نشد',
+            'context' => $context,
+            'message' => 'پروژه مورد نظر پیدا نشد.',
+        ], 404);
+    }
+
+    return $adminRender($response, 'work-items', [
+        'title' => 'کارها و تسک‌ها',
+        'context' => $context,
+        'page' => $page,
+    ]);
+});
+
+$router->get('/admin/work/projects/{public_reference}/items/create', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/items/create');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $page = (new \App\Services\Work\WorkItemService())->form(
+            (string) $request->route('public_reference')
+        );
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'ایجاد آیتم',
+            'context' => $context,
+            'message' => 'فرم ایجاد آیتم در حال حاضر در دسترس نیست.',
+        ], 503);
+    }
+
+    if (($page['ok'] ?? false) !== true) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'پروژه پیدا نشد',
+            'context' => $context,
+            'message' => 'پروژه مورد نظر پیدا نشد.',
+        ], 404);
+    }
+
+    return $adminRender($response, 'work-item-form', [
+        'title' => 'ایجاد آیتم',
+        'context' => $context,
+        'project' => $page['project'],
+        'form' => $page['form'],
+        'options' => $page['options'],
+        'errors' => [],
+        'isEdit' => false,
+    ]);
+});
+
+$router->post('/admin/work/projects/{public_reference}/items', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/items/create');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $projectReference = (string) $request->route('public_reference');
+    try {
+        $service = new \App\Services\Work\WorkItemService();
+        $result = $service->create($projectReference, $request->all(), (int) $context['user_id'], $context);
+        if (($result['ok'] ?? false) === true) {
+            return $response->redirect('/admin/work/projects/' . rawurlencode($projectReference) . '/items?saved=1');
+        }
+
+        $page = $service->form($projectReference);
+        if (($page['ok'] ?? false) !== true || ($result['not_found'] ?? false) === true) {
+            return $adminRender($response, 'placeholder', [
+                'title' => 'پروژه پیدا نشد',
+                'context' => $context,
+                'message' => 'پروژه مورد نظر پیدا نشد.',
+            ], 404);
+        }
+
+        return $adminRender($response, 'work-item-form', [
+            'title' => 'ایجاد آیتم',
+            'context' => $context,
+            'project' => $page['project'],
+            'form' => ($result['form'] ?? []) + $page['form'],
+            'options' => $page['options'],
+            'errors' => $result['errors'] ?? ['invalid' => 'اطلاعات واردشده معتبر نیست.'],
+            'isEdit' => false,
+        ], 422);
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'ایجاد آیتم',
+            'context' => $context,
+            'message' => 'ثبت آیتم در حال حاضر انجام نشد.',
+        ], 503);
+    }
+});
+
+$router->get('/admin/work/projects/{public_reference}/items/{item_reference}/edit', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/items/{item_reference}/edit');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $page = (new \App\Services\Work\WorkItemService())->form(
+            (string) $request->route('public_reference'),
+            (string) $request->route('item_reference')
+        );
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'ویرایش آیتم',
+            'context' => $context,
+            'message' => 'فرم ویرایش آیتم در حال حاضر در دسترس نیست.',
+        ], 503);
+    }
+
+    if (($page['ok'] ?? false) !== true) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'آیتم پیدا نشد',
+            'context' => $context,
+            'message' => 'آیتم مورد نظر پیدا نشد.',
+        ], 404);
+    }
+
+    return $adminRender($response, 'work-item-form', [
+        'title' => 'ویرایش آیتم',
+        'context' => $context,
+        'project' => $page['project'],
+        'form' => $page['form'],
+        'options' => $page['options'],
+        'errors' => [],
+        'isEdit' => true,
+    ]);
+});
+
+$router->post('/admin/work/projects/{public_reference}/items/{item_reference}', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/items/{item_reference}/edit');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $projectReference = (string) $request->route('public_reference');
+    $itemReference = (string) $request->route('item_reference');
+    try {
+        $service = new \App\Services\Work\WorkItemService();
+        $result = $service->update(
+            $projectReference,
+            $itemReference,
+            $request->all(),
+            (int) $context['user_id'],
+            $context
+        );
+        if (($result['ok'] ?? false) === true) {
+            return $response->redirect('/admin/work/projects/' . rawurlencode($projectReference) . '/items?saved=1');
+        }
+
+        $page = $service->form($projectReference, $itemReference);
+        if (($page['ok'] ?? false) !== true || ($result['not_found'] ?? false) === true) {
+            return $adminRender($response, 'placeholder', [
+                'title' => 'آیتم پیدا نشد',
+                'context' => $context,
+                'message' => 'آیتم مورد نظر پیدا نشد.',
+            ], 404);
+        }
+
+        return $adminRender($response, 'work-item-form', [
+            'title' => 'ویرایش آیتم',
+            'context' => $context,
+            'project' => $page['project'],
+            'form' => ($result['form'] ?? []) + $page['form'],
+            'options' => $page['options'],
+            'errors' => $result['errors'] ?? ['invalid' => 'اطلاعات واردشده معتبر نیست.'],
+            'isEdit' => true,
+        ], 422);
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'ویرایش آیتم',
+            'context' => $context,
+            'message' => 'ذخیره تغییرات آیتم در حال حاضر انجام نشد.',
+        ], 503);
+    }
+});
+
+$router->post('/admin/work/projects/{public_reference}/items/{item_reference}/archive', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/items/{item_reference}/edit');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $projectReference = (string) $request->route('public_reference');
+    $itemReference = (string) $request->route('item_reference');
+    try {
+        $archived = (new \App\Services\Work\WorkItemService())->archive(
+            $projectReference,
+            $itemReference,
+            (int) $context['user_id'],
+            $context
+        );
+    } catch (\Throwable) {
+        $archived = false;
+    }
+
+    if (!$archived) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'بایگانی آیتم',
+            'context' => $context,
+            'message' => 'آیتمی که زیرمجموعه فعال دارد قابل بایگانی نیست.',
+        ], 422);
+    }
+
+    return $response->redirect('/admin/work/projects/' . rawurlencode($projectReference) . '/items?archived=1');
+});
+
 $router->get('/admin/work/projects/{public_reference}/members', function ($request, $response) use ($adminRender, $adminGuard) {
     $context = $adminGuard($response, '/admin/work/projects/{public_reference}/members');
     if (!is_array($context)) {

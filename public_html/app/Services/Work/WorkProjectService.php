@@ -265,7 +265,10 @@ class WorkProjectService extends BaseService
 
     private function indexStatusOptions(): array
     {
-        return ['' => 'همه وضعیت‌ها'] + $this->projectStatusOptions() + ['archived' => 'بایگانی‌شده'];
+        return [
+            '' => 'همه پروژه‌ها',
+            'current' => 'پروژه‌های جاری',
+        ] + $this->projectStatusOptions() + ['archived' => 'بایگانی‌شده'];
     }
 
     private function projectStatusOptions(): array

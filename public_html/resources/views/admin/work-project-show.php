@@ -66,11 +66,11 @@ require __DIR__ . '/work-ui-styles.php';
             <div><h4>اعضای پروژه</h4><p>افزودن مدیر، عضو و ناظر پروژه</p></div>
             <span class="work-action-button work-action-button--navigate">مدیریت اعضا</span>
         </a>
-        <article class="admin-action-card">
+        <a class="admin-action-card" href="<?= admin_h($projectUrl . '/items') ?>">
             <div class="admin-action-card__icon"><?= \App\Support\AdminIcon::html('status') ?></div>
             <div><h4>کارها و تسک‌ها</h4><p>ساخت کار، نقطه عطف، تسک و زیرتسک</p></div>
-            <span class="work-action-button work-action-button--disabled" aria-disabled="true">مرحله بعد</span>
-        </article>
+            <span class="work-action-button work-action-button--navigate">مدیریت کارها</span>
+        </a>
     </div>
 
     <dl class="work-project-summary">

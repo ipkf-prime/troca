@@ -23,13 +23,12 @@ class WorkProjectRepository
 
         if ($status === 'archived') {
             $where[] = 'p.archived_at IS NOT NULL';
-        } else {
+        } elseif ($status === 'current') {
             $where[] = 'p.archived_at IS NULL';
-
-            if ($status !== '') {
-                $where[] = 'p.status_code = ?';
-                $parameters[] = $status;
-            }
+        } elseif ($status !== '') {
+            $where[] = 'p.archived_at IS NULL';
+            $where[] = 'p.status_code = ?';
+            $parameters[] = $status;
         }
 
         if ($q !== '') {
@@ -42,6 +41,8 @@ class WorkProjectRepository
             $needle = '%' . $q . '%';
             array_push($parameters, $needle, $needle, $needle, $needle);
         }
+
+        $whereSql = $where === [] ? '1 = 1' : implode(' AND ', $where);
 
         $statement = $this->db->prepare("
             SELECT
@@ -75,7 +76,7 @@ class WorkProjectRepository
               ON wi.project_id = p.id
             LEFT JOIN work_statuses ws
               ON ws.id = wi.status_id
-            WHERE " . implode(' AND ', $where) . "
+            WHERE {$whereSql}
             GROUP BY
                 p.id, p.public_reference, p.code, p.title, p.description,
                 p.owner_user_reference, p.organization_reference, p.organization_snapshot,
