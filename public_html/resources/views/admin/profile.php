@@ -12,7 +12,7 @@ if (!function_exists('admin_h')) {
 }
 
 $user = $context['user'] ?? [];
-$active = $context['active_assignment'] ?? [];
+$activeAssignment = $context['active_assignment'] ?? [];
 $mfa = $context['mfa'] ?? [];
 
 $statusLabel = match ((string) ($user['status'] ?? '')) {
@@ -56,7 +56,7 @@ ob_start();
             <article class="account-stat">
                 <span>نقش فعال</span>
                 <strong>
-                    <?= admin_h($active['role_title'] ?? '—') ?>
+                    <?= admin_h($activeAssignment['role_title'] ?? '—') ?>
                 </strong>
             </article>
         </div>

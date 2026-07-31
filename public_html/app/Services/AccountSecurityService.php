@@ -9,10 +9,13 @@ class AccountSecurityService extends BaseService
 {
     public function __construct(
         private ?UserRepository $users = null,
-        private ?MfaService $mfa = null
+        private ?MfaService $mfa = null,
+        private ?LoginHistoryService $loginHistory = null
     ) {
         $this->users ??= new UserRepository();
         $this->mfa ??= new MfaService();
+        $this->loginHistory ??=
+            new LoginHistoryService();
     }
 
     public function page(
@@ -49,6 +52,8 @@ class AccountSecurityService extends BaseService
                     )
                 ),
             ],
+            'login_history' =>
+                $this->loginHistory->recent($userId, 10),
             'account_label' => $this->accountLabel($user),
         ];
     }
