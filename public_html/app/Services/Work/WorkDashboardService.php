@@ -7,13 +7,22 @@ use App\Services\BaseService;
 
 class WorkDashboardService extends BaseService
 {
-    public function __construct(private ?WorkDashboardRepository $dashboard = null)
-    {
+    public function __construct(
+        private ?WorkDashboardRepository $dashboard = null,
+        private ?WorkMyItemsService $myItems = null
+    ) {
         $this->dashboard ??= new WorkDashboardRepository();
+        $this->myItems ??= new WorkMyItemsService();
     }
 
-    public function view(): array
+    public function view(?array $filters = null): array
     {
-        return ['summary' => $this->dashboard->summary(), 'recent_tasks' => $this->dashboard->recentTasks()];
+        $filters ??= is_array($_GET ?? null) ? $_GET : [];
+
+        return [
+            'summary' => $this->dashboard->summary(),
+            'recent_tasks' => $this->dashboard->recentTasks(),
+            'my_work' => $this->myItems->view($filters),
+        ];
     }
 }
