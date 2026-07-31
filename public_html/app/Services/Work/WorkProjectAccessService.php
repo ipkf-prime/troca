@@ -5,6 +5,7 @@ namespace App\Services\Work;
 use App\Repositories\WorkProjectAccessRepository;
 use App\Services\AuthorizationService;
 use App\Services\BaseService;
+use App\Support\AdminTableSort;
 
 class WorkProjectAccessService extends BaseService
 {
@@ -31,13 +32,37 @@ class WorkProjectAccessService extends BaseService
         $statusOptions = $this->indexStatusOptions();
         $q = $this->limit(trim((string) ($filters['q'] ?? '')), 120);
         $status = trim((string) ($filters['status'] ?? ''));
+        $sort = AdminTableSort::resolve(
+            $filters,
+            [
+                'title' => 'title',
+                'status' => 'status',
+                'visibility' => 'visibility',
+                'owner' => 'owner',
+                'members' => 'members',
+                'items' => 'items',
+                'open_items' => 'open_items',
+                'created_at' => 'created_at',
+                'target_date' => 'target_date',
+                'updated_at' => 'updated_at',
+            ],
+            'updated_at',
+            'desc'
+        );
 
         if (!array_key_exists($status, $statusOptions)) {
             $status = '';
         }
 
+        $normalizedFilters = [
+            'q' => $q,
+            'status' => $status,
+            'sort' => $sort['column'],
+            'dir' => $sort['direction'],
+        ];
+
         $rows = $this->projects->index(
-            ['q' => $q, 'status' => $status],
+            $normalizedFilters,
             $this->userReference($userId),
             $this->isPlatformAdmin($userId)
         );
@@ -60,6 +85,8 @@ class WorkProjectAccessService extends BaseService
             'total' => count($rows),
             'q' => $q,
             'status' => $status,
+            'sort' => $sort['column'],
+            'dir' => $sort['direction'],
             'status_options' => $statusOptions,
             'can_create' => $this->authorization->hasPermission($userId, 'work.project.manage'),
             'all_projects' => $this->isPlatformAdmin($userId),

@@ -7,6 +7,7 @@ if (!function_exists('admin_h')) {
 }
 
 $page = $page ?? [];
+$access = $access ?? [];
 $project = $page['project'] ?? [];
 $items = $page['items'] ?? [];
 $filters = $page['filters'] ?? [];
@@ -14,11 +15,55 @@ $options = $page['options'] ?? [];
 $projectReference = (string) ($project['public_reference'] ?? '');
 $baseUrl = '/admin/work/projects/' . rawurlencode($projectReference) . '/items';
 $isArchived = !empty($project['archived_at']);
+$canCreate = !$isArchived && !empty($access['can_create_item']);
+$canEditAll = !empty($access['is_platform_admin'])
+    || in_array((string) ($access['role_code'] ?? ''), ['owner', 'manager'], true);
 $saved = isset($_GET['saved']);
 $archived = isset($_GET['archived']);
+$sort = \App\Support\AdminTableSort::resolve(
+    [],
+    [
+        'sequence' => 'sequence',
+        'title' => 'title',
+        'type' => 'type',
+        'status' => 'status',
+        'priority' => 'priority',
+        'assignee' => 'assignee',
+        'due_at' => 'due_at',
+        'progress' => 'progress',
+        'updated_at' => 'updated_at',
+    ],
+    'sequence',
+    'asc'
+);
+$selectedSort = $sort['column'];
+$selectedDirection = $sort['direction'];
+$sortQuery = [
+    'q' => (string) ($filters['q'] ?? ''),
+    'type' => (string) ($filters['type'] ?? ''),
+    'status' => (string) ($filters['status'] ?? ''),
+];
+$sortUrl = static fn (string $column): string => \App\Support\AdminTableSort::url(
+    $baseUrl,
+    $sortQuery,
+    $column,
+    $selectedSort,
+    $selectedDirection
+);
+$indicator = static fn (string $column): string => \App\Support\AdminTableSort::indicator(
+    $column,
+    $selectedSort,
+    $selectedDirection
+);
+$ariaSort = static fn (string $column): string => \App\Support\AdminTableSort::ariaSort(
+    $column,
+    $selectedSort,
+    $selectedDirection
+);
 
 ob_start();
 require __DIR__ . '/work-ui-styles.php';
+require __DIR__ . '/work-stage5-ui.php';
 ?>
 <nav class="admin-breadcrumb" aria-label="breadcrumb">
     <a href="/admin/dashboard">داشبورد</a><span>/</span>
@@ -30,10 +75,7 @@ require __DIR__ . '/work-ui-styles.php';
 
 <section class="admin-module-hub admin-module-hub--green work-ui-compact-hub">
     <div class="admin-module-hub__icon"><?= \App\Support\AdminIcon::html('circle-check') ?></div>
-    <div>
-        <h2>کارها و تسک‌ها</h2>
-        <p><?= admin_h($project['title'] ?? '') ?></p>
-    </div>
+    <div><h2>کارها و تسک‌ها</h2><p><?= admin_h($project['title'] ?? '') ?></p></div>
     <a class="admin-module-hub__back" href="<?= admin_h('/admin/work/projects/' . rawurlencode($projectReference)) ?>">بازگشت به پروژه</a>
 </section>
 
@@ -50,7 +92,7 @@ require __DIR__ . '/work-ui-styles.php';
             <h3>فهرست کارها</h3>
             <p class="admin-muted"><?= admin_h(\App\Support\AdminFormat::digits((int) ($page['total'] ?? 0))) ?> آیتم</p>
         </div>
-        <?php if (!$isArchived): ?>
+        <?php if ($canCreate): ?>
             <a class="admin-button" href="<?= admin_h($baseUrl . '/create') ?>">ایجاد آیتم</a>
         <?php endif; ?>
     </div>
@@ -78,6 +120,8 @@ require __DIR__ . '/work-ui-styles.php';
                 <?php endforeach; ?>
             </select>
         </label>
+        <input type="hidden" name="sort" value="<?= admin_h($selectedSort) ?>">
+        <input type="hidden" name="dir" value="<?= admin_h($selectedDirection) ?>">
         <button class="admin-button" type="submit">اعمال فیلتر</button>
         <?php if (trim((string) ($filters['q'] ?? '')) !== '' || trim((string) ($filters['type'] ?? '')) !== '' || trim((string) ($filters['status'] ?? '')) !== ''): ?>
             <a class="admin-button admin-button--soft" href="<?= admin_h($baseUrl) ?>">پاک‌کردن</a>
@@ -91,13 +135,22 @@ require __DIR__ . '/work-ui-styles.php';
             <table class="admin-table work-items-table">
                 <thead>
                     <tr>
-                        <th>عنوان</th>
-                        <th>نوع</th>
-                        <th>وضعیت</th>
-                        <th>اولویت</th>
-                        <th>مسئول</th>
-                        <th>سررسید</th>
-                        <th>پیشرفت</th>
+                        <?php foreach ([
+                            'title' => 'عنوان',
+                            'type' => 'نوع',
+                            'status' => 'وضعیت',
+                            'priority' => 'اولویت',
+                            'assignee' => 'مسئول',
+                            'due_at' => 'سررسید',
+                            'progress' => 'پیشرفت',
+                        ] as $column => $label): ?>
+                            <th aria-sort="<?= admin_h($ariaSort($column)) ?>">
+                                <a class="admin-sort-link" href="<?= admin_h($sortUrl($column)) ?>">
+                                    <span><?= admin_h($label) ?></span>
+                                    <span class="admin-sort-indicator" aria-hidden="true"><?= admin_h($indicator($column)) ?></span>
+                                </a>
+                            </th>
+                        <?php endforeach; ?>
                         <th>عملیات</th>
                     </tr>
                 </thead>
@@ -124,7 +177,9 @@ require __DIR__ . '/work-ui-styles.php';
                             <td>
                                 <div class="admin-form-actions">
                                     <a class="admin-button admin-button--soft admin-button--compact" href="<?= admin_h($detailUrl) ?>">مشاهده</a>
-                                    <a class="admin-button admin-button--soft admin-button--compact" href="<?= admin_h($editUrl) ?>">ویرایش</a>
+                                    <?php if ($canEditAll): ?>
+                                        <a class="admin-button admin-button--soft admin-button--compact" href="<?= admin_h($editUrl) ?>">ویرایش</a>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>

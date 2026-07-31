@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Support\AdminTableSort;
 use IPKF\Database\Connections\ConnectionResolver;
 use PDO;
 
@@ -62,6 +63,22 @@ class WorkItemRepository
         $q = trim((string) ($filters['q'] ?? ''));
         $type = trim((string) ($filters['type'] ?? ''));
         $status = trim((string) ($filters['status'] ?? ''));
+        $sort = AdminTableSort::resolve(
+            $filters,
+            [
+                'sequence' => 'wi.sequence_number',
+                'title' => 'wi.title',
+                'type' => 'wi.item_type',
+                'status' => 'ws.sort_order',
+                'priority' => "FIELD(wi.priority_code, 'low', 'normal', 'high', 'urgent')",
+                'assignee' => 'assignee.display_name_snapshot',
+                'due_at' => 'wi.due_at',
+                'progress' => 'wi.progress_percent',
+                'updated_at' => 'wi.updated_at',
+            ],
+            'sequence',
+            'asc'
+        );
 
         if ($q !== '') {
             $where[] = '(wi.title LIKE ? OR wi.public_reference LIKE ?)';
@@ -121,7 +138,7 @@ class WorkItemRepository
                     LIMIT 1
               )
             WHERE " . implode(' AND ', $where) . "
-            ORDER BY wi.sequence_number, wi.id
+            ORDER BY {$sort['sql']}, wi.sequence_number, wi.id
             LIMIT 500
         ");
         $statement->execute($parameters);

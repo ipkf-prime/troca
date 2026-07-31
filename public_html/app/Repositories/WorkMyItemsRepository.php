@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Support\AdminTableSort;
 use IPKF\Database\Connections\ConnectionResolver;
 use PDO;
 
@@ -33,14 +34,23 @@ class WorkMyItemsRepository
     ): array {
         [$where, $parameters] = $this->conditions($userReference, $scope, $query);
         $limit = max(1, min(300, $limit));
-
-        $orderBy = $scope === 'completed'
-            ? 'wi.completed_at DESC, wi.updated_at DESC, wi.id DESC'
-            : "CASE WHEN wi.due_at IS NULL THEN 1 ELSE 0 END,
-               wi.due_at ASC,
-               FIELD(wi.priority_code, 'urgent', 'high', 'normal', 'low'),
-               wi.updated_at DESC,
-               wi.id DESC";
+        $defaultSort = $scope === 'completed' ? 'updated_at' : 'due_at';
+        $defaultDirection = $scope === 'completed' ? 'desc' : 'asc';
+        $sort = AdminTableSort::resolve(
+            [],
+            [
+                'title' => 'wi.title',
+                'project' => 'p.title',
+                'type' => 'wi.item_type',
+                'status' => 'ws.sort_order',
+                'priority' => "FIELD(wi.priority_code, 'low', 'normal', 'high', 'urgent')",
+                'due_at' => 'wi.due_at',
+                'progress' => 'wi.progress_percent',
+                'updated_at' => 'wi.updated_at',
+            ],
+            $defaultSort,
+            $defaultDirection
+        );
 
         $statement = $this->db->prepare("
             SELECT
@@ -77,7 +87,7 @@ class WorkMyItemsRepository
                     LIMIT 1
               )
             WHERE " . implode(' AND ', $where) . "
-            ORDER BY {$orderBy}
+            ORDER BY {$sort['sql']}, wi.updated_at DESC, wi.id DESC
             LIMIT {$limit}
         ");
         $statement->execute($parameters);

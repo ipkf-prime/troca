@@ -10,24 +10,42 @@ $list = $list ?? [];
 $items = $list['items'] ?? [];
 $q = (string) ($list['q'] ?? '');
 $selectedStatus = (string) ($list['status'] ?? '');
+$selectedSort = (string) ($list['sort'] ?? 'updated_at');
+$selectedDirection = (string) ($list['dir'] ?? 'desc');
 $statusOptions = $list['status_options'] ?? [];
 $total = (int) ($list['total'] ?? count($items));
+$canCreate = !empty($list['can_create']);
+$sortQuery = ['q' => $q, 'status' => $selectedStatus];
+$sortUrl = static fn (string $column): string => \App\Support\AdminTableSort::url(
+    '/admin/work/projects',
+    $sortQuery,
+    $column,
+    $selectedSort,
+    $selectedDirection
+);
+$sortIndicator = static fn (string $column): string => \App\Support\AdminTableSort::indicator(
+    $column,
+    $selectedSort,
+    $selectedDirection
+);
+$ariaSort = static fn (string $column): string => \App\Support\AdminTableSort::ariaSort(
+    $column,
+    $selectedSort,
+    $selectedDirection
+);
 
 ob_start();
 require __DIR__ . '/work-ui-styles.php';
+require __DIR__ . '/work-stage5-ui.php';
 ?>
 <nav class="admin-breadcrumb" aria-label="breadcrumb">
-    <a href="/admin/dashboard">داشبورد</a>
-    <span aria-hidden="true">/</span>
-    <a href="/admin/work">مدیریت کار</a>
-    <span aria-hidden="true">/</span>
+    <a href="/admin/dashboard">داشبورد</a><span>/</span>
+    <a href="/admin/work">مدیریت کار</a><span>/</span>
     <span>پروژه‌ها</span>
 </nav>
 
 <section class="admin-module-hub admin-module-hub--green work-ui-compact-hub">
-    <div class="admin-module-hub__icon">
-        <?= \App\Support\AdminIcon::html('organization') ?>
-    </div>
+    <div class="admin-module-hub__icon"><?= \App\Support\AdminIcon::html('organization') ?></div>
     <div>
         <h2>پروژه‌ها</h2>
         <p>فهرست پروژه‌های مدیریت کار و وضعیت عملیاتی آن‌ها</p>
@@ -56,6 +74,8 @@ require __DIR__ . '/work-ui-styles.php';
                         </option>
                     <?php endforeach; ?>
                 </select>
+                <input type="hidden" name="sort" value="<?= admin_h($selectedSort) ?>">
+                <input type="hidden" name="dir" value="<?= admin_h($selectedDirection) ?>">
                 <div class="work-project-filter-actions">
                     <button class="admin-button" type="submit">اعمال فیلتر</button>
                     <?php if ($q !== '' || $selectedStatus !== ''): ?>
@@ -66,7 +86,9 @@ require __DIR__ . '/work-ui-styles.php';
         </form>
 
         <div class="work-projects-toolbar__meta">
-            <a class="admin-button" href="/admin/work/projects/create">ایجاد پروژه</a>
+            <?php if ($canCreate): ?>
+                <a class="admin-button" href="/admin/work/projects/create">ایجاد پروژه</a>
+            <?php endif; ?>
             <div class="work-project-count">
                 <span>تعداد پروژه‌ها:</span>
                 <strong><?= admin_h(\App\Support\AdminFormat::digits($total)) ?></strong>
@@ -84,15 +106,24 @@ require __DIR__ . '/work-ui-styles.php';
                 <thead>
                     <tr>
                         <th>ردیف</th>
-                        <th>پروژه</th>
-                        <th>وضعیت</th>
-                        <th>دسترسی</th>
-                        <th>مالک</th>
-                        <th>اعضا</th>
-                        <th>آیتم‌ها</th>
-                        <th>باز</th>
-                        <th>تاریخ ایجاد</th>
-                        <th>تاریخ هدف</th>
+                        <?php foreach ([
+                            'title' => 'پروژه',
+                            'status' => 'وضعیت',
+                            'visibility' => 'دسترسی',
+                            'owner' => 'مالک',
+                            'members' => 'اعضا',
+                            'items' => 'آیتم‌ها',
+                            'open_items' => 'باز',
+                            'created_at' => 'تاریخ ایجاد',
+                            'target_date' => 'تاریخ هدف',
+                        ] as $column => $label): ?>
+                            <th aria-sort="<?= admin_h($ariaSort($column)) ?>">
+                                <a class="admin-sort-link" href="<?= admin_h($sortUrl($column)) ?>">
+                                    <span><?= admin_h($label) ?></span>
+                                    <span class="admin-sort-indicator" aria-hidden="true"><?= admin_h($sortIndicator($column)) ?></span>
+                                </a>
+                            </th>
+                        <?php endforeach; ?>
                         <th>عملیات</th>
                     </tr>
                 </thead>

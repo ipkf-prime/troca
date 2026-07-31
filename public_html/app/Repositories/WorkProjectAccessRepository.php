@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Support\AdminTableSort;
 use IPKF\Database\Connections\ConnectionResolver;
 use PDO;
 
@@ -108,6 +109,23 @@ class WorkProjectAccessRepository
     ): array {
         $q = trim((string) ($filters['q'] ?? ''));
         $status = trim((string) ($filters['status'] ?? ''));
+        $sort = AdminTableSort::resolve(
+            $filters,
+            [
+                'title' => 'p.title',
+                'status' => 'p.status_code',
+                'visibility' => 'p.visibility_code',
+                'owner' => 'owner_display_name',
+                'members' => 'member_count',
+                'items' => 'item_count',
+                'open_items' => 'open_item_count',
+                'created_at' => 'p.created_at',
+                'target_date' => 'p.target_date',
+                'updated_at' => 'p.updated_at',
+            ],
+            'updated_at',
+            'desc'
+        );
         $where = [];
         $parameters = [];
 
@@ -199,7 +217,7 @@ class WorkProjectAccessRepository
                 p.owner_user_reference, p.organization_reference, p.organization_snapshot,
                 p.start_date, p.target_date, p.status_code, p.visibility_code,
                 p.archived_at, p.created_at, p.updated_at
-            ORDER BY p.updated_at DESC, p.id DESC
+            ORDER BY {$sort['sql']}, p.id DESC
             LIMIT 100
         ");
 
