@@ -7,6 +7,7 @@ class PlatformCommercialFoundationSeeder extends Seeder
     private const APPLICATIONS = [
         ['core', 'IPKF Core', 'platform_core', 'Platform-owned identity, access, organization, geography, registry, and licensing foundation.', 10, 1],
         ['automation', 'Automation', 'specialized', 'Specialized automation application for correspondence and workflow modules.', 20, 1],
+        ['work', 'IPKF Work Management', 'specialized', 'Project, work and task management application.', 30, 1],
     ];
 
     private const MODULES = [
@@ -32,6 +33,10 @@ class PlatformCommercialFoundationSeeder extends Seeder
         ['automation', 'automation.qr_verification', 'QR Verification', 'feature', 230],
         ['automation', 'automation.digital_signature', 'Digital Signature', 'feature', 240],
         ['automation', 'automation.notifications', 'Notifications', 'feature', 250],
+        ['work', 'work.core', 'Work Management Core', 'core', 300],
+        ['work', 'work.projects', 'Projects and Works', 'feature', 310],
+        ['work', 'work.tasks', 'Tasks and Checklists', 'feature', 320],
+        ['work', 'work.collaboration', 'Comments and Attachments', 'feature', 330],
     ];
 
     private const DEPENDENCIES = [
@@ -48,6 +53,9 @@ class PlatformCommercialFoundationSeeder extends Seeder
         ['automation.document_generation', 'automation.correspondence'],
         ['automation.qr_verification', 'automation.document_generation'],
         ['automation.digital_signature', 'automation.document_generation'],
+        ['work.projects', 'work.core'],
+        ['work.tasks', 'work.projects'],
+        ['work.collaboration', 'work.tasks'],
     ];
 
     public function run(): void

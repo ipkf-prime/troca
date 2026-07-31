@@ -15,7 +15,7 @@ if (!\IPKF\Support\Maintenance::keyIsValid($_GET['key'] ?? null)) {
 $application = trim((string) ($_GET['application'] ?? ''));
 
 if ($application !== '') {
-    $allowedApplications = ['core', 'automation'];
+    $allowedApplications = ['core', 'automation', 'work'];
 
     if (!in_array($application, $allowedApplications, true)) {
         \IPKF\Support\Maintenance::deny('/seed.php');
@@ -38,12 +38,14 @@ if ($application !== '') {
         $runtimeMode = new \App\Services\Automation\AutomationRuntimeMode($registry);
 
         if ($application === 'automation') {
-            if (!$runtimeMode->provisioningAllowed()
-                || $definition === null
-                || $definition->usesFallback()
-                || !$definition->configured()
-            ) {
-                throw new \RuntimeException('Dedicated automation connection is required.');
+            if (!$runtimeMode->provisioningAllowed() || $definition === null
+                || $definition->usesFallback() || !$definition->configured()) {
+                throw new \RuntimeException('Dedicated application connection is required.');
+            }
+        }
+        if ($application === 'work') {
+            if ($definition === null || $definition->usesFallback() || !$definition->configured()) {
+                throw new \RuntimeException('Dedicated application connection is required.');
             }
         }
 
@@ -84,6 +86,14 @@ if ($application !== '') {
             throw new \RuntimeException('Standalone automation schema is not ready.');
         }
 
+        if ($application === 'work'
+            && (!$tableExists('work_statuses')
+                || !$tableExists('work_projects')
+                || !$tableExists('work_items'))
+        ) {
+            throw new \RuntimeException('Standalone work schema is not ready.');
+        }
+
         $executed = (new \IPKF\Database\Application\ApplicationSeederRunner())
             ->run($seederRegistry->seedersFor($application));
 
@@ -112,6 +122,7 @@ try {
         new \IPKF\Database\Seeds\MultiSourceMetadataSeeder(),
         new \IPKF\Database\Seeds\AutomationCorrespondenceSeeder(),
         new \IPKF\Database\Seeds\AutomationCorrespondencePermissionsSeeder(),
+        new \IPKF\Database\Seeds\WorkManagementPermissionsSeeder(),
         new \IPKF\Database\Seeds\CorrespondenceDocumentTemplateSeeder(),
         new \IPKF\Database\Seeds\OrganizationalIdentityPermissionsSeeder(),
         new \IPKF\Database\Seeds\PlatformCommercialFoundationSeeder(),

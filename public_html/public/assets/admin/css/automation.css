@@ -6,10 +6,24 @@ body.automation-shell {
     --admin-primary-soft: #e5f5f2;
     --admin-sidebar-bg: #075e57;
     --admin-sidebar-bg-2: #087f73;
+    --admin-sidebar-text: #ffffff;
+    --admin-sidebar-text-muted: #d8f5ef;
     --admin-sidebar-active-bg: #d9f3ed;
     --admin-sidebar-active-text: #075e57;
     --admin-bg-gradient-start: #f7fbfa;
     --admin-bg-gradient-end: #edf7f4;
+}
+
+.automation-shell .admin-sidebar {
+    color: #ffffff;
+}
+
+.automation-shell .admin-brand strong {
+    color: #ffffff;
+}
+
+.automation-shell .admin-brand small {
+    color: #d8f5ef;
 }
 
 .automation-shell .admin-brand__mark {
@@ -18,7 +32,46 @@ body.automation-shell {
 }
 
 .automation-shell .admin-sidebar__head {
-    border-bottom-color: rgba(255, 255, 255, .12);
+    border-bottom-color: rgba(255, 255, 255, .16);
+}
+
+.automation-shell .admin-nav a {
+    color: #d8f5ef;
+}
+
+.automation-shell .admin-nav a .admin-nav__icon {
+    background: rgba(255, 255, 255, .11);
+    border-color: rgba(255, 255, 255, .18);
+    color: #effffc;
+}
+
+.automation-shell .admin-nav a:hover,
+.automation-shell .admin-nav a:focus-visible {
+    background: rgba(255, 255, 255, .16);
+    color: #ffffff;
+}
+
+.automation-shell .admin-nav a:hover .admin-nav__icon,
+.automation-shell .admin-nav a:focus-visible .admin-nav__icon {
+    background: rgba(255, 255, 255, .18);
+    border-color: rgba(255, 255, 255, .28);
+    color: #ffffff;
+}
+
+.automation-shell .admin-nav a.is-active {
+    background: #d9f3ed;
+    color: #075e57;
+}
+
+.automation-shell .admin-nav a.is-active .admin-nav__icon {
+    background: rgba(7, 94, 87, .08);
+    border-color: rgba(7, 94, 87, .18);
+    color: #075e57;
+}
+
+.automation-shell .admin-nav__badge {
+    color: #effffc;
+    background: rgba(255, 255, 255, .16);
 }
 
 /* Native select popups do not consistently resolve theme variables in Firefox. */

@@ -169,10 +169,17 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
     $automationPrimaryConnectionRegistered = false;
     $automationPrimaryConnectionFallbackActive = false;
     $automationPrimaryDedicatedConnectionConfigured = false;
+    $workPrimaryConnectionRegistered = false;
+    $workPrimaryDedicatedConnectionConfigured = false;
     $corePrimaryConnectionAvailable = false;
     $automationPrimaryConnectionAvailable = false;
+    $workPrimaryConnectionAvailable = false;
     $automationPrimaryUtf8mb4Ready = false;
     $automationPrimaryUtcTimezoneApplied = false;
+    $workPrimaryUtf8mb4Ready = false;
+    $workPrimaryUtcTimezoneApplied = false;
+    $workSchemaAvailable = false;
+    $workApplicationMigrationHistoryAvailable = false;
     $databaseSessionTimezonePolicyAppliedToNamedConnections = false;
     $namedConnectionsUtf8mb4Ready = false;
     $corePdoNotDuplicatedDuringAutomationFallback = false;
@@ -190,22 +197,32 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
             $namedConnectionHealth = new \IPKF\Database\Connections\ConnectionHealthChecker($namedConnectionResolver);
             $coreDefinition = $namedConnectionRegistry->get('core.primary');
             $automationDefinition = $namedConnectionRegistry->get('automation.primary');
+            $workDefinition = $namedConnectionRegistry->get('work.primary');
 
             $corePrimaryConnectionRegistered = $coreDefinition !== null;
             $automationPrimaryConnectionRegistered = $automationDefinition !== null;
+            $workPrimaryConnectionRegistered = $workDefinition !== null;
             $automationPrimaryConnectionFallbackActive = $automationDefinition !== null
                 && $automationDefinition->usesFallback();
             $automationPrimaryDedicatedConnectionConfigured = $automationDefinition !== null
                 && !$automationDefinition->usesFallback()
                 && $automationDefinition->configured();
+            $workPrimaryDedicatedConnectionConfigured = $workDefinition !== null
+                && !$workDefinition->usesFallback()
+                && $workDefinition->configured();
             $corePrimaryConnectionAvailable = $namedConnectionHealth->available('core.primary');
             $automationPrimaryConnectionAvailable = $namedConnectionHealth->available('automation.primary');
+            $workPrimaryConnectionAvailable = $namedConnectionHealth->available('work.primary');
             $automationPrimaryUtf8mb4Ready = $namedConnectionHealth->utf8mb4Ready('automation.primary');
             $automationPrimaryUtcTimezoneApplied = $namedConnectionHealth->utcTimezoneApplied('automation.primary');
+            $workPrimaryUtf8mb4Ready = $namedConnectionHealth->utf8mb4Ready('work.primary');
+            $workPrimaryUtcTimezoneApplied = $namedConnectionHealth->utcTimezoneApplied('work.primary');
             $databaseSessionTimezonePolicyAppliedToNamedConnections = $namedConnectionHealth->utcTimezoneApplied('core.primary')
-                && $automationPrimaryUtcTimezoneApplied;
+                && $automationPrimaryUtcTimezoneApplied
+                && $workPrimaryUtcTimezoneApplied;
             $namedConnectionsUtf8mb4Ready = $namedConnectionHealth->utf8mb4Ready('core.primary')
-                && $automationPrimaryUtf8mb4Ready;
+                && $automationPrimaryUtf8mb4Ready
+                && $workPrimaryUtf8mb4Ready;
             $corePdoNotDuplicatedDuringAutomationFallback = $automationPrimaryConnectionFallbackActive
                 && $namedConnectionHealth->fallbackSharesPdo('automation.primary', 'core.primary');
 
@@ -270,9 +287,40 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
 
                 $automationApplicationMigrationHistoryAvailable = $automationTableExists('application_migrations');
             }
+
+            if ($workPrimaryDedicatedConnectionConfigured && $workPrimaryConnectionAvailable) {
+                $workPdo = $namedConnectionResolver->resolve('work.primary');
+                $workTableExists = static function (string $table) use ($workPdo): bool {
+                    $statement = $workPdo->prepare("
+                        SELECT COUNT(*)
+                        FROM information_schema.tables
+                        WHERE table_schema = DATABASE()
+                          AND table_name = ?
+                    ");
+                    $statement->execute([$table]);
+
+                    return (int) $statement->fetchColumn() > 0;
+                };
+
+                $workTables = [
+                    'work_statuses', 'work_projects', 'work_project_members', 'work_items',
+                    'work_item_assignees', 'work_item_dependencies', 'work_checklist_items',
+                    'work_labels', 'work_item_labels', 'work_attachments', 'work_comments',
+                    'work_activity_events', 'application_migrations',
+                ];
+                $workSchemaAvailable = true;
+                foreach ($workTables as $table) {
+                    if (!$workTableExists($table)) {
+                        $workSchemaAvailable = false;
+                        break;
+                    }
+                }
+                $workApplicationMigrationHistoryAvailable = $workTableExists('application_migrations');
+            }
         } catch (\Throwable $exception) {
             $corePrimaryConnectionAvailable = false;
             $automationPrimaryConnectionAvailable = false;
+            $workPrimaryConnectionAvailable = false;
         }
     }
 
@@ -1058,6 +1106,19 @@ $router->get('/_diagnostics', function ($request, $response) use ($router) {
         'automation_primary_connection_fallback_active' => $automationPrimaryConnectionFallbackActive,
         'automation_primary_dedicated_connection_configured' => $automationPrimaryDedicatedConnectionConfigured,
         'automation_primary_connection_available' => $automationPrimaryConnectionAvailable,
+        'work_primary_connection_registered' => $workPrimaryConnectionRegistered,
+        'work_primary_dedicated_connection_configured' => $workPrimaryDedicatedConnectionConfigured,
+        'work_primary_connection_available' => $workPrimaryConnectionAvailable,
+        'work_primary_utf8mb4_ready' => $workPrimaryUtf8mb4Ready,
+        'work_primary_utc_timezone_applied' => $workPrimaryUtcTimezoneApplied,
+        'work_schema_available' => $workSchemaAvailable,
+        'work_application_migration_history_available' => $workApplicationMigrationHistoryAvailable,
+        'work_management_foundation_available' => $workPrimaryDedicatedConnectionConfigured
+            && $workPrimaryConnectionAvailable
+            && $workPrimaryUtf8mb4Ready
+            && $workPrimaryUtcTimezoneApplied
+            && $workSchemaAvailable,
+        'work_dashboard_runtime_available' => class_exists(\App\Services\Work\WorkDashboardService::class),
         'application_migration_registry_available' => class_exists(\IPKF\Database\Application\ApplicationMigrationRegistry::class),
         'application_seeder_registry_available' => class_exists(\IPKF\Database\Application\ApplicationSeederRegistry::class),
         'application_migration_history_available' => $applicationMigrationsTableExists
@@ -1173,6 +1234,7 @@ $router->get('/test', function ($req, $res) {
 });
 
 $adminRender = function ($response, string $view, array $data = [], int $status = 200) {
+    $httpStatus = $status;
     $path = BASE_PATH . '/resources/views/admin/' . $view . '.php';
 
     if (!is_readable($path)) {
@@ -1185,7 +1247,7 @@ $adminRender = function ($response, string $view, array $data = [], int $status 
     $content = ob_get_clean() ?: '';
 
     return $response
-        ->status($status)
+        ->status($httpStatus)
         ->header('Content-Type', 'text/html; charset=UTF-8')
         ->send($content);
 };
@@ -1272,8 +1334,10 @@ $router->get('/auth/module-sso/callback', function ($request, $response) {
             // The appointment may have expired between issuance and consumption; continue without stale context.
         }
     }
+    $urls = new \IPKF\Support\ApplicationUrlRegistry();
+    $safePath = (string) $record['safe_redirect_path'];
     return $response->header('Cache-Control', 'no-store')->header('Referrer-Policy', 'no-referrer')
-        ->redirect((new \IPKF\Support\ApplicationUrlRegistry())->automation((string) $record['safe_redirect_path']));
+        ->redirect(str_starts_with($safePath, '/admin/work') ? $urls->work($safePath) : $urls->automation($safePath));
 });
 
 $adminGuard = function ($response, string $path) use ($adminRender, $adminContext) {
@@ -1281,7 +1345,8 @@ $adminGuard = function ($response, string $path) use ($adminRender, $adminContex
 
     if ($context === null) {
         $urls = new \IPKF\Support\ApplicationUrlRegistry();
-        if ($urls->isAutomationHost((string) ($_SERVER['HTTP_HOST'] ?? ''))) {
+        if ($urls->isAutomationHost((string) ($_SERVER['HTTP_HOST'] ?? ''))
+            || $urls->isWorkHost((string) ($_SERVER['HTTP_HOST'] ?? ''))) {
             $returnPath = (string) ($_SERVER['REQUEST_URI'] ?? $path);
             return $response->redirect($urls->core('/auth/module-sso/start?return_path=' . rawurlencode($returnPath)));
         }
@@ -1873,6 +1938,584 @@ $router->get('/admin/automation', function ($request, $response) use ($adminRend
     ]);
 });
 
+$router->get('/admin/work', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work');
+    if (!is_array($context)) {
+        return $context;
+    }
+    try {
+        $dashboard = (new \App\Services\Work\WorkDashboardService())->view();
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'داشبورد مدیریت کار',
+            'context' => $context,
+            'message' => html_entity_decode('&#x062F;&#x0627;&#x0634;&#x0628;&#x0648;&#x0631;&#x062F; Work &#x0647;&#x0646;&#x0648;&#x0632; &#x0622;&#x0645;&#x0627;&#x062F;&#x0647; &#x0646;&#x06CC;&#x0633;&#x062A;. &#x0627;&#x0628;&#x062A;&#x062F;&#x0627; migration &#x0648; seed &#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x06A9;&#x0627;&#x0631; &#x0631;&#x0627; &#x0627;&#x062C;&#x0631;&#x0627; &#x06A9;&#x0646;&#x06CC;&#x062F;.', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+        ], 503);
+    }
+    return $adminRender($response, 'work-dashboard', [
+        'title' => 'داشبورد مدیریت کار',
+        'context' => $context,
+        'dashboard' => $dashboard,
+    ]);
+});
+
+$router->get('/admin/work/projects', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $list = (new \App\Services\Work\WorkProjectService())->index($request->all());
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'پروژه‌های مدیریت کار',
+            'context' => $context,
+            'message' => 'فهرست پروژه‌های مدیریت کار در حال حاضر در دسترس نیست.',
+        ], 503);
+    }
+
+    return $adminRender($response, 'work-projects', [
+        'title' => 'پروژه‌های مدیریت کار',
+        'context' => $context,
+        'list' => $list,
+    ]);
+});
+
+$router->get('/admin/work/projects/create', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/create');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $formResult = (new \App\Services\Work\WorkProjectService())->form();
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'ایجاد پروژه',
+            'context' => $context,
+            'message' => 'فرم ایجاد پروژه در حال حاضر در دسترس نیست.',
+        ], 503);
+    }
+
+    return $adminRender($response, 'work-project-form', [
+        'title' => 'ایجاد پروژه',
+        'context' => $context,
+        'form' => $formResult['form'],
+        'options' => $formResult['options'],
+        'errors' => [],
+        'isEdit' => false,
+    ]);
+});
+
+$router->post('/admin/work/projects', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/create');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $service = new \App\Services\Work\WorkProjectService();
+        $result = $service->create($request->all(), (int) $context['user_id'], $context);
+
+        if (($result['ok'] ?? false) === true) {
+            return $response->redirect('/admin/work/projects/' . rawurlencode((string) $result['public_reference']) . '?saved=1');
+        }
+
+        $formResult = $service->form();
+        return $adminRender($response, 'work-project-form', [
+            'title' => 'ایجاد پروژه',
+            'context' => $context,
+            'form' => ($result['form'] ?? []) + $formResult['form'],
+            'options' => $formResult['options'],
+            'errors' => $result['errors'] ?? ['invalid' => 'اطلاعات پروژه معتبر نیست.'],
+            'isEdit' => false,
+        ], 422);
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'ایجاد پروژه',
+            'context' => $context,
+            'message' => 'ثبت پروژه در حال حاضر انجام نشد.',
+        ], 503);
+    }
+});
+
+$router->get('/admin/work/projects/{public_reference}', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $result = (new \App\Services\Work\WorkProjectService())->detail((string) $request->route('public_reference'));
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'جزئیات پروژه',
+            'context' => $context,
+            'message' => 'اطلاعات پروژه در حال حاضر در دسترس نیست.',
+        ], 503);
+    }
+
+    if (($result['ok'] ?? false) !== true) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'پروژه پیدا نشد',
+            'context' => $context,
+            'message' => 'پروژه مورد نظر پیدا نشد.',
+        ], 404);
+    }
+
+    return $adminRender($response, 'work-project-show', [
+        'title' => (string) ($result['project']['title'] ?? 'جزئیات پروژه'),
+        'context' => $context,
+        'project' => $result['project'],
+    ]);
+});
+
+$router->get('/admin/work/projects/{public_reference}/edit', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/edit');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $result = (new \App\Services\Work\WorkProjectService())->form((string) $request->route('public_reference'));
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'ویرایش پروژه',
+            'context' => $context,
+            'message' => 'فرم ویرایش پروژه در حال حاضر در دسترس نیست.',
+        ], 503);
+    }
+
+    if (($result['ok'] ?? false) !== true) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'پروژه پیدا نشد',
+            'context' => $context,
+            'message' => 'پروژه مورد نظر پیدا نشد.',
+        ], 404);
+    }
+
+    return $adminRender($response, 'work-project-form', [
+        'title' => 'ویرایش پروژه',
+        'context' => $context,
+        'form' => $result['form'],
+        'options' => $result['options'],
+        'errors' => [],
+        'isEdit' => true,
+    ]);
+});
+
+$router->post('/admin/work/projects/{public_reference}', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/edit');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $publicReference = (string) $request->route('public_reference');
+
+    try {
+        $service = new \App\Services\Work\WorkProjectService();
+        $result = $service->update($publicReference, $request->all(), (int) $context['user_id'], $context);
+
+        if (($result['ok'] ?? false) === true) {
+            return $response->redirect('/admin/work/projects/' . rawurlencode($publicReference) . '?saved=1');
+        }
+
+        if (($result['not_found'] ?? false) === true) {
+            return $adminRender($response, 'placeholder', [
+                'title' => 'پروژه پیدا نشد',
+                'context' => $context,
+                'message' => 'پروژه مورد نظر پیدا نشد.',
+            ], 404);
+        }
+
+        $formResult = $service->form($publicReference);
+        return $adminRender($response, 'work-project-form', [
+            'title' => 'ویرایش پروژه',
+            'context' => $context,
+            'form' => ($result['form'] ?? []) + ($formResult['form'] ?? []),
+            'options' => $formResult['options'] ?? [],
+            'errors' => $result['errors'] ?? ['invalid' => 'اطلاعات پروژه معتبر نیست.'],
+            'isEdit' => true,
+        ], 422);
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'ویرایش پروژه',
+            'context' => $context,
+            'message' => 'ذخیره تغییرات پروژه در حال حاضر انجام نشد.',
+        ], 503);
+    }
+});
+
+$router->post('/admin/work/projects/{public_reference}/archive', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $publicReference = (string) $request->route('public_reference');
+    (new \App\Services\Work\WorkProjectService())->archive($publicReference, (int) $context['user_id'], $context);
+
+    return $response->redirect('/admin/work/projects?status=archived');
+});
+
+$router->post('/admin/work/projects/{public_reference}/restore', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $publicReference = (string) $request->route('public_reference');
+    (new \App\Services\Work\WorkProjectService())->restore($publicReference, (int) $context['user_id'], $context);
+
+    return $response->redirect('/admin/work/projects/' . rawurlencode($publicReference));
+});
+
+$router->get('/admin/work/projects/{public_reference}/items', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/items');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $page = (new \App\Services\Work\WorkItemService())->index(
+            (string) $request->route('public_reference'),
+            $request->all()
+        );
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'کارها و تسک‌ها',
+            'context' => $context,
+            'message' => 'فهرست کارها و تسک‌ها در حال حاضر در دسترس نیست.',
+        ], 503);
+    }
+
+    if (($page['ok'] ?? false) !== true) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'پروژه پیدا نشد',
+            'context' => $context,
+            'message' => 'پروژه مورد نظر پیدا نشد.',
+        ], 404);
+    }
+
+    return $adminRender($response, 'work-items', [
+        'title' => 'کارها و تسک‌ها',
+        'context' => $context,
+        'page' => $page,
+    ]);
+});
+
+$router->get('/admin/work/projects/{public_reference}/items/create', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/items/create');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $page = (new \App\Services\Work\WorkItemService())->form(
+            (string) $request->route('public_reference')
+        );
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'ایجاد آیتم',
+            'context' => $context,
+            'message' => 'فرم ایجاد آیتم در حال حاضر در دسترس نیست.',
+        ], 503);
+    }
+
+    if (($page['ok'] ?? false) !== true) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'پروژه پیدا نشد',
+            'context' => $context,
+            'message' => 'پروژه مورد نظر پیدا نشد.',
+        ], 404);
+    }
+
+    return $adminRender($response, 'work-item-form', [
+        'title' => 'ایجاد آیتم',
+        'context' => $context,
+        'project' => $page['project'],
+        'form' => $page['form'],
+        'options' => $page['options'],
+        'errors' => [],
+        'isEdit' => false,
+    ]);
+});
+
+$router->post('/admin/work/projects/{public_reference}/items', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/items/create');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $projectReference = (string) $request->route('public_reference');
+    try {
+        $service = new \App\Services\Work\WorkItemService();
+        $result = $service->create($projectReference, $request->all(), (int) $context['user_id'], $context);
+        if (($result['ok'] ?? false) === true) {
+            return $response->redirect('/admin/work/projects/' . rawurlencode($projectReference) . '/items?saved=1');
+        }
+
+        $page = $service->form($projectReference);
+        if (($page['ok'] ?? false) !== true || ($result['not_found'] ?? false) === true) {
+            return $adminRender($response, 'placeholder', [
+                'title' => 'پروژه پیدا نشد',
+                'context' => $context,
+                'message' => 'پروژه مورد نظر پیدا نشد.',
+            ], 404);
+        }
+
+        return $adminRender($response, 'work-item-form', [
+            'title' => 'ایجاد آیتم',
+            'context' => $context,
+            'project' => $page['project'],
+            'form' => ($result['form'] ?? []) + $page['form'],
+            'options' => $page['options'],
+            'errors' => $result['errors'] ?? ['invalid' => 'اطلاعات واردشده معتبر نیست.'],
+            'isEdit' => false,
+        ], 422);
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'ایجاد آیتم',
+            'context' => $context,
+            'message' => 'ثبت آیتم در حال حاضر انجام نشد.',
+        ], 503);
+    }
+});
+
+$router->get('/admin/work/projects/{public_reference}/items/{item_reference}/edit', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/items/{item_reference}/edit');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $page = (new \App\Services\Work\WorkItemService())->form(
+            (string) $request->route('public_reference'),
+            (string) $request->route('item_reference')
+        );
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'ویرایش آیتم',
+            'context' => $context,
+            'message' => 'فرم ویرایش آیتم در حال حاضر در دسترس نیست.',
+        ], 503);
+    }
+
+    if (($page['ok'] ?? false) !== true) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'آیتم پیدا نشد',
+            'context' => $context,
+            'message' => 'آیتم مورد نظر پیدا نشد.',
+        ], 404);
+    }
+
+    return $adminRender($response, 'work-item-form', [
+        'title' => 'ویرایش آیتم',
+        'context' => $context,
+        'project' => $page['project'],
+        'form' => $page['form'],
+        'options' => $page['options'],
+        'errors' => [],
+        'isEdit' => true,
+    ]);
+});
+
+$router->post('/admin/work/projects/{public_reference}/items/{item_reference}', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/items/{item_reference}/edit');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $projectReference = (string) $request->route('public_reference');
+    $itemReference = (string) $request->route('item_reference');
+    try {
+        $service = new \App\Services\Work\WorkItemService();
+        $result = $service->update(
+            $projectReference,
+            $itemReference,
+            $request->all(),
+            (int) $context['user_id'],
+            $context
+        );
+        if (($result['ok'] ?? false) === true) {
+            return $response->redirect('/admin/work/projects/' . rawurlencode($projectReference) . '/items?saved=1');
+        }
+
+        $page = $service->form($projectReference, $itemReference);
+        if (($page['ok'] ?? false) !== true || ($result['not_found'] ?? false) === true) {
+            return $adminRender($response, 'placeholder', [
+                'title' => 'آیتم پیدا نشد',
+                'context' => $context,
+                'message' => 'آیتم مورد نظر پیدا نشد.',
+            ], 404);
+        }
+
+        return $adminRender($response, 'work-item-form', [
+            'title' => 'ویرایش آیتم',
+            'context' => $context,
+            'project' => $page['project'],
+            'form' => ($result['form'] ?? []) + $page['form'],
+            'options' => $page['options'],
+            'errors' => $result['errors'] ?? ['invalid' => 'اطلاعات واردشده معتبر نیست.'],
+            'isEdit' => true,
+        ], 422);
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'ویرایش آیتم',
+            'context' => $context,
+            'message' => 'ذخیره تغییرات آیتم در حال حاضر انجام نشد.',
+        ], 503);
+    }
+});
+
+$router->post('/admin/work/projects/{public_reference}/items/{item_reference}/archive', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/items/{item_reference}/edit');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $projectReference = (string) $request->route('public_reference');
+    $itemReference = (string) $request->route('item_reference');
+    try {
+        $archived = (new \App\Services\Work\WorkItemService())->archive(
+            $projectReference,
+            $itemReference,
+            (int) $context['user_id'],
+            $context
+        );
+    } catch (\Throwable) {
+        $archived = false;
+    }
+
+    if (!$archived) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'بایگانی آیتم',
+            'context' => $context,
+            'message' => 'آیتمی که زیرمجموعه فعال دارد قابل بایگانی نیست.',
+        ], 422);
+    }
+
+    return $response->redirect('/admin/work/projects/' . rawurlencode($projectReference) . '/items?archived=1');
+});
+
+$router->get('/admin/work/projects/{public_reference}/members', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/members');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $page = (new \App\Services\Work\WorkProjectMemberService())->view((string) $request->route('public_reference'));
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'اعضای پروژه',
+            'context' => $context,
+            'message' => 'اطلاعات اعضای پروژه در حال حاضر در دسترس نیست.',
+        ], 503);
+    }
+
+    if (($page['ok'] ?? false) !== true) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'پروژه پیدا نشد',
+            'context' => $context,
+            'message' => 'پروژه مورد نظر پیدا نشد.',
+        ], 404);
+    }
+
+    return $adminRender($response, 'work-project-members', [
+        'title' => 'اعضای پروژه',
+        'context' => $context,
+        'page' => $page,
+        'errors' => [],
+    ]);
+});
+
+$router->post('/admin/work/projects/{public_reference}/members', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/members');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $publicReference = (string) $request->route('public_reference');
+    try {
+        $service = new \App\Services\Work\WorkProjectMemberService();
+        $result = $service->add($publicReference, $request->all(), (int) $context['user_id'], $context);
+
+        if (($result['ok'] ?? false) === true) {
+            return $response->redirect('/admin/work/projects/' . rawurlencode($publicReference) . '/members?saved=1');
+        }
+        if (($result['not_found'] ?? false) === true) {
+            return $adminRender($response, 'placeholder', [
+                'title' => 'پروژه پیدا نشد',
+                'context' => $context,
+                'message' => 'پروژه مورد نظر پیدا نشد.',
+            ], 404);
+        }
+
+        $page = $service->view($publicReference);
+        return $adminRender($response, 'work-project-members', [
+            'title' => 'اعضای پروژه',
+            'context' => $context,
+            'page' => $page,
+            'errors' => $result['errors'] ?? ['member' => 'ثبت عضو انجام نشد.'],
+        ], 422);
+    } catch (\Throwable) {
+        return $adminRender($response, 'placeholder', [
+            'title' => 'اعضای پروژه',
+            'context' => $context,
+            'message' => 'ثبت عضو پروژه در حال حاضر انجام نشد.',
+        ], 503);
+    }
+});
+
+$router->post('/admin/work/projects/{public_reference}/members/{member_id}/role', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/members');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $publicReference = (string) $request->route('public_reference');
+    try {
+        $updated = (new \App\Services\Work\WorkProjectMemberService())->updateRole(
+            $publicReference,
+            (int) $request->route('member_id'),
+            $request->all(),
+            (int) $context['user_id'],
+            $context
+        );
+    } catch (\Throwable) {
+        $updated = false;
+    }
+
+    return $response->redirect(
+        '/admin/work/projects/' . rawurlencode($publicReference) . '/members?' . ($updated ? 'updated=1' : 'error=1')
+    );
+});
+
+$router->post('/admin/work/projects/{public_reference}/members/{member_id}/remove', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/work/projects/{public_reference}/members');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $publicReference = (string) $request->route('public_reference');
+    try {
+        $removed = (new \App\Services\Work\WorkProjectMemberService())->remove(
+            $publicReference,
+            (int) $request->route('member_id'),
+            (int) $context['user_id'],
+            $context
+        );
+    } catch (\Throwable) {
+        $removed = false;
+    }
+
+    return $response->redirect(
+        '/admin/work/projects/' . rawurlencode($publicReference) . '/members?' . ($removed ? 'removed=1' : 'error=1')
+    );
+});
+
 $router->get('/admin/automation/correspondences', function ($request, $response) use ($adminRender, $adminGuard, $automationUnavailable) {
     $context = $adminGuard($response, '/admin/automation/correspondences');
 
@@ -2353,9 +2996,15 @@ $router->get('/admin/logout', function ($request, $response) {
     if ($urls->isAutomationHost((string) $request->host())) {
         return $response->redirect($urls->core('/admin/logout?federated=1&return_module=automation'));
     }
+    if ($urls->isWorkHost((string) $request->host())) {
+        return $response->redirect($urls->core('/admin/logout?federated=1&return_module=work'));
+    }
 
     if ((string) $request->input('return_module', '') === 'automation') {
         return $response->redirect($urls->core('/auth/module-sso/start?return_path=' . rawurlencode('/admin/automation')));
+    }
+    if ((string) $request->input('return_module', '') === 'work') {
+        return $response->redirect($urls->core('/auth/module-sso/start?return_path=' . rawurlencode('/admin/work')));
     }
 
     return $response->redirect($urls->core('/admin/login'));

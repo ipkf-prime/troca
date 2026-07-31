@@ -313,7 +313,7 @@ They are not a replacement or a parallel canonical hierarchy in this release.
 
 ## Stable Baseline
 
-IPKF v0.4.7 Automation Foundation is the stable additive correspondence database foundation for دبیرخانه and organizational correspondence.
+IPKF v0.4.7 Automation Foundation is the stable additive correspondence database foundation for ط¯ط¨غŒط±ط®ط§ظ†ظ‡ and organizational correspondence.
 
 Stable version: `0.4.7-automation-foundation`
 
@@ -348,7 +348,7 @@ Deferred implementation scope:
 
 The Ministry hierarchy remains the only operational canonical geography. This milestone writes no geography, SCI, Rural Cooperation, or bot data.
 
-## Active Milestone
+## Previous Development Baseline
 
 IPKF v0.4.8 Platform Commercial Foundation starts the commercial deployment model required for a multi-application IPKF platform.
 
@@ -397,3 +397,27 @@ Operational Automation demo slice now includes:
 - Boolean-only diagnostics for the demo slice.
 
 The slice remains a demo vertical: registry numbering, cartable/referral workflow UI, attachments, delivery, signature, document generation, tracking, and external APIs remain deferred.
+## Active Milestone
+
+IPKF v0.5.0 Work Management Foundation continues the multi-application IPKF runtime with a dedicated Work Management application.
+
+Working version: `0.5.0-work-management-foundation-dev`
+
+Development branch: `v0.5.0-work-management-foundation-dev`
+
+Scope:
+
+- Dedicated `work.primary` connection contract.
+- Application-aware Work migration and seeder registration.
+- Additive Work Management schema for projects, Work items, milestones, tasks, subtasks, assignments, labels, comments, private attachment metadata, and activity events.
+- Idempotent Work metadata seeding using canonical `work_statuses`, `work_projects`, and `work_items`.
+- Work dashboard shell backed by repository/service layering.
+- Shared Admin shell integration for Work with UTF-8, Persian RTL, common Admin assets, and a reusable module UI contract.
+- Multi-host Work launch through module SSO and `WORK_APP_URL`.
+- Safe Work diagnostics using booleans only.
+- Deterministic, non-random, non-repeating admin module tile colors.
+
+Deferred implementation scope:
+
+- Full Work CRUD.
+- Kanban, calendar, reports, workflow automation, notifications, external integrations, customer-facing project portals, CRM, ERP, Bot, Marketplace, and operational correspondence workflow.

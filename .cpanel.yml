@@ -1,8 +1,10 @@
 ---
 deployment:
   tasks:
-    - export CORE_DEPLOYPATH=/home/troca/dev.troca.ir/
-    - export AUTOMATION_DEPLOYPATH=/home/troca/oa-dev.troca.ir/
-    - /bin/mkdir -p $CORE_DEPLOYPATH $AUTOMATION_DEPLOYPATH
-    - /bin/cp -R public_html/. $CORE_DEPLOYPATH
-    - /bin/cp -R public_html/. $AUTOMATION_DEPLOYPATH
+    - /bin/test -r /home/troca/config/ipkf-deploy.env
+    - source /home/troca/config/ipkf-deploy.env
+    - /bin/test -n "$IPKF_CORE_DEPLOYPATH" -a -n "$IPKF_AUTOMATION_DEPLOYPATH" -a -n "$IPKF_WORK_DEPLOYPATH"
+    - /bin/mkdir -p "$IPKF_CORE_DEPLOYPATH" "$IPKF_AUTOMATION_DEPLOYPATH" "$IPKF_WORK_DEPLOYPATH"
+    - /bin/cp -R public_html/. "$IPKF_CORE_DEPLOYPATH"
+    - /bin/cp -R public_html/. "$IPKF_AUTOMATION_DEPLOYPATH"
+    - /bin/cp -R public_html/. "$IPKF_WORK_DEPLOYPATH"

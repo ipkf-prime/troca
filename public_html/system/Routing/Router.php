@@ -63,12 +63,13 @@ class Router
     public function dispatch(Request $request, Response $response): Response
     {
         $method = strtoupper($request->method());
+        $lookupMethod = $method === 'HEAD' ? 'GET' : $method;
         $uri    = $this->normalize($request->uri());
 
-        $route = $this->routes[$method][$uri] ?? null;
+        $route = $this->routes[$lookupMethod][$uri] ?? null;
 
         if ($route === null) {
-            $route = $this->matchParameterizedRoute($method, $uri, $request);
+            $route = $this->matchParameterizedRoute($lookupMethod, $uri, $request);
         }
 
         if ($route === null) {

@@ -44,7 +44,7 @@
 - `/_diagnostics` includes `admin_org_units_menu_available=true`.
 - `/_diagnostics` includes `admin_positions_menu_available=true`.
 - `/_diagnostics` includes `admin_users_permissions_seeded=true`.
-- `super_admin` sees `کاربران`, `واحدهای سازمانی`, and `سمت‌ها`.
+- `super_admin` sees `ع©ط§ط±ط¨ط±ط§ظ†`, `ظˆط§ط­ط¯ظ‡ط§غŒ ط³ط§ط²ظ…ط§ظ†غŒ`, and `ط³ظ…طھâ€Œظ‡ط§`.
 - Active base `user` role does not see users organization menu items by default.
 - `/admin/users` as an unauthorized active role returns HTTP 403.
 - `/admin/users` as `super_admin` opens the read-only users list.
@@ -53,9 +53,9 @@
 - `/admin/dashboard` opens normally.
 - Dashboard displays visually distinct solid-color module tiles after the statistic cards.
 - Dashboard module tiles no longer contain quick-link lists.
-- Clicking `مدیریت کاربران` opens `/admin/modules/users`.
-- Clicking `ساختار سازمانی` opens `/admin/modules/organization`.
-- Clicking `مدیریت سامانه` opens `/admin/modules/system`.
+- Clicking `ظ…ط¯غŒط±غŒطھ ع©ط§ط±ط¨ط±ط§ظ†` opens `/admin/modules/users`.
+- Clicking `ط³ط§ط®طھط§ط± ط³ط§ط²ظ…ط§ظ†غŒ` opens `/admin/modules/organization`.
+- Clicking `ظ…ط¯غŒط±غŒطھ ط³ط§ظ…ط§ظ†ظ‡` opens `/admin/modules/system`.
 - Module hub pages show colorful action tiles.
 - `/admin/users` opens a read-only users list for roles with `users.view`.
 - `/admin/users` shows safe identity, status, role summary, primary org unit when available, and created date.
@@ -68,12 +68,12 @@
 - `/admin/users/{id}` opens a read-only user detail page for roles with `users.view`.
 - `/admin/users/{id}` shows safe identity, account, MFA/security, role assignment, and organization assignment summaries.
 - `/admin/users/{id}` renders human-facing dates as Jalali dates.
-- `/admin/users/{id}` displays username with a visible `نام کاربری` label and never as an ambiguous standalone summary value.
+- `/admin/users/{id}` displays username with a visible `ظ†ط§ظ… ع©ط§ط±ط¨ط±غŒ` label and never as an ambiguous standalone summary value.
 - `/admin/users/{id}` displays province, county, and city once in the summary card as Persian semantic labels.
 - `/admin/users/{id}` displays person type, organization scope, roles, organization units, positions, and statuses as Persian semantic labels.
 - `/admin/users/{id}` displays county only from a genuine relationship; city is never reused as county.
-- `/admin/users/{id}` displays missing optional lookup values as `—`.
-- `/admin/users/{id}` displays broken lookup references as `نامشخص`.
+- `/admin/users/{id}` displays missing optional lookup values as `â€”`.
+- `/admin/users/{id}` displays broken lookup references as `ظ†ط§ظ…ط´ط®طµ`.
 - `/admin/users/{id}` does not display raw foreign key values as user-facing fallbacks.
 - Role, organization unit, and position codes appear only as secondary administrative data.
 - `/admin/users/{id}` returns a clean Persian 404 for invalid, missing, or unavailable users.
@@ -220,7 +220,7 @@ Guest, MFA, and public routes:
 
 - `/health` returns `0.4.4-admin-panel-shell`.
 - `/` renders the professional RTL Persian IPKF/Troca public landing page.
-- `SITE_MODE=coming_soon` keeps `/` polished and shows `نسخه آزمایشی / در حال آماده‌سازی`.
+- `SITE_MODE=coming_soon` keeps `/` polished and shows `ظ†ط³ط®ظ‡ ط¢ط²ظ…ط§غŒط´غŒ / ط¯ط± ط­ط§ظ„ ط¢ظ…ط§ط¯ظ‡â€Œط³ط§ط²غŒ`.
 - The homepage includes hero, capability cards, automation preview, roadmap, admin login CTA, and footer.
 - The homepage uses local assets only and no CDN, remote images, or external font imports.
 - The homepage is responsive, stacks cleanly on mobile, and has no horizontal overflow.
@@ -302,7 +302,7 @@ Final v0.4.4 manual checks:
 - Responsive: mobile sidebar open/close, overlay close, Escape close, resize mobile to desktop, no horizontal overflow, and landing page mobile view.
 - Theme: choose system preset, choose personal preset, reset personal preset, custom editor hidden/disabled, and debug route only in development.
 - Autofocus: login field, MFA code, recovery code, forgot-password input, and password form.
-- Landing: homepage displays, admin login CTA works, “back to homepage” from `/admin/login` works, and no CDN/external assets are loaded.
+- Landing: homepage displays, admin login CTA works, â€œback to homepageâ€‌ from `/admin/login` works, and no CDN/external assets are loaded.
 
 Deferred after v0.4.5:
 
@@ -486,10 +486,10 @@ Version: `0.2.0-foundation`
 - `/admin/positions` sorts records ascending from small to large by `sort_order` and `id`.
 - `/admin/positions` renders responsive desktop table and mobile cards without horizontal page overflow.
 - `/admin/positions` does not include create, edit, delete, user-position assignment, organization assignment editing, or Automation actions.
-- Empty state says `هنوز واحد سازمانی ثبت نشده است.`
-- No-result state says `واحد سازمانی مطابق جستجو پیدا نشد.`
-- Positions empty state says `هنوز سمتی ثبت نشده است.`
-- Positions no-result state says `سمتی مطابق جستجو پیدا نشد.`
+- Empty state says `ظ‡ظ†ظˆط² ظˆط§ط­ط¯ ط³ط§ط²ظ…ط§ظ†غŒ ط«ط¨طھ ظ†ط´ط¯ظ‡ ط§ط³طھ.`
+- No-result state says `ظˆط§ط­ط¯ ط³ط§ط²ظ…ط§ظ†غŒ ظ…ط·ط§ط¨ظ‚ ط¬ط³طھط¬ظˆ ظ¾غŒط¯ط§ ظ†ط´ط¯.`
+- Positions empty state says `ظ‡ظ†ظˆط² ط³ظ…طھغŒ ط«ط¨طھ ظ†ط´ط¯ظ‡ ط§ط³طھ.`
+- Positions no-result state says `ط³ظ…طھغŒ ظ…ط·ط§ط¨ظ‚ ط¬ط³طھط¬ظˆ ظ¾غŒط¯ط§ ظ†ط´ط¯.`
 - Database errors show a safe Persian message without SQL, stack traces, paths, or secrets.
 - `/_diagnostics` includes `admin_org_units_list_available=true`.
 - `/_diagnostics` includes `admin_org_units_search_available=true`.
@@ -954,3 +954,29 @@ Security and compatibility:
 - Diagnostics expose only boolean demo-slice flags.
 - No migration, seeder, schema, lookup metadata, permission code, or runtime version change is part of the demo slice.
 - Registry numbering, cartable workflow, referrals UI, attachment upload/download, delivery, signature, OCR, document generation, tracking, and external APIs remain deferred.
+## v0.5.0 Work Management Foundation Checks
+
+Version: `0.5.0-work-management-foundation-dev`
+
+- `/health` returns `0.5.0-work-management-foundation-dev`.
+- `work.primary` is registered.
+- `work.primary` is configured as a dedicated non-fallback connection on the Work development host.
+- `work.primary` is available, utf8mb4-ready, and uses the UTC session timezone policy.
+- Protected `/migrate.php?application=work` runs only with debug mode and a valid maintenance key.
+- Protected `/seed.php?application=work` runs only after the Work schema exists.
+- Work migration creates the canonical Work schema without cross-database foreign keys or destructive SQL.
+- Work seed is idempotent and writes Work statuses, one safe project, and one root Work item.
+- `/admin/work` reads from `work_items`, `work_projects`, and `work_statuses`.
+- `/admin/work` does not query `work_tasks`.
+- Admin dashboard module tiles use fixed non-random colors.
+- The seven main tile colors are non-repeating: blue, teal, purple, green, indigo, amber, and rose.
+- Work launch URLs use `ApplicationUrlRegistry::workLaunch()`.
+- Diagnostics expose Work readiness as booleans only and do not expose credentials, DSNs, SQL, row counts, tokens, or maintenance keys.
+- Existing Auth, MFA, RBAC, admin navigation, automation demo, platform commercial foundation, organization, and geography behavior remains unchanged.
+- `/admin/work` uses the shared Admin shell instead of a standalone HTML view.
+- `HEAD /admin/work` resolves through the GET route and must not return the generic route-not-found response.
+- Authenticated Work shell HTML contains `data-admin-shell-kind="work"` and `data-admin-module-ui-contract="shared-admin-shell"`.
+- Work shell HTML declares UTF-8 and Persian RTL document attributes.
+- Shared Admin assets load on the Work host: `admin.css`, `icons.css`, `admin.js`, `Vazirmatn-Arabic.woff2`, and `Vazirmatn-Latin.woff2`.
+- Runtime Work shell files do not hardcode deployment domains.
+- Work shell output is checked for mojibake before release.

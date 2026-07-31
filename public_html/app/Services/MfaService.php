@@ -8,26 +8,40 @@ use IPKF\Support\Session;
 
 class MfaService extends BaseService
 {
+    private const SETUP_TTL_SECONDS = 600;
+
     protected MfaRepository $mfa;
 
     protected TotpService $totp;
 
-    public function __construct(?MfaRepository $mfa = null, ?TotpService $totp = null)
-    {
+    public function __construct(
+        ?MfaRepository $mfa = null,
+        ?TotpService $totp = null
+    ) {
         $this->mfa = $mfa ?? new MfaRepository();
         $this->totp = $totp ?? new TotpService();
     }
 
     public function enabled(): bool
     {
-        return filter_var(Env::get('MFA_ENABLED', true), FILTER_VALIDATE_BOOLEAN);
+        return filter_var(
+            Env::get('MFA_ENABLED', true),
+            FILTER_VALIDATE_BOOLEAN
+        );
     }
 
     public function enforcement(): string
     {
-        $value = (string) Env::get('MFA_ENFORCEMENT', 'optional');
+        $value = (string) Env::get(
+            'MFA_ENFORCEMENT',
+            'optional'
+        );
 
-        return in_array($value, ['optional', 'required'], true) ? $value : 'optional';
+        return in_array(
+            $value,
+            ['optional', 'required'],
+            true
+        ) ? $value : 'optional';
     }
 
     public function methodsForUser(int $userId): array
@@ -35,23 +49,30 @@ class MfaService extends BaseService
         return $this->mfa->enabledMethodsForUser($userId);
     }
 
+    public function allMethodsForUser(int $userId): array
+    {
+        return $this->mfa->allMethodsForUser($userId);
+    }
+
     public function requiresChallenge(int $userId): bool
     {
-        return $this->enabled() && $this->methodsForUser($userId) !== [];
+        return $this->enabled()
+            && $this->methodsForUser($userId) !== [];
     }
 
     public function startPending(int $userId): array
     {
-        $methods = array_values(array_map(fn (array $method): string => $method['method'], $this->methodsForUser($userId)));
+        $methods = array_values(array_map(
+            static fn (array $method): string =>
+                (string) $method['method'],
+            $this->methodsForUser($userId)
+        ));
 
         if ($this->mfa->unusedRecoveryCodeCount($userId) > 0) {
             $methods[] = 'recovery_code';
         }
 
-        $methods = array_merge($methods, array_values(array_diff(
-            (new MfaDeliveryChannelService())->configuredMethods(),
-            ['totp', 'recovery']
-        )));
+        $methods = array_values(array_unique($methods));
 
         Session::put('auth_pending_user_id', $userId);
         Session::put('auth_pending_at', time());
@@ -63,9 +84,15 @@ class MfaService extends BaseService
     public function pendingUserId(): ?int
     {
         $userId = Session::get('auth_pending_user_id');
-        $pendingAt = (int) Session::get('auth_pending_at', 0);
+        $pendingAt = (int) Session::get(
+            'auth_pending_at',
+            0
+        );
 
-        if ($userId === null || $pendingAt < (time() - 300)) {
+        if (
+            $userId === null
+            || $pendingAt < (time() - 300)
+        ) {
             $this->clearPending();
             return null;
         }
@@ -80,26 +107,121 @@ class MfaService extends BaseService
         Session::forget('auth_pending_methods');
     }
 
-    public function setupTotp(int $userId, string $account): array
-    {
+    public function beginTotpSetup(
+        int $userId,
+        string $account
+    ): array {
         $secret = $this->totp->generateSecret();
-        $method = $this->mfa->saveTotpSetup($userId, 'plain:' . $secret, 'Authenticator app');
+        $uri = $this->totp->provisioningUri(
+            'IPKF',
+            $account,
+            $secret
+        );
+
+        $payload = [
+            'user_id' => $userId,
+            'secret' => $secret,
+            'otpauth_uri' => $uri,
+            'created_at' => time(),
+        ];
+
+        Session::put('account_totp_setup', $payload);
+
+        return $this->publicSetupPayload($payload);
+    }
+
+    public function pendingTotpSetup(
+        int $userId
+    ): ?array {
+        $payload = Session::get('account_totp_setup');
+
+        if (
+            !is_array($payload)
+            || (int) ($payload['user_id'] ?? 0) !== $userId
+            || (int) ($payload['created_at'] ?? 0)
+                < time() - self::SETUP_TTL_SECONDS
+        ) {
+            $this->cancelTotpSetup();
+            return null;
+        }
+
+        return $this->publicSetupPayload($payload);
+    }
+
+    public function confirmPendingTotp(
+        int $userId,
+        string $code
+    ): bool {
+        $payload = Session::get('account_totp_setup');
+
+        if (
+            !is_array($payload)
+            || (int) ($payload['user_id'] ?? 0) !== $userId
+            || (int) ($payload['created_at'] ?? 0)
+                < time() - self::SETUP_TTL_SECONDS
+        ) {
+            $this->cancelTotpSetup();
+            return false;
+        }
+
+        $secret = (string) ($payload['secret'] ?? '');
+
+        if (
+            $secret === ''
+            || !$this->totp->verify($secret, $code)
+        ) {
+            return false;
+        }
+
+        $this->mfa->saveVerifiedTotp(
+            $userId,
+            $secret,
+            'Authenticator'
+        );
+        $this->cancelTotpSetup();
+
+        return true;
+    }
+
+    public function cancelTotpSetup(): void
+    {
+        Session::forget('account_totp_setup');
+    }
+
+    public function setupTotp(
+        int $userId,
+        string $account
+    ): array {
+        $secret = $this->totp->generateSecret();
+        $method = $this->mfa->saveTotpSetup(
+            $userId,
+            'plain:' . $secret,
+            'Authenticator app'
+        );
 
         return [
             'method_id' => (int) ($method['id'] ?? 0),
-            'otpauth_uri' => $this->totp->provisioningUri('IPKF', $account, $secret),
+            'otpauth_uri' => $this->totp->provisioningUri(
+                'IPKF',
+                $account,
+                $secret
+            ),
         ];
     }
 
-    public function confirmTotp(int $userId, string $code): bool
-    {
+    public function confirmTotp(
+        int $userId,
+        string $code
+    ): bool {
         $method = $this->mfa->totpMethodForUser($userId);
 
         if ($method === null) {
             return false;
         }
 
-        $secret = $this->extractSecret((string) $method['secret_encrypted']);
+        $secret = $this->extractSecret(
+            (string) $method['secret_encrypted']
+        );
 
         if (!$this->totp->verify($secret, $code)) {
             return false;
@@ -110,32 +232,70 @@ class MfaService extends BaseService
         return true;
     }
 
+    public function totpEnabled(int $userId): bool
+    {
+        $method = $this->mfa->totpMethodForUser($userId);
+
+        return $method !== null
+            && (int) ($method['is_enabled'] ?? 0) === 1
+            && ($method['verified_at'] ?? null) !== null;
+    }
+
+    public function disableTotp(int $userId): void
+    {
+        $this->mfa->disableTotpForUser($userId);
+        $this->mfa->revokeRecoveryCodes($userId);
+        $this->cancelTotpSetup();
+        Session::put('auth_mfa_verified', false);
+    }
+
+    public function recoveryCodeCount(int $userId): int
+    {
+        return $this->mfa->unusedRecoveryCodeCount($userId);
+    }
+
     public function recoveryCodesAvailable(int $userId): bool
     {
-        return (new RecoveryCodeService())->availableCount($userId) > 0;
+        return $this->recoveryCodeCount($userId) > 0;
     }
 
     public function ensureRecoveryCodes(int $userId): array
     {
-        return (new RecoveryCodeService())->ensureForUser($userId);
+        return (new RecoveryCodeService())
+            ->ensureForUser($userId);
     }
 
-    public function regenerateRecoveryCodes(int $userId, string $totpCode): ?array
-    {
-        if (!$this->verifyCurrentTotp($userId, $totpCode)) {
+    public function regenerateRecoveryCodes(
+        int $userId,
+        string $totpCode
+    ): ?array {
+        if (
+            !$this->verifyCurrentTotp(
+                $userId,
+                $totpCode
+            )
+        ) {
             return null;
         }
 
-        return (new RecoveryCodeService())->regenerate($userId);
+        return (new RecoveryCodeService())
+            ->regenerate($userId);
     }
 
-    public function verifyCurrentTotp(int $userId, string $code): bool
-    {
-        return $this->confirmTotpChallenge($userId, $code);
+    public function verifyCurrentTotp(
+        int $userId,
+        string $code
+    ): bool {
+        return $this->confirmTotpChallenge(
+            $userId,
+            $code
+        );
     }
 
-    public function verifyPendingChallenge(string $method, string $code): ?int
-    {
+    public function verifyPendingChallenge(
+        string $method,
+        string $code
+    ): ?int {
         $userId = $this->pendingUserId();
 
         if ($userId === null) {
@@ -145,11 +305,13 @@ class MfaService extends BaseService
         $valid = false;
 
         if ($method === 'totp') {
-            $valid = $this->confirmTotpChallenge($userId, $code);
+            $valid = $this->confirmTotpChallenge(
+                $userId,
+                $code
+            );
         } elseif ($method === 'recovery_code') {
-            $valid = (new RecoveryCodeService())->consume($userId, $code);
-        } elseif (in_array($method, ['email', 'sms', 'bot'], true)) {
-            $valid = (new MfaDeliveryChannelService())->verifyChallenge($userId, $method, $code);
+            $valid = (new RecoveryCodeService())
+                ->consume($userId, $code);
         }
 
         if (!$valid) {
@@ -161,19 +323,50 @@ class MfaService extends BaseService
         return $userId;
     }
 
-    private function confirmTotpChallenge(int $userId, string $code): bool
-    {
+    private function confirmTotpChallenge(
+        int $userId,
+        string $code
+    ): bool {
         $method = $this->mfa->totpMethodForUser($userId);
 
-        if ($method === null || (int) $method['is_enabled'] !== 1 || $method['verified_at'] === null) {
+        if (
+            $method === null
+            || (int) ($method['is_enabled'] ?? 0) !== 1
+            || ($method['verified_at'] ?? null) === null
+        ) {
             return false;
         }
 
-        return $this->totp->verify($this->extractSecret((string) $method['secret_encrypted']), $code);
+        return $this->totp->verify(
+            $this->extractSecret(
+                (string) $method['secret_encrypted']
+            ),
+            $code
+        );
     }
 
     private function extractSecret(string $stored): string
     {
-        return str_starts_with($stored, 'plain:') ? substr($stored, 6) : $stored;
+        return str_starts_with($stored, 'plain:')
+            ? substr($stored, 6)
+            : $stored;
+    }
+
+    private function publicSetupPayload(
+        array $payload
+    ): array {
+        $createdAt = (int) ($payload['created_at'] ?? time());
+
+        return [
+            'secret' => (string) ($payload['secret'] ?? ''),
+            'otpauth_uri' => (string) (
+                $payload['otpauth_uri'] ?? ''
+            ),
+            'expires_in' => max(
+                0,
+                ($createdAt + self::SETUP_TTL_SECONDS)
+                    - time()
+            ),
+        ];
     }
 }

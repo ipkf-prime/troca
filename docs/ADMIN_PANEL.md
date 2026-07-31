@@ -470,6 +470,15 @@ Safe diagnostics for runtime testing include:
 
 Development-only runtime forensics are available at `/admin/theme/debug` when `APP_DEBUG=true` and the authenticated active role can manage the admin theme. The page shows current user id, system rows, current user personal rows, resolved source, active preset, generated CSS variables, and loaded asset URLs without exposing secrets.
 
+
+## Module UI Contract
+
+Admin modules must not render standalone HTML documents. A module page should capture its content and require the shared `resources/views/admin/layout.php` layout.
+
+The reusable `AdminModuleUiContract` provides module identity, home/core URLs, and sanitized module asset lists. The shared layout provides UTF-8 document headers, `lang="fa"`, `dir="rtl"`, base admin CSS/JS, icon CSS, local webfonts, theme variables, sidebar/header/account UI, and shell metadata.
+
+Module hosts such as Work and Automation are selected from `ApplicationUrlRegistry` and must not hardcode deployment domains in runtime views or services. Future modules should follow the same pattern so UI, typography, permissions, and encoding stay consistent across admin surfaces.
+
 ## Security Notes
 
 - Admin POST forms are CSRF protected.

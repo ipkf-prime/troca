@@ -63,7 +63,8 @@ ob_start();
                 <label><span>SSL Mode</span><input name="database_ssl_mode" dir="ltr" placeholder="اختیاری" data-module-field="ssl_mode"></label>
                 <label><span>Timeout (ثانیه)</span><input type="number" name="connection_timeout" value="5" min="1" max="60" data-module-field="timeout"></label>
                 <label><span>حالت اجرا</span><select name="runtime_mode" dir="ltr" data-module-field="runtime_mode"><option value="fallback">fallback</option><option value="provisioning">provisioning</option><option value="dedicated">dedicated</option></select></label>
-                <label><span>Secret Reference</span><input name="secret_reference" dir="ltr" data-module-field="secret"></label>
+                <label><span>کلید رمز در ENV</span><input type="text" readonly dir="ltr" data-module-field="secret" tabindex="-1"></label>
+                <label><span>رمز جدید دیتابیس</span><input type="password" name="database_password" dir="ltr" autocomplete="new-password" data-module-password placeholder="برای حفظ رمز فعلی خالی بگذارید"></label>
                 <label><span>وضعیت رمز در ENV</span><input type="text" value="تنظیم نشده" readonly dir="ltr" class="admin-secret-status" data-module-secret-status></label>
             </div>
         </section>
@@ -97,6 +98,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const nameInput = form.querySelector('[data-module-field="name"]');
     const keyInput = form.querySelector('[data-module-field="key"]');
     const secretStatusInput = form.querySelector('[data-module-secret-status]');
+    const passwordInput = form.querySelector('[data-module-password]');
     const refreshContext = function () {
         const selected = select.value !== '';
         if (actions) actions.hidden = !selected;
@@ -119,7 +121,7 @@ document.addEventListener('DOMContentLoaded', function () {
             ssl_mode: saved.database_ssl_mode || module.ssl_mode || '',
             timeout: saved.connection_timeout || module.timeout || 5,
             runtime_mode: saved.runtime_mode || module.runtime_mode || 'fallback',
-            secret: saved.secret_reference || module.secret || ''
+            secret: module.secret || ''
         };
         Object.entries(values).forEach(([field, value]) => { const input = form.querySelector('[data-module-field="' + field + '"]'); if (input) input.value = value; });
         const hostInput = form.querySelector('[name="database_host"]');
@@ -130,6 +132,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (portInput) portInput.value = saved.database_port || module.port || 3306;
         if (orderInput) orderInput.value = saved.sort_order ?? 10;
         if (activeInput) activeInput.checked = !saved.module_key || Number(saved.is_active) === 1;
+        if (passwordInput) passwordInput.value = '';
         if (secretStatusInput) {
             secretStatusInput.value = module.secret_configured ? '********' : 'تنظیم نشده';
             secretStatusInput.classList.toggle('is-configured', Boolean(module.secret_configured));
