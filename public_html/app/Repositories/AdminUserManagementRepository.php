@@ -66,12 +66,22 @@ class AdminUserManagementRepository extends BaseRepository
             return null;
         }
 
-        $user['role_ids'] = $this->globalRoleIdsForUser($userId);
+        $personId = (int) ($user['person_id'] ?? 0);
+        $addressRecords = $this->addressRecordsForPerson(
+            $personId
+        );
+
+        $user['role_ids'] = $this->globalRoleIdsForUser(
+            $userId
+        );
         $user = array_merge(
             $user,
-            $this->contactFormData((int) ($user['person_id'] ?? 0)),
-            $this->addressFormData((int) ($user['person_id'] ?? 0))
+            $this->contactFormData($personId),
+            $this->addressFormDataFromRecords(
+                $addressRecords
+            )
         );
+        $user['address_records'] = $addressRecords;
 
         return $user;
     }
@@ -1009,9 +1019,9 @@ class AdminUserManagementRepository extends BaseRepository
         return $result;
     }
 
-    private function addressFormData(int $personId): array
+    private function emptyAddressFormData(): array
     {
-        $result = [
+        return [
             'address_type_id' => 0,
             'province_location_id' => 0,
             'county_location_id' => 0,
@@ -1021,16 +1031,37 @@ class AdminUserManagementRepository extends BaseRepository
             'address_line' => '',
             'postal_code' => '',
         ];
+    }
 
+    private function addressFormDataFromRecords(
+        array $records
+    ): array {
+        $first = $records[0] ?? null;
+
+        return is_array($first)
+            ? array_merge(
+                $this->emptyAddressFormData(),
+                $first
+            )
+            : $this->emptyAddressFormData();
+    }
+
+    private function addressRecordsForPerson(
+        int $personId
+    ): array {
         if (
             $personId < 1
-            || !Database::tableExists('person_addresses')
+            || !Database::tableExists(
+                'person_addresses'
+            )
         ) {
-            return $result;
+            return [];
         }
 
         $select = [
+            'id',
             'address_type_id',
+            'is_primary',
             'district',
             'address_line',
             'postal_code',
@@ -1056,62 +1087,79 @@ class AdminUserManagementRepository extends BaseRepository
               FROM person_addresses
               WHERE person_id = ?
                 AND status = 'active'
-              ORDER BY is_primary DESC, id ASC
-              LIMIT 1"
+              ORDER BY is_primary DESC, id ASC"
         );
         $statement->execute([$personId]);
-        $address = $statement->fetch(PDO::FETCH_ASSOC);
 
-        if (!$address) {
-            return $result;
-        }
+        $records = [];
 
-        $result = array_merge($result, [
-            'address_type_id' => (int) (
-                $address['address_type_id'] ?? 0
-            ),
-            'geographic_location_id' => (int) (
-                $address['geographic_location_id'] ?? 0
-            ),
-            'district' => (string) (
-                $address['district'] ?? ''
-            ),
-            'address_line' => (string) (
-                $address['address_line'] ?? ''
-            ),
-            'postal_code' => (string) (
-                $address['postal_code'] ?? ''
-            ),
-        ]);
-
-        $geographicLocationId = (int) (
-            $address['geographic_location_id'] ?? 0
-        );
-
-        if ($geographicLocationId > 0) {
-            $selection = $this->geographicSelection(
-                $geographicLocationId
+        foreach (
+            $statement->fetchAll(PDO::FETCH_ASSOC) ?: []
+            as $address
+        ) {
+            $record = array_merge(
+                $this->emptyAddressFormData(),
+                [
+                    'id' => (int) (
+                        $address['id'] ?? 0
+                    ),
+                    'address_type_id' => (int) (
+                        $address['address_type_id'] ?? 0
+                    ),
+                    'is_primary' => !empty(
+                        $address['is_primary']
+                    ),
+                    'geographic_location_id' => (int) (
+                        $address[
+                            'geographic_location_id'
+                        ] ?? 0
+                    ),
+                    'district' => (string) (
+                        $address['district'] ?? ''
+                    ),
+                    'address_line' => (string) (
+                        $address['address_line'] ?? ''
+                    ),
+                    'postal_code' => (string) (
+                        $address['postal_code'] ?? ''
+                    ),
+                ]
             );
 
-            if ($selection !== null) {
-                return array_merge(
-                    $result,
-                    $selection
-                );
+            $geographicLocationId = (int) (
+                $address[
+                    'geographic_location_id'
+                ] ?? 0
+            );
+
+            if ($geographicLocationId > 0) {
+                $selection =
+                    $this->geographicSelection(
+                        $geographicLocationId
+                    );
+
+                if ($selection !== null) {
+                    $record = array_merge(
+                        $record,
+                        $selection
+                    );
+                }
+            } else {
+                $record['province_location_id'] =
+                    (int) (
+                        $address['province_id'] ?? 0
+                    );
+                $record['city_location_id'] =
+                    (int) (
+                        $address['city_id'] ?? 0
+                    );
             }
+
+            $records[] = $record;
         }
 
-        // Compatibility with old rows until they are edited.
-        $result['province_location_id'] = (int) (
-            $address['province_id'] ?? 0
-        );
-        $result['city_location_id'] = (int) (
-            $address['city_id'] ?? 0
-        );
-
-        return $result;
+        return $records;
     }
-
     private function syncPrimaryContacts(int $personId, array $data): void
     {
         if (!Database::tableExists('person_contacts')) {
@@ -1298,18 +1346,43 @@ class AdminUserManagementRepository extends BaseRepository
             || $addressLine !== ''
             || $postalCode !== '';
 
+        if ($addressTypeId < 1 && $hasAddress) {
+            $addressTypes = $this->idOptions(
+                'address_types'
+            );
+            $addressTypeId = (int) (
+                $addressTypes[0]['id'] ?? 0
+            );
+        }
+
+        if ($addressTypeId < 1) {
+            return;
+        }
+
         $existing = $this->connection()->prepare("
             SELECT id
             FROM person_addresses
             WHERE person_id = ?
+              AND address_type_id = ?
             ORDER BY is_primary DESC, id ASC
             LIMIT 1
         ");
-        $existing->execute([$personId]);
+        $existing->execute([
+            $personId,
+            $addressTypeId,
+        ]);
         $addressId = $existing->fetchColumn();
 
         if (!$hasAddress) {
-            if ($addressId !== false) {
+            $this->connection()->prepare("
+            UPDATE person_addresses
+            SET is_primary = 0,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE person_id = ?
+              AND is_primary = 1
+        ")->execute([$personId]);
+
+        if ($addressId !== false) {
                 $this->connection()->prepare("
                     UPDATE person_addresses
                     SET is_primary = 0,
@@ -1320,15 +1393,6 @@ class AdminUserManagementRepository extends BaseRepository
             }
 
             return;
-        }
-
-        if ($addressTypeId < 1) {
-            $addressTypes = $this->idOptions(
-                'address_types'
-            );
-            $addressTypeId = (int) (
-                $addressTypes[0]['id'] ?? 0
-            );
         }
 
         $fields = [

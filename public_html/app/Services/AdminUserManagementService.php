@@ -85,6 +85,7 @@ class AdminUserManagementService extends BaseService
             'district' => '',
             'postal_code' => '',
             'address_line' => '',
+            'address_records' => [],
             'role_ids' => [],
             'access_kind' => 'all',
             'access_area' => 'all',

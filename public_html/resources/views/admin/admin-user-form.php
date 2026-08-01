@@ -16,6 +16,11 @@ $provinces = $page['provinces'] ?? [];
 $counties = $page['counties'] ?? [];
 $cities = $page['cities'] ?? [];
 $addressTypes = $page['address_types'] ?? [];
+$addressRecords = is_array(
+    $form['address_records'] ?? null
+)
+    ? array_values($form['address_records'])
+    : [];
 $statusOptions = $page['status_options'] ?? [];
 $errors = $errors ?? [];
 $isEdit = !empty($page['is_edit']);
@@ -416,6 +421,19 @@ ob_start();
     </form>
 </div>
 
+<script
+    type="application/json"
+    data-address-records
+><?= json_encode(
+    $addressRecords,
+    JSON_UNESCAPED_UNICODE
+    | JSON_UNESCAPED_SLASHES
+    | JSON_HEX_TAG
+    | JSON_HEX_AMP
+    | JSON_HEX_APOS
+    | JSON_HEX_QUOT
+) ?></script>
+
 <script>
 (() => {
     const root=document.querySelector('[data-user-editor]'); if(!root)return;
@@ -428,6 +446,30 @@ ob_start();
     const province = root.querySelector('[data-province]');
     const county = root.querySelector('[data-county]');
     const city = root.querySelector('[data-city]');
+    const addressType = root.querySelector(
+        '[name="address_type_id"]'
+    );
+    const district = root.querySelector(
+        '[name="district"]'
+    );
+    const postalCode = root.querySelector(
+        '[name="postal_code"]'
+    );
+    const addressLine = root.querySelector(
+        '[name="address_line"]'
+    );
+    const addressRecordsNode = document.querySelector(
+        '[data-address-records]'
+    );
+    let addressRecords = [];
+
+    try {
+        addressRecords = JSON.parse(
+            addressRecordsNode?.textContent || '[]'
+        );
+    } catch (error) {
+        addressRecords = [];
+    }
 
     const buildLocationCascade = (
         province,
@@ -435,7 +477,7 @@ ob_start();
         city
     ) => {
         if (!province || !county || !city) {
-            return;
+            return null;
         }
 
         const countyPlaceholder =
@@ -599,9 +641,72 @@ ob_start();
 
         refreshCounties(true);
         refreshCities(true);
+
+        return {
+            setValues(values = {}) {
+                province.value = String(
+                    values.province_location_id
+                    ?? 0
+                );
+                refreshCounties(false);
+
+                county.value = String(
+                    values.county_location_id
+                    ?? 0
+                );
+                refreshCities(false);
+
+                city.value = String(
+                    values.city_location_id
+                    ?? 0
+                );
+            },
+        };
     };
 
-    buildLocationCascade(province, county, city);
+    const locationCascade = buildLocationCascade(
+        province,
+        county,
+        city
+    );
+
+    const loadSelectedAddressType = () => {
+        const typeId = Number(
+            addressType?.value || 0
+        );
+        const record = addressRecords.find(
+            item => Number(
+                item.address_type_id || 0
+            ) === typeId
+        ) || null;
+
+        locationCascade?.setValues(
+            record || {
+                province_location_id: 0,
+                county_location_id: 0,
+                city_location_id: 0,
+            }
+        );
+
+        if (district) {
+            district.value = record?.district || '';
+        }
+
+        if (postalCode) {
+            postalCode.value =
+                record?.postal_code || '';
+        }
+
+        if (addressLine) {
+            addressLine.value =
+                record?.address_line || '';
+        }
+    };
+
+    addressType?.addEventListener(
+        'change',
+        loadSelectedAddressType
+    );
 
     const kind=root.querySelector('[data-kind-filter]'); const area=root.querySelector('[data-area-filter]'); const search=root.querySelector('[data-role-search]'); const rows=[...root.querySelectorAll('[data-role-row]')]; const empty=root.querySelector('[data-role-empty]'); const summary=root.querySelector('[data-role-summary]'); const summaryEmpty=root.querySelector('[data-role-summary-empty]'); const counts=[...root.querySelectorAll('[data-role-count]')];
     const normalize=value=>String(value||'').trim().toLocaleLowerCase('fa');

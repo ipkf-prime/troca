@@ -1241,6 +1241,13 @@ $adminRender = function ($response, string $view, array $data = [], int $status 
         return $response->status(500)->send('Admin view not found.');
     }
 
+    $helpers = BASE_PATH
+        . '/resources/views/admin/partials/view-helpers.php';
+
+    if (is_readable($helpers)) {
+        require_once $helpers;
+    }
+
     extract($data, EXTR_SKIP);
     ob_start();
     require $path;

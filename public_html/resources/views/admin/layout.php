@@ -78,10 +78,46 @@ $accountNav = $context['navigation']['account'] ?? [];
     <link rel="stylesheet" href="<?= admin_h($themeAssets['admin_css']) ?>">
     <style id="admin-theme-vars"><?= "\n" . $themeService->cssVariables($themeUserId) . "\n" ?></style>
     <style id="communication-navigation-style">
+        .admin-nav__group {
+            display: grid;
+            gap: .2rem;
+        }
+        .admin-nav__group-toggle {
+            align-items: center;
+            appearance: none;
+            background: transparent;
+            border: 0;
+            border-radius: inherit;
+            color: inherit;
+            cursor: pointer;
+            display: grid;
+            font: inherit;
+            grid-template-columns: auto minmax(0, 1fr) auto auto;
+            min-height: inherit;
+            padding: inherit;
+            text-align: right;
+            width: 100%;
+        }
+        .admin-nav__group-toggle:hover,
+        .admin-nav__group-toggle.is-active {
+            background: var(--admin-primary-soft);
+            color: var(--admin-primary);
+        }
+        .admin-nav__group-chevron {
+            font-size: .72rem;
+            transition: transform .18s ease;
+        }
+        .admin-nav__group-toggle[aria-expanded="true"]
+            .admin-nav__group-chevron {
+            transform: rotate(180deg);
+        }
         .admin-nav__children {
             display: grid;
             gap: .2rem;
             margin: .2rem 1.4rem .55rem .25rem;
+        }
+        .admin-nav__children[hidden] {
+            display: none;
         }
         .admin-nav__children a {
             font-size: .78rem;
@@ -127,30 +163,135 @@ $accountNav = $context['navigation']['account'] ?? [];
             </div>
             <nav class="admin-nav" aria-label="<?= admin_h(admin_fa('&#x0645;&#x0646;&#x0648;&#x06CC; &#x0633;&#x0627;&#x0645;&#x0627;&#x0646;&#x0647;')) ?>">
                 <?php foreach ($systemNav as $item): ?>
-                    <?php $href = (string) ($item['url'] ?? '#'); ?>
-                    <a class="<?= admin_nav_is_active($item, $currentPath) ? 'is-active' : '' ?>" href="<?= admin_h($href) ?>">
-                        <span class="admin-nav__icon">
-                            <?= \App\Support\AdminIcon::html((string) ($item['icon'] ?? 'dashboard')) ?>
-                        </span>
-                        <span><?= admin_h($item['title'] ?? '') ?></span>
-                        <?php if (($item['badge'] ?? '') !== ''): ?>
-                            <small class="admin-nav__badge"><?= admin_h($item['badge']) ?></small>
-                        <?php endif; ?>
-                    </a>
-                    <?php if (($item['children'] ?? []) !== []): ?>
-                        <div class="admin-nav__children">
-                            <?php foreach ($item['children'] as $child): ?>
-                                <a
-                                    class="<?= admin_nav_is_active($child, $currentPath) ? 'is-active' : '' ?>"
-                                    href="<?= admin_h((string) ($child['url'] ?? '#')) ?>"
+                    <?php
+                    $href = (string) ($item['url'] ?? '#');
+                    $children = is_array($item['children'] ?? null)
+                        ? $item['children']
+                        : [];
+                    $groupActive = false;
+
+                    foreach ($children as $child) {
+                        if (admin_nav_is_active($child, $currentPath)) {
+                            $groupActive = true;
+                            break;
+                        }
+                    }
+                    ?>
+                    <?php if ($children !== []): ?>
+                        <div
+                            class="admin-nav__group"
+                            data-admin-nav-group
+                        >
+                            <button
+                                class="admin-nav__group-toggle<?= $groupActive
+                                    ? ' is-active'
+                                    : '' ?>"
+                                type="button"
+                                aria-expanded="false"
+                                data-admin-nav-group-toggle
+                            >
+                                <span class="admin-nav__icon">
+                                    <?= \App\Support\AdminIcon::html(
+                                        (string) (
+                                            $item['icon']
+                                            ?? 'dashboard'
+                                        )
+                                    ) ?>
+                                </span>
+                                <span>
+                                    <?= admin_h(
+                                        $item['title'] ?? ''
+                                    ) ?>
+                                </span>
+                                <?php if (
+                                    ($item['badge'] ?? '') !== ''
+                                ): ?>
+                                    <small class="admin-nav__badge">
+                                        <?= admin_h(
+                                            $item['badge']
+                                        ) ?>
+                                    </small>
+                                <?php endif; ?>
+                                <span
+                                    class="admin-nav__group-chevron"
+                                    aria-hidden="true"
                                 >
-                                    <span><?= admin_h($child['title'] ?? '') ?></span>
-                                    <?php if (($child['badge'] ?? '') !== ''): ?>
-                                        <small class="admin-nav__badge"><?= admin_h($child['badge']) ?></small>
-                                    <?php endif; ?>
-                                </a>
-                            <?php endforeach; ?>
+                                    â–¾
+                                </span>
+                            </button>
+
+                            <div
+                                class="admin-nav__children"
+                                data-admin-nav-children
+                                hidden
+                            >
+                                <?php foreach (
+                                    $children as $child
+                                ): ?>
+                                    <a
+                                        class="<?= admin_nav_is_active(
+                                            $child,
+                                            $currentPath
+                                        ) ? 'is-active' : '' ?>"
+                                        href="<?= admin_h(
+                                            (string) (
+                                                $child['url'] ?? '#'
+                                            )
+                                        ) ?>"
+                                    >
+                                        <span>
+                                            <?= admin_h(
+                                                $child['title']
+                                                ?? ''
+                                            ) ?>
+                                        </span>
+                                        <?php if (
+                                            ($child['badge'] ?? '')
+                                                !== ''
+                                        ): ?>
+                                            <small
+                                                class="admin-nav__badge"
+                                            >
+                                                <?= admin_h(
+                                                    $child['badge']
+                                                ) ?>
+                                            </small>
+                                        <?php endif; ?>
+                                    </a>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
+                    <?php else: ?>
+                        <a
+                            class="<?= admin_nav_is_active(
+                                $item,
+                                $currentPath
+                            ) ? 'is-active' : '' ?>"
+                            href="<?= admin_h($href) ?>"
+                        >
+                            <span class="admin-nav__icon">
+                                <?= \App\Support\AdminIcon::html(
+                                    (string) (
+                                        $item['icon']
+                                        ?? 'dashboard'
+                                    )
+                                ) ?>
+                            </span>
+                            <span>
+                                <?= admin_h(
+                                    $item['title'] ?? ''
+                                ) ?>
+                            </span>
+                            <?php if (
+                                ($item['badge'] ?? '') !== ''
+                            ): ?>
+                                <small class="admin-nav__badge">
+                                    <?= admin_h(
+                                        $item['badge']
+                                    ) ?>
+                                </small>
+                            <?php endif; ?>
+                        </a>
                     <?php endif; ?>
                 <?php endforeach; ?>
             </nav>
@@ -220,5 +361,60 @@ $accountNav = $context['navigation']['account'] ?? [];
             <?php endif; ?>
         </div>
     </div>
+    <script>
+    (() => {
+        const groups = [
+            ...document.querySelectorAll(
+                '[data-admin-nav-group]'
+            ),
+        ];
+
+        groups.forEach(group => {
+            const toggle = group.querySelector(
+                '[data-admin-nav-group-toggle]'
+            );
+            const children = group.querySelector(
+                '[data-admin-nav-children]'
+            );
+
+            if (!toggle || !children) {
+                return;
+            }
+
+            toggle.addEventListener('click', () => {
+                const opening =
+                    toggle.getAttribute('aria-expanded')
+                        !== 'true';
+
+                groups.forEach(otherGroup => {
+                    const otherToggle =
+                        otherGroup.querySelector(
+                            '[data-admin-nav-group-toggle]'
+                        );
+                    const otherChildren =
+                        otherGroup.querySelector(
+                            '[data-admin-nav-children]'
+                        );
+
+                    if (!otherToggle || !otherChildren) {
+                        return;
+                    }
+
+                    otherToggle.setAttribute(
+                        'aria-expanded',
+                        'false'
+                    );
+                    otherChildren.hidden = true;
+                });
+
+                toggle.setAttribute(
+                    'aria-expanded',
+                    opening ? 'true' : 'false'
+                );
+                children.hidden = !opening;
+            });
+        });
+    })();
+    </script>
 </body>
 </html>
