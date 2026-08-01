@@ -430,6 +430,24 @@ class CommunicationCenterSeeder extends Seeder
 
         $this->upsertNavigation(null, [
             'core',
+            'account-home',
+            'link',
+            'پیشخوان اصلی',
+            'بازگشت به داشبورد مرکزی سامانه',
+            '/admin/dashboard',
+            'core',
+            'dashboard',
+            'green',
+            [],
+            null,
+            ['/admin/dashboard'],
+            5,
+            'account',
+            0,
+        ]);
+
+        $this->upsertNavigation(null, [
+            'core',
             'account-profile',
             'link',
             'پروفایل کاربری',
@@ -486,6 +504,7 @@ class CommunicationCenterSeeder extends Seeder
         ]);
 
         $accountKeys = [
+            'account-home',
             'account-profile',
             'account-cartable',
             'account-logout',
