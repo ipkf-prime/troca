@@ -11,6 +11,11 @@ $accountLinks = [
         'paths' => ['/admin/profile'],
     ],
     [
+        'href' => '/admin/profile/edit',
+        'label' => 'هویت و نشانی',
+        'paths' => ['/admin/profile/edit'],
+    ],
+    [
         'href' => '/admin/account',
         'label' => 'اطلاعات حساب',
         'paths' => ['/admin/account'],
@@ -580,16 +585,18 @@ $accountLinks = [
 <nav class="account-tabs" aria-label="بخش‌های حساب کاربری">
     <?php foreach ($accountLinks as $link): ?>
         <?php
-        $active = in_array(
+        $accountLinkIsActive = in_array(
             $accountPath,
             $link['paths'],
             true
         );
         ?>
         <a
-            class="<?= $active ? 'is-active' : '' ?>"
+            class="<?= $accountLinkIsActive ? 'is-active' : '' ?>"
             href="<?= admin_h($link['href']) ?>"
-            <?= $active ? 'aria-current="page"' : '' ?>
+            <?= $accountLinkIsActive
+                ? 'aria-current="page"'
+                : '' ?>
         >
             <?= admin_h($link['label']) ?>
         </a>

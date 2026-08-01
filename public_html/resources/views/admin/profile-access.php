@@ -13,22 +13,31 @@ if (!function_exists('admin_h')) {
 
 $status = $status ?? '';
 $assignments = $context['assignments'] ?? [];
-$active = $context['active_assignment'] ?? [];
-$activeId = (int) ($active['id'] ?? 0);
+$activeAssignment = $context['active_assignment'] ?? [];
+$activeAssignmentId = (int) (
+    $activeAssignment['id'] ?? 0
+);
 
-if ($activeId < 1) {
+if ($activeAssignmentId < 1) {
     foreach ($assignments as $assignment) {
         if ((string) ($assignment['role_code'] ?? '') === 'user') {
-            $active = $assignment;
-            $activeId = (int) ($assignment['id'] ?? 0);
+            $activeAssignment = $assignment;
+            $activeAssignmentId = (int) (
+                $assignment['id'] ?? 0
+            );
             break;
         }
     }
 }
 
-if ($activeId < 1 && $assignments !== []) {
-    $active = $assignments[0];
-    $activeId = (int) ($active['id'] ?? 0);
+if (
+    $activeAssignmentId < 1
+    && $assignments !== []
+) {
+    $activeAssignment = $assignments[0];
+    $activeAssignmentId = (int) (
+        $activeAssignment['id'] ?? 0
+    );
 }
 
 $scopeLabel = static function (array $assignment): string {
@@ -202,7 +211,7 @@ ob_start();
             </div>
             <span class="account-badge account-badge--success">
                 نقش فعال:
-                <?= admin_h($active['role_title'] ?? 'کاربر') ?>
+                <?= admin_h($activeAssignment['role_title'] ?? 'کاربر') ?>
             </span>
         </div>
 
@@ -214,7 +223,9 @@ ob_start();
             <div class="profile-role-grid">
                 <?php foreach ($assignments as $assignment): ?>
                     <?php
-                    $isActive = $activeId === (int) ($assignment['id'] ?? 0);
+                    $isActive = $activeAssignmentId === (int) (
+                        $assignment['id'] ?? 0
+                    );
                     $roleCode = (string) ($assignment['role_code'] ?? '');
                     ?>
                     <article class="profile-role-card<?= $isActive

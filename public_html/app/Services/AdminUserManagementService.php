@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Repositories\AdminUserManagementRepository;
+use App\Support\JalaliDateInput;
 use Throwable;
 
 class AdminUserManagementService extends BaseService
@@ -10,11 +11,14 @@ class AdminUserManagementService extends BaseService
     public function __construct(
         private ?AdminUserManagementRepository $users = null,
         private ?IdentityNormalizer $normalizer = null,
-        private ?AuthorizationService $authorization = null
+        private ?AuthorizationService $authorization = null,
+        private ?IdentityVerificationService $verification = null
     ) {
         $this->users ??= new AdminUserManagementRepository();
         $this->normalizer ??= new IdentityNormalizer();
         $this->authorization ??= new AuthorizationService();
+        $this->verification ??=
+            new IdentityVerificationService();
     }
 
     public function canCreate(int $actorUserId): bool
@@ -62,6 +66,7 @@ class AdminUserManagementService extends BaseService
             'national_code' => '',
             'father_name' => '',
             'birth_date' => '',
+            'birth_date_jalali' => '',
             'birth_place' => '',
             'identity_number' => '',
             'identity_serial' => '',
@@ -73,9 +78,9 @@ class AdminUserManagementService extends BaseService
             'mobile_verified' => false,
             'contact_email_label' => 'ایمیل اصلی',
             'contact_mobile_label' => 'موبایل اصلی',
-            'province_id' => 0,
-            'county_id' => 0,
-            'city_id' => 0,
+            'province_location_id' => 0,
+            'county_location_id' => 0,
+            'city_location_id' => 0,
             'address_type_id' => 0,
             'district' => '',
             'postal_code' => '',
@@ -95,7 +100,14 @@ class AdminUserManagementService extends BaseService
             $form['id'] = (int) $existing['id'];
             $form['email_verified'] = !empty($existing['email_verified_at']);
             $form['mobile_verified'] = !empty($existing['mobile_verified_at']);
-            $form['role_ids'] = array_map('intval', $existing['role_ids'] ?? []);
+            $form['role_ids'] = array_map(
+                'intval',
+                $existing['role_ids'] ?? []
+            );
+            $form['birth_date_jalali'] =
+                JalaliDateInput::fromGregorian(
+                    $existing['birth_date'] ?? ''
+                );
         }
 
         if ($old !== []) {
@@ -145,6 +157,9 @@ class AdminUserManagementService extends BaseService
             ];
         }
 
+        $validated['data']['email_verified'] = false;
+        $validated['data']['mobile_verified'] = false;
+
         try {
             $userId = $this->users->create(
                 $validated['data'],
@@ -153,12 +168,24 @@ class AdminUserManagementService extends BaseService
         } catch (Throwable) {
             return [
                 'ok' => false,
-                'errors' => ['database' => 'ثبت کاربر در پایگاه داده انجام نشد.'],
+                'errors' => [
+                    'database' =>
+                        'ثبت کاربر در پایگاه داده انجام نشد.',
+                ],
                 'form' => $validated['form'],
             ];
         }
 
-        return ['ok' => true, 'user_id' => $userId];
+        return [
+            'ok' => true,
+            'user_id' => $userId,
+            'verification' =>
+                $this->requestVerification(
+                    $userId,
+                    $validated['data'],
+                    ['email', 'mobile']
+                ),
+        ];
     }
 
     public function update(
@@ -170,11 +197,46 @@ class AdminUserManagementService extends BaseService
             return ['ok' => false, 'forbidden' => true, 'errors' => []];
         }
 
-        if ($this->users->findForForm($userId) === null) {
-            return ['ok' => false, 'not_found' => true, 'errors' => []];
+        $existing = $this->users->findForForm(
+            $userId
+        );
+
+        if ($existing === null) {
+            return [
+                'ok' => false,
+                'not_found' => true,
+                'errors' => [],
+            ];
         }
 
-        $validated = $this->validate($input, $userId, false, $actorUserId);
+        $validated = $this->validate(
+            $input,
+            $userId,
+            false,
+            $actorUserId
+        );
+
+        $emailChanged = $this->identityChanged(
+            'email',
+            $existing['email'] ?? null,
+            $validated['data']['email']
+        );
+        $mobileChanged = $this->identityChanged(
+            'mobile',
+            $existing['mobile'] ?? null,
+            $validated['data']['mobile']
+        );
+
+        $validated['data']['email_verified'] =
+            !$emailChanged
+            && !empty($existing['email_verified_at']);
+        $validated['data']['mobile_verified'] =
+            !$mobileChanged
+            && !empty($existing['mobile_verified_at']);
+        $validated['form']['email_verified'] =
+            $validated['data']['email_verified'];
+        $validated['form']['mobile_verified'] =
+            $validated['data']['mobile_verified'];
 
         if (
             $actorUserId === $userId
@@ -210,7 +272,26 @@ class AdminUserManagementService extends BaseService
             ];
         }
 
-        return ['ok' => true, 'user_id' => $userId];
+        $changedFields = [];
+
+        if ($emailChanged) {
+            $changedFields[] = 'email';
+        }
+
+        if ($mobileChanged) {
+            $changedFields[] = 'mobile';
+        }
+
+        return [
+            'ok' => true,
+            'user_id' => $userId,
+            'verification' =>
+                $this->requestVerification(
+                    $userId,
+                    $validated['data'],
+                    $changedFields
+                ),
+        ];
     }
 
     private function validate(
@@ -224,7 +305,18 @@ class AdminUserManagementService extends BaseService
         $lastName = $this->limit(trim((string) ($input['last_name'] ?? '')), 100);
         $nationalCode = preg_replace('/\D+/', '', (string) ($input['national_code'] ?? '')) ?: '';
         $fatherName = $this->limit(trim((string) ($input['father_name'] ?? '')), 100);
-        $birthDate = trim((string) ($input['birth_date'] ?? ''));
+        $birthDateJalali = trim(
+            (string) (
+                $input['birth_date_jalali']
+                ?? $input['birth_date']
+                ?? ''
+            )
+        );
+        $birthDate = $birthDateJalali === ''
+            ? null
+            : JalaliDateInput::toGregorian(
+                $birthDateJalali
+            );
         $birthPlace = $this->limit(trim((string) ($input['birth_place'] ?? '')), 150);
         $identityNumber = $this->limit(trim((string) ($input['identity_number'] ?? '')), 50);
         $identitySerial = $this->limit(trim((string) ($input['identity_serial'] ?? '')), 50);
@@ -234,13 +326,13 @@ class AdminUserManagementService extends BaseService
         $status = trim((string) ($input['status'] ?? 'active'));
         $password = (string) ($input['password'] ?? '');
         $confirmation = (string) ($input['password_confirmation'] ?? '');
-        $emailVerified = (string) ($input['email_verified'] ?? '0') === '1';
-        $mobileVerified = (string) ($input['mobile_verified'] ?? '0') === '1';
+        $emailVerified = false;
+        $mobileVerified = false;
         $contactEmailLabel = $this->limit(trim((string) ($input['contact_email_label'] ?? 'ایمیل اصلی')), 100);
         $contactMobileLabel = $this->limit(trim((string) ($input['contact_mobile_label'] ?? 'موبایل اصلی')), 100);
-        $provinceId = max(0, (int) ($input['province_id'] ?? 0));
-        $countyId = max(0, (int) ($input['county_id'] ?? 0));
-        $cityId = max(0, (int) ($input['city_id'] ?? 0));
+        $provinceLocationId = max(0, (int) ($input['province_location_id'] ?? 0));
+        $countyLocationId = max(0, (int) ($input['county_location_id'] ?? 0));
+        $cityLocationId = max(0, (int) ($input['city_location_id'] ?? 0));
         $addressTypeId = max(0, (int) ($input['address_type_id'] ?? 0));
         $district = $this->limit(trim((string) ($input['district'] ?? '')), 150);
         $postalCode = preg_replace('/\D+/', '', (string) ($input['postal_code'] ?? '')) ?: '';
@@ -268,11 +360,29 @@ class AdminUserManagementService extends BaseService
         if ($lastName === '') {
             $errors['last_name'] = 'نام خانوادگی الزامی است.';
         }
-        if ($nationalCode !== '' && strlen($nationalCode) !== 10) {
-            $errors['national_code'] = 'کد ملی باید ۱۰ رقم باشد.';
+        if (
+            $nationalCode !== ''
+            && strlen($nationalCode) !== 10
+        ) {
+            $errors['national_code'] =
+                'کد ملی باید ۱۰ رقم باشد.';
+        } elseif (
+            $nationalCode !== ''
+            && $this->users->nationalCodeExists(
+                $nationalCode,
+                $exceptUserId
+            )
+        ) {
+            $errors['national_code'] =
+                'این کد ملی قبلاً ثبت شده است.';
         }
-        if ($birthDate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $birthDate) !== 1) {
-            $errors['birth_date'] = 'تاریخ تولد باید با قالب YYYY-MM-DD وارد شود.';
+
+        if (
+            $birthDateJalali !== ''
+            && $birthDate === null
+        ) {
+            $errors['birth_date_jalali'] =
+                'تاریخ تولد شمسی معتبر نیست. قالب صحیح ۱۴۰۰/۰۱/۰۱ است.';
         }
         if ($username === null) {
             $errors['username'] = 'نام کاربری باید با حرف انگلیسی شروع شود و فقط شامل حروف، عدد و زیرخط باشد.';
@@ -296,14 +406,15 @@ class AdminUserManagementService extends BaseService
             $errors['status'] = 'وضعیت حساب معتبر نیست.';
             $status = 'active';
         }
-        if ($provinceId > 0 && !$this->users->validProvinceId($provinceId)) {
-            $errors['province_id'] = 'استان انتخاب‌شده معتبر نیست.';
-        }
-        if ($countyId > 0 && !$this->users->validCountyId($countyId)) {
-            $errors['county_id'] = 'شهرستان انتخاب‌شده معتبر نیست.';
-        }
-        if ($cityId > 0 && !$this->users->validCityId($cityId)) {
-            $errors['city_id'] = 'شهر انتخاب‌شده معتبر نیست.';
+        if (
+            !$this->users->validGeographicSelection(
+                $provinceLocationId,
+                $countyLocationId,
+                $cityLocationId
+            )
+        ) {
+            $errors['geography'] =
+                'ترکیب استان، شهرستان و شهر معتبر نیست.';
         }
         if ($addressTypeId > 0 && !$this->users->validAddressTypeId($addressTypeId)) {
             $errors['address_type_id'] = 'نوع نشانی معتبر نیست.';
@@ -328,7 +439,8 @@ class AdminUserManagementService extends BaseService
             'full_name' => $fullName,
             'national_code' => $nationalCode,
             'father_name' => $fatherName,
-            'birth_date' => $birthDate,
+            'birth_date' => $birthDate ?? '',
+            'birth_date_jalali' => $birthDateJalali,
             'birth_place' => $birthPlace,
             'identity_number' => $identityNumber,
             'identity_serial' => $identitySerial,
@@ -340,9 +452,9 @@ class AdminUserManagementService extends BaseService
             'mobile_verified' => $mobileVerified,
             'contact_email_label' => $contactEmailLabel,
             'contact_mobile_label' => $contactMobileLabel,
-            'province_id' => $provinceId,
-            'county_id' => $countyId,
-            'city_id' => $cityId,
+            'province_location_id' => $provinceLocationId,
+            'county_location_id' => $countyLocationId,
+            'city_location_id' => $cityLocationId,
             'address_type_id' => $addressTypeId,
             'district' => $district,
             'postal_code' => $postalCode,
@@ -364,7 +476,7 @@ class AdminUserManagementService extends BaseService
                 'full_name' => $fullName,
                 'national_code' => $nationalCode !== '' ? $nationalCode : null,
                 'father_name' => $fatherName !== '' ? $fatherName : null,
-                'birth_date' => $birthDate !== '' ? $birthDate : null,
+                'birth_date' => $birthDate,
                 'birth_place' => $birthPlace !== '' ? $birthPlace : null,
                 'identity_number' => $identityNumber !== '' ? $identityNumber : null,
                 'identity_serial' => $identitySerial !== '' ? $identitySerial : null,
@@ -379,9 +491,9 @@ class AdminUserManagementService extends BaseService
                 'mobile_verified' => $mobileVerified,
                 'contact_email_label' => $contactEmailLabel,
                 'contact_mobile_label' => $contactMobileLabel,
-                'province_id' => $provinceId > 0 ? $provinceId : null,
-                'county_id' => $countyId > 0 ? $countyId : null,
-                'city_id' => $cityId > 0 ? $cityId : null,
+                'province_location_id' => $provinceLocationId > 0 ? $provinceLocationId : null,
+                'county_location_id' => $countyLocationId > 0 ? $countyLocationId : null,
+                'city_location_id' => $cityLocationId > 0 ? $cityLocationId : null,
                 'address_type_id' => $addressTypeId > 0 ? $addressTypeId : null,
                 'district' => $district,
                 'postal_code' => $postalCode,
@@ -391,6 +503,83 @@ class AdminUserManagementService extends BaseService
                     : password_hash($password, PASSWORD_DEFAULT),
             ],
         ];
+    }
+
+    private function identityChanged(
+        string $field,
+        mixed $currentValue,
+        mixed $newValue
+    ): bool {
+        $current = trim((string) ($currentValue ?? ''));
+        $new = trim((string) ($newValue ?? ''));
+
+        if ($field === 'email') {
+            $current = $current === ''
+                ? ''
+                : (string) (
+                    $this->normalizer->email($current)
+                    ?? $current
+                );
+            $new = $new === ''
+                ? ''
+                : (string) (
+                    $this->normalizer->email($new)
+                    ?? $new
+                );
+        } else {
+            $current = $current === ''
+                ? ''
+                : (string) (
+                    $this->normalizer->mobile($current)
+                    ?? $current
+                );
+            $new = $new === ''
+                ? ''
+                : (string) (
+                    $this->normalizer->mobile($new)
+                    ?? $new
+                );
+        }
+
+        return $current !== $new;
+    }
+
+    private function requestVerification(
+        int $userId,
+        array $data,
+        array $fields
+    ): array {
+        $result = [];
+
+        foreach ($fields as $field) {
+            if (
+                !in_array(
+                    $field,
+                    ['email', 'mobile'],
+                    true
+                )
+                || trim((string) (
+                    $data[$field] ?? ''
+                )) === ''
+            ) {
+                continue;
+            }
+
+            try {
+                $result[$field] =
+                    $this->verification->request(
+                        $userId,
+                        $field
+                    );
+            } catch (Throwable) {
+                $result[$field] = [
+                    'ok' => false,
+                    'status' => 'delivery_failed',
+                ];
+            }
+        }
+
+        return $result;
     }
 
     private function canAssignProtectedRoles(int $actorUserId): bool

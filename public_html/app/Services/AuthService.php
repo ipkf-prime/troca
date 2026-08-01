@@ -44,19 +44,43 @@ class AuthService extends BaseService
             ];
         }
 
-        $this->login((int) $user['id']);
+        $this->login(
+            (int) $user['id'],
+            false,
+            'password'
+        );
 
         return $this->currentUser();
     }
 
-    public function login(int $userId): void
-    {
+    public function login(
+        int $userId,
+        bool $mfaVerified = false,
+        string $method = 'session'
+    ): void {
         Session::regenerate();
         Session::put('auth_user_id', $userId);
-        Session::put('auth_login_at', Clock::isoUtc(Clock::nowUtc()));
-        Session::put('auth_mfa_verified', false);
-        (new AccessService())->ensureDefaultAssignment($userId);
-        (new AccessService())->selectLowest($userId);
+        Session::put(
+            'auth_login_at',
+            Clock::isoUtc(Clock::nowUtc())
+        );
+        Session::put(
+            'auth_mfa_verified',
+            $mfaVerified
+        );
+
+        $access = new AccessService();
+        $access->ensureDefaultAssignment($userId);
+        $activeAssignment = $access->selectLowest(
+            $userId
+        );
+
+        (new LoginHistoryService())->record(
+            $userId,
+            $activeAssignment,
+            $method,
+            $mfaVerified
+        );
     }
 
     public function logout(): void
@@ -73,8 +97,11 @@ class AuthService extends BaseService
 
     public function completeMfaLogin(int $userId): ?array
     {
-        $this->login($userId);
-        Session::put('auth_mfa_verified', true);
+        $this->login(
+            $userId,
+            true,
+            'password_mfa'
+        );
 
         return $this->currentUser();
     }
@@ -108,15 +135,30 @@ class AuthService extends BaseService
         return $this->currentUser() !== null;
     }
 
-    public function changePassword(int $userId, string $currentPassword, string $newPassword): bool
-    {
+    public function changePassword(
+        int $userId,
+        string $currentPassword,
+        string $newPassword
+    ): bool {
         $hash = $this->users->passwordHashForUser($userId);
 
-        if ($hash === null || !password_verify($currentPassword, $hash)) {
+        if (
+            $hash === null
+            || !password_verify(
+                $currentPassword,
+                $hash
+            )
+        ) {
             return false;
         }
 
-        $this->users->updatePasswordHash($userId, password_hash($newPassword, PASSWORD_DEFAULT));
+        $this->users->updatePasswordHash(
+            $userId,
+            password_hash(
+                $newPassword,
+                PASSWORD_DEFAULT
+            )
+        );
 
         return true;
     }
@@ -125,7 +167,10 @@ class AuthService extends BaseService
     {
         return [
             'id' => (int) $user['id'],
-            'name' => $user['full_name'] ?? $user['username'] ?? $user['email'] ?? '',
+            'name' => $user['full_name']
+                ?? $user['username']
+                ?? $user['email']
+                ?? '',
             'username' => $user['username'] ?? null,
             'email' => $user['email'] ?? null,
             'mobile' => $user['mobile'] ?? null,
@@ -141,6 +186,7 @@ class AuthService extends BaseService
 
         $lockedUntil = $user['locked_until'] ?? null;
 
-        return $lockedUntil === null || strtotime((string) $lockedUntil) <= time();
+        return $lockedUntil === null
+            || strtotime((string) $lockedUntil) <= time();
     }
 }

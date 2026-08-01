@@ -36,9 +36,48 @@ if (
     $selectedRoleIds[] = $baseRoleId;
 }
 $status = (string) ($status ?? '');
+$verification = trim(
+    (string) ($_GET['verification'] ?? '')
+);
+$verificationParts = array_values(array_filter(
+    explode(',', $verification)
+));
+$verificationMessages = [];
+foreach ($verificationParts as $part) {
+    [$field, $state] = array_pad(
+        explode(':', $part, 2),
+        2,
+        ''
+    );
+    $fieldLabel = $field === 'email'
+        ? 'ایمیل'
+        : ($field === 'mobile' ? 'موبایل' : 'شناسه');
+    $verificationMessages[] = match ($state) {
+        'sent' => "کد تأیید {$fieldLabel} ارسال شد.",
+        'dev_token_exposed' =>
+            "کد تأیید {$fieldLabel} در حالت توسعه ایجاد شد.",
+        'not_configured' =>
+            "ذخیره انجام شد؛ سرویس ارسال کد {$fieldLabel} پیکربندی نشده است.",
+        'rate_limited' =>
+            "ذخیره انجام شد؛ محدودیت ارسال کد {$fieldLabel} فعال است.",
+        default =>
+            "ذخیره انجام شد؛ ارسال کد تأیید {$fieldLabel} ناموفق بود.",
+    };
+}
 $requestedTab = trim((string) ($_GET['tab'] ?? ''));
 
-$contactErrorKeys = ['email', 'mobile', 'contact', 'province_id', 'county_id', 'city_id', 'address_type_id', 'postal_code', 'address_line'];
+$contactErrorKeys = [
+    'email',
+    'mobile',
+    'contact',
+    'geography',
+    'province_location_id',
+    'county_location_id',
+    'city_location_id',
+    'address_type_id',
+    'postal_code',
+    'address_line',
+];
 $accessErrorKeys = ['role_ids', 'access_kind', 'access_area', 'permissions'];
 $activeTab = in_array($requestedTab, ['account', 'contact', 'access'], true) ? $requestedTab : 'account';
 foreach (array_keys($errors) as $key) {
@@ -88,7 +127,9 @@ ob_start();
 .access-chip { background:var(--admin-surface); border:1px solid var(--admin-border); border-radius:999px; font-size:.66rem; font-weight:800; padding:.25rem .5rem; }
 .access-summary__empty { color:var(--admin-text-muted); font-size:.69rem; }
 .role-table { border:1px solid var(--admin-border); border-radius:.75rem; overflow:hidden; }
-.role-table__head, .role-row { align-items:center; display:grid; gap:.55rem; grid-template-columns:1.25rem minmax(9rem,1.15fr) minmax(6.5rem,.65fr) minmax(7.5rem,.75fr) minmax(7.5rem,.75fr) minmax(10rem,1fr); }
+.role-table__head, .role-row { align-items:center; display:grid; gap:.5rem; grid-template-columns:1.25rem minmax(9rem,1.2fr) minmax(7.4rem,.72fr) minmax(7.8rem,.78fr) minmax(7.8rem,.78fr) minmax(10rem,1fr); }
+.role-table__head .admin-sort-link { align-items:center; background:transparent; border:0; box-shadow:none; color:inherit; display:flex; font:inherit; gap:.25rem; justify-content:flex-start; min-height:2rem; padding:.15rem .1rem; text-align:right; width:100%; }
+.role-table__head .admin-sort-link:hover { color:var(--admin-primary); }
 .role-table__head { background:var(--admin-surface-muted); border-bottom:1px solid var(--admin-border); color:var(--admin-text-muted); font-size:.68rem; font-weight:800; min-height:2.55rem; padding:.42rem .7rem; }
 .role-table__body { max-height:24rem; overflow:auto; }
 .role-row { border-top:1px solid var(--admin-border); cursor:pointer; min-height:3.25rem; padding:.48rem .7rem; }
@@ -131,7 +172,18 @@ ob_start();
         <a class="admin-button admin-button--soft admin-button--compact" href="/admin/users">بازگشت</a>
     </header>
 
-    <?php if ($status === 'saved'): ?><div class="admin-alert admin-alert--success">تغییرات با موفقیت ذخیره شد.</div><?php endif; ?>
+    <?php if (in_array($status, ['saved', 'created'], true)): ?>
+        <div class="admin-alert admin-alert--success">
+            <?= $status === 'created'
+                ? 'کاربر با موفقیت ایجاد شد.'
+                : 'تغییرات با موفقیت ذخیره شد.' ?>
+        </div>
+    <?php endif; ?>
+    <?php foreach ($verificationMessages as $verificationMessage): ?>
+        <div class="admin-alert">
+            <?= admin_h($verificationMessage) ?>
+        </div>
+    <?php endforeach; ?>
     <?php if ($errors !== []): ?><div class="admin-alert admin-alert--danger" role="alert"><strong>ذخیره انجام نشد.</strong><ul><?php foreach ($errors as $error): ?><li><?= admin_h($error) ?></li><?php endforeach; ?></ul></div><?php endif; ?>
 
     <div class="user-editor__tabs" role="tablist">
@@ -152,7 +204,7 @@ ob_start();
                     <label class="user-field"><span>نام خانوادگی</span><input name="last_name" value="<?= admin_h($form['last_name'] ?? '') ?>" maxlength="100" required></label>
                     <label class="user-field"><span>کد ملی</span><input name="national_code" value="<?= admin_h($form['national_code'] ?? '') ?>" maxlength="10" inputmode="numeric" dir="ltr"></label>
                     <label class="user-field"><span>نام پدر</span><input name="father_name" value="<?= admin_h($form['father_name'] ?? '') ?>" maxlength="100"></label>
-                    <label class="user-field"><span>تاریخ تولد</span><input type="date" name="birth_date" value="<?= admin_h($form['birth_date'] ?? '') ?>" dir="ltr"></label>
+                    <label class="user-field"><span>تاریخ تولد شمسی</span><input type="text" name="birth_date_jalali" value="<?= admin_h($form['birth_date_jalali'] ?? '') ?>" inputmode="numeric" placeholder="۱۴۰۰/۰۱/۰۱" dir="ltr"><small>قالب شمسی: سال/ماه/روز</small></label>
                     <label class="user-field"><span>محل تولد</span><input name="birth_place" value="<?= admin_h($form['birth_place'] ?? '') ?>" maxlength="150"></label>
                     <label class="user-field"><span>شماره شناسنامه</span><input name="identity_number" value="<?= admin_h($form['identity_number'] ?? '') ?>" maxlength="50" dir="ltr"></label>
                     <label class="user-field"><span>سریال شناسنامه</span><input name="identity_serial" value="<?= admin_h($form['identity_serial'] ?? '') ?>" maxlength="50" dir="ltr"></label>
@@ -169,8 +221,21 @@ ob_start();
                     <label class="user-field"><span><?= $isEdit ? 'رمز عبور جدید' : 'رمز عبور اولیه' ?></span><input type="password" name="password" minlength="10" maxlength="200" autocomplete="new-password" <?= $isEdit ? '' : 'required' ?>><small><?= $isEdit ? 'برای حفظ رمز فعلی خالی بگذارید.' : 'حداقل ۱۰ کاراکتر' ?></small></label>
                     <label class="user-field"><span>تکرار رمز عبور</span><input type="password" name="password_confirmation" minlength="10" maxlength="200" autocomplete="new-password" <?= $isEdit ? '' : 'required' ?>></label>
                     <div class="user-checks user-field--wide">
-                        <label class="user-check"><input type="hidden" name="email_verified" value="0"><input type="checkbox" name="email_verified" value="1" <?= !empty($form['email_verified']) ? 'checked' : '' ?>>ایمیل تأیید شده</label>
-                        <label class="user-check"><input type="hidden" name="mobile_verified" value="0"><input type="checkbox" name="mobile_verified" value="1" <?= !empty($form['mobile_verified']) ? 'checked' : '' ?>>موبایل تأیید شده</label>
+                        <span class="user-check">
+                            ایمیل:
+                            <strong><?= !empty($form['email_verified'])
+                                ? 'تأیید شده'
+                                : 'تأیید نشده' ?></strong>
+                        </span>
+                        <span class="user-check">
+                            موبایل:
+                            <strong><?= !empty($form['mobile_verified'])
+                                ? 'تأیید شده'
+                                : 'تأیید نشده' ?></strong>
+                        </span>
+                        <small class="admin-muted">
+                            با تغییر ایمیل یا موبایل، تأیید قبلی لغو و کد OTP ارسال می‌شود.
+                        </small>
                     </div>
                 </div>
             </div>
@@ -186,12 +251,17 @@ ob_start();
             </div>
 
             <div class="user-block">
-                <div class="user-block__head"><div><h3>نشانی اصلی</h3><p>موقعیت و نشانی کامل در پرونده شخص ذخیره می‌شود.</p></div></div>
+                <div class="user-block__head"><div><h3>نشانی اصلی</h3><p>انتخاب‌ها از جغرافیای پویای سامانه خوانده و محل دقیق در پرونده شخص ذخیره می‌شود.</p></div></div>
+                    <?php if ($provinces === []): ?>
+                        <div class="admin-alert admin-alert--danger user-field--wide">
+                            داده جغرافیایی فعال پیدا نشد. Migration و داده‌های مرجع جغرافیا را بررسی کنید.
+                        </div>
+                    <?php endif; ?>
                 <div class="user-grid">
                     <label class="user-field"><span>نوع نشانی</span><select name="address_type_id"><option value="0">انتخاب نشده</option><?php foreach ($addressTypes as $option): ?><option value="<?= (int)($option['id'] ?? 0) ?>" <?= (int)($form['address_type_id'] ?? 0) === (int)($option['id'] ?? 0) ? 'selected' : '' ?>><?= admin_h($option['title'] ?? '') ?></option><?php endforeach; ?></select></label>
-                    <label class="user-field"><span>استان</span><select name="province_id" data-province><option value="0">انتخاب نشده</option><?php foreach ($provinces as $option): ?><option value="<?= (int)($option['id'] ?? 0) ?>" <?= (int)($form['province_id'] ?? 0) === (int)($option['id'] ?? 0) ? 'selected' : '' ?>><?= admin_h($option['title'] ?? '') ?></option><?php endforeach; ?></select></label>
-                    <label class="user-field"><span>شهرستان</span><select name="county_id" data-county><option value="0">انتخاب نشده</option><?php foreach ($counties as $option): ?><option value="<?= (int)($option['id'] ?? 0) ?>" data-province-id="<?= (int)($option['province_id'] ?? 0) ?>" <?= (int)($form['county_id'] ?? 0) === (int)($option['id'] ?? 0) ? 'selected' : '' ?>><?= admin_h($option['title'] ?? '') ?></option><?php endforeach; ?></select></label>
-                    <label class="user-field"><span>شهر</span><select name="city_id" data-city><option value="0">انتخاب نشده</option><?php foreach ($cities as $option): ?><option value="<?= (int)($option['id'] ?? 0) ?>" data-province-id="<?= (int)($option['province_id'] ?? 0) ?>" data-county-id="<?= (int)($option['county_id'] ?? 0) ?>" <?= (int)($form['city_id'] ?? 0) === (int)($option['id'] ?? 0) ? 'selected' : '' ?>><?= admin_h($option['title'] ?? '') ?></option><?php endforeach; ?></select></label>
+                    <label class="user-field"><span>استان</span><select name="province_location_id" data-province><option value="0">انتخاب نشده</option><?php foreach ($provinces as $option): ?><option value="<?= (int)($option['id'] ?? 0) ?>" <?= (int)($form['province_location_id'] ?? 0) === (int)($option['id'] ?? 0) ? 'selected' : '' ?>><?= admin_h($option['title'] ?? '') ?></option><?php endforeach; ?></select></label>
+                    <label class="user-field"><span>شهرستان</span><select name="county_location_id" data-county><option value="0">انتخاب نشده</option><?php foreach ($counties as $option): ?><option value="<?= (int)($option['id'] ?? 0) ?>" data-province-id="<?= (int)($option['province_location_id'] ?? 0) ?>" <?= (int)($form['county_location_id'] ?? 0) === (int)($option['id'] ?? 0) ? 'selected' : '' ?>><?= admin_h($option['title'] ?? '') ?></option><?php endforeach; ?></select></label>
+                    <label class="user-field"><span>شهر</span><select name="city_location_id" data-city><option value="0">انتخاب نشده</option><?php foreach ($cities as $option): ?><option value="<?= (int)($option['id'] ?? 0) ?>" data-province-id="<?= (int)($option['province_location_id'] ?? 0) ?>" data-county-id="<?= (int)($option['county_location_id'] ?? 0) ?>" <?= (int)($form['city_location_id'] ?? 0) === (int)($option['id'] ?? 0) ? 'selected' : '' ?>><?= admin_h($option['title'] ?? '') ?></option><?php endforeach; ?></select></label>
                     <label class="user-field"><span>ناحیه یا محله</span><input name="district" value="<?= admin_h($form['district'] ?? '') ?>" maxlength="150"></label>
                     <label class="user-field"><span>کد پستی</span><input name="postal_code" value="<?= admin_h($form['postal_code'] ?? '') ?>" maxlength="10" inputmode="numeric" dir="ltr"></label>
                     <label class="user-field user-field--wide"><span>نشانی کامل</span><textarea name="address_line" maxlength="500"><?= admin_h($form['address_line'] ?? '') ?></textarea></label>
@@ -355,24 +425,190 @@ ob_start();
     tabs.forEach(tab=>tab.addEventListener('click',()=>activate(tab.dataset.userTab)));
     root.querySelector('form')?.addEventListener('invalid',event=>{const panel=event.target.closest('[data-user-panel]');if(panel)activate(panel.dataset.userPanel);},true);
 
-    const province=root.querySelector('[data-province]');
-    const county=root.querySelector('[data-county]');
-    const city=root.querySelector('[data-city]');
-    const refreshLocations=()=>{
-        const provinceId=province?.value||'0'; const countyId=county?.value||'0';
-        [...(county?.options||[])].forEach(option=>{if(option.value==='0')return;const match=provinceId==='0'||option.dataset.provinceId==='0'||option.dataset.provinceId===provinceId;option.hidden=!match;});
-        [...(city?.options||[])].forEach(option=>{if(option.value==='0')return;const provinceMatch=provinceId==='0'||option.dataset.provinceId==='0'||option.dataset.provinceId===provinceId;const countyMatch=countyId==='0'||option.dataset.countyId==='0'||option.dataset.countyId===countyId;option.hidden=!(provinceMatch&&countyMatch);});
+    const province = root.querySelector('[data-province]');
+    const county = root.querySelector('[data-county]');
+    const city = root.querySelector('[data-city]');
+
+    const buildLocationCascade = (
+        province,
+        county,
+        city
+    ) => {
+        if (!province || !county || !city) {
+            return;
+        }
+
+        const countyPlaceholder =
+            county.options[0]?.cloneNode(true)
+            ?? new Option('انتخاب نشده', '0');
+        const cityPlaceholder =
+            city.options[0]?.cloneNode(true)
+            ?? new Option('انتخاب نشده', '0');
+
+        const countyOptions = [
+            ...county.options,
+        ]
+            .filter(option => option.value !== '0')
+            .map(option => ({
+                value: option.value,
+                label: option.textContent ?? '',
+                provinceId:
+                    option.dataset.provinceId ?? '0',
+            }));
+
+        const cityOptions = [
+            ...city.options,
+        ]
+            .filter(option => option.value !== '0')
+            .map(option => ({
+                value: option.value,
+                label: option.textContent ?? '',
+                provinceId:
+                    option.dataset.provinceId ?? '0',
+                countyId:
+                    option.dataset.countyId ?? '0',
+            }));
+
+        const replaceOptions = (
+            select,
+            placeholder,
+            items,
+            selectedValue
+        ) => {
+            select.replaceChildren(
+                placeholder.cloneNode(true)
+            );
+
+            items.forEach(item => {
+                const option = new Option(
+                    item.label,
+                    item.value,
+                    false,
+                    item.value === selectedValue
+                );
+                option.dataset.provinceId =
+                    item.provinceId ?? '0';
+                option.dataset.countyId =
+                    item.countyId ?? '0';
+                select.append(option);
+            });
+
+            if (
+                selectedValue !== '0'
+                && !items.some(
+                    item => item.value === selectedValue
+                )
+            ) {
+                select.value = '0';
+            }
+        };
+
+        const refreshCounties = (
+            preserveSelection = true
+        ) => {
+            const provinceId =
+                province.value || '0';
+            const selectedCounty = preserveSelection
+                ? county.value || '0'
+                : '0';
+
+            const filtered = provinceId === '0'
+                ? []
+                : countyOptions.filter(
+                    item =>
+                        item.provinceId === provinceId
+                );
+
+            countyPlaceholder.textContent =
+                provinceId === '0'
+                    ? 'ابتدا استان را انتخاب کنید'
+                    : (
+                        filtered.length > 0
+                            ? 'انتخاب نشده'
+                            : 'شهرستانی ثبت نشده است'
+                    );
+
+            replaceOptions(
+                county,
+                countyPlaceholder,
+                filtered,
+                selectedCounty
+            );
+
+            county.disabled =
+                provinceId === '0'
+                || filtered.length === 0;
+        };
+
+        const refreshCities = (
+            preserveSelection = true
+        ) => {
+            const provinceId =
+                province.value || '0';
+            const countyId =
+                county.value || '0';
+            const selectedCity = preserveSelection
+                ? city.value || '0'
+                : '0';
+
+            const filtered =
+                provinceId === '0'
+                || countyId === '0'
+                    ? []
+                    : cityOptions.filter(
+                        item =>
+                            item.provinceId
+                                === provinceId
+                            && item.countyId
+                                === countyId
+                    );
+
+            cityPlaceholder.textContent =
+                countyId === '0'
+                    ? 'ابتدا شهرستان را انتخاب کنید'
+                    : (
+                        filtered.length > 0
+                            ? 'انتخاب نشده'
+                            : 'شهری ثبت نشده است'
+                    );
+
+            replaceOptions(
+                city,
+                cityPlaceholder,
+                filtered,
+                selectedCity
+            );
+
+            city.disabled =
+                countyId === '0'
+                || filtered.length === 0;
+        };
+
+        province.addEventListener(
+            'change',
+            () => {
+                refreshCounties(false);
+                refreshCities(false);
+            }
+        );
+
+        county.addEventListener(
+            'change',
+            () => refreshCities(false)
+        );
+
+        refreshCounties(true);
+        refreshCities(true);
     };
-    province?.addEventListener('change',()=>{if(county)county.value='0';if(city)city.value='0';refreshLocations();});
-    county?.addEventListener('change',()=>{if(city)city.value='0';refreshLocations();});
-    refreshLocations();
+
+    buildLocationCascade(province, county, city);
 
     const kind=root.querySelector('[data-kind-filter]'); const area=root.querySelector('[data-area-filter]'); const search=root.querySelector('[data-role-search]'); const rows=[...root.querySelectorAll('[data-role-row]')]; const empty=root.querySelector('[data-role-empty]'); const summary=root.querySelector('[data-role-summary]'); const summaryEmpty=root.querySelector('[data-role-summary-empty]'); const counts=[...root.querySelectorAll('[data-role-count]')];
     const normalize=value=>String(value||'').trim().toLocaleLowerCase('fa');
     const filter=()=>{let visible=0;rows.forEach(row=>{const show=(kind?.value==='all'||row.dataset.kind===kind?.value)&&(area?.value==='all'||row.dataset.area===area?.value)&&(!normalize(search?.value)||normalize(row.dataset.search).includes(normalize(search?.value)));row.hidden=!show;if(show)visible++;});empty?.classList.toggle('is-visible',visible===0);};
     const selection=()=>{const checked=[...root.querySelectorAll('[data-role-checkbox]:checked')];rows.forEach(row=>row.classList.toggle('is-selected',Boolean(row.querySelector('[data-role-checkbox]')?.checked)));if(summary){summary.textContent='';checked.filter(item=>!item.disabled).forEach(item=>{const chip=document.createElement('span');chip.className='access-chip';chip.textContent=item.dataset.title||'';summary.appendChild(chip);});}if(summaryEmpty)summaryEmpty.hidden=checked.filter(item=>!item.disabled).length>0;counts.forEach(count=>count.textContent=String(checked.length));};
     const roleList=root.querySelector('[data-role-list]');
-    let roleSort={key:'title',dir:'asc'};
+    let roleSort={key:'',dir:'asc'};
     const sortRoles=key=>{
         roleSort={
             key,
@@ -384,7 +620,11 @@ ob_start();
         const sorted=[...rows].sort((a,b)=>{
             const left=normalize(a.dataset[dataKey]);
             const right=normalize(b.dataset[dataKey]);
-            const compared=left.localeCompare(right,'fa');
+            const compared=left.localeCompare(
+                right,
+                key==='code'?'en':'fa',
+                {numeric:true,sensitivity:'base'}
+            );
             return roleSort.dir==='asc'?compared:-compared;
         });
         sorted.forEach(row=>roleList?.insertBefore(row,empty));
@@ -410,7 +650,7 @@ ob_start();
         row.querySelector('[data-role-checkbox]')
             ?.addEventListener('change',selection)
     );
-    sortRoles('title');
+    // Initial order is roles.priority from the database.
     filter();
     selection();
 })();

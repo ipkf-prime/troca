@@ -17,9 +17,113 @@ $totpEnabled = (bool) ($page['totp_enabled'] ?? false);
 $pendingTotp = $page['pending_totp'] ?? null;
 $recoveryCodes = $page['recovery_codes'] ?? [];
 $session = $page['session'] ?? [];
+$loginHistory = is_array(
+    $page['login_history'] ?? null
+) ? $page['login_history'] : [];
 
 ob_start();
 ?>
+<style>
+.login-history-list {
+    border: 1px solid var(--admin-border);
+    border-radius: .78rem;
+    overflow: hidden;
+}
+
+.login-history-row {
+    align-items: center;
+    border-top: 1px solid var(--admin-border);
+    display: grid;
+    gap: .55rem;
+    grid-template-columns:
+        2rem
+        minmax(8rem, .85fr)
+        minmax(11rem, 1.35fr)
+        minmax(7rem, .8fr)
+        minmax(7rem, .8fr)
+        auto;
+    min-height: 3.4rem;
+    padding: .55rem .65rem;
+}
+
+.login-history-row:first-child {
+    border-top: 0;
+}
+
+.login-history-row--head {
+    background: var(--admin-surface-muted);
+    color: var(--admin-text-muted);
+    font-size: .66rem;
+    font-weight: 800;
+    min-height: 2.7rem;
+}
+
+.login-history-index {
+    color: var(--admin-text-muted);
+    font-size: .7rem;
+    text-align: center;
+}
+
+.login-history-main strong,
+.login-history-main small {
+    display: block;
+}
+
+.login-history-main strong {
+    font-size: .74rem;
+}
+
+.login-history-main small {
+    color: var(--admin-text-muted);
+    direction: ltr;
+    font-size: .63rem;
+    margin-top: .1rem;
+}
+
+.login-history-cell {
+    font-size: .7rem;
+    overflow-wrap: anywhere;
+}
+
+.login-history-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .3rem;
+    justify-content: flex-end;
+}
+
+@media (max-width: 880px) {
+    .login-history-row--head {
+        display: none;
+    }
+
+    .login-history-row {
+        grid-template-columns: 2rem minmax(0, 1fr) auto;
+    }
+
+    .login-history-cell {
+        grid-column: 2;
+    }
+
+    .login-history-badges {
+        grid-column: 2 / -1;
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 560px) {
+    .login-history-row {
+        align-items: flex-start;
+        grid-template-columns: 1.6rem minmax(0, 1fr);
+    }
+
+    .login-history-cell,
+    .login-history-badges {
+        grid-column: 2;
+    }
+}
+</style>
+
 <div class="account-shell">
     <?php require __DIR__ . '/partials/account-nav.php'; ?>
 
@@ -382,6 +486,134 @@ ob_start();
             </div>
         </section>
     <?php endif; ?>
+
+    <section class="account-card">
+        <div class="account-card__head">
+            <div>
+                <h3>۱۰ ورود اخیر</h3>
+                <p>
+                    زمان ورود، دستگاه، IP، نقش زمان ورود و وضعیت MFA
+                </p>
+            </div>
+            <span class="account-badge">
+                <?= admin_h(
+                    \App\Support\AdminFormat::digits(
+                        count($loginHistory)
+                    )
+                ) ?>
+                رکورد
+            </span>
+        </div>
+
+        <?php if ($loginHistory === []): ?>
+            <div class="account-notice account-notice--info">
+                هنوز سابقه ورود تفصیلی ثبت نشده است.
+                ثبت تاریخچه از این نسخه آغاز می‌شود.
+            </div>
+        <?php else: ?>
+            <div class="login-history-list">
+                <div class="login-history-row login-history-row--head">
+                    <span>ردیف</span>
+                    <span>زمان ورود</span>
+                    <span>مرورگر و سیستم‌عامل</span>
+                    <span>IP</span>
+                    <span>نقش ورود</span>
+                    <span>روش ورود</span>
+                </div>
+
+                <?php foreach (
+                    $loginHistory as $index => $login
+                ): ?>
+                    <div class="login-history-row">
+                        <span class="login-history-index">
+                            <?= admin_h(
+                                \App\Support\AdminFormat::digits(
+                                    $index + 1
+                                )
+                            ) ?>
+                        </span>
+
+                        <div class="login-history-main">
+                            <strong dir="ltr">
+                                <?= admin_h(
+                                    $login['logged_in_at']
+                                    ?? '—'
+                                ) ?>
+                            </strong>
+                            <?php if (!empty(
+                                $login['is_legacy']
+                            )): ?>
+                                <small>
+                                    سابقه قدیمی بدون جزئیات دستگاه
+                                </small>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="login-history-cell">
+                            <?= admin_h(
+                                ($login['browser_label'] ?? '')
+                                    !== ''
+                                    ? $login['browser_label']
+                                    : '—'
+                            ) ?>
+                        </div>
+
+                        <div
+                            class="login-history-cell"
+                            dir="ltr"
+                        >
+                            <?= admin_h(
+                                ($login['ip_address'] ?? '')
+                                    !== ''
+                                    ? $login['ip_address']
+                                    : '—'
+                            ) ?>
+                        </div>
+
+                        <div class="login-history-cell">
+                            <?= admin_h(
+                                ($login['role_title'] ?? '')
+                                    !== ''
+                                    ? $login['role_title']
+                                    : '—'
+                            ) ?>
+                            <?php if (
+                                ($login['role_code'] ?? '') !== ''
+                            ): ?>
+                                <small
+                                    class="admin-muted"
+                                    dir="ltr"
+                                >
+                                    <?= admin_h(
+                                        $login['role_code']
+                                    ) ?>
+                                </small>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="login-history-badges">
+                            <span class="account-badge">
+                                <?= admin_h(
+                                    $login[
+                                        'auth_method_label'
+                                    ] ?? 'ورود سامانه‌ای'
+                                ) ?>
+                            </span>
+                            <span class="account-badge <?= !empty(
+                                $login['mfa_verified']
+                            ) ? 'account-badge--success' : '' ?>">
+                                <?= !empty(
+                                    $login['mfa_verified']
+                                )
+                                    ? 'MFA'
+                                    : 'بدون MFA' ?>
+                            </span>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </section>
 
     <section class="account-card">
         <div class="account-card__head">

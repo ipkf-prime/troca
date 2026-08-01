@@ -11,6 +11,41 @@ $adminUserManagementForbidden = static function (
     ], 403);
 };
 
+$adminUserVerificationRedirect = static function (
+    int $userId,
+    array $verification,
+    string $status
+): string {
+    $parts = [];
+
+    foreach ($verification as $field => $result) {
+        $state = (string) (
+            $result['status'] ?? 'delivery_failed'
+        );
+        $parts[] = $field . ':' . $state;
+
+        if (
+            isset($result['dev_token'])
+            && $result['dev_token'] !== null
+        ) {
+            $_SESSION['admin_identity_dev_otp'][
+                $userId
+            ][$field] = (string) $result['dev_token'];
+        }
+    }
+
+    $query = ['status' => $status];
+
+    if ($parts !== []) {
+        $query['verification'] = implode(',', $parts);
+    }
+
+    return '/admin/users/'
+        . $userId
+        . '/edit?'
+        . http_build_query($query);
+};
+
 $router->get('/admin/users', function (
     $request,
     $response
@@ -49,7 +84,8 @@ $router->get('/admin/users/create', function (
 ) use (
     $adminRender,
     $adminGuard,
-    $adminUserManagementForbidden
+    $adminUserManagementForbidden,
+    $adminUserVerificationRedirect
 ) {
     $context = $adminGuard($response, '/admin/users');
 
@@ -109,7 +145,11 @@ $router->post('/admin/users', function (
 
     if (($result['ok'] ?? false) === true) {
         return $response->redirect(
-            '/admin/users/' . (int) $result['user_id']
+            $adminUserVerificationRedirect(
+                (int) $result['user_id'],
+                $result['verification'] ?? [],
+                'created'
+            )
         );
     }
 
@@ -144,7 +184,8 @@ $router->get('/admin/users/{id}/edit', function (
 ) use (
     $adminRender,
     $adminGuard,
-    $adminUserManagementForbidden
+    $adminUserManagementForbidden,
+    $adminUserVerificationRedirect
 ) {
     $context = $adminGuard($response, '/admin/users');
 
@@ -243,9 +284,11 @@ $router->post('/admin/users/{id}', function (
 
     if (($result['ok'] ?? false) === true) {
         return $response->redirect(
-            '/admin/users/'
-            . (int) $userId
-            . '/edit?status=saved'
+            $adminUserVerificationRedirect(
+                (int) $userId,
+                $result['verification'] ?? [],
+                'saved'
+            )
         );
     }
 
