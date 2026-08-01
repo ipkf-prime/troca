@@ -120,7 +120,8 @@ $router->post('/admin/users', function (
 ) use (
     $adminRender,
     $adminGuard,
-    $adminUserManagementForbidden
+    $adminUserManagementForbidden,
+    $adminUserVerificationRedirect
 ) {
     $context = $adminGuard($response, '/admin/users');
 
@@ -245,7 +246,8 @@ $router->post('/admin/users/{id}', function (
 ) use (
     $adminRender,
     $adminGuard,
-    $adminUserManagementForbidden
+    $adminUserManagementForbidden,
+    $adminUserVerificationRedirect
 ) {
     $context = $adminGuard($response, '/admin/users');
 

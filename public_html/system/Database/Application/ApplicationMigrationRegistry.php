@@ -43,6 +43,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateAuthenticationLoginHistoryTable::class,
                     \IPKF\Database\Migrations\RepairPersonAddressReferenceDataAndGeography::class,
                     \IPKF\Database\Migrations\CreateNotificationCoreFoundationTables::class,
+                    \IPKF\Database\Migrations\CreateCommunicationCenterFoundationTables::class,
                 ],
             ],
             'automation' => [

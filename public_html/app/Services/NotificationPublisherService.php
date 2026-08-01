@@ -250,7 +250,8 @@ class NotificationPublisherService extends BaseService
             $values = ['in_app'];
         }
 
-        $allowed = ['in_app', 'email', 'sms', 'bale'];
+        $allowed = $this->notifications
+            ->activeChannelCodes();
         $channels = array_values(array_unique(array_filter(
             array_map(
                 static fn ($value): string =>

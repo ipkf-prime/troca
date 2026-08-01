@@ -646,6 +646,20 @@ class NotificationRepository extends BaseRepository
         return $statement->rowCount();
     }
 
+    public function activeChannelCodes(): array
+    {
+        $statement = $this->connection()->query("
+            SELECT code
+            FROM notification_channels
+            WHERE is_active = 1
+            ORDER BY sort_order ASC, id ASC
+        ");
+
+        return array_values(array_map(
+            'strval',
+            $statement->fetchAll(\PDO::FETCH_COLUMN) ?: []
+        ));
+    }
     private function resolveUserId(string $reference): ?int
     {
         $reference = trim($reference);

@@ -81,6 +81,9 @@ class AuthService extends BaseService
             $method,
             $mfaVerified
         );
+
+        (new InternalMessageLoginNotifierService())
+            ->notify($userId);
     }
 
     public function logout(): void
@@ -93,6 +96,7 @@ class AuthService extends BaseService
         Session::forget('auth_pending_at');
         Session::forget('auth_pending_methods');
         Session::forget('module_sso_return_path');
+        Session::forget('messages_unread_on_login');
     }
 
     public function completeMfaLogin(int $userId): ?array

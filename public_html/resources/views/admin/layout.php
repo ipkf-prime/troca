@@ -58,7 +58,14 @@ $moduleAssets = \App\Services\AdminModuleUiContract::safeAssets(
 );
 $moduleCssAssets = $moduleAssets['css'];
 $moduleJsAssets = $moduleAssets['js'];
-$systemNav = $context['navigation']['system'] ?? [];
+$navigationShell = $isModuleShell ? $moduleShellKey : 'core';
+$dynamicNavigation = new \App\Services\DynamicAdminNavigationService();
+$systemNav = $themeUserId !== null
+    ? $dynamicNavigation->navigation((int) $themeUserId, $navigationShell)
+    : [];
+$topbarNav = $themeUserId !== null
+    ? $dynamicNavigation->topbar((int) $themeUserId, $navigationShell)
+    : [];
 $accountNav = $context['navigation']['account'] ?? [];
 ?>
 <!doctype html>
@@ -70,6 +77,28 @@ $accountNav = $context['navigation']['account'] ?? [];
     <link rel="stylesheet" href="<?= admin_h($themeAssets['icons_css']) ?>">
     <link rel="stylesheet" href="<?= admin_h($themeAssets['admin_css']) ?>">
     <style id="admin-theme-vars"><?= "\n" . $themeService->cssVariables($themeUserId) . "\n" ?></style>
+    <style id="communication-navigation-style">
+        .admin-nav__children {
+            display: grid;
+            gap: .2rem;
+            margin: .2rem 1.4rem .55rem .25rem;
+        }
+        .admin-nav__children a {
+            font-size: .78rem;
+            min-height: 2.2rem;
+            padding-block: .35rem;
+        }
+        .admin-topbar-notification {
+            align-items: center;
+            display: inline-flex;
+            gap: .35rem;
+            text-decoration: none;
+        }
+        .admin-topbar-notification .admin-icon {
+            height: 1rem;
+            width: 1rem;
+        }
+    </style>
     <?php foreach ($moduleCssAssets as $asset): ?>
         <link rel="stylesheet" href="<?= admin_h($asset) ?>?v=<?= admin_h((string) (@filemtime(BASE_PATH . '/public' . $asset) ?: '1')) ?>" data-module-asset="css">
     <?php endforeach; ?>
@@ -108,6 +137,21 @@ $accountNav = $context['navigation']['account'] ?? [];
                             <small class="admin-nav__badge"><?= admin_h($item['badge']) ?></small>
                         <?php endif; ?>
                     </a>
+                    <?php if (($item['children'] ?? []) !== []): ?>
+                        <div class="admin-nav__children">
+                            <?php foreach ($item['children'] as $child): ?>
+                                <a
+                                    class="<?= admin_nav_is_active($child, $currentPath) ? 'is-active' : '' ?>"
+                                    href="<?= admin_h((string) ($child['url'] ?? '#')) ?>"
+                                >
+                                    <span><?= admin_h($child['title'] ?? '') ?></span>
+                                    <?php if (($child['badge'] ?? '') !== ''): ?>
+                                        <small class="admin-nav__badge"><?= admin_h($child['badge']) ?></small>
+                                    <?php endif; ?>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 <?php endforeach; ?>
             </nav>
         </aside>
@@ -124,6 +168,18 @@ $accountNav = $context['navigation']['account'] ?? [];
                     <h1><?= admin_h($title) ?></h1>
                 </div>
                 <div class="admin-topbar__actions">
+                    <?php foreach ($topbarNav as $topbarItem): ?>
+                        <a
+                            class="admin-role admin-topbar-notification"
+                            href="<?= admin_h((string) ($topbarItem['url'] ?? '#')) ?>"
+                        >
+                            <?= \App\Support\AdminIcon::html((string) ($topbarItem['icon'] ?? 'envelope')) ?>
+                            <span><?= admin_h($topbarItem['title'] ?? '') ?></span>
+                            <?php if (($topbarItem['badge'] ?? '') !== ''): ?>
+                                <b><?= admin_h($topbarItem['badge']) ?></b>
+                            <?php endif; ?>
+                        </a>
+                    <?php endforeach; ?>
                     <?php if (($theme['show_active_role'] ?? true) === true): ?>
                         <span class="admin-role"><?= admin_h($active['role_title'] ?? admin_fa('&#x0628;&#x062F;&#x0648;&#x0646; &#x0646;&#x0642;&#x0634; &#x0641;&#x0639;&#x0627;&#x0644;')) ?></span>
                     <?php endif; ?>
