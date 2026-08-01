@@ -402,75 +402,199 @@ ob_start();
 
 <script>
 (() => {
-    const root = document.currentScript
-        ?.previousElementSibling;
-    const scope = root?.closest('.account-shell')
-        ?? document;
+    const scope = document.querySelector(
+        '.account-shell'
+    );
+    if (!scope) {
+        return;
+    }
     const province = scope.querySelector(
         '[data-province]'
     );
     const county = scope.querySelector(
         '[data-county]'
     );
-    const city = scope.querySelector('[data-city]');
+    const city = scope.querySelector(
+        '[data-city]'
+    );
 
-    const refresh = () => {
-        const provinceId = province?.value || '0';
-        const countyId = county?.value || '0';
+    const buildLocationCascade = (
+        province,
+        county,
+        city
+    ) => {
+        if (!province || !county || !city) {
+            return;
+        }
 
-        [...(county?.options || [])].forEach(option => {
-            if (option.value === '0') {
-                return;
-            }
+        const countyPlaceholder =
+            county.options[0]?.cloneNode(true)
+            ?? new Option('انتخاب نشده', '0');
+        const cityPlaceholder =
+            city.options[0]?.cloneNode(true)
+            ?? new Option('انتخاب نشده', '0');
 
-            option.hidden = !(
-                provinceId === '0'
-                || option.dataset.provinceId === '0'
-                || option.dataset.provinceId === provinceId
+        const countyOptions = [
+            ...county.options,
+        ]
+            .filter(option => option.value !== '0')
+            .map(option => ({
+                value: option.value,
+                label: option.textContent ?? '',
+                provinceId:
+                    option.dataset.provinceId ?? '0',
+            }));
+
+        const cityOptions = [
+            ...city.options,
+        ]
+            .filter(option => option.value !== '0')
+            .map(option => ({
+                value: option.value,
+                label: option.textContent ?? '',
+                provinceId:
+                    option.dataset.provinceId ?? '0',
+                countyId:
+                    option.dataset.countyId ?? '0',
+            }));
+
+        const replaceOptions = (
+            select,
+            placeholder,
+            items,
+            selectedValue
+        ) => {
+            select.replaceChildren(
+                placeholder.cloneNode(true)
             );
-        });
 
-        [...(city?.options || [])].forEach(option => {
-            if (option.value === '0') {
-                return;
+            items.forEach(item => {
+                const option = new Option(
+                    item.label,
+                    item.value,
+                    false,
+                    item.value === selectedValue
+                );
+                option.dataset.provinceId =
+                    item.provinceId ?? '0';
+                option.dataset.countyId =
+                    item.countyId ?? '0';
+                select.append(option);
+            });
+
+            if (
+                selectedValue !== '0'
+                && !items.some(
+                    item => item.value === selectedValue
+                )
+            ) {
+                select.value = '0';
             }
+        };
 
-            const provinceMatches =
+        const refreshCounties = (
+            preserveSelection = true
+        ) => {
+            const provinceId =
+                province.value || '0';
+            const selectedCounty = preserveSelection
+                ? county.value || '0'
+                : '0';
+
+            const filtered = provinceId === '0'
+                ? []
+                : countyOptions.filter(
+                    item =>
+                        item.provinceId === provinceId
+                );
+
+            countyPlaceholder.textContent =
                 provinceId === '0'
-                || option.dataset.provinceId === '0'
-                || option.dataset.provinceId === provinceId;
-            const countyMatches =
+                    ? 'ابتدا استان را انتخاب کنید'
+                    : (
+                        filtered.length > 0
+                            ? 'انتخاب نشده'
+                            : 'شهرستانی ثبت نشده است'
+                    );
+
+            replaceOptions(
+                county,
+                countyPlaceholder,
+                filtered,
+                selectedCounty
+            );
+
+            county.disabled =
+                provinceId === '0'
+                || filtered.length === 0;
+        };
+
+        const refreshCities = (
+            preserveSelection = true
+        ) => {
+            const provinceId =
+                province.value || '0';
+            const countyId =
+                county.value || '0';
+            const selectedCity = preserveSelection
+                ? city.value || '0'
+                : '0';
+
+            const filtered =
+                provinceId === '0'
+                || countyId === '0'
+                    ? []
+                    : cityOptions.filter(
+                        item =>
+                            item.provinceId
+                                === provinceId
+                            && item.countyId
+                                === countyId
+                    );
+
+            cityPlaceholder.textContent =
                 countyId === '0'
-                || option.dataset.countyId === '0'
-                || option.dataset.countyId === countyId;
+                    ? 'ابتدا شهرستان را انتخاب کنید'
+                    : (
+                        filtered.length > 0
+                            ? 'انتخاب نشده'
+                            : 'شهری ثبت نشده است'
+                    );
 
-            option.hidden = !(
-                provinceMatches && countyMatches
+            replaceOptions(
+                city,
+                cityPlaceholder,
+                filtered,
+                selectedCity
             );
-        });
+
+            city.disabled =
+                countyId === '0'
+                || filtered.length === 0;
+        };
+
+        province.addEventListener(
+            'change',
+            () => {
+                refreshCounties(false);
+                refreshCities(false);
+            }
+        );
+
+        county.addEventListener(
+            'change',
+            () => refreshCities(false)
+        );
+
+        refreshCounties(true);
+        refreshCities(true);
     };
 
-    province?.addEventListener('change', () => {
-        if (county) {
-            county.value = '0';
-        }
-
-        if (city) {
-            city.value = '0';
-        }
-
-        refresh();
-    });
-
-    county?.addEventListener('change', () => {
-        if (city) {
-            city.value = '0';
-        }
-
-        refresh();
-    });
-
-    refresh();
+    buildLocationCascade(
+        province,
+        county,
+        city
+    );
 })();
 </script>
 <?php

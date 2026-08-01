@@ -425,17 +425,183 @@ ob_start();
     tabs.forEach(tab=>tab.addEventListener('click',()=>activate(tab.dataset.userTab)));
     root.querySelector('form')?.addEventListener('invalid',event=>{const panel=event.target.closest('[data-user-panel]');if(panel)activate(panel.dataset.userPanel);},true);
 
-    const province=root.querySelector('[data-province]');
-    const county=root.querySelector('[data-county]');
-    const city=root.querySelector('[data-city]');
-    const refreshLocations=()=>{
-        const provinceId=province?.value||'0'; const countyId=county?.value||'0';
-        [...(county?.options||[])].forEach(option=>{if(option.value==='0')return;const match=provinceId==='0'||option.dataset.provinceId==='0'||option.dataset.provinceId===provinceId;option.hidden=!match;});
-        [...(city?.options||[])].forEach(option=>{if(option.value==='0')return;const provinceMatch=provinceId==='0'||option.dataset.provinceId==='0'||option.dataset.provinceId===provinceId;const countyMatch=countyId==='0'||option.dataset.countyId==='0'||option.dataset.countyId===countyId;option.hidden=!(provinceMatch&&countyMatch);});
+    const province = root.querySelector('[data-province]');
+    const county = root.querySelector('[data-county]');
+    const city = root.querySelector('[data-city]');
+
+    const buildLocationCascade = (
+        province,
+        county,
+        city
+    ) => {
+        if (!province || !county || !city) {
+            return;
+        }
+
+        const countyPlaceholder =
+            county.options[0]?.cloneNode(true)
+            ?? new Option('انتخاب نشده', '0');
+        const cityPlaceholder =
+            city.options[0]?.cloneNode(true)
+            ?? new Option('انتخاب نشده', '0');
+
+        const countyOptions = [
+            ...county.options,
+        ]
+            .filter(option => option.value !== '0')
+            .map(option => ({
+                value: option.value,
+                label: option.textContent ?? '',
+                provinceId:
+                    option.dataset.provinceId ?? '0',
+            }));
+
+        const cityOptions = [
+            ...city.options,
+        ]
+            .filter(option => option.value !== '0')
+            .map(option => ({
+                value: option.value,
+                label: option.textContent ?? '',
+                provinceId:
+                    option.dataset.provinceId ?? '0',
+                countyId:
+                    option.dataset.countyId ?? '0',
+            }));
+
+        const replaceOptions = (
+            select,
+            placeholder,
+            items,
+            selectedValue
+        ) => {
+            select.replaceChildren(
+                placeholder.cloneNode(true)
+            );
+
+            items.forEach(item => {
+                const option = new Option(
+                    item.label,
+                    item.value,
+                    false,
+                    item.value === selectedValue
+                );
+                option.dataset.provinceId =
+                    item.provinceId ?? '0';
+                option.dataset.countyId =
+                    item.countyId ?? '0';
+                select.append(option);
+            });
+
+            if (
+                selectedValue !== '0'
+                && !items.some(
+                    item => item.value === selectedValue
+                )
+            ) {
+                select.value = '0';
+            }
+        };
+
+        const refreshCounties = (
+            preserveSelection = true
+        ) => {
+            const provinceId =
+                province.value || '0';
+            const selectedCounty = preserveSelection
+                ? county.value || '0'
+                : '0';
+
+            const filtered = provinceId === '0'
+                ? []
+                : countyOptions.filter(
+                    item =>
+                        item.provinceId === provinceId
+                );
+
+            countyPlaceholder.textContent =
+                provinceId === '0'
+                    ? 'ابتدا استان را انتخاب کنید'
+                    : (
+                        filtered.length > 0
+                            ? 'انتخاب نشده'
+                            : 'شهرستانی ثبت نشده است'
+                    );
+
+            replaceOptions(
+                county,
+                countyPlaceholder,
+                filtered,
+                selectedCounty
+            );
+
+            county.disabled =
+                provinceId === '0'
+                || filtered.length === 0;
+        };
+
+        const refreshCities = (
+            preserveSelection = true
+        ) => {
+            const provinceId =
+                province.value || '0';
+            const countyId =
+                county.value || '0';
+            const selectedCity = preserveSelection
+                ? city.value || '0'
+                : '0';
+
+            const filtered =
+                provinceId === '0'
+                || countyId === '0'
+                    ? []
+                    : cityOptions.filter(
+                        item =>
+                            item.provinceId
+                                === provinceId
+                            && item.countyId
+                                === countyId
+                    );
+
+            cityPlaceholder.textContent =
+                countyId === '0'
+                    ? 'ابتدا شهرستان را انتخاب کنید'
+                    : (
+                        filtered.length > 0
+                            ? 'انتخاب نشده'
+                            : 'شهری ثبت نشده است'
+                    );
+
+            replaceOptions(
+                city,
+                cityPlaceholder,
+                filtered,
+                selectedCity
+            );
+
+            city.disabled =
+                countyId === '0'
+                || filtered.length === 0;
+        };
+
+        province.addEventListener(
+            'change',
+            () => {
+                refreshCounties(false);
+                refreshCities(false);
+            }
+        );
+
+        county.addEventListener(
+            'change',
+            () => refreshCities(false)
+        );
+
+        refreshCounties(true);
+        refreshCities(true);
     };
-    province?.addEventListener('change',()=>{if(county)county.value='0';if(city)city.value='0';refreshLocations();});
-    county?.addEventListener('change',()=>{if(city)city.value='0';refreshLocations();});
-    refreshLocations();
+
+    buildLocationCascade(province, county, city);
 
     const kind=root.querySelector('[data-kind-filter]'); const area=root.querySelector('[data-area-filter]'); const search=root.querySelector('[data-role-search]'); const rows=[...root.querySelectorAll('[data-role-row]')]; const empty=root.querySelector('[data-role-empty]'); const summary=root.querySelector('[data-role-summary]'); const summaryEmpty=root.querySelector('[data-role-summary-empty]'); const counts=[...root.querySelectorAll('[data-role-count]')];
     const normalize=value=>String(value||'').trim().toLocaleLowerCase('fa');
@@ -484,7 +650,7 @@ ob_start();
         row.querySelector('[data-role-checkbox]')
             ?.addEventListener('change',selection)
     );
-    sortRoles('code');
+    // Initial order is roles.priority from the database.
     filter();
     selection();
 })();

@@ -100,8 +100,7 @@ class AdminUserManagementRepository extends BaseRepository
             LEFT JOIN role_areas ON role_areas.id = roles.role_area_id
             WHERE {$where}
             ORDER BY
-                CASE WHEN roles.code = 'user' THEN 0 ELSE 1 END,
-                roles.code ASC,
+                roles.priority ASC,
                 roles.id ASC
         ");
 
@@ -1547,7 +1546,7 @@ class AdminUserManagementRepository extends BaseRepository
                 $counties[] = [
                     'id' => $id,
                     'title' => $title,
-                    'province_id' =>
+                    'province_location_id' =>
                         $selection[
                             'province_location_id'
                         ],
@@ -1559,11 +1558,11 @@ class AdminUserManagementRepository extends BaseRepository
                 $cities[] = [
                     'id' => $id,
                     'title' => $title,
-                    'province_id' =>
+                    'province_location_id' =>
                         $selection[
                             'province_location_id'
                         ],
-                    'county_id' =>
+                    'county_location_id' =>
                         $selection[
                             'county_location_id'
                         ],
@@ -1677,6 +1676,9 @@ class AdminUserManagementRepository extends BaseRepository
             || !Database::tableExists(
                 'geographic_location_relations'
             )
+            || !Database::tableExists(
+                'geographic_relation_types'
+            )
         ) {
             return $this->dynamicGeographyCache =
                 $empty;
@@ -1725,12 +1727,19 @@ class AdminUserManagementRepository extends BaseRepository
 
         $relations = $this->connection()->query("
             SELECT
-                parent_location_id,
-                child_location_id,
-                is_primary
-            FROM geographic_location_relations
-            WHERE status = 'active'
-            ORDER BY is_primary DESC, id ASC
+                relations.parent_location_id,
+                relations.child_location_id,
+                relations.is_primary
+            FROM geographic_location_relations AS relations
+            INNER JOIN geographic_relation_types AS relation_types
+              ON relation_types.id =
+                 relations.relation_type_id
+            WHERE relations.status = 'active'
+              AND relations.is_primary = 1
+              AND relation_types.status = 'active'
+              AND relation_types.code =
+                  'administrative_parent'
+            ORDER BY relations.id ASC
         ");
         $parents = [];
 
