@@ -42,6 +42,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\ExtendApplicationModuleRegistryRuntimeConfig::class,
                     \IPKF\Database\Migrations\CreateAuthenticationLoginHistoryTable::class,
                     \IPKF\Database\Migrations\RepairPersonAddressReferenceDataAndGeography::class,
+                    \IPKF\Database\Migrations\CreateNotificationCoreFoundationTables::class,
                 ],
             ],
             'automation' => [

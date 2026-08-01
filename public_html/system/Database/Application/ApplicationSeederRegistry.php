@@ -25,6 +25,8 @@ class ApplicationSeederRegistry
                     \IPKF\Database\Seeds\WorkManagementPermissionsSeeder::class,
                     \IPKF\Database\Seeds\CorrespondenceDocumentTemplateSeeder::class,
                     \IPKF\Database\Seeds\PlatformCommercialFoundationSeeder::class,
+                    \IPKF\Database\Seeds\NotificationCoreSeeder::class,
+                    \IPKF\Database\Seeds\NotificationCoreSeeder::class,
                 ],
             ],
             'automation' => [

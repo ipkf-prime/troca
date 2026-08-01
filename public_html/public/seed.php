@@ -126,12 +126,13 @@ try {
         new \IPKF\Database\Seeds\CorrespondenceDocumentTemplateSeeder(),
         new \IPKF\Database\Seeds\OrganizationalIdentityPermissionsSeeder(),
         new \IPKF\Database\Seeds\PlatformCommercialFoundationSeeder(),
+        new \IPKF\Database\Seeds\NotificationCoreSeeder(),
     ]);
 
     $manager->seed();
 
     header('Content-Type: text/plain; charset=UTF-8');
-    echo "SEED DONE: foundation_v0_2, auth_rbac_schema, identity_access_foundation, admin_panel_shell, admin_users_organization, multi_source_metadata, ministry_geography_import_metadata, statistical_center_geography_import_metadata, ministry_canonical_geography_metadata, automation_correspondence_metadata, correspondence_document_templates, platform_commercial_metadata";
+    echo "SEED DONE: foundation_v0_2, auth_rbac_schema, identity_access_foundation, admin_panel_shell, admin_users_organization, multi_source_metadata, ministry_geography_import_metadata, statistical_center_geography_import_metadata, ministry_canonical_geography_metadata, automation_correspondence_metadata, correspondence_document_templates, platform_commercial_metadata, notification_core_metadata";
 } catch (Throwable $exception) {
     http_response_code(500);
     echo "SEED FAILED";
