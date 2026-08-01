@@ -98,7 +98,7 @@ class ProfileAvatarService extends BaseService
 
         if (
             !is_dir($directory)
-            && !mkdir($directory, 0750, true)
+            && !mkdir($directory, 0755, true)
             && !is_dir($directory)
         ) {
             return $this->error('avatar_directory_failed');
@@ -116,7 +116,8 @@ class ProfileAvatarService extends BaseService
             return $this->error('avatar_move_failed');
         }
 
-        @chmod($destination, 0640);
+        @chmod($directory, 0755);
+        @chmod($destination, 0644);
 
         $url = $this->userUrlPrefix($userId)
             . '/'
