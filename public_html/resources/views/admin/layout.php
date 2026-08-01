@@ -192,37 +192,12 @@ foreach (
 
 $topbarNav = array_values($topbarNavByKey);
 
-$dynamicAccountNav = $themeUserId !== null
+$accountNav = $themeUserId !== null
     ? $dynamicNavigation->account(
         (int) $themeUserId,
         'core'
     )
     : [];
-
-$legacyAccountNav = is_array(
-    $context['navigation']['account'] ?? null
-)
-    ? $context['navigation']['account']
-    : [];
-
-$accountNavByKey = [];
-
-foreach (
-    array_merge($dynamicAccountNav, $legacyAccountNav)
-    as $accountItem
-) {
-    $accountKey = (string) (
-        $accountItem['key']
-        ?? $accountItem['url']
-        ?? uniqid('account-', true)
-    );
-
-    if (!isset($accountNavByKey[$accountKey])) {
-        $accountNavByKey[$accountKey] = $accountItem;
-    }
-}
-
-$accountNav = array_values($accountNavByKey);
 ?>
 <!doctype html>
 <html lang="fa" dir="rtl">
@@ -351,7 +326,8 @@ $accountNav = array_values($accountNavByKey);
             text-decoration: none;
         }
 
-        .admin-topbar-notification > span:not(.admin-icon) {
+        .admin-topbar-notification
+            > span:not(.admin-icon):not(.admin-bell-icon) {
             display: none;
         }
 

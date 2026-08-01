@@ -27,13 +27,20 @@ ob_start();
 .admin-dashboard-modules .admin-module-launcher {
     display: grid;
     gap: .7rem;
+    grid-auto-rows: 1fr;
     grid-template-columns:
         repeat(4, minmax(0, 1fr));
+    width: 100%;
 }
 
 .admin-dashboard-modules .admin-module-launcher__tile {
-    min-height: 122px;
-    padding: .85rem .95rem;
+    box-sizing: border-box;
+    justify-self: stretch;
+    max-width: none;
+    min-height: 116px;
+    min-width: 0;
+    padding: .8rem .9rem;
+    width: 100%;
 }
 
 .admin-dashboard-modules .admin-module-launcher__icon {

@@ -430,21 +430,79 @@ class CommunicationCenterSeeder extends Seeder
 
         $this->upsertNavigation(null, [
             'core',
+            'account-profile',
+            'link',
+            'پروفایل کاربری',
+            'هویت، اطلاعات حساب، امنیت و دسترسی‌های من',
+            '/admin/profile',
+            'core',
+            'user',
+            'green',
+            [],
+            null,
+            ['/admin/profile', '/admin/profile/*',
+                '/admin/account', '/admin/security',
+                '/admin/my-theme'],
+            10,
+            'account',
+            0,
+        ]);
+
+        $this->upsertNavigation(null, [
+            'core',
             'account-cartable',
             'link',
             'کارتابل من',
-            'پیام‌های دریافتی و گفتگوها',
+            'پیام‌ها و اعلان‌های شخصی',
             '/admin/messages/inbox',
             'core',
             'envelope',
             'cyan',
             ['messages.view'],
-            'messages_unread_count',
-            ['/admin/messages/inbox', '/admin/messages/thread/*'],
-            5,
+            'communications_unread_total',
+            ['/admin/messages/inbox', '/admin/messages/thread/*',
+                '/admin/notifications', '/admin/notifications/*'],
+            20,
             'account',
             0,
         ]);
+
+        $this->upsertNavigation(null, [
+            'core',
+            'account-logout',
+            'link',
+            'خروج',
+            'پایان نشست کاربری',
+            '/admin/logout',
+            'core',
+            'circle-xmark',
+            'rose',
+            [],
+            null,
+            ['/admin/logout'],
+            90,
+            'account',
+            0,
+        ]);
+
+        $accountKeys = [
+            'account-profile',
+            'account-cartable',
+            'account-logout',
+        ];
+        $accountPlaceholders = implode(
+            ',',
+            array_fill(0, count($accountKeys), '?')
+        );
+        $deactivateAccountItems = $this->db->prepare("
+            UPDATE admin_navigation_items
+            SET is_active = 0,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE shell_key = 'core'
+              AND placement_code = 'account'
+              AND item_key NOT IN ({$accountPlaceholders})
+        ");
+        $deactivateAccountItems->execute($accountKeys);
 
         $parentId = $this->navigationId('core', 'communications');
 
