@@ -389,13 +389,165 @@ foreach ([
     $files[] = $relative;
 }
 
+
+// Remove accidental duplicate seed registrations.
+$relative =
+    'public_html/system/Database/Application/'
+    . 'ApplicationSeederRegistry.php';
+$content = $read($relative);
+$lines = preg_split('/\R/', $content) ?: [];
+$seenSeeders = [];
+$cleanLines = [];
+
+foreach ($lines as $line) {
+    $seederClass = null;
+
+    if (
+        preg_match(
+            '/\\\\IPKF\\\\Database\\\\Seeds\\\\'
+            . '(NotificationCoreSeeder|CommunicationCenterSeeder)'
+            . '::class,/',
+            $line,
+            $match
+        ) === 1
+    ) {
+        $seederClass = $match[1];
+    }
+
+    if (
+        $seederClass !== null
+        && isset($seenSeeders[$seederClass])
+    ) {
+        continue;
+    }
+
+    if ($seederClass !== null) {
+        $seenSeeders[$seederClass] = true;
+    }
+
+    $cleanLines[] = $line;
+}
+
+$content = implode("\n", $cleanLines);
+
+if (!str_ends_with($content, "\n")) {
+    $content .= "\n";
+}
+
+$write($relative, $content);
+
+if (!in_array($relative, $files, true)) {
+    $files[] = $relative;
+}
+
+// Ensure route closures capture every helper they invoke.
+$patchRouteClosureUse = static function (
+    string $content,
+    string $routeMarker,
+    string $variable
+): string {
+    $routeStart = strpos($content, $routeMarker);
+
+    if ($routeStart === false) {
+        throw new RuntimeException(
+            "Route marker missing: {$routeMarker}"
+        );
+    }
+
+    $nextRoute = strpos(
+        $content,
+        '$router->',
+        $routeStart + strlen($routeMarker)
+    );
+
+    $routeEnd = $nextRoute === false
+        ? strlen($content)
+        : $nextRoute;
+
+    $routeBlock = substr(
+        $content,
+        $routeStart,
+        $routeEnd - $routeStart
+    );
+
+    if (!str_contains($routeBlock, $variable . '(')) {
+        return $content;
+    }
+
+    $useStart = strpos($content, ') use (', $routeStart);
+
+    if (
+        $useStart === false
+        || $useStart >= $routeEnd
+    ) {
+        throw new RuntimeException(
+            "Closure use-list missing: {$routeMarker}"
+        );
+    }
+
+    $useEnd = strpos($content, "\n) {", $useStart);
+
+    if (
+        $useEnd === false
+        || $useEnd >= $routeEnd
+    ) {
+        throw new RuntimeException(
+            "Closure use-list end missing: {$routeMarker}"
+        );
+    }
+
+    $useBlock = substr(
+        $content,
+        $useStart,
+        $useEnd - $useStart
+    );
+
+    if (str_contains($useBlock, $variable)) {
+        return $content;
+    }
+
+    $trimmed = rtrim($useBlock);
+
+    if (!str_ends_with($trimmed, ',')) {
+        $trimmed .= ',';
+    }
+
+    $replacement = $trimmed
+        . "\n    "
+        . $variable;
+
+    return substr_replace(
+        $content,
+        $replacement,
+        $useStart,
+        $useEnd - $useStart
+    );
+};
+
+$relative = 'public_html/routes/admin-users-manage.php';
+$content = $read($relative);
+
+foreach ([
+    "\$router->post('/admin/users', function (",
+    "\$router->post('/admin/users/{id}', function (",
+] as $routeMarker) {
+    $content = $patchRouteClosureUse(
+        $content,
+        $routeMarker,
+        '$adminUserVerificationRedirect'
+    );
+}
+
+$write($relative, $content);
+$files[] = $relative;
+
 $write(
     'public_html/VERSION',
-    "0.6.0-communication-center-stage2-dev\n"
+    "0.6.0-communication-center-stage2-r1-dev\n"
 );
 $files[] = 'public_html/VERSION';
 
-echo "Communication Center Stage 2 patch applied.\n";
+echo "Communication Center Stage 2 R1 patch applied.\n";
 echo "changed_files=" . count($files) . "\n";
 
 foreach ($files as $file) {

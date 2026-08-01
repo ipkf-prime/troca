@@ -12,10 +12,28 @@ require BASE_PATH . '/bootstrap/app.php';
 
 $db = \IPKF\Database\Database::connect();
 
+$tableExists = static function (
+    string $table
+) use ($db): bool {
+    $statement = $db->prepare("
+        SELECT COUNT(*)
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+          AND table_name = ?
+    ");
+    $statement->execute([$table]);
+
+    return (int) $statement->fetchColumn() > 0;
+};
+
 $count = static function (
     string $table,
     string $where = '1=1'
-) use ($db): int {
+) use ($db, $tableExists): ?int {
+    if (!$tableExists($table)) {
+        return null;
+    }
+
     $statement = $db->query(
         "SELECT COUNT(*) FROM {$table} WHERE {$where}"
     );
@@ -23,20 +41,53 @@ $count = static function (
     return (int) $statement->fetchColumn();
 };
 
+$requiredTables = [
+    'admin_navigation_items',
+    'admin_route_permissions',
+    'message_recipient_policies',
+    'message_conversations',
+    'message_messages',
+    'notification_provider_types',
+    'notification_event_catalog',
+    'notification_routing_rules',
+];
+
+$missing = array_values(array_filter(
+    $requiredTables,
+    static fn (string $table): bool =>
+        !$tableExists($table)
+));
+
+$communicationSubmenus = null;
+
+if ($tableExists('admin_navigation_items')) {
+    $communicationSubmenus = (int) $db->query("
+        SELECT COUNT(*)
+        FROM admin_navigation_items AS children
+        INNER JOIN admin_navigation_items AS parent
+          ON parent.id = children.parent_id
+        WHERE parent.item_key = 'communications'
+          AND children.is_active = 1
+    ")->fetchColumn();
+}
+
 $result = [
+    'status' => $missing === []
+        ? 'ready'
+        : 'migration_required',
+    'missing_tables' => $missing,
     'navigation_items' =>
-        $count('admin_navigation_items', 'is_active = 1'),
+        $count(
+            'admin_navigation_items',
+            'is_active = 1'
+        ),
     'communication_submenus' =>
-        (int) $db->query("
-            SELECT COUNT(*)
-            FROM admin_navigation_items AS children
-            INNER JOIN admin_navigation_items AS parent
-              ON parent.id = children.parent_id
-            WHERE parent.item_key = 'communications'
-              AND children.is_active = 1
-        ")->fetchColumn(),
+        $communicationSubmenus,
     'route_permissions' =>
-        $count('admin_route_permissions', 'is_active = 1'),
+        $count(
+            'admin_route_permissions',
+            'is_active = 1'
+        ),
     'recipient_policies' =>
         $count(
             'message_recipient_policies',
