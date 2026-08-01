@@ -10,17 +10,31 @@ class WorkMyItemsRepository
 {
     private PDO $db;
 
-    public function __construct(?ConnectionResolver $connections = null)
-    {
-        $this->db = ($connections ?? new ConnectionResolver())->resolve('work.primary');
+    public function __construct(
+        ?ConnectionResolver $connections = null
+    ) {
+        $this->db = ($connections
+            ?? new ConnectionResolver())
+            ->resolve('work.primary');
     }
 
     public function counts(string $userReference): array
     {
         $counts = [];
 
-        foreach (['open', 'today', 'overdue', 'unassigned', 'completed'] as $scope) {
-            $counts[$scope] = $this->countForScope($userReference, $scope);
+        foreach (
+            [
+                'open',
+                'today',
+                'overdue',
+                'unassigned',
+                'completed',
+            ] as $scope
+        ) {
+            $counts[$scope] = $this->countForScope(
+                $userReference,
+                $scope
+            );
         }
 
         return $counts;
@@ -32,25 +46,49 @@ class WorkMyItemsRepository
         string $query = '',
         int $limit = 150
     ): array {
-        [$where, $parameters] = $this->conditions($userReference, $scope, $query);
+        [$where, $parameters] = $this->conditions(
+            $userReference,
+            $scope,
+            $query
+        );
+
         $limit = max(1, min(300, $limit));
-        $defaultSort = $scope === 'completed' ? 'updated_at' : 'due_at';
-        $defaultDirection = $scope === 'completed' ? 'desc' : 'asc';
+        $defaultSort = $scope === 'completed'
+            ? 'updated_at'
+            : 'due_at';
+        $defaultDirection = $scope === 'completed'
+            ? 'desc'
+            : 'asc';
+
+        $allowedSorts = [
+            'title' => 'wi.title',
+            'project' => 'p.title',
+            'type' => 'wi.item_type',
+            'status' => 'ws.sort_order',
+            'priority' =>
+                "FIELD(
+                    wi.priority_code,
+                    'low',
+                    'normal',
+                    'high',
+                    'urgent'
+                )",
+            'due_at' => 'wi.due_at',
+            'progress' => 'wi.progress_percent',
+            'updated_at' => 'wi.updated_at',
+        ];
+
         $sort = AdminTableSort::resolve(
-            [],
-            [
-                'title' => 'wi.title',
-                'project' => 'p.title',
-                'type' => 'wi.item_type',
-                'status' => 'ws.sort_order',
-                'priority' => "FIELD(wi.priority_code, 'low', 'normal', 'high', 'urgent')",
-                'due_at' => 'wi.due_at',
-                'progress' => 'wi.progress_percent',
-                'updated_at' => 'wi.updated_at',
-            ],
+            $defaultSort,
+            $defaultDirection,
+            $allowedSorts,
             $defaultSort,
             $defaultDirection
         );
+
+        $orderColumn = $allowedSorts[$sort['sort']]
+            ?? $allowedSorts[$defaultSort];
+        $orderDirection = $sort['dir'];
 
         $statement = $this->db->prepare("
             SELECT
@@ -70,12 +108,17 @@ class WorkMyItemsRepository
                 p.public_reference AS project_reference,
                 p.title AS project_title,
                 parent.title AS parent_title,
-                assignee.user_reference AS assignee_reference,
-                assignee.display_name_snapshot AS assignee_name
+                assignee.user_reference
+                    AS assignee_reference,
+                assignee.display_name_snapshot
+                    AS assignee_name
             FROM work_items wi
-            INNER JOIN work_statuses ws ON ws.id = wi.status_id
-            INNER JOIN work_projects p ON p.id = wi.project_id
-            LEFT JOIN work_items parent ON parent.id = wi.parent_id
+            INNER JOIN work_statuses ws
+              ON ws.id = wi.status_id
+            INNER JOIN work_projects p
+              ON p.id = wi.project_id
+            LEFT JOIN work_items parent
+              ON parent.id = wi.parent_id
             LEFT JOIN work_item_assignees assignee
               ON assignee.id = (
                     SELECT a.id
@@ -87,23 +130,37 @@ class WorkMyItemsRepository
                     LIMIT 1
               )
             WHERE " . implode(' AND ', $where) . "
-            ORDER BY {$sort['sql']}, wi.updated_at DESC, wi.id DESC
+            ORDER BY
+                {$orderColumn} {$orderDirection},
+                wi.updated_at DESC,
+                wi.id DESC
             LIMIT {$limit}
         ");
+
         $statement->execute($parameters);
 
-        return $statement->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        return $statement->fetchAll(
+            PDO::FETCH_ASSOC
+        ) ?: [];
     }
 
-    private function countForScope(string $userReference, string $scope): int
-    {
-        [$where, $parameters] = $this->conditions($userReference, $scope, '');
+    private function countForScope(
+        string $userReference,
+        string $scope
+    ): int {
+        [$where, $parameters] = $this->conditions(
+            $userReference,
+            $scope,
+            ''
+        );
 
         $statement = $this->db->prepare("
             SELECT COUNT(*)
             FROM work_items wi
-            INNER JOIN work_statuses ws ON ws.id = wi.status_id
-            INNER JOIN work_projects p ON p.id = wi.project_id
+            INNER JOIN work_statuses ws
+              ON ws.id = wi.status_id
+            INNER JOIN work_projects p
+              ON p.id = wi.project_id
             LEFT JOIN work_item_assignees assignee
               ON assignee.id = (
                     SELECT a.id
@@ -116,13 +173,17 @@ class WorkMyItemsRepository
               )
             WHERE " . implode(' AND ', $where) . "
         ");
+
         $statement->execute($parameters);
 
         return (int) $statement->fetchColumn();
     }
 
-    private function conditions(string $userReference, string $scope, string $query): array
-    {
+    private function conditions(
+        string $userReference,
+        string $scope,
+        string $query
+    ): array {
         $where = [
             'wi.archived_at IS NULL',
             'p.archived_at IS NULL',
@@ -132,13 +193,15 @@ class WorkMyItemsRepository
         if ($scope === 'unassigned') {
             $where[] = 'assignee.id IS NULL';
             $where[] = 'ws.is_closed = 0';
-            $where[] = "EXISTS (
-                SELECT 1
-                FROM work_project_members pm
-                WHERE pm.project_id = wi.project_id
-                  AND pm.user_reference = ?
-                  AND pm.left_at IS NULL
-            )";
+            $where[] = "
+                EXISTS (
+                    SELECT 1
+                    FROM work_project_members pm
+                    WHERE pm.project_id = wi.project_id
+                      AND pm.user_reference = ?
+                      AND pm.left_at IS NULL
+                )
+            ";
             $parameters[] = $userReference;
         } else {
             $where[] = 'assignee.user_reference = ?';
@@ -150,18 +213,30 @@ class WorkMyItemsRepository
                 $where[] = 'ws.is_closed = 0';
 
                 if ($scope === 'today') {
-                    $where[] = 'wi.due_at >= UTC_DATE()';
-                    $where[] = 'wi.due_at < UTC_DATE() + INTERVAL 1 DAY';
+                    $where[] =
+                        'wi.due_at >= UTC_DATE()';
+                    $where[] =
+                        'wi.due_at < UTC_DATE()'
+                        . ' + INTERVAL 1 DAY';
                 } elseif ($scope === 'overdue') {
-                    $where[] = 'wi.due_at IS NOT NULL';
-                    $where[] = 'wi.due_at < UTC_TIMESTAMP()';
+                    $where[] =
+                        'wi.due_at IS NOT NULL';
+                    $where[] =
+                        'wi.due_at < UTC_TIMESTAMP()';
                 }
             }
         }
 
         $query = trim($query);
+
         if ($query !== '') {
-            $where[] = '(wi.title LIKE ? OR p.title LIKE ? OR wi.public_reference LIKE ?)';
+            $where[] = "
+                (
+                    wi.title LIKE ?
+                    OR p.title LIKE ?
+                    OR wi.public_reference LIKE ?
+                )
+            ";
             $needle = '%' . $query . '%';
             $parameters[] = $needle;
             $parameters[] = $needle;
