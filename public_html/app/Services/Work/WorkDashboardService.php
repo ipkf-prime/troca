@@ -19,17 +19,25 @@ class WorkDashboardService extends BaseService
         $this->access ??= new WorkProjectAccessService();
     }
 
-    public function view(?array $filters = null, ?int $userId = null): array
-    {
+    public function view(
+        ?array $filters = null,
+        ?int $userId = null
+    ): array {
         $filters ??= is_array($_GET ?? null) ? $_GET : [];
-        $allProjects = $userId === null || $this->access->isPlatformAdmin($userId);
-        $userReference = $userId === null ? null : 'user:' . $userId;
+
+        $allProjects = $userId === null
+            || $this->access->isPlatformAdmin($userId);
+
+        $userReference = $userId === null
+            ? null
+            : 'user:' . $userId;
 
         $recentTasks = $this->dashboard->recentTasks(
             8,
             $userReference,
             $allProjects
         );
+
         $priorities = $this->references->itemPriorities();
 
         foreach ($recentTasks as &$task) {
@@ -39,10 +47,18 @@ class WorkDashboardService extends BaseService
         unset($task);
 
         return [
-            'summary' => $this->dashboard->summary($userReference, $allProjects),
+            'summary' => $this->dashboard->summary(
+                $userReference,
+                $allProjects
+            ),
             'recent_tasks' => $recentTasks,
-            'my_work' => $this->myItems->view($filters),
-            'access_scope' => $allProjects ? 'all' : 'project_membership',
+            'my_work' => $this->myItems->view(
+                $filters,
+                $userId
+            ),
+            'access_scope' => $allProjects
+                ? 'all'
+                : 'project_membership',
         ];
     }
 }

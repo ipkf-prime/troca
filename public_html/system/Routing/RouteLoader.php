@@ -22,6 +22,7 @@ class RouteLoader
             BASE_PATH . '/routes/user-profile-hotfix.php',
             BASE_PATH . '/routes/notifications.php',
             BASE_PATH . '/routes/communication-center.php',
+            BASE_PATH . '/routes/work-runtime.php',
         ] as $routeFile) {
             if (is_readable($routeFile)) {
                 require $routeFile;

@@ -18,8 +18,10 @@ class WorkMyItemsService extends BaseService
         $this->references ??= new WorkReferenceDataService();
     }
 
-    public function view(array $filters = []): array
-    {
+    public function view(
+        array $filters = [],
+        ?int $userId = null
+    ): array {
         $scopeOptions = $this->scopeOptions();
         $scope = trim((string) ($filters['scope'] ?? 'open'));
 
@@ -27,29 +29,45 @@ class WorkMyItemsService extends BaseService
             $scope = 'open';
         }
 
-        $query = $this->limit(trim((string) ($filters['q'] ?? '')), 120);
-        $userId = $this->auth->currentUserId();
+        $query = $this->limit(
+            trim((string) ($filters['q'] ?? '')),
+            120
+        );
+
+        $userId ??= $this->auth->currentUserId();
 
         if ($userId === null) {
             return [
                 'scope' => $scope,
                 'q' => $query,
                 'scope_options' => $scopeOptions,
-                'counts' => array_fill_keys(array_keys($scopeOptions), 0),
+                'counts' => array_fill_keys(
+                    array_keys($scopeOptions),
+                    0
+                ),
                 'items' => [],
                 'total' => 0,
             ];
         }
 
         $userReference = 'user:' . $userId;
-        $rows = $this->items->items($userReference, $scope, $query);
+        $rows = $this->items->items(
+            $userReference,
+            $scope,
+            $query
+        );
 
         foreach ($rows as &$row) {
-            $row['type_title'] = $this->typeOptions()[(string) $row['item_type']]
-                ?? (string) $row['item_type'];
-            $row['priority_title'] = $this->priorityOptions()[(string) $row['priority_code']]
-                ?? (string) $row['priority_code'];
-            $row['is_overdue'] = (int) $row['is_closed'] === 0
+            $row['type_title'] = $this->typeOptions()[
+                (string) $row['item_type']
+            ] ?? (string) $row['item_type'];
+
+            $row['priority_title'] = $this->priorityOptions()[
+                (string) $row['priority_code']
+            ] ?? (string) $row['priority_code'];
+
+            $row['is_overdue'] =
+                (int) $row['is_closed'] === 0
                 && !empty($row['due_at'])
                 && strtotime((string) $row['due_at']) < time();
         }

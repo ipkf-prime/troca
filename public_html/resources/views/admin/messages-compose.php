@@ -1,22 +1,30 @@
 <?php
 
 $recipients = $page['recipients'] ?? [];
-$status = (string) ($status ?? '');
+$messageStatus = trim(
+    (string) ($_GET['status'] ?? '')
+);
+
 ob_start();
+
 require BASE_PATH
     . '/resources/views/admin/partials/communication-style.php';
 ?>
 <section class="communication-panel">
-    <h2>ارسال پیام داخلی</h2>
-    <p class="communication-muted">
-        گیرندگان از سیاست فعال دیتابیس خوانده می‌شوند.
-        فعلاً سیاست پایه کاربران فعال است؛ قواعد نقش، سازمان
-        و حوزه دسترسی در مرحله بعد تکمیل می‌شوند.
-    </p>
+    <header class="communication-panel__head">
+        <div>
+            <h2>ارسال پیام داخلی</h2>
+            <p class="communication-muted">
+                گیرندگان از سیاست فعال دیتابیس خوانده می‌شوند.
+                قواعد نقش، سازمان و حوزه دسترسی در مرحله بعد
+                تکمیل می‌شوند.
+            </p>
+        </div>
+    </header>
 
-    <?php if ($status !== ''): ?>
+    <?php if ($messageStatus !== ''): ?>
         <div class="admin-alert">
-            <?= admin_h($status) ?>
+            <?= admin_h($messageStatus) ?>
         </div>
     <?php endif; ?>
 
@@ -32,22 +40,38 @@ require BASE_PATH
                 (new \IPKF\Security\Csrf())->token()
             ) ?>"
         >
+
         <label>
             <span>گیرنده</span>
-            <select name="recipient_user_id" required>
+            <select
+                name="recipient_user_id"
+                required
+            >
                 <option value="">انتخاب کنید</option>
+
                 <?php foreach ($recipients as $recipient): ?>
-                    <option value="<?= admin_h($recipient['id']) ?>">
-                        <?= admin_h($recipient['title']) ?>
+                    <option
+                        value="<?= admin_h(
+                            $recipient['id']
+                        ) ?>"
+                    >
+                        <?= admin_h(
+                            $recipient['title']
+                        ) ?>
+
                         <?php if (
-                            ($recipient['username'] ?? '') !== ''
+                            ($recipient['username'] ?? '')
+                                !== ''
                         ): ?>
-                            — <?= admin_h($recipient['username']) ?>
+                            — <?= admin_h(
+                                $recipient['username']
+                            ) ?>
                         <?php endif; ?>
                     </option>
                 <?php endforeach; ?>
             </select>
         </label>
+
         <label>
             <span>موضوع</span>
             <input
@@ -57,7 +81,8 @@ require BASE_PATH
                 required
             >
         </label>
-        <label>
+
+        <label class="communication-form__wide">
             <span>متن پیام</span>
             <textarea
                 name="body"
@@ -65,10 +90,18 @@ require BASE_PATH
                 required
             ></textarea>
         </label>
-        <div class="communication-actions">
-            <button class="admin-button" type="submit">
+
+        <div
+            class="communication-actions
+                communication-form__wide"
+        >
+            <button
+                class="admin-button"
+                type="submit"
+            >
                 ارسال پیام
             </button>
+
             <a
                 class="admin-button admin-button--soft"
                 href="/admin/messages/inbox"
@@ -79,5 +112,8 @@ require BASE_PATH
     </form>
 </section>
 <?php
+
 $content = ob_get_clean();
-require BASE_PATH . '/resources/views/admin/layout.php';
+
+require BASE_PATH
+    . '/resources/views/admin/layout.php';
