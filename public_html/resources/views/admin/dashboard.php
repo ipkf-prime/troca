@@ -2,7 +2,12 @@
 if (!function_exists('admin_h')) {
     function admin_h($value): string
     {
-        return htmlspecialchars((string) ($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8', false);
+        return htmlspecialchars(
+            (string) ($value ?? ''),
+            ENT_QUOTES | ENT_SUBSTITUTE,
+            'UTF-8',
+            false
+        );
     }
 }
 
@@ -10,32 +15,110 @@ $modules = $context['dashboard_modules'] ?? [];
 
 ob_start();
 ?>
+<style>
+.admin-dashboard-modules {
+    padding: clamp(.8rem, 1.4vw, 1.15rem);
+}
+
+.admin-dashboard-modules .admin-section__header {
+    margin-bottom: .7rem;
+}
+
+.admin-dashboard-modules .admin-module-launcher {
+    display: grid;
+    gap: .7rem;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+}
+
+.admin-dashboard-modules .admin-module-launcher__tile {
+    min-height: 122px;
+    padding: .85rem .95rem;
+}
+
+.admin-dashboard-modules .admin-module-launcher__icon {
+    height: 48px;
+    width: 48px;
+}
+
+.admin-dashboard-modules .admin-module-launcher__body strong {
+    font-size: 1rem;
+}
+
+.admin-dashboard-modules .admin-module-launcher__body small {
+    font-size: .72rem;
+    line-height: 1.65;
+}
+
+.admin-dashboard-modules .admin-module-launcher__enter {
+    height: 34px;
+    width: 34px;
+}
+
+@media (max-width: 1180px) {
+    .admin-dashboard-modules .admin-module-launcher {
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 850px) {
+    .admin-dashboard-modules .admin-module-launcher {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 560px) {
+    .admin-dashboard-modules .admin-module-launcher {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-dashboard-modules .admin-module-launcher__tile {
+        min-height: 104px;
+    }
+}
+</style>
+
 <?php if ($modules !== []): ?>
     <section class="admin-section admin-dashboard-modules">
         <div class="admin-section__header">
             <div>
-                <h2>&#x0645;&#x0627;&#x0698;&#x0648;&#x0644;&#x200C;&#x0647;&#x0627;&#x06CC; &#x0633;&#x0627;&#x0645;&#x0627;&#x0646;&#x0647;</h2>
-                <p class="admin-muted">&#x062F;&#x0633;&#x062A;&#x0631;&#x0633;&#x06CC; &#x0628;&#x0647; &#x0628;&#x062E;&#x0634;&#x200C;&#x0647;&#x0627; &#x0628;&#x0631; &#x0627;&#x0633;&#x0627;&#x0633; &#x0646;&#x0642;&#x0634; &#x0641;&#x0639;&#x0627;&#x0644; &#x0634;&#x0645;&#x0627; &#x0646;&#x0645;&#x0627;&#x06CC;&#x0634; &#x062F;&#x0627;&#x062F;&#x0647; &#x0645;&#x06CC;&#x200C;&#x0634;&#x0648;&#x062F;.</p>
+                <h2>ماژول‌های سامانه</h2>
+                <p class="admin-muted">
+                    دسترسی به بخش‌ها بر اساس نقش فعال شما نمایش داده می‌شود.
+                </p>
             </div>
         </div>
         <div class="admin-module-launcher">
             <?php foreach ($modules as $module): ?>
-                <a class="admin-module-launcher__tile admin-module-launcher__tile--<?= admin_h($module['color'] ?? 'blue') ?>" href="<?= admin_h($module['url'] ?? '#') ?>">
+                <a
+                    class="admin-module-launcher__tile admin-module-launcher__tile--<?= admin_h($module['color'] ?? 'blue') ?>"
+                    href="<?= admin_h($module['url'] ?? '#') ?>"
+                >
                     <span class="admin-module-launcher__icon">
-                        <?= \App\Support\AdminIcon::html((string) ($module['icon'] ?? 'dashboard')) ?>
+                        <?= \App\Support\AdminIcon::html(
+                            (string) ($module['icon'] ?? 'dashboard')
+                        ) ?>
                     </span>
                     <span class="admin-module-launcher__body">
                         <strong><?= admin_h($module['title'] ?? '') ?></strong>
-                        <small><?= admin_h($module['subtitle'] ?? $module['description'] ?? '') ?></small>
+                        <small><?= admin_h(
+                            $module['subtitle']
+                            ?? $module['description']
+                            ?? ''
+                        ) ?></small>
                     </span>
-                    <span class="admin-module-launcher__enter" aria-hidden="true">&#x2190;</span>
+                    <span class="admin-module-launcher__enter" aria-hidden="true">←</span>
                 </a>
             <?php endforeach; ?>
         </div>
     </section>
 <?php else: ?>
     <section class="admin-section">
-        <div class="admin-empty-state">&#x062F;&#x0631; &#x062D;&#x0627;&#x0644; &#x062D;&#x0627;&#x0636;&#x0631; &#x0645;&#x0627;&#x0698;&#x0648;&#x0644;&#x06CC; &#x0628;&#x0631;&#x0627;&#x06CC; &#x0646;&#x0642;&#x0634; &#x0641;&#x0639;&#x0627;&#x0644; &#x0634;&#x0645;&#x0627; &#x0646;&#x0645;&#x0627;&#x06CC;&#x0634; &#x062F;&#x0627;&#x062F;&#x0647; &#x0646;&#x0645;&#x06CC;&#x200C;&#x0634;&#x0648;&#x062F;.</div>
+        <div class="admin-empty-state">
+            در حال حاضر ماژولی برای نقش فعال شما نمایش داده نمی‌شود.
+        </div>
     </section>
 <?php endif; ?>
 <?php

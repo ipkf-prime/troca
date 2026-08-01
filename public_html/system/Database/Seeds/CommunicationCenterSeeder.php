@@ -345,13 +345,17 @@ class CommunicationCenterSeeder extends Seeder
                 ['automation.correspondence.view'], null,
                 ['/admin/automation', '/admin/automation/*'], 35],
             ['core', 'communications', 'group', 'پیام‌ها و اعلان‌ها',
-                'کارتابل داخلی، سرویس‌دهنده‌ها و قواعد ارسال',
+                'کارتابل داخلی و تنظیمات پیام و اعلان',
                 '/admin/communications', 'core', 'envelope', 'cyan',
                 ['messages.view', 'notifications.view',
-                    'notifications.providers.manage'],
+                    'notifications.providers.manage',
+                    'notifications.routing.manage',
+                    'notifications.preferences.self',
+                    'notifications.reports.view'],
                 'communications_unread_total',
                 ['/admin/communications', '/admin/messages/*',
-                    '/admin/notifications', '/admin/notifications/*'], 36],
+                    '/admin/notifications', '/admin/notifications/*',
+                    '/admin/communications/settings'], 36],
             ['core', 'reports', 'link', 'گزارش‌ها',
                 'گزارش‌های مدیریتی و عملیاتی',
                 '/admin/reports', 'core', 'reports', 'amber',
@@ -409,8 +413,27 @@ class CommunicationCenterSeeder extends Seeder
             'core',
             'messages-unread-alert',
             'link',
-            'پیام خوانده‌نشده',
-            'مشاهده پیام‌های جدید',
+            'کارتابل من',
+            'پیام‌ها و اعلان‌های خوانده‌نشده',
+            '/admin/messages/inbox',
+            'core',
+            'bell',
+            'cyan',
+            ['messages.view'],
+            'communications_unread_total',
+            ['/admin/messages/inbox', '/admin/messages/thread/*',
+                '/admin/notifications', '/admin/notifications/*'],
+            10,
+            'topbar',
+            0,
+        ]);
+
+        $this->upsertNavigation(null, [
+            'core',
+            'account-cartable',
+            'link',
+            'کارتابل من',
+            'پیام‌های دریافتی و گفتگوها',
             '/admin/messages/inbox',
             'core',
             'envelope',
@@ -418,9 +441,9 @@ class CommunicationCenterSeeder extends Seeder
             ['messages.view'],
             'messages_unread_count',
             ['/admin/messages/inbox', '/admin/messages/thread/*'],
-            10,
-            'topbar',
-            1,
+            5,
+            'account',
+            0,
         ]);
 
         $parentId = $this->navigationId('core', 'communications');
@@ -444,44 +467,41 @@ class CommunicationCenterSeeder extends Seeder
                 '/admin/notifications', 'core', 'status', 'violet',
                 ['notifications.view'], 'notifications_unread_count',
                 ['/admin/notifications', '/admin/notifications/*'], 40],
-            ['core', 'communications-providers', 'link',
-                'سرویس‌دهنده‌ها', 'ایمیل، پیام کوتاه و پیام‌رسان‌ها',
-                '/admin/communications/settings?section=providers',
+            ['core', 'communications-settings', 'link',
+                'تنظیمات پیام و اعلان',
+                'سرویس‌دهنده‌ها، قواعد، روش‌های دریافت و گزارش تحویل',
+                '/admin/communications/settings',
                 'core', 'sliders', 'purple',
-                ['notifications.providers.manage'], null,
+                ['notifications.providers.manage',
+                    'notifications.routing.manage',
+                    'notifications.preferences.self',
+                    'notifications.reports.view'], null,
                 ['/admin/communications/settings'], 50],
-            ['core', 'communications-provider-defaults', 'link',
-                'پیش‌فرض سرویس‌دهنده‌ها',
-                'اولویت، Failover و سرویس پیش‌فرض',
-                '/admin/communications/settings?section=defaults',
-                'core', 'circle-check', 'teal',
-                ['notifications.providers.manage'], null,
-                ['/admin/communications/settings'], 60],
-            ['core', 'communications-routing', 'link',
-                'قواعد ارسال', 'تعیین رویداد، کانال و سرویس‌دهنده',
-                '/admin/communications/settings?section=routing',
-                'core', 'organization', 'indigo',
-                ['notifications.routing.manage'], null,
-                ['/admin/communications/settings'], 70],
-            ['core', 'communications-preferences', 'link',
-                'ترجیحات ارسال من',
-                'انتخاب کانال‌های دریافت اعلان برای هر کاربر',
-                '/admin/communications/settings?section=preferences',
-                'core', 'user', 'blue',
-                ['notifications.preferences.self'], null,
-                ['/admin/communications/settings'], 80],
-            ['core', 'communications-reports', 'link',
-                'گزارش ارسال و تحویل',
-                'پیام‌های خروجی، وضعیت تحویل و خطاها',
-                '/admin/communications/settings?section=reports',
-                'core', 'reports', 'amber',
-                ['notifications.reports.view'], null,
-                ['/admin/communications/settings'], 90],
         ];
 
         foreach ($children as $item) {
             $this->upsertNavigation($parentId, $item);
         }
+
+        $obsolete = [
+            'communications-providers',
+            'communications-provider-defaults',
+            'communications-routing',
+            'communications-preferences',
+            'communications-reports',
+        ];
+        $placeholders = implode(
+            ',',
+            array_fill(0, count($obsolete), '?')
+        );
+        $deactivate = $this->db->prepare("
+            UPDATE admin_navigation_items
+            SET is_active = 0,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE shell_key = 'core'
+              AND item_key IN ({$placeholders})
+        ");
+        $deactivate->execute($obsolete);
     }
 
     private function seedRoutePermissions(): void

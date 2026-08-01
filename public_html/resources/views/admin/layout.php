@@ -68,11 +68,18 @@ $themeUserId = isset($context['user_id'])
 
 $theme = $themeService->theme($themeUserId);
 
-$avatarUrl = (string) (
-    $user['avatar_url']
-    ?? $theme['default_avatar_url']
-    ?? ''
-);
+$profileAvatarUrl = $themeUserId !== null
+    ? (new \App\Services\ProfileAvatarService())
+        ->urlForUser((int) $themeUserId)
+    : '';
+
+$avatarUrl = $profileAvatarUrl !== ''
+    ? $profileAvatarUrl
+    : (string) (
+        $user['avatar_url']
+        ?? $theme['default_avatar_url']
+        ?? ''
+    );
 
 $currentPath = parse_url(
     $_SERVER['REQUEST_URI'] ?? '/',
@@ -151,14 +158,71 @@ $systemNav = $themeUserId !== null
     )
     : [];
 
-$topbarNav = $themeUserId !== null
+$coreTopbarNav = $themeUserId !== null
     ? $dynamicNavigation->topbar(
         (int) $themeUserId,
-        $navigationShell
+        'core'
     )
     : [];
 
-$accountNav = $context['navigation']['account'] ?? [];
+$moduleTopbarNav = $themeUserId !== null
+    && $navigationShell !== 'core'
+        ? $dynamicNavigation->topbar(
+            (int) $themeUserId,
+            $navigationShell
+        )
+        : [];
+
+$topbarNavByKey = [];
+
+foreach (
+    array_merge($coreTopbarNav, $moduleTopbarNav)
+    as $topbarItem
+) {
+    $topbarKey = (string) (
+        $topbarItem['key']
+        ?? $topbarItem['url']
+        ?? uniqid('topbar-', true)
+    );
+
+    if (!isset($topbarNavByKey[$topbarKey])) {
+        $topbarNavByKey[$topbarKey] = $topbarItem;
+    }
+}
+
+$topbarNav = array_values($topbarNavByKey);
+
+$dynamicAccountNav = $themeUserId !== null
+    ? $dynamicNavigation->account(
+        (int) $themeUserId,
+        'core'
+    )
+    : [];
+
+$legacyAccountNav = is_array(
+    $context['navigation']['account'] ?? null
+)
+    ? $context['navigation']['account']
+    : [];
+
+$accountNavByKey = [];
+
+foreach (
+    array_merge($dynamicAccountNav, $legacyAccountNav)
+    as $accountItem
+) {
+    $accountKey = (string) (
+        $accountItem['key']
+        ?? $accountItem['url']
+        ?? uniqid('account-', true)
+    );
+
+    if (!isset($accountNavByKey[$accountKey])) {
+        $accountNavByKey[$accountKey] = $accountItem;
+    }
+}
+
+$accountNav = array_values($accountNavByKey);
 ?>
 <!doctype html>
 <html lang="fa" dir="rtl">
@@ -276,14 +340,76 @@ $accountNav = $context['navigation']['account'] ?? [];
 
         .admin-topbar-notification {
             align-items: center;
+            border: 1px solid var(--admin-border);
+            border-radius: 12px;
             display: inline-flex;
-            gap: .35rem;
+            height: 42px;
+            justify-content: center;
+            min-width: 42px;
+            padding: .45rem;
+            position: relative;
             text-decoration: none;
         }
 
-        .admin-topbar-notification .admin-icon {
-            height: 1rem;
-            width: 1rem;
+        .admin-topbar-notification > span:not(.admin-icon) {
+            display: none;
+        }
+
+        .admin-topbar-notification .admin-icon,
+        .admin-topbar-notification .admin-bell-icon {
+            height: 1.15rem;
+            width: 1.15rem;
+        }
+
+        .admin-topbar-notification.has-badge {
+            background: var(--admin-primary-soft);
+            border-color: var(--admin-primary);
+            color: var(--admin-primary);
+        }
+
+        .admin-topbar-notification b {
+            align-items: center;
+            background: #d92d20;
+            border: 2px solid var(--admin-surface);
+            border-radius: 999px;
+            color: #fff;
+            display: inline-flex;
+            font-size: .62rem;
+            font-weight: 800;
+            height: 19px;
+            justify-content: center;
+            min-width: 19px;
+            padding-inline: 3px;
+            position: absolute;
+            right: -5px;
+            top: -5px;
+        }
+
+        .admin-bell-icon svg {
+            fill: none;
+            height: 100%;
+            stroke: currentColor;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 1.8;
+            width: 100%;
+        }
+
+        .admin-dropdown a {
+            align-items: center;
+            display: flex;
+            gap: .5rem;
+            justify-content: space-between;
+        }
+
+        .admin-account-nav-badge {
+            background: var(--admin-primary-soft);
+            border-radius: 999px;
+            color: var(--admin-primary);
+            font-size: .66rem;
+            min-width: 1.35rem;
+            padding: .12rem .35rem;
+            text-align: center;
         }
 
         @media (max-width: 760px) {
@@ -655,22 +781,47 @@ $accountNav = $context['navigation']['account'] ?? [];
                     ): ?>
                         <a
                             class="admin-role
-                                admin-topbar-notification"
+                                admin-topbar-notification<?=
+                                    ($topbarItem['badge'] ?? '') !== ''
+                                        ? ' has-badge'
+                                        : ''
+                                ?>"
                             href="<?= admin_h(
                                 (string) (
                                     $topbarItem['url']
                                     ?? '#'
                                 )
                             ) ?>"
+                            title="<?= admin_h(
+                                $topbarItem['title'] ?? 'کارتابل من'
+                            ) ?>"
+                            aria-label="<?= admin_h(
+                                $topbarItem['title'] ?? 'کارتابل من'
+                            ) ?>"
                         >
-                            <?=
-                                \App\Support\AdminIcon::html(
-                                    (string) (
-                                        $topbarItem['icon']
-                                        ?? 'envelope'
+                            <?php if (
+                                (string) ($topbarItem['icon'] ?? '')
+                                    === 'bell'
+                            ): ?>
+                                <span
+                                    class="admin-bell-icon"
+                                    aria-hidden="true"
+                                >
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+                                        <path d="M10 21h4" />
+                                    </svg>
+                                </span>
+                            <?php else: ?>
+                                <?=
+                                    \App\Support\AdminIcon::html(
+                                        (string) (
+                                            $topbarItem['icon']
+                                            ?? 'envelope'
+                                        )
                                     )
-                                )
-                            ?>
+                                ?>
+                            <?php endif; ?>
 
                             <span>
                                 <?= admin_h(
@@ -774,9 +925,21 @@ $accountNav = $context['navigation']['account'] ?? [];
                                     href="<?= admin_h($href) ?>"
                                     role="menuitem"
                                 >
-                                    <?= admin_h(
+                                    <span><?= admin_h(
                                         $item['title'] ?? ''
-                                    ) ?>
+                                    ) ?></span>
+
+                                    <?php if (
+                                        ($item['badge'] ?? '') !== ''
+                                    ): ?>
+                                        <small
+                                            class="admin-account-nav-badge"
+                                        >
+                                            <?= admin_h(
+                                                $item['badge']
+                                            ) ?>
+                                        </small>
+                                    <?php endif; ?>
                                 </a>
                             <?php endforeach; ?>
                         </div>

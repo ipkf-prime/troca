@@ -76,6 +76,33 @@ class DynamicAdminNavigationService extends BaseService
         return $result;
     }
 
+    public function account(
+        int $userId,
+        string $shellKey
+    ): array {
+        $items = $this->items($shellKey);
+        $result = [];
+
+        foreach ($items as $item) {
+            if (
+                $item['parent_id'] !== null
+                || (string) (
+                    $item['placement_code'] ?? 'sidebar'
+                ) !== 'account'
+                || !$this->allowed($item, $userId)
+            ) {
+                continue;
+            }
+
+            $result[] = $this->present(
+                $item,
+                $userId
+            );
+        }
+
+        return $result;
+    }
+
     public function children(
         int $userId,
         string $shellKey,
