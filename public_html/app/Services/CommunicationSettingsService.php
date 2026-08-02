@@ -27,6 +27,10 @@ class CommunicationSettingsService extends BaseService
             'title' => 'گزارش ارسال و تحویل',
             'permission' => 'notifications.reports.view',
         ],
+        'internal' => [
+            'title' => 'پیام‌رسان داخلی',
+            'permission' => 'messages.admin.manage',
+        ],
     ];
 
     public function __construct(
@@ -106,6 +110,9 @@ class CommunicationSettingsService extends BaseService
                 && $section === 'reports'
                     ? $this->repository->deliveryReport()
                     : [],
+            'message_settings' => $section === 'internal'
+                ? (new InternalMessageAdministrationService())->settings($userId)
+                : [],
         ];
     }
 

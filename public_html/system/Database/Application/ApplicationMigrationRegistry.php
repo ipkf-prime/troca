@@ -44,6 +44,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\RepairPersonAddressReferenceDataAndGeography::class,
                     \IPKF\Database\Migrations\CreateNotificationCoreFoundationTables::class,
                     \IPKF\Database\Migrations\CreateCommunicationCenterFoundationTables::class,
+                    \IPKF\Database\Migrations\CreateSecureMessageExtensionTables::class,
                 ],
             ],
             'automation' => [

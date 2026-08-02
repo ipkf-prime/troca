@@ -163,7 +163,8 @@ $router->post('/admin/messages/compose', function (
                     $request->input('recipient_user_id'),
                 'subject' => $request->input('subject'),
                 'body' => $request->input('body'),
-            ]
+            ],
+            is_array($_FILES['attachments'] ?? null) ? $_FILES['attachments'] : []
         );
 
         return $response->redirect(
@@ -311,7 +312,8 @@ $router->post(
             )->reply(
                 (int) $context['user_id'],
                 $reference,
-                (string) $request->input('body', '')
+                (string) $request->input('body', ''),
+                is_array($_FILES['attachments'] ?? null) ? $_FILES['attachments'] : []
             );
 
             return $response->redirect(
@@ -383,6 +385,59 @@ $router->post(
     }
 );
 
+$router->get('/admin/messages/attachments/{reference}', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/messages/inbox');
+    if (!is_array($context)) return $context;
+    $file = (new \App\Services\InternalMessageAttachmentService())->download(
+        (int) $context['user_id'], trim((string) $request->route('reference'))
+    );
+    if ($file === null) return $response->redirect('/admin/messages/inbox?status=attachment_not_found');
+    $content = file_get_contents((string) $file['storage_path']);
+    if ($content === false) return $response->redirect('/admin/messages/inbox?status=attachment_not_found');
+    $ascii = preg_replace('/[^A-Za-z0-9._-]+/', '_', (string) $file['original_name']) ?: 'attachment';
+    return $response->status(200)->header('Content-Type', (string) $file['mime_type'])
+        ->header('X-Content-Type-Options', 'nosniff')->header('Cache-Control', 'private, no-store')
+        ->header('Content-Disposition', 'attachment; filename="' . $ascii . '"; filename*=UTF-8\'\'' . rawurlencode((string) $file['original_name']))
+        ->body($content);
+});
+
+$router->get('/admin/messages/monitor', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/messages/monitor');
+    if (!is_array($context)) return $context;
+    try { $page = (new \App\Services\InternalMessageAdministrationService())->index((int) $context['user_id']); }
+    catch (\Throwable) { return $response->redirect('/admin/dashboard?error=forbidden'); }
+    return $adminRender($response, 'messages-monitor', ['title' => 'نظارت بر پیام‌ها', 'context' => $context, 'page' => $page]);
+});
+
+$router->post('/admin/messages/monitor/{reference}', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/messages/monitor');
+    if (!is_array($context)) return $context;
+    $reference = trim((string) $request->route('reference'));
+    try {
+        $thread = (new \App\Services\InternalMessageAdministrationService())->thread((int) $context['user_id'], $reference, (string) $request->input('reason', ''));
+        if ($thread === null) throw new \RuntimeException('not_found');
+        \IPKF\Support\Session::put('message_monitor_' . $reference, $thread);
+        return $response->redirect('/admin/messages/monitor/view/' . rawurlencode($reference));
+    } catch (\Throwable $e) { return $response->redirect('/admin/messages/monitor?status=' . rawurlencode($e->getMessage())); }
+});
+
+$router->get('/admin/messages/monitor/view/{reference}', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/messages/monitor');
+    if (!is_array($context)) return $context;
+    $reference = trim((string) $request->route('reference'));
+    $page = \IPKF\Support\Session::get('message_monitor_' . $reference);
+    if (!is_array($page)) return $response->redirect('/admin/messages/monitor?status=reason_required');
+    return $adminRender($response, 'messages-monitor-thread', ['title' => 'مشاهده نظارتی پیام', 'context' => $context, 'page' => $page]);
+});
+
+$router->post('/admin/communications/settings/internal-messages', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/communications/settings');
+    if (!is_array($context)) return $context;
+    try { (new \App\Services\InternalMessageAdministrationService())->saveSettings((int) $context['user_id'], $_POST); }
+    catch (\Throwable) { return $response->redirect('/admin/dashboard?error=forbidden'); }
+    return $response->redirect('/admin/communications/settings?section=internal&status=saved');
+});
+
 $router->get(
     '/admin/communications/settings',
     function (
@@ -424,7 +479,10 @@ $router->get(
         );
         $requestedPath =
             '/admin/communications/settings';
-        $sectionAllowed = false;
+        $sectionAllowed = $section === 'internal'
+            && (new \App\Services\AuthorizationService())->hasPermission(
+                (int) $context['user_id'], 'messages.admin.manage'
+            );
 
         foreach ($allowedItems as $item) {
             $itemPath = (string) (

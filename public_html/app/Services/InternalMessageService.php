@@ -12,11 +12,15 @@ class InternalMessageService extends BaseService
         private ?InternalMessageRepository $messages = null,
         private ?NotificationPublisherService $publisher = null,
         private ?NotificationOutboxProcessorService $outbox = null,
+        private ?InternalMessageAttachmentService $attachments = null,
         private ?NotificationInboxService $notificationInbox = null
     ) {
         $this->messages ??= new InternalMessageRepository();
         $this->publisher ??= new NotificationPublisherService();
         $this->outbox ??= new NotificationOutboxProcessorService();
+        $this->attachments ??= new InternalMessageAttachmentService(
+            $this->messages
+        );
         $this->notificationInbox ??= new NotificationInboxService();
     }
 
@@ -56,6 +60,10 @@ class InternalMessageService extends BaseService
                 $userId,
                 '/admin/messages/thread/' . rawurlencode($reference)
             );
+            $this->notificationInbox->markActionRead(
+                $userId,
+                '/admin/messages/inbox'
+            );
         }
 
         return $thread;
@@ -70,8 +78,11 @@ class InternalMessageService extends BaseService
         }
     }
 
-    public function send(int $senderUserId, array $input): array
+    public function send(int $senderUserId, array $input, array $uploads = []): array
     {
+        if (($this->messages->settings()['enabled'] ?? '1') !== '1') {
+            throw new InvalidArgumentException('internal_messages_disabled');
+        }
         $recipientUserId = (int) (
             $input['recipient_user_id'] ?? 0
         );
@@ -96,7 +107,7 @@ class InternalMessageService extends BaseService
             );
         }
 
-        if ($body === '') {
+        if ($body === '' && !$this->hasUpload($uploads)) {
             throw new InvalidArgumentException(
                 'message_body_required'
             );
@@ -108,6 +119,7 @@ class InternalMessageService extends BaseService
             mb_substr($subject, 0, 300, 'UTF-8'),
             mb_substr($body, 0, 20000, 'UTF-8')
         );
+        $this->attachments->store($senderUserId, (string) $result['message_reference'], $uploads);
 
         $this->notify(
             $senderUserId,
@@ -122,11 +134,15 @@ class InternalMessageService extends BaseService
     public function reply(
         int $userId,
         string $conversationReference,
-        string $body
+        string $body,
+        array $uploads = []
     ): array {
+        if (($this->messages->settings()['enabled'] ?? '1') !== '1') {
+            throw new InvalidArgumentException('internal_messages_disabled');
+        }
         $body = trim($body);
 
-        if ($body === '') {
+        if ($body === '' && !$this->hasUpload($uploads)) {
             throw new InvalidArgumentException(
                 'message_body_required'
             );
@@ -137,6 +153,7 @@ class InternalMessageService extends BaseService
             $conversationReference,
             mb_substr($body, 0, 20000, 'UTF-8')
         );
+        $this->attachments->store($userId, (string) $result['message_reference'], $uploads);
 
         $thread = $this->messages->thread(
             $userId,
@@ -228,5 +245,14 @@ class InternalMessageService extends BaseService
         } catch (Throwable) {
             // Message persistence must not be rolled back.
         }
+    }
+
+    private function hasUpload(array $uploads): bool
+    {
+        $names = $uploads['name'] ?? null;
+        if (is_array($names)) {
+            return array_filter($names, static fn ($name): bool => trim((string) $name) !== '') !== [];
+        }
+        return trim((string) $names) !== '';
     }
 }

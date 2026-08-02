@@ -32,6 +32,7 @@ require BASE_PATH
         class="communication-form"
         method="post"
         action="/admin/messages/compose"
+        enctype="multipart/form-data"
     >
         <input
             type="hidden"
@@ -87,8 +88,14 @@ require BASE_PATH
             <textarea
                 name="body"
                 maxlength="20000"
-                required
             ></textarea>
+        </label>
+
+        <label class="communication-form__wide">
+            <span>پیوست‌ها (حداکثر ۳ فایل؛ هر فایل ۱۰ و مجموع ۲۰ مگابایت)</span>
+            <input type="file" name="attachments[]" multiple
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt">
+            <small class="communication-muted">PDF، Word، Excel، JPG، PNG یا TXT. ارسال پیام فقط با پیوست نیز مجاز است.</small>
         </label>
 
         <div

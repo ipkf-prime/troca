@@ -10,6 +10,9 @@ class InternalMessageLoginNotifierService extends BaseService
     public function notify(int $userId): void
     {
         try {
+            // Direct message notifications are canonical; do not create a second
+            // unread-on-login notification for the same underlying messages.
+            return;
             $unread = (new InternalMessageService())
                 ->unreadCount($userId);
 

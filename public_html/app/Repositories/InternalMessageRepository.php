@@ -362,6 +362,7 @@ class InternalMessageRepository extends BaseRepository
             SELECT
                 messages.body,
                 messages.sent_at,
+                (SELECT COUNT(*) FROM message_attachments ma WHERE ma.message_id = messages.id) AS attachment_count,
                 conversations.public_reference
                     AS conversation_reference,
                 conversations.subject,
@@ -451,6 +452,23 @@ class InternalMessageRepository extends BaseRepository
         $messages->execute([$conversationId]);
         $items = $messages->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
+        if (Database::tableExists('message_attachments')) {
+            $attachment = $this->connection()->prepare("SELECT public_reference, message_id, original_name, mime_type, size_bytes
+                FROM message_attachments WHERE message_id IN (SELECT id FROM message_messages WHERE conversation_id = ?) ORDER BY id");
+            $attachment->execute([$conversationId]);
+            $byMessage = [];
+            foreach ($attachment->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+                $byMessage[(int) $row['message_id']][] = $row;
+            }
+            $ids = $this->connection()->prepare('SELECT id, public_reference FROM message_messages WHERE conversation_id = ?');
+            $ids->execute([$conversationId]);
+            $referenceToId = array_column($ids->fetchAll(PDO::FETCH_ASSOC) ?: [], 'id', 'public_reference');
+            foreach ($items as &$item) {
+                $item['attachments'] = $byMessage[(int) ($referenceToId[$item['public_reference']] ?? 0)] ?? [];
+            }
+            unset($item);
+        }
+
         $this->markRead($userId, $conversationId);
 
         return [
@@ -509,6 +527,121 @@ class InternalMessageRepository extends BaseRepository
         $statement->execute([$userId, $userId]);
 
         return (int) $statement->fetchColumn();
+    }
+
+    public function addAttachment(string $messageReference, int $userId, array $file): void
+    {
+        $statement = $this->connection()->prepare("INSERT INTO message_attachments (
+            public_reference, message_id, original_name, stored_name, storage_path,
+            mime_type, extension, size_bytes, checksum_sha256, uploaded_by_user_id, created_at
+        ) SELECT ?, messages.id, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP
+          FROM message_messages AS messages WHERE messages.public_reference = ? LIMIT 1");
+        $statement->execute([
+            $file['public_reference'], $file['original_name'], $file['stored_name'],
+            $file['storage_path'], $file['mime_type'], $file['extension'],
+            $file['size_bytes'], $file['checksum_sha256'], $userId, $messageReference,
+        ]);
+        if ($statement->rowCount() !== 1) {
+            throw new RuntimeException('message_attachment_message_not_found');
+        }
+    }
+
+    public function attachmentForUser(int $userId, string $reference): ?array
+    {
+        $statement = $this->connection()->prepare("SELECT attachments.*
+            FROM message_attachments AS attachments
+            INNER JOIN message_messages AS messages ON messages.id = attachments.message_id
+            INNER JOIN message_conversation_participants AS participants
+              ON participants.conversation_id = messages.conversation_id
+             AND participants.user_id = ? AND participants.left_at IS NULL
+            WHERE attachments.public_reference = ? LIMIT 1");
+        $statement->execute([$userId, $reference]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    public function settings(): array
+    {
+        if (!Database::tableExists('message_settings')) {
+            return [];
+        }
+        return $this->connection()->query('SELECT setting_key, setting_value FROM message_settings')
+            ->fetchAll(PDO::FETCH_KEY_PAIR) ?: [];
+    }
+
+    public function saveSettings(int $userId, array $settings): void
+    {
+        $statement = $this->connection()->prepare('INSERT INTO message_settings
+            (setting_key, setting_value, updated_by_user_id, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value),
+            updated_by_user_id = VALUES(updated_by_user_id), updated_at = CURRENT_TIMESTAMP');
+        foreach ($settings as $key => $value) {
+            $statement->execute([(string) $key, (string) $value, $userId]);
+        }
+    }
+
+    public function monitor(int $limit = 100): array
+    {
+        $limit = max(1, min(200, $limit));
+        return $this->connection()->query("SELECT conversations.public_reference,
+            conversations.subject, conversations.status_code, conversations.last_message_at,
+            COUNT(messages.id) AS message_count, COUNT(attachments.id) AS attachment_count,
+            COALESCE(NULLIF(persons.full_name, ''), users.username, users.email) AS creator_title
+            FROM message_conversations conversations
+            INNER JOIN users ON users.id = conversations.created_by_user_id
+            LEFT JOIN persons ON persons.id = users.person_id
+            LEFT JOIN message_messages messages ON messages.conversation_id = conversations.id AND messages.deleted_at IS NULL
+            LEFT JOIN message_attachments attachments ON attachments.message_id = messages.id
+            GROUP BY conversations.id ORDER BY conversations.last_message_at DESC LIMIT {$limit}")
+            ->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function auditLog(int $limit = 100): array
+    {
+        if (!Database::tableExists('message_audit_events')) return [];
+        $limit = max(1, min(200, $limit));
+        return $this->connection()->query("SELECT audit.*, COALESCE(NULLIF(persons.full_name, ''), users.username, users.email) actor_title
+            FROM message_audit_events audit INNER JOIN users ON users.id = audit.actor_user_id
+            LEFT JOIN persons ON persons.id = users.person_id ORDER BY audit.occurred_at DESC, audit.id DESC LIMIT {$limit}")
+            ->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function monitoredThread(string $reference): ?array
+    {
+        $conversation = $this->connection()->prepare('SELECT * FROM message_conversations WHERE public_reference = ? LIMIT 1');
+        $conversation->execute([$reference]);
+        $header = $conversation->fetch(PDO::FETCH_ASSOC);
+        if (!$header) {
+            return null;
+        }
+        $messages = $this->connection()->prepare("SELECT messages.*, COALESCE(NULLIF(persons.full_name, ''), users.username, users.email, 'سامانه') sender_title
+            FROM message_messages messages LEFT JOIN users ON users.id = messages.sender_user_id
+            LEFT JOIN persons ON persons.id = users.person_id WHERE messages.conversation_id = ? AND messages.deleted_at IS NULL ORDER BY messages.id");
+        $messages->execute([(int) $header['id']]);
+        $items = $messages->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        if (Database::tableExists('message_attachments')) {
+            $files = $this->connection()->prepare("SELECT attachments.public_reference, attachments.message_id,
+                attachments.original_name, attachments.mime_type, attachments.size_bytes
+                FROM message_attachments attachments INNER JOIN message_messages messages ON messages.id = attachments.message_id
+                WHERE messages.conversation_id = ? ORDER BY attachments.id");
+            $files->execute([(int) $header['id']]);
+            $byMessage = [];
+            foreach ($files->fetchAll(PDO::FETCH_ASSOC) ?: [] as $file) $byMessage[(int) $file['message_id']][] = $file;
+            foreach ($items as &$item) $item['attachments'] = $byMessage[(int) $item['id']] ?? [];
+            unset($item);
+        }
+        return ['conversation' => $header, 'messages' => $items];
+    }
+
+    public function audit(int $actorUserId, string $event, ?int $conversationId, ?int $messageId, ?int $attachmentId, string $reason): void
+    {
+        $statement = $this->connection()->prepare("INSERT INTO message_audit_events
+            (public_reference, actor_user_id, conversation_id, message_id, attachment_id, event_code,
+             reason, ip_address, user_agent, occurred_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)");
+        $statement->execute(['msga_' . bin2hex(random_bytes(12)), $actorUserId, $conversationId,
+            $messageId, $attachmentId, $event, $reason,
+            substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 64),
+            substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 500)]);
     }
 
     public function userLabel(int $userId): string

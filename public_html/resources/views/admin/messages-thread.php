@@ -88,6 +88,22 @@ require BASE_PATH
                         ) ?></time>
                     </header>
                     <p><?= nl2br(admin_h($message['body'])) ?></p>
+                    <?php foreach (($message['attachments'] ?? []) as $attachment): ?>
+                        <a
+                            class="admin-button admin-button--soft admin-button--compact"
+                            href="/admin/messages/attachments/<?= admin_h(
+                                rawurlencode((string) $attachment['public_reference'])
+                            ) ?>"
+                        >
+                            📎 <?= admin_h($attachment['original_name']) ?>
+                            (<?= admin_h(\App\Support\AdminFormat::digits(
+                                number_format(
+                                    ((int) $attachment['size_bytes']) / 1048576,
+                                    2
+                                )
+                            )) ?> MB)
+                        </a>
+                    <?php endforeach; ?>
                 </article>
             <?php endforeach; ?>
         </div>
@@ -98,6 +114,7 @@ require BASE_PATH
             <form
                 class="message-reply-form"
                 method="post"
+                enctype="multipart/form-data"
                 action="<?= admin_h(
                     '/admin/messages/thread/'
                     . rawurlencode($conversationReference)
@@ -113,8 +130,16 @@ require BASE_PATH
                     name="body"
                     maxlength="20000"
                     placeholder="پاسخ خود را بنویسید…"
-                    required
                 ></textarea>
+                <label>
+                    <span>افزودن پیوست</span>
+                    <input
+                        type="file"
+                        name="attachments[]"
+                        multiple
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt"
+                    >
+                </label>
                 <div class="message-reply-actions">
                     <button class="admin-button" type="submit">
                         ارسال پاسخ
