@@ -177,6 +177,153 @@
     justify-content: space-between;
 }
 
+.message-page-shell {
+    display: grid;
+    gap: .75rem;
+    margin-inline: auto;
+    max-width: 1040px;
+}
+
+.message-thread-head {
+    align-items: center;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+}
+
+.message-thread-head__main {
+    display: grid;
+    gap: .55rem;
+    min-width: 0;
+}
+
+.message-back-link {
+    color: var(--admin-primary);
+    font-size: .8rem;
+    font-weight: 750;
+    text-decoration: none;
+}
+
+.message-thread-title-row {
+    align-items: center;
+    display: flex;
+    gap: .65rem;
+}
+
+.message-thread-title-row h2,
+.message-thread-title-row p {
+    margin: 0;
+}
+
+.message-thread-notice {
+    color: var(--admin-primary);
+    margin: 0;
+}
+
+.communication-status {
+    border-radius: 999px;
+    flex: 0 0 auto;
+    font-size: .72rem;
+    font-weight: 800;
+    padding: .25rem .58rem;
+}
+
+.communication-status--active {
+    background: var(--admin-primary-soft);
+    color: var(--admin-primary);
+}
+
+.communication-status--closed {
+    background: var(--admin-surface-muted);
+    color: var(--admin-text-muted);
+}
+
+.message-thread-panel {
+    background: color-mix(in srgb, var(--admin-surface-muted) 55%, transparent);
+    min-height: 260px;
+}
+
+.communication-thread {
+    gap: .85rem;
+}
+
+.communication-message {
+    border: 1px solid var(--admin-border);
+    border-radius: 14px 14px 4px 14px;
+    box-shadow: 0 3px 10px rgba(15, 80, 43, .04);
+    max-width: min(72%, 680px);
+    padding: .7rem .85rem;
+}
+
+.communication-message.is-mine {
+    background: var(--admin-primary-soft);
+    border-color: color-mix(in srgb, var(--admin-primary) 30%, var(--admin-border));
+    margin-inline-start: auto;
+}
+
+.communication-message.is-other {
+    background: var(--admin-surface);
+    border-radius: 14px 14px 14px 4px;
+    margin-inline-end: auto;
+}
+
+.communication-message header {
+    color: var(--admin-text-muted);
+    font-size: .74rem;
+}
+
+.communication-message p {
+    line-height: 1.9;
+    margin: .45rem 0 0;
+}
+
+.message-reply-panel {
+    padding: .8rem;
+}
+
+.message-reply-form {
+    display: grid;
+    gap: .45rem;
+}
+
+.message-reply-form label {
+    font-size: .8rem;
+    font-weight: 750;
+}
+
+.message-reply-form textarea {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    color: inherit;
+    font: inherit;
+    min-height: 88px;
+    padding: .65rem .75rem;
+    resize: vertical;
+    width: 100%;
+}
+
+.message-reply-form textarea:focus {
+    border-color: var(--admin-primary);
+    box-shadow: 0 0 0 3px var(--admin-primary-soft);
+    outline: 0;
+}
+
+.message-reply-actions {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.message-reply-actions .admin-button {
+    min-width: 132px;
+}
+
+.message-closed-note {
+    color: var(--admin-text-muted);
+    font-size: .86rem;
+    text-align: center;
+}
+
 .communication-tabs {
     display: flex;
     gap: .4rem;
@@ -218,6 +365,21 @@
 
     .communication-message {
         max-width: 96%;
+    }
+
+    .message-thread-head {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .message-thread-title-row {
+        align-items: flex-start;
+        justify-content: space-between;
+    }
+
+    .message-thread-head form .admin-button,
+    .message-reply-actions .admin-button {
+        width: 100%;
     }
 
     .communication-actions {
