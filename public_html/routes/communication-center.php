@@ -330,6 +330,59 @@ $router->post(
     }
 );
 
+$router->post(
+    '/admin/messages/thread/{reference}/{action}',
+    function (
+        $request,
+        $response
+    ) use ($adminGuard, $communicationAccess) {
+        $context = $adminGuard(
+            $response,
+            '/admin/messages/thread'
+        );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $reference = trim((string) $request->route('reference'));
+        $action = trim((string) $request->route('action'));
+        $threadPath = '/admin/messages/thread/'
+            . rawurlencode($reference);
+
+        if (
+            !in_array($action, ['close', 'reopen'], true)
+            || !$communicationAccess(
+                $context,
+                'POST',
+                $threadPath . '/reply'
+            )
+        ) {
+            return $response->redirect(
+                '/admin/dashboard?error=forbidden'
+            );
+        }
+
+        try {
+            $service = new \App\Services\InternalMessageService();
+            $action === 'close'
+                ? $service->close((int) $context['user_id'], $reference)
+                : $service->reopen((int) $context['user_id'], $reference);
+
+            return $response->redirect(
+                $threadPath . '?status=' . (
+                    $action === 'close' ? 'closed' : 'reopened'
+                )
+            );
+        } catch (\Throwable $exception) {
+            return $response->redirect(
+                $threadPath . '?status='
+                . rawurlencode($exception->getMessage())
+            );
+        }
+    }
+);
+
 $router->get(
     '/admin/communications/settings',
     function (

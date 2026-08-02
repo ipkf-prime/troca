@@ -152,6 +152,28 @@ class InternalMessageService extends BaseService
         return $result;
     }
 
+    public function close(
+        int $userId,
+        string $conversationReference
+    ): void {
+        $this->messages->setStatus(
+            $userId,
+            $conversationReference,
+            'closed'
+        );
+    }
+
+    public function reopen(
+        int $userId,
+        string $conversationReference
+    ): void {
+        $this->messages->setStatus(
+            $userId,
+            $conversationReference,
+            'active'
+        );
+    }
+
     private function notify(
         int $senderUserId,
         array $recipientUserIds,

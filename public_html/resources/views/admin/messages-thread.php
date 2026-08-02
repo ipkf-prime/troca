@@ -3,6 +3,19 @@
 $conversation = $page['conversation'] ?? [];
 $messages = $page['messages'] ?? [];
 $currentUserId = (int) ($context['user_id'] ?? 0);
+$conversationStatus = (string) (
+    $conversation['status_code'] ?? 'active'
+);
+$status = trim((string) ($_GET['status'] ?? ''));
+$statusMessage = match ($status) {
+    'sent' => 'پیام با موفقیت ارسال شد.',
+    'replied' => 'پاسخ با موفقیت ارسال شد.',
+    'closed' => 'گفتگو بسته شد.',
+    'reopened' => 'گفتگو دوباره باز شد.',
+    'message_conversation_closed' =>
+        'این گفتگو بسته است؛ برای پاسخ ابتدا آن را باز کنید.',
+    default => '',
+};
 ob_start();
 require BASE_PATH
     . '/resources/views/admin/partials/communication-style.php';
@@ -14,15 +27,42 @@ require BASE_PATH
     >
         بازگشت به کارتابل
     </a>
-    <h2 style="margin-top:1rem">
-        <?= admin_h(
-            $conversation['subject']
-            ?: 'گفتگوی داخلی'
-        ) ?>
-    </h2>
+    <div class="communication-panel__head" style="margin-top:1rem">
+        <div>
+            <h2><?= admin_h(
+                $conversation['subject'] ?: 'گفتگوی داخلی'
+            ) ?></h2>
+            <p class="communication-muted">
+                وضعیت: <?= $conversationStatus === 'closed'
+                    ? 'بسته' : 'باز' ?>
+            </p>
+        </div>
+        <form
+            method="post"
+            action="<?= admin_h(
+                '/admin/messages/thread/'
+                . rawurlencode($conversation['public_reference'])
+                . ($conversationStatus === 'closed'
+                    ? '/reopen' : '/close')
+            ) ?>"
+        >
+            <input type="hidden" name="_token" value="<?= admin_h(
+                (new \IPKF\Security\Csrf())->token()
+            ) ?>">
+            <button class="admin-button admin-button--soft" type="submit">
+                <?= $conversationStatus === 'closed'
+                    ? 'بازگشایی گفتگو' : 'بستن گفتگو' ?>
+            </button>
+        </form>
+    </div>
+    <?php if ($statusMessage !== ''): ?>
+        <p class="communication-muted" style="margin-top:.75rem">
+            <?= admin_h($statusMessage) ?>
+        </p>
+    <?php endif; ?>
 </section>
 
-<section class="communication-panel" style="margin-top:1rem">
+<section class="communication-panel" style="margin-top:1rem" id="reply">
     <div class="communication-thread">
         <?php foreach ($messages as $message): ?>
             <article class="communication-message<?= (int) (
@@ -44,6 +84,7 @@ require BASE_PATH
     </div>
 </section>
 
+<?php if ($conversationStatus === 'active'): ?>
 <section class="communication-panel" style="margin-top:1rem">
     <h3>ارسال پاسخ</h3>
     <form
@@ -77,6 +118,13 @@ require BASE_PATH
         </button>
     </form>
 </section>
+<?php else: ?>
+<section class="communication-panel" style="margin-top:1rem">
+    <p class="communication-muted">
+        این گفتگو بسته شده است. برای ارسال پاسخ، ابتدا آن را بازگشایی کنید.
+    </p>
+</section>
+<?php endif; ?>
 <?php
 $content = ob_get_clean();
 require BASE_PATH . '/resources/views/admin/layout.php';

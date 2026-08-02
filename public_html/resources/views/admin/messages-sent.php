@@ -34,6 +34,7 @@ require BASE_PATH
                         <th>موضوع</th>
                         <th>متن</th>
                         <th>زمان</th>
+                        <th>وضعیت گفتگو</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -66,6 +67,8 @@ require BASE_PATH
                         <td dir="ltr"><?= admin_h(
                             $item['sent_at']
                         ) ?></td>
+                        <td><?= ($item['status_code'] ?? 'active') === 'closed'
+                            ? 'بسته' : 'باز' ?></td>
                     </tr>
                 <?php endforeach; ?>
                 </tbody>

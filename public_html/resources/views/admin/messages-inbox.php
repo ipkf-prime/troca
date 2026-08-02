@@ -41,6 +41,7 @@ require BASE_PATH
                         <th>موضوع</th>
                         <th>آخرین پیام</th>
                         <th>زمان</th>
+                        <th>وضعیت</th>
                         <th>خوانده‌نشده</th>
                     </tr>
                 </thead>
@@ -79,6 +80,8 @@ require BASE_PATH
                         <td dir="ltr"><?= admin_h(
                             $item['last_message_at'] ?? ''
                         ) ?></td>
+                        <td><?= ($item['status_code'] ?? 'active') === 'closed'
+                            ? 'بسته' : 'باز' ?></td>
                         <td><?= admin_h(
                             \App\Support\AdminFormat::digits(
                                 (int) $item['unread_count']

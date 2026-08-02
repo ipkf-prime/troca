@@ -207,6 +207,10 @@ class InternalMessageRepository extends BaseRepository
             );
         }
 
+        if ($this->conversationStatus($conversationId) !== 'active') {
+            throw new RuntimeException('message_conversation_closed');
+        }
+
         $db = $this->connection();
         $db->beginTransaction();
 
@@ -296,6 +300,7 @@ class InternalMessageRepository extends BaseRepository
             SELECT
                 conversations.public_reference,
                 conversations.subject,
+                conversations.status_code,
                 conversations.last_message_at,
                 last_message.body AS last_message_body,
                 COALESCE(
@@ -335,7 +340,7 @@ class InternalMessageRepository extends BaseRepository
             WHERE participants.user_id = :user_id
               AND participants.left_at IS NULL
               AND participants.archived_at IS NULL
-              AND conversations.status_code = 'active'
+              AND conversations.status_code IN ('active', 'closed')
             ORDER BY conversations.last_message_at DESC,
                 conversations.id DESC
             LIMIT {$limit}
@@ -360,6 +365,7 @@ class InternalMessageRepository extends BaseRepository
                 conversations.public_reference
                     AS conversation_reference,
                 conversations.subject,
+                conversations.status_code,
                 (
                     SELECT GROUP_CONCAT(
                         COALESCE(
@@ -453,6 +459,33 @@ class InternalMessageRepository extends BaseRepository
         ];
     }
 
+    public function setStatus(
+        int $userId,
+        string $reference,
+        string $status
+    ): void {
+        if (!in_array($status, ['active', 'closed'], true)) {
+            throw new RuntimeException('message_status_invalid');
+        }
+
+        $conversationId = $this->conversationIdForUser(
+            $userId,
+            $reference
+        );
+
+        if ($conversationId === null) {
+            throw new RuntimeException('message_conversation_forbidden');
+        }
+
+        $statement = $this->connection()->prepare("
+            UPDATE message_conversations
+            SET status_code = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ");
+        $statement->execute([$status, $conversationId]);
+    }
+
     public function unreadCount(int $userId): int
     {
         if (!$this->available()) {
@@ -516,6 +549,19 @@ class InternalMessageRepository extends BaseRepository
         $id = $statement->fetchColumn();
 
         return $id === false ? null : (int) $id;
+    }
+
+    private function conversationStatus(int $conversationId): string
+    {
+        $statement = $this->connection()->prepare("
+            SELECT status_code
+            FROM message_conversations
+            WHERE id = ?
+            LIMIT 1
+        ");
+        $statement->execute([$conversationId]);
+
+        return (string) $statement->fetchColumn();
     }
 
     private function markRead(int $userId, int $conversationId): void
