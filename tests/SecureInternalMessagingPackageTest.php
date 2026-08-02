@@ -25,7 +25,10 @@ $expect(str_contains($routes, '/admin/messages/attachments/{reference}')
 $expect(str_contains($admin, 'messages.admin.view') && str_contains($admin, 'monitor_reason_required')
     && str_contains($migration, 'ip_address') && str_contains($migration, 'user_agent'),
     'Audited administrator monitoring is incomplete.');
-$expect(str_contains($message, "markActionRead(\$userId, '/admin/messages/inbox')")
-    && str_contains($login, 'do not create a second'), 'Duplicate bell notification fix is missing.');
+$expect(
+    preg_match("~markActionRead\\s*\\(\\s*\\\$userId\\s*,\\s*'/admin/messages/inbox'\\s*\\)~", $message) === 1
+    && str_contains($login, 'do not create a second'),
+    'Duplicate bell notification fix is missing.'
+);
 $expect(!preg_match('/\b(?:DROP\s+TABLE|TRUNCATE\s+TABLE)\b/i', $migration), 'Destructive SQL is present.');
 echo "Secure internal messaging package checks passed.\n";
