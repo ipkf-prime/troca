@@ -1,6 +1,13 @@
 <?php
 
 $items = $page['items'] ?? [];
+$messageDate = static function ($value): string {
+    $value = trim((string) $value);
+    $timestamp = $value === '' ? false : strtotime($value);
+    if ($timestamp === false) return $value;
+    return \IPKF\Support\PersianDate::fromGregorianDate(date('Y-m-d', $timestamp))
+        . ' - ' . date('H:i', $timestamp);
+};
 ob_start();
 require BASE_PATH
     . '/resources/views/admin/partials/communication-style.php';
@@ -29,7 +36,7 @@ require BASE_PATH
         <div class="communication-table-wrap">
             <table class="communication-table">
                 <thead>
-                    <tr>
+                    <tr class="communication-clickable-row">
                         <th>گیرنده</th>
                         <th>موضوع</th>
                         <th>متن</th>
@@ -49,7 +56,7 @@ require BASE_PATH
                                 . rawurlencode(
                                     $item['conversation_reference']
                                 )
-                            ) ?>">
+                            ) ?>" class="communication-row-link">
                                 <?= admin_h(
                                     $item['subject']
                                     ?: 'بدون موضوع'
@@ -65,7 +72,7 @@ require BASE_PATH
                             )
                         ) ?></td>
                         <td dir="ltr"><?= admin_h(
-                            $item['sent_at']
+                            $messageDate($item['sent_at'] ?? '')
                         ) ?></td>
                         <td><?= ($item['status_code'] ?? 'active') === 'closed'
                             ? 'بسته' : 'باز' ?></td>

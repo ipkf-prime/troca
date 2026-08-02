@@ -96,8 +96,8 @@ ob_start();
 
 .notification-card {
     display: grid;
-    gap: .6rem;
-    padding: .8rem .9rem;
+    gap: .4rem;
+    padding: .65rem .8rem;
 }
 
 .notification-card.is-unread {
@@ -131,7 +131,7 @@ ob_start();
 .notification-card p {
     color: var(--admin-text-muted);
     font-size: .74rem;
-    line-height: 1.9;
+    line-height: 1.65;
     margin: 0;
     white-space: pre-line;
 }
@@ -310,7 +310,12 @@ ob_start();
                             </span>
                             <span class="notification-badge">
                                 <?= admin_h(
-                                    $item['category_code']
+                                    match ($item['category_code']) {
+                                        'messages' => 'پیام داخلی',
+                                        'work' => 'مدیریت کار',
+                                        'system' => 'سامانه',
+                                        default => 'عمومی',
+                                    }
                                 ) ?>
                             </span>
                             <?php if (!empty($item['is_read'])): ?>

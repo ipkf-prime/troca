@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Repositories\NotificationRepository;
+use IPKF\Support\PersianDate;
 use Throwable;
 
 class NotificationInboxService extends BaseService
@@ -148,7 +149,9 @@ class NotificationInboxService extends BaseService
                 (string) ($row['category_code'] ?? 'general'),
             'created_at' => $timestamp === false
                 ? $createdAt
-                : date('Y-m-d H:i', $timestamp),
+                : PersianDate::fromGregorianDate(
+                    date('Y-m-d', $timestamp)
+                ) . ' - ' . date('H:i', $timestamp),
             'is_read' => !empty($row['read_at']),
         ];
     }

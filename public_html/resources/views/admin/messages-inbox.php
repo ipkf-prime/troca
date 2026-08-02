@@ -2,6 +2,13 @@
 
 $items = $page['items'] ?? [];
 $unread = (int) ($page['unread_count'] ?? 0);
+$messageDate = static function ($value): string {
+    $value = trim((string) $value);
+    $timestamp = $value === '' ? false : strtotime($value);
+    if ($timestamp === false) return $value;
+    return \IPKF\Support\PersianDate::fromGregorianDate(date('Y-m-d', $timestamp))
+        . ' - ' . date('H:i', $timestamp);
+};
 ob_start();
 require BASE_PATH
     . '/resources/views/admin/partials/communication-style.php';
@@ -47,7 +54,7 @@ require BASE_PATH
                 </thead>
                 <tbody>
                 <?php foreach ($items as $item): ?>
-                    <tr class="<?= (int) $item['unread_count'] > 0
+                    <tr class="communication-clickable-row <?= (int) $item['unread_count'] > 0
                         ? 'communication-row-unread'
                         : '' ?>">
                         <td><?= admin_h(
@@ -59,7 +66,7 @@ require BASE_PATH
                                 . rawurlencode(
                                     $item['public_reference']
                                 )
-                            ) ?>">
+                            ) ?>" class="communication-row-link">
                                 <?= admin_h(
                                     $item['subject']
                                     ?: 'بدون موضوع'
@@ -78,7 +85,7 @@ require BASE_PATH
                             )
                         ) ?></td>
                         <td dir="ltr"><?= admin_h(
-                            $item['last_message_at'] ?? ''
+                            $messageDate($item['last_message_at'] ?? '')
                         ) ?></td>
                         <td><?= ($item['status_code'] ?? 'active') === 'closed'
                             ? 'بسته' : 'باز' ?></td>

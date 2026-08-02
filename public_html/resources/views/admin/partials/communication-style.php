@@ -148,6 +148,22 @@
     white-space: nowrap;
 }
 
+.communication-clickable-row {
+    cursor: pointer;
+    position: relative;
+}
+
+.communication-clickable-row:hover {
+    background: var(--admin-surface-muted);
+}
+
+.communication-row-link::after {
+    content: "";
+    inset: 0;
+    position: absolute;
+    z-index: 1;
+}
+
 .communication-row-unread {
     font-weight: 800;
 }
@@ -178,6 +194,7 @@
 }
 
 .message-page-shell {
+    min-width: 0;
     display: grid;
     gap: .75rem;
     margin-inline: auto;
@@ -192,6 +209,7 @@
 }
 
 .message-thread-head__main {
+    min-width: 0;
     display: grid;
     gap: .55rem;
     min-width: 0;

@@ -29,6 +29,11 @@ class InternalMessageService extends BaseService
 
     public function inbox(int $userId): array
     {
+        $this->notificationInbox->markActionRead(
+            $userId,
+            '/admin/messages/inbox'
+        );
+
         return [
             'items' => $this->messages->inbox($userId),
             'unread_count' => $this->messages->unreadCount($userId),

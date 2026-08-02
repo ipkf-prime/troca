@@ -17,11 +17,6 @@ class InternalMessageLoginNotifierService extends BaseService
                 return;
             }
 
-            $loginAt = (string) Session::get(
-                'auth_login_at',
-                gmdate('c')
-            );
-
             (new NotificationPublisherService())->publish([
                 'event_type' => 'messages.unread_on_login',
                 'source_module' => 'communications',
@@ -41,7 +36,7 @@ class InternalMessageLoginNotifierService extends BaseService
                 'idempotency_key' => 'messages.login:'
                     . $userId
                     . ':'
-                    . hash('sha256', $loginAt),
+                    . $unread,
             ]);
 
             (new NotificationOutboxProcessorService())

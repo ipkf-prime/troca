@@ -5,6 +5,13 @@ $messages = $page['messages'] ?? [];
 $currentUserId = (int) ($context['user_id'] ?? 0);
 $conversationStatus = (string) ($conversation['status_code'] ?? 'active');
 $conversationReference = (string) ($conversation['public_reference'] ?? '');
+$messageDate = static function ($value): string {
+    $value = trim((string) $value);
+    $timestamp = $value === '' ? false : strtotime($value);
+    if ($timestamp === false) return $value;
+    return \IPKF\Support\PersianDate::fromGregorianDate(date('Y-m-d', $timestamp))
+        . ' - ' . date('H:i', $timestamp);
+};
 $status = trim((string) ($_GET['status'] ?? ''));
 $statusMessage = match ($status) {
     'sent' => 'پیام با موفقیت ارسال شد.',
@@ -74,7 +81,9 @@ require BASE_PATH
                     ? ' is-mine' : ' is-other' ?>">
                     <header>
                         <strong><?= admin_h($message['sender_title']) ?></strong>
-                        <time dir="ltr"><?= admin_h($message['sent_at']) ?></time>
+                        <time dir="ltr"><?= admin_h(
+                            $messageDate($message['sent_at'] ?? '')
+                        ) ?></time>
                     </header>
                     <p><?= nl2br(admin_h($message['body'])) ?></p>
                 </article>
