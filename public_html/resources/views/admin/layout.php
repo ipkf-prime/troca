@@ -315,6 +315,7 @@ $accountNav = $themeUserId !== null
 
         .admin-topbar-notification {
             align-items: center;
+            overflow: visible;
             border: 1px solid var(--admin-border);
             border-radius: 12px;
             display: inline-flex;
@@ -357,9 +358,9 @@ $accountNav = $themeUserId !== null
             min-width: 19px;
             padding-inline: 3px;
             position: absolute;
-            right: 2px;
-            top: 2px;
-            transform: translate(35%, -35%);
+            right: -5px;
+            top: -5px;
+            transform: none;
             z-index: 2;
         }
 

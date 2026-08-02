@@ -644,7 +644,14 @@ class NotificationRepository extends BaseRepository
                     CURRENT_TIMESTAMP
                 ),
                 recipients.updated_at = CURRENT_TIMESTAMP
-            WHERE notifications.action_url = ?
+            WHERE (
+                  notifications.action_url = ?
+                  OR notifications.action_url = CONCAT(?, '/')
+                  OR notifications.action_url LIKE CONCAT(?, '?%')
+                  OR notifications.action_url LIKE CONCAT('%', ?)
+                  OR notifications.action_url LIKE CONCAT('%', ?, '/')
+                  OR notifications.action_url LIKE CONCAT('%', ?, '?%')
+              )
               AND (
                   recipients.user_id = ?
                   OR recipients.user_reference = ?
@@ -653,6 +660,11 @@ class NotificationRepository extends BaseRepository
               AND recipients.archived_at IS NULL
         ");
         $statement->execute([
+            $actionUrl,
+            $actionUrl,
+            $actionUrl,
+            $actionUrl,
+            $actionUrl,
             $actionUrl,
             $userId,
             (string) $userId,
