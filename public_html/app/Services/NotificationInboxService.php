@@ -151,7 +151,9 @@ class NotificationInboxService extends BaseService
                 ? $createdAt
                 : PersianDate::fromGregorianDate(
                     date('Y-m-d', $timestamp)
-                ) . ' - ' . date('H:i', $timestamp),
+                ) . ' - ' . \App\Support\AdminFormat::digits(
+                    date('H:i', $timestamp)
+                ),
             'is_read' => !empty($row['read_at']),
         ];
     }

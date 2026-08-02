@@ -6,7 +6,9 @@ $messageDate = static function ($value): string {
     $timestamp = $value === '' ? false : strtotime($value);
     if ($timestamp === false) return $value;
     return \IPKF\Support\PersianDate::fromGregorianDate(date('Y-m-d', $timestamp))
-        . ' - ' . date('H:i', $timestamp);
+        . ' - ' . \App\Support\AdminFormat::digits(
+            date('H:i', $timestamp)
+        );
 };
 ob_start();
 require BASE_PATH
