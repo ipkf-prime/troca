@@ -334,6 +334,46 @@ ob_start();
                                 </a>
                             <?php endif; ?>
 
+                            <?php if (empty($item['is_read'])): ?>
+                                <form
+                                    method="post"
+                                    action="<?= admin_h(
+                                        '/admin/notifications/'
+                                        . rawurlencode(
+                                            $item['reference']
+                                        )
+                                        . '/read'
+                                    ) ?>"
+                                >
+                                    <input
+                                        type="hidden"
+                                        name="_token"
+                                        value="<?= admin_h(
+                                            (new \IPKF\Security\Csrf())
+                                                ->token()
+                                        ) ?>"
+                                    >
+                                    <input
+                                        type="hidden"
+                                        name="return_to"
+                                        value="<?= admin_h(
+                                            $pageUrl(
+                                                (int) (
+                                                    $pagination['page']
+                                                    ?? 1
+                                                )
+                                            )
+                                        ) ?>"
+                                    >
+                                    <button
+                                        class="admin-button"
+                                        type="submit"
+                                    >
+                                        خواندم
+                                    </button>
+                                </form>
+                            <?php endif; ?>
+
                         </div>
                     </footer>
                 </article>

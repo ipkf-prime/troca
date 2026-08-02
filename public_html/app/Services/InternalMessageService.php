@@ -11,11 +11,13 @@ class InternalMessageService extends BaseService
     public function __construct(
         private ?InternalMessageRepository $messages = null,
         private ?NotificationPublisherService $publisher = null,
-        private ?NotificationOutboxProcessorService $outbox = null
+        private ?NotificationOutboxProcessorService $outbox = null,
+        private ?NotificationInboxService $notificationInbox = null
     ) {
         $this->messages ??= new InternalMessageRepository();
         $this->publisher ??= new NotificationPublisherService();
         $this->outbox ??= new NotificationOutboxProcessorService();
+        $this->notificationInbox ??= new NotificationInboxService();
     }
 
     public function composePage(int $userId): array
@@ -42,7 +44,16 @@ class InternalMessageService extends BaseService
         int $userId,
         string $reference
     ): ?array {
-        return $this->messages->thread($userId, $reference);
+        $thread = $this->messages->thread($userId, $reference);
+
+        if ($thread !== null) {
+            $this->notificationInbox->markActionRead(
+                $userId,
+                '/admin/messages/thread/' . rawurlencode($reference)
+            );
+        }
+
+        return $thread;
     }
 
     public function unreadCount(int $userId): int

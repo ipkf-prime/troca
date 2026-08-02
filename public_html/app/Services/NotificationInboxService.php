@@ -38,27 +38,6 @@ class NotificationInboxService extends BaseService
                 self::PER_PAGE
             );
 
-            foreach ($result['items'] ?? [] as &$row) {
-                if (!empty($row['read_at'])) {
-                    continue;
-                }
-
-                $reference = trim((string) (
-                    $row['public_reference'] ?? ''
-                ));
-
-                if (
-                    $reference !== ''
-                    && $this->notifications->markRead(
-                        $userId,
-                        $reference
-                    )
-                ) {
-                    $row['read_at'] = date('Y-m-d H:i:s');
-                }
-            }
-            unset($row);
-
             $unread = $this->notifications->unreadCount(
                 $userId
             );
@@ -123,6 +102,20 @@ class NotificationInboxService extends BaseService
             );
         } catch (Throwable) {
             return false;
+        }
+    }
+
+    public function markActionRead(
+        int $userId,
+        string $actionUrl
+    ): int {
+        try {
+            return $this->notifications->markActionRead(
+                $userId,
+                $actionUrl
+            );
+        } catch (Throwable) {
+            return 0;
         }
     }
 

@@ -621,6 +621,46 @@ class NotificationRepository extends BaseRepository
         return $statement->rowCount() > 0;
     }
 
+    public function markActionRead(
+        int $userId,
+        string $actionUrl
+    ): int {
+        $actionUrl = trim($actionUrl);
+
+        if ($actionUrl === '') {
+            return 0;
+        }
+
+        $statement = $this->connection()->prepare("
+            UPDATE notification_recipients AS recipients
+            INNER JOIN notifications
+              ON notifications.id = recipients.notification_id
+            SET recipients.seen_at = COALESCE(
+                    recipients.seen_at,
+                    CURRENT_TIMESTAMP
+                ),
+                recipients.read_at = COALESCE(
+                    recipients.read_at,
+                    CURRENT_TIMESTAMP
+                ),
+                recipients.updated_at = CURRENT_TIMESTAMP
+            WHERE notifications.action_url = ?
+              AND (
+                  recipients.user_id = ?
+                  OR recipients.user_reference = ?
+              )
+              AND recipients.read_at IS NULL
+              AND recipients.archived_at IS NULL
+        ");
+        $statement->execute([
+            $actionUrl,
+            $userId,
+            (string) $userId,
+        ]);
+
+        return $statement->rowCount();
+    }
+
     public function markAllRead(int $userId): int
     {
         $statement = $this->connection()->prepare("
