@@ -125,12 +125,13 @@ try {
         new \IPKF\Database\Migrations\RepairPersonAddressReferenceDataAndGeography(),
         new \IPKF\Database\Migrations\CreateNotificationCoreFoundationTables(),
         new \IPKF\Database\Migrations\CreateCommunicationCenterFoundationTables(),
+        new \IPKF\Database\Migrations\CreateSecureMessageExtensionTables(),
     ]);
 
     $manager->migrate();
 
     header('Content-Type: text/plain; charset=UTF-8');
-    echo "MIGRATION DONE: ipkf_runtime_checks, auth_rbac_schema, identity_access_foundation, admin_panel_shell, scoped_admin_theme_settings, admin_users_organization, extended_person_data, dynamic_organization_core, legacy_jalali_appointment_date_repair, dynamic_geography, multi_source_coding_geography, ministry_geography_import_metadata, statistical_center_geography_import_metadata, ministry_sci_geography_crosswalk, ministry_canonical_geography, ministry_canonical_geography_apply_recovery, automation_correspondence_foundation, correspondence_document_templates, platform_commercial_foundation, application_migration_history, application_module_registry, application_module_runtime_config, authentication_login_history, person_address_reference_data_and_geography, notification_core_foundation, communication_center_foundation";
+    echo "MIGRATION DONE: ipkf_runtime_checks, auth_rbac_schema, identity_access_foundation, admin_panel_shell, scoped_admin_theme_settings, admin_users_organization, extended_person_data, dynamic_organization_core, legacy_jalali_appointment_date_repair, dynamic_geography, multi_source_coding_geography, ministry_geography_import_metadata, statistical_center_geography_import_metadata, ministry_sci_geography_crosswalk, ministry_canonical_geography, ministry_canonical_geography_apply_recovery, automation_correspondence_foundation, correspondence_document_templates, platform_commercial_foundation, application_migration_history, application_module_registry, application_module_runtime_config, authentication_login_history, person_address_reference_data_and_geography, notification_core_foundation, communication_center_foundation, secure_message_extensions";
 } catch (Throwable $exception) {
     $failedMigrationClass = 'unknown';
     $failedMigrationName = 'unknown';
