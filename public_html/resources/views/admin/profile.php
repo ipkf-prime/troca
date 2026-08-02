@@ -33,8 +33,9 @@ ob_start();
 .profile-avatar-card {
     align-items: center;
     display: grid;
-    gap: 1rem;
-    grid-template-columns: auto minmax(0, 1fr);
+    gap: .85rem;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding-block: .85rem;
 }
 
 .profile-avatar-preview {
@@ -43,10 +44,10 @@ ob_start();
     border: 1px solid var(--admin-border);
     border-radius: 50%;
     display: flex;
-    height: 104px;
+    height: 76px;
     justify-content: center;
     overflow: hidden;
-    width: 104px;
+    width: 76px;
     cursor: pointer;
     position: relative;
     transition: border-color .18s ease, transform .18s ease;
@@ -94,8 +95,25 @@ ob_start();
 }
 
 .profile-avatar-tools {
-    display: grid;
-    gap: .65rem;
+    align-items: center;
+    display: flex;
+    gap: .6rem;
+    min-width: 0;
+}
+
+.profile-avatar-copy {
+    min-width: 0;
+}
+
+.profile-avatar-copy h2 {
+    margin: 0 0 .2rem;
+}
+
+.profile-avatar-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
 }
 
 .profile-avatar-upload {
@@ -111,11 +129,18 @@ ob_start();
 @media (max-width: 680px) {
     .profile-avatar-card {
         grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
     }
 
     .profile-avatar-preview {
-        height: 88px;
-        width: 88px;
+        height: 72px;
+        width: 72px;
+    }
+
+    .profile-avatar-tools,
+    .profile-avatar-actions {
+        justify-content: center;
     }
 
 }
@@ -153,15 +178,14 @@ ob_start();
         </div>
 
         <div class="profile-avatar-tools">
-            <div class="account-card__head">
-                <div>
-                    <h2>تصویر پروفایل</h2>
-                    <p>
-                        تصویر در هدر سامانه و منوی کاربری نمایش داده می‌شود.
-                    </p>
-                </div>
+            <div class="profile-avatar-copy">
+                <h2>تصویر پروفایل</h2>
+                <p class="profile-avatar-note">
+                    برای تغییر، روی آواتار کلیک کنید؛ برش مربع و بهینه‌سازی خودکار است.
+                </p>
             </div>
-
+        </div>
+        <div class="profile-avatar-actions">
             <form
                 class="profile-avatar-upload"
                 method="post"
@@ -192,10 +216,6 @@ ob_start();
                     انتخاب یا تغییر تصویر
                 </button>
             </form>
-
-            <p class="profile-avatar-note">
-                با کلیک روی آواتار، تصویر را انتخاب کنید؛ برش مربع و بهینه‌سازی خودکار است.
-            </p>
 
             <?php if ($avatarUrl !== ''): ?>
                 <form
