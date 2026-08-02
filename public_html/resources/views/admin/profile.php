@@ -47,6 +47,39 @@ ob_start();
     justify-content: center;
     overflow: hidden;
     width: 104px;
+    cursor: pointer;
+    position: relative;
+    transition: border-color .18s ease, transform .18s ease;
+}
+
+.profile-avatar-preview:hover,
+.profile-avatar-preview:focus-visible {
+    border-color: var(--admin-primary);
+    outline: none;
+    transform: translateY(-1px);
+}
+
+.profile-avatar-preview::after {
+    align-items: center;
+    background: rgba(15, 23, 42, .68);
+    bottom: 0;
+    color: #fff;
+    content: 'تغییر';
+    display: flex;
+    font-size: .65rem;
+    font-weight: 700;
+    height: 27px;
+    justify-content: center;
+    left: 0;
+    opacity: 0;
+    position: absolute;
+    right: 0;
+    transition: opacity .18s ease;
+}
+
+.profile-avatar-preview:hover::after,
+.profile-avatar-preview:focus-visible::after {
+    opacity: 1;
 }
 
 .profile-avatar-preview img {
@@ -66,30 +99,7 @@ ob_start();
 }
 
 .profile-avatar-upload {
-    align-items: end;
-    display: grid;
-    gap: .55rem;
-    grid-template-columns: minmax(220px, 1fr) auto;
-    max-width: 720px;
-}
-
-.profile-avatar-upload label {
-    display: grid;
-    gap: .28rem;
-}
-
-.profile-avatar-upload label span {
-    color: var(--admin-text-muted);
-    font-size: .76rem;
-    font-weight: 700;
-}
-
-.profile-avatar-upload input[type="file"] {
-    border: 1px solid var(--admin-border);
-    border-radius: 9px;
-    min-height: 42px;
-    padding: .42rem;
-    width: 100%;
+    display: inline-flex;
 }
 
 .profile-avatar-note {
@@ -108,10 +118,6 @@ ob_start();
         width: 88px;
     }
 
-    .profile-avatar-upload {
-        align-items: stretch;
-        grid-template-columns: 1fr;
-    }
 }
 </style>
 
@@ -127,7 +133,14 @@ ob_start();
     <?php endif; ?>
 
     <section class="account-card profile-avatar-card">
-        <div class="profile-avatar-preview" data-avatar-preview>
+        <div
+            class="profile-avatar-preview"
+            data-avatar-preview
+            data-avatar-trigger
+            role="button"
+            tabindex="0"
+            aria-label="انتخاب یا تغییر تصویر پروفایل"
+        >
             <?php if ($avatarUrl !== ''): ?>
                 <img
                     src="<?= admin_h($avatarUrl) ?>"
@@ -167,23 +180,21 @@ ob_start();
                     name="MAX_FILE_SIZE"
                     value="2097152"
                 >
-                <label>
-                    <span>انتخاب تصویر</span>
-                    <input
-                        type="file"
-                        name="avatar"
-                        accept="image/jpeg,image/png,image/webp"
-                        required
-                        data-avatar-input
-                    >
-                </label>
-                <button class="admin-button" type="submit">
-                    ذخیره تصویر
+                <input
+                    type="file"
+                    name="avatar"
+                    accept="image/jpeg,image/png,image/webp"
+                    required
+                    hidden
+                    data-avatar-input
+                >
+                <button class="admin-button admin-button--soft" type="button" data-avatar-select>
+                    انتخاب یا تغییر تصویر
                 </button>
             </form>
 
             <p class="profile-avatar-note">
-                JPEG، PNG یا WebP؛ حداکثر ۲ مگابایت و حداقل ۶۴×۶۴ پیکسل.
+                با کلیک روی آواتار، تصویر را انتخاب کنید؛ برش مربع و بهینه‌سازی خودکار است.
             </p>
 
             <?php if ($avatarUrl !== ''): ?>
@@ -312,10 +323,24 @@ ob_start();
     const preview = document.querySelector(
         '[data-avatar-preview]'
     );
+    const form = input?.closest('form');
+    const triggers = document.querySelectorAll(
+        '[data-avatar-trigger], [data-avatar-select]'
+    );
 
-    if (!input || !preview) {
+    if (!input || !preview || !form) {
         return;
     }
+
+    triggers.forEach((trigger) => {
+        trigger.addEventListener('click', () => input.click());
+        trigger.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                input.click();
+            }
+        });
+    });
 
     input.addEventListener('change', () => {
         const file = input.files?.[0];
@@ -328,7 +353,10 @@ ob_start();
         const image = document.createElement('img');
         image.src = url;
         image.alt = 'پیش‌نمایش تصویر پروفایل';
-        image.onload = () => URL.revokeObjectURL(url);
+        image.onload = () => {
+            URL.revokeObjectURL(url);
+            form.requestSubmit();
+        };
         preview.replaceChildren(image);
     });
 })();

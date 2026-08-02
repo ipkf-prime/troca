@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Repositories\ProfileAvatarRepository;
-use RuntimeException;
 use Throwable;
 
 class ProfileAvatarService extends BaseService
@@ -11,6 +10,8 @@ class ProfileAvatarService extends BaseService
     private const MAX_BYTES = 2_097_152;
     private const MIN_DIMENSION = 64;
     private const MAX_DIMENSION = 6000;
+    private const OUTPUT_DIMENSION = 512;
+    private const WEBP_QUALITY = 82;
 
     private const MIME_EXTENSIONS = [
         'image/jpeg' => 'jpg',
@@ -105,13 +106,15 @@ class ProfileAvatarService extends BaseService
         }
 
         $filename = bin2hex(random_bytes(18))
-            . '.'
-            . $extension;
+            . '.webp';
         $destination = $directory . '/' . $filename;
 
-        if (!move_uploaded_file(
+        if (!$this->writeOptimizedAvatar(
             $temporaryPath,
-            $destination
+            $destination,
+            $mime,
+            $width,
+            $height
         )) {
             return $this->error('avatar_move_failed');
         }
@@ -236,6 +239,112 @@ class ProfileAvatarService extends BaseService
         }
 
         return '';
+    }
+
+    private function writeOptimizedAvatar(
+        string $sourcePath,
+        string $destination,
+        string $mime,
+        int $width,
+        int $height
+    ): bool {
+        if (!function_exists('imagewebp')) {
+            return false;
+        }
+
+        $source = match ($mime) {
+            'image/jpeg' => @imagecreatefromjpeg($sourcePath),
+            'image/png' => @imagecreatefrompng($sourcePath),
+            'image/webp' => @imagecreatefromwebp($sourcePath),
+            default => false,
+        };
+
+        if ($source === false) {
+            return false;
+        }
+
+        if ($mime === 'image/jpeg') {
+            [$source, $width, $height] = $this->orientJpeg(
+                $source,
+                $sourcePath,
+                $width,
+                $height
+            );
+        }
+
+        $side = min($width, $height);
+        $sourceX = (int) floor(($width - $side) / 2);
+        $sourceY = (int) floor(($height - $side) / 2);
+        $outputSize = min(self::OUTPUT_DIMENSION, $side);
+        $output = imagecreatetruecolor($outputSize, $outputSize);
+
+        if ($output === false) {
+            imagedestroy($source);
+            return false;
+        }
+
+        imagealphablending($output, false);
+        imagesavealpha($output, true);
+        $transparent = imagecolorallocatealpha($output, 0, 0, 0, 127);
+        imagefill($output, 0, 0, $transparent);
+
+        $resampled = imagecopyresampled(
+            $output,
+            $source,
+            0,
+            0,
+            $sourceX,
+            $sourceY,
+            $outputSize,
+            $outputSize,
+            $side,
+            $side
+        );
+        $written = $resampled
+            && imagewebp($output, $destination, self::WEBP_QUALITY);
+
+        imagedestroy($output);
+        imagedestroy($source);
+
+        return $written && is_file($destination);
+    }
+
+    private function orientJpeg(
+        \GdImage $source,
+        string $path,
+        int $width,
+        int $height
+    ): array {
+        if (!function_exists('exif_read_data')) {
+            return [$source, $width, $height];
+        }
+
+        $exif = @exif_read_data($path);
+        $orientation = (int) ($exif['Orientation'] ?? 1);
+        $angle = match ($orientation) {
+            3 => 180,
+            6 => -90,
+            8 => 90,
+            default => 0,
+        };
+
+        if ($angle === 0) {
+            return [$source, $width, $height];
+        }
+
+        $rotated = imagerotate($source, $angle, 0);
+
+        if ($rotated === false) {
+            return [$source, $width, $height];
+        }
+
+        imagedestroy($source);
+
+        return [
+            $rotated,
+            imagesx($rotated),
+            imagesy($rotated),
+        ];
     }
 
     private function userDirectory(int $userId): string
