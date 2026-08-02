@@ -217,7 +217,7 @@ class WorkProjectAccessRepository
                 p.owner_user_reference, p.organization_reference, p.organization_snapshot,
                 p.start_date, p.target_date, p.status_code, p.visibility_code,
                 p.archived_at, p.created_at, p.updated_at
-            ORDER BY {$sort['sql']}, p.id DESC
+            ORDER BY {$sort['sql']} {$sort['dir']}, p.id DESC
             LIMIT 100
         ");
 

@@ -20,6 +20,16 @@ foreach ($preferences as $preference) {
     }
 }
 
+if ($preferences === []) {
+    foreach ($channels as $channel) {
+        if (!empty($channel['is_internal'])) {
+            $enabled[] = (string) $channel['code'];
+        }
+    }
+}
+
+$enabled = array_values(array_unique($enabled));
+
 ob_start();
 require BASE_PATH
     . '/resources/views/admin/partials/communication-style.php';
@@ -181,7 +191,10 @@ require BASE_PATH
                         سامانه مستقل از انتخاب شخصی ارسال می‌شوند.
                     </p>
                 </div>
-                <span class="communication-badge">
+                <span
+                    class="communication-badge"
+                    data-active-channel-count
+                >
                     <?= admin_h(
                         \App\Support\AdminFormat::digits(
                             count($enabled)
@@ -245,6 +258,39 @@ require BASE_PATH
                     </button>
                 </div>
             </form>
+
+            <script>
+            (() => {
+                const form = document.querySelector(
+                    '.communication-preference-form'
+                );
+                const badge = document.querySelector(
+                    '[data-active-channel-count]'
+                );
+
+                if (!form || !badge) {
+                    return;
+                }
+
+                const digits = new Intl.NumberFormat('fa-IR');
+                const updateCount = () => {
+                    const count = form.querySelectorAll(
+                        'input[name="channels[]"]:checked'
+                    ).length;
+                    badge.textContent =
+                        `${digits.format(count)} کانال فعال`;
+                };
+
+                form.addEventListener('change', (event) => {
+                    if (event.target.matches(
+                        'input[name="channels[]"]'
+                    )) {
+                        updateCount();
+                    }
+                });
+                updateCount();
+            })();
+            </script>
 
         <?php elseif ($section === 'reports'): ?>
             <?php if ($deliveries === []): ?>

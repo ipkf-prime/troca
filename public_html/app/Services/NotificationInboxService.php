@@ -37,6 +37,28 @@ class NotificationInboxService extends BaseService
                 $page,
                 self::PER_PAGE
             );
+
+            foreach ($result['items'] ?? [] as &$row) {
+                if (!empty($row['read_at'])) {
+                    continue;
+                }
+
+                $reference = trim((string) (
+                    $row['public_reference'] ?? ''
+                ));
+
+                if (
+                    $reference !== ''
+                    && $this->notifications->markRead(
+                        $userId,
+                        $reference
+                    )
+                ) {
+                    $row['read_at'] = date('Y-m-d H:i:s');
+                }
+            }
+            unset($row);
+
             $unread = $this->notifications->unreadCount(
                 $userId
             );

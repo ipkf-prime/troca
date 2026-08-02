@@ -357,8 +357,10 @@ $accountNav = $themeUserId !== null
             min-width: 19px;
             padding-inline: 3px;
             position: absolute;
-            right: -5px;
-            top: -5px;
+            right: 2px;
+            top: 2px;
+            transform: translate(35%, -35%);
+            z-index: 2;
         }
 
         .admin-bell-icon svg {
