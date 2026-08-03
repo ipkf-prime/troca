@@ -1015,31 +1015,44 @@ class NotificationProviderSecretService extends BaseService
 
     private function key(): string
     {
-        $applicationKey = trim(
-            (string) Env::get('APP_KEY', '')
+        $masterKey = trim(
+            (string) Env::get(
+                'NOTIFICATION_SECRET_KEY',
+                ''
+            )
         );
 
-        if ($applicationKey === '') {
+        if ($masterKey === '') {
+            $masterKey = trim(
+                (string) Env::get('APP_KEY', '')
+            );
+        }
+
+        if ($masterKey === '') {
             throw new RuntimeException(
                 'notification_secret_key_missing'
             );
         }
 
-        if (str_starts_with($applicationKey, 'base64:')) {
+        if (str_starts_with($masterKey, 'base64:')) {
             $decoded = base64_decode(
-                substr($applicationKey, 7),
+                substr($masterKey, 7),
                 true
             );
 
-            if ($decoded !== false && $decoded !== '') {
-                $applicationKey = $decoded;
+            if ($decoded === false || $decoded === '') {
+                throw new RuntimeException(
+                    'notification_secret_key_invalid'
+                );
             }
+
+            $masterKey = $decoded;
         }
 
         return hash(
             'sha256',
             "ipkf:notification-provider:v1\0"
-            . $applicationKey,
+            . $masterKey,
             true
         );
     }
@@ -1146,6 +1159,11 @@ $expect(
 $expect(
     str_contains($secretService, 'sodium_crypto_secretbox')
     && str_contains($secretService, 'aes-256-gcm')
+    && str_contains(
+        $secretService,
+        "Env::get("
+        . "'NOTIFICATION_SECRET_KEY'"
+    )
     && str_contains($secretService, "Env::get('APP_KEY'")
     && !preg_match(
         '/\b(?:password|api_key|bot_token|access_token)\s*=>\s*[\'"][^\'"]+/i',

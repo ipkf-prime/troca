@@ -97,6 +97,11 @@ $expect(
 $expect(
     str_contains($secretService, 'sodium_crypto_secretbox')
     && str_contains($secretService, 'aes-256-gcm')
+    && str_contains(
+        $secretService,
+        "Env::get("
+        . "'NOTIFICATION_SECRET_KEY'"
+    )
     && str_contains($secretService, "Env::get('APP_KEY'")
     && !preg_match(
         '/\b(?:password|api_key|bot_token|access_token)\s*=>\s*[\'"][^\'"]+/i',
