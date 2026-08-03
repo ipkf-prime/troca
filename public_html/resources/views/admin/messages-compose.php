@@ -43,13 +43,16 @@ require BASE_PATH
 
         <fieldset class="communication-recipient-picker communication-form__wide">
             <legend>گیرندگان</legend>
-            <input type="search" data-recipient-search placeholder="جست‌وجو بر اساس نام، نام کاربری، گروه یا شهر">
-            <div class="communication-recipient-results" data-recipient-results>
+            <div class="communication-recipient-search">
+                <input type="search" data-recipient-search placeholder="نام گیرنده را وارد کنید" autocomplete="off">
+                <button class="admin-button admin-button--soft" type="button" data-recipient-search-button>جست‌وجو</button>
+            </div>
+            <div class="communication-recipient-results" data-recipient-results hidden>
                 <?php foreach ($recipients as $recipient): ?>
                     <?php $searchText = implode(' ', [$recipient['title'] ?? '', $recipient['username'] ?? '', $recipient['group_title'] ?? '', $recipient['city_title'] ?? '']); ?>
-                    <label data-recipient-item data-search="<?= admin_h(mb_strtolower($searchText, 'UTF-8')) ?>">
+                    <label data-recipient-item data-search="<?= admin_h(mb_strtolower($searchText, 'UTF-8')) ?>" hidden>
                         <input type="checkbox" name="recipient_user_ids[]" value="<?= admin_h($recipient['id']) ?>">
-                        <span><strong><?= admin_h($recipient['title']) ?></strong><small><?= admin_h(trim(($recipient['group_title'] ?? '') . ' ' . ($recipient['city_title'] ?? ''))) ?></small></span>
+                        <span><strong><?= admin_h($recipient['title']) ?></strong></span>
                     </label>
                 <?php endforeach; ?>
             </div>
@@ -105,16 +108,27 @@ require BASE_PATH
 <script>
 (function () {
     var search = document.querySelector('[data-recipient-search]');
+    var button = document.querySelector('[data-recipient-search-button]');
+    var results = document.querySelector('[data-recipient-results]');
     var items = Array.from(document.querySelectorAll('[data-recipient-item]'));
     var count = document.querySelector('[data-recipient-count]');
-    function refresh() {
+    function runSearch() {
         var query = (search.value || '').trim().toLocaleLowerCase('fa');
-        items.forEach(function (item) { item.hidden = query !== '' && !item.dataset.search.includes(query); });
+        results.hidden = query.length < 2;
+        items.forEach(function (item) {
+            item.hidden = query.length < 2 || !item.dataset.search.includes(query);
+        });
+    }
+    function refreshCount() {
         count.textContent = String(items.filter(function (item) { return item.querySelector('input').checked; }).length).replace(/\d/g, function(d){return '۰۱۲۳۴۵۶۷۸۹'[d];});
     }
-    search.addEventListener('input', refresh);
-    items.forEach(function (item) { item.querySelector('input').addEventListener('change', refresh); });
-    refresh();
+    search.addEventListener('click', function (event) { event.stopPropagation(); });
+    search.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') { event.preventDefault(); runSearch(); }
+    });
+    button.addEventListener('click', function (event) { event.stopPropagation(); runSearch(); });
+    items.forEach(function (item) { item.querySelector('input').addEventListener('change', refreshCount); });
+    refreshCount();
 })();
 </script>
 <?php

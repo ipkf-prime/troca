@@ -27,8 +27,10 @@
     z-index: 1;
 }
 
-.communication-recipient-picker { border: 1px solid var(--admin-border); border-radius: 10px; padding: .75rem; }
-.communication-recipient-results { display: grid; gap: .35rem; max-height: 240px; overflow: auto; margin-top: .55rem; }
+.communication-recipient-picker { border: 1px solid var(--admin-border); border-radius: 10px; padding: .6rem; }
+.communication-recipient-search { display: grid; gap: .4rem; grid-template-columns: minmax(0, 1fr) auto; }
+.communication-recipient-results { display: grid; gap: .3rem; max-height: 180px; overflow: auto; margin-top: .45rem; }
+.communication-recipient-results[hidden] { display: none; }
 .communication-recipient-results label { align-items: center; border: 1px solid var(--admin-border); border-radius: 8px; cursor: pointer; display: flex; grid-template-columns: auto 1fr; padding: .45rem .6rem; }
 .communication-recipient-results label:hover { background: var(--admin-primary-soft); }
 .communication-recipient-results input { width: auto; }
@@ -168,12 +170,7 @@
     background: var(--admin-surface-muted);
 }
 
-.communication-row-link::after {
-    content: "";
-    inset: 0;
-    position: absolute;
-    z-index: 1;
-}
+.communication-row-link { position: relative; z-index: 1; }
 
 .communication-row-unread {
     font-weight: 800;
@@ -219,7 +216,7 @@
     align-items: end;
     display: grid;
     gap: .5rem;
-    grid-template-columns: minmax(180px, 2fr) repeat(6, minmax(110px, 1fr)) auto auto;
+    grid-template-columns: minmax(170px, 2fr) repeat(6, minmax(96px, 1fr)) auto auto;
     margin-bottom: .65rem;
 }
 .communication-filters input,
@@ -229,12 +226,31 @@
     border-radius: 8px;
     color: inherit;
     font: inherit;
-    min-height: 38px;
+    min-height: 34px;
     min-width: 0;
-    padding: .4rem .55rem;
+    padding: .32rem .48rem;
+}
+
+.communication-settings-shell .communication-panel { padding: .8rem; }
+.communication-settings-shell .communication-form { gap: .55rem .7rem; }
+.communication-settings-shell .communication-form input,
+.communication-settings-shell .communication-form select { min-height: 36px; padding-block: .35rem; }
+
+@media (max-width: 1100px) {
+    .communication-filters,
+    .communication-report-tools { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 680px) {
+    .communication-filters,
+    .communication-report-tools { grid-template-columns: 1fr 1fr; }
+    .communication-recipient-search { grid-template-columns: 1fr; }
 }
 .communication-list-meta,
 .communication-pagination { align-items: center; display: flex; gap: .65rem; }
+.communication-report-tools { align-items: center; display: grid; gap: .45rem; grid-template-columns: minmax(180px, 2fr) minmax(120px, 1fr) minmax(150px, 1fr) auto auto; margin-bottom: .65rem; }
+.communication-report-tools input,
+.communication-report-tools select { border: 1px solid var(--admin-border); border-radius: 8px; font: inherit; min-height: 34px; min-width: 0; padding: .32rem .48rem; }
 .communication-list-meta { color: var(--admin-text-muted); font-size: .8rem; justify-content: space-between; margin-bottom: .5rem; }
 .communication-pagination a { color: var(--admin-primary); font-weight: 750; text-decoration: none; }
 .monitor-reason { position: relative; }
@@ -472,6 +488,14 @@
 @media (min-width: 761px) and (max-width: 1280px) {
     .communication-filters { grid-template-columns: repeat(4, minmax(120px, 1fr)); }
     .communication-filters input[type="search"] { grid-column: span 2; }
+}
+
+@media (max-width: 1100px) {
+    .communication-report-tools { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 680px) {
+    .communication-report-tools { grid-template-columns: 1fr 1fr; }
 }
 </style>
 

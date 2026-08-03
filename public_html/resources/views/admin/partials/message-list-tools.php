@@ -3,6 +3,15 @@ $filters = $page['filters'] ?? [];
 $pagination = $page['pagination'] ?? ['page' => 1, 'last_page' => 1, 'per_page' => 20, 'total' => count($page['items'] ?? [])];
 $basePath = $listBasePath ?? '';
 $sortOptions = $listSortOptions ?? ['date' => 'تاریخ'];
+$displayDate = static function ($value): string {
+    $value = trim((string) $value);
+    if ($value === '') return '';
+    try {
+        return \IPKF\Support\PersianDate::fromGregorianDate($value);
+    } catch (\Throwable) {
+        return $value;
+    }
+};
 $query = static function (array $changes = []) use ($filters): string {
     return http_build_query(array_filter(array_merge($filters, $changes), static fn ($value) => $value !== '' && $value !== null));
 };
@@ -17,8 +26,8 @@ $query = static function (array $changes = []) use ($filters): string {
     <?php if (($showUnreadFilter ?? false) === true): ?>
         <select name="unread"><option value="">همه پیام‌ها</option><option value="1" <?= ($filters['unread'] ?? '') === '1' ? 'selected' : '' ?>>فقط خوانده‌نشده</option></select>
     <?php endif; ?>
-    <input type="date" name="from" value="<?= admin_h($filters['from'] ?? '') ?>" title="از تاریخ">
-    <input type="date" name="to" value="<?= admin_h($filters['to'] ?? '') ?>" title="تا تاریخ">
+    <input type="text" inputmode="numeric" name="from" value="<?= admin_h($displayDate($filters['from'] ?? '')) ?>" placeholder="از تاریخ شمسی" aria-label="از تاریخ شمسی">
+    <input type="text" inputmode="numeric" name="to" value="<?= admin_h($displayDate($filters['to'] ?? '')) ?>" placeholder="تا تاریخ شمسی" aria-label="تا تاریخ شمسی">
     <select name="sort"><?php foreach ($sortOptions as $value => $label): ?><option value="<?= admin_h($value) ?>" <?= ($filters['sort'] ?? 'date') === $value ? 'selected' : '' ?>>مرتب‌سازی: <?= admin_h($label) ?></option><?php endforeach; ?></select>
     <select name="direction"><option value="desc" <?= ($filters['direction'] ?? 'desc') === 'desc' ? 'selected' : '' ?>>نزولی</option><option value="asc" <?= ($filters['direction'] ?? '') === 'asc' ? 'selected' : '' ?>>صعودی</option></select>
     <select name="per_page"><?php foreach ([10,20,50,100] as $size): ?><option value="<?= $size ?>" <?= (int) ($pagination['per_page'] ?? 20) === $size ? 'selected' : '' ?>><?= $size ?> ردیف</option><?php endforeach; ?></select>

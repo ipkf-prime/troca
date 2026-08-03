@@ -312,8 +312,15 @@ require BASE_PATH
                     هنوز گزارشی برای ارسال یا تحویل ثبت نشده است.
                 </p>
             <?php else: ?>
+                <div class="communication-report-tools">
+                    <input type="search" placeholder="جست‌وجو در گزارش…" data-delivery-filter>
+                    <select data-delivery-status><option value="">همه وضعیت‌ها</option><option value="delivered">تحویل‌شده</option><option value="sent">ارسال‌شده</option><option value="failed">ناموفق</option><option value="pending">در انتظار</option></select>
+                    <select data-delivery-sort><option value="date-desc">جدیدترین تحویل</option><option value="date-asc">قدیمی‌ترین تحویل</option><option value="title-asc">عنوان: صعودی</option><option value="title-desc">عنوان: نزولی</option><option value="status-asc">وضعیت: صعودی</option><option value="status-desc">وضعیت: نزولی</option></select>
+                    <button class="admin-button" type="button" data-delivery-apply>اعمال</button>
+                    <button class="admin-button admin-button--soft" type="button" data-delivery-clear>پاک‌کردن</button>
+                </div>
                 <div class="communication-table-wrap">
-                    <table class="communication-table">
+                    <table class="communication-table" data-delivery-table>
                         <thead>
                             <tr>
                                 <th>عنوان</th>
@@ -327,7 +334,7 @@ require BASE_PATH
                         </thead>
                         <tbody>
                         <?php foreach ($deliveries as $item): ?>
-                            <tr>
+                            <tr data-title="<?= admin_h(mb_strtolower((string) ($item['title'] ?? ''), 'UTF-8')) ?>" data-status="<?= admin_h(mb_strtolower((string) ($item['status_code'] ?? ''), 'UTF-8')) ?>" data-search="<?= admin_h(mb_strtolower(implode(' ', [(string) ($item['title'] ?? ''), (string) ($item['user_id'] ?? $item['user_reference'] ?? ''), (string) ($item['channel_code'] ?? ''), (string) ($item['status_code'] ?? ''), (string) ($item['last_error'] ?? '')]), 'UTF-8')) ?>" data-date="<?= admin_h((string) ($item['delivered_at'] ?? $item['sent_at'] ?? '')) ?>">
                                 <td><?= admin_h($item['title']) ?></td>
                                 <td><?= admin_h(
                                     $item['user_id']
@@ -353,6 +360,34 @@ require BASE_PATH
                         </tbody>
                     </table>
                 </div>
+                <p class="communication-muted" data-delivery-empty hidden>گزارشی مطابق فیلتر پیدا نشد.</p>
+                <script>
+                (function () {
+                    var table = document.querySelector('[data-delivery-table]');
+                    if (!table) return;
+                    var body = table.tBodies[0];
+                    var rows = Array.from(body.rows);
+                    var query = document.querySelector('[data-delivery-filter]');
+                    var status = document.querySelector('[data-delivery-status]');
+                    var sort = document.querySelector('[data-delivery-sort]');
+                    var empty = document.querySelector('[data-delivery-empty]');
+                    function apply() {
+                        var needle = (query.value || '').trim().toLocaleLowerCase('fa');
+                        var wanted = status.value;
+                        var parts = sort.value.split('-');
+                        var key = parts[0];
+                        var direction = parts[1] === 'asc' ? 1 : -1;
+                        rows.sort(function (a, b) { return (a.dataset[key] || '').localeCompare(b.dataset[key] || '', 'fa') * direction; }).forEach(function (row) {
+                            row.hidden = !((!needle || row.dataset.search.includes(needle)) && (!wanted || row.dataset.status === wanted));
+                            body.appendChild(row);
+                        });
+                        empty.hidden = rows.some(function (row) { return !row.hidden; });
+                    }
+                    document.querySelector('[data-delivery-apply]').addEventListener('click', apply);
+                    document.querySelector('[data-delivery-clear]').addEventListener('click', function () { query.value = ''; status.value = ''; sort.value = 'date-desc'; apply(); });
+                    query.addEventListener('keydown', function (event) { if (event.key === 'Enter') { event.preventDefault(); apply(); } });
+                })();
+                </script>
             <?php endif; ?>
         <?php endif; ?>
     </section>

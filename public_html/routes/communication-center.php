@@ -14,12 +14,25 @@ $communicationAccess = static function (
 };
 
 $communicationFilters = static function ($request): array {
+    $dateFilter = static function (string $name) use ($request): string {
+        $value = trim((string) $request->input($name, ''));
+        if ($value === '') {
+            return '';
+        }
+
+        try {
+            return (string) (\IPKF\Support\PersianDate::toGregorianDate($value) ?? '');
+        } catch (\Throwable) {
+            return '';
+        }
+    };
+
     return [
         'q' => trim((string) $request->input('q', '')),
         'status' => trim((string) $request->input('status', '')),
         'unread' => trim((string) $request->input('unread', '')),
-        'from' => trim((string) $request->input('from', '')),
-        'to' => trim((string) $request->input('to', '')),
+        'from' => $dateFilter('from'),
+        'to' => $dateFilter('to'),
         'sort' => trim((string) $request->input('sort', 'date')),
         'direction' => trim((string) $request->input('direction', 'desc')),
         'page' => max(1, (int) $request->input('page', 1)),
