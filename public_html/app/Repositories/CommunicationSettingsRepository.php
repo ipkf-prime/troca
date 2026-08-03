@@ -190,7 +190,7 @@ class CommunicationSettingsRepository extends BaseRepository
             LEFT JOIN users
               ON users.id = recipients.user_id
             LEFT JOIN persons
-              ON persons.user_id = users.id
+              ON persons.id = users.person_id
             ORDER BY deliveries.id DESC
             LIMIT {$limit}
         ");

@@ -655,4 +655,25 @@
         flex-direction: column;
     }
 }
+
+
+/* communication-recipient-single-line-fix */
+.communication-form .communication-recipient-results label {
+    align-items: center;
+    display: flex;
+    flex-wrap: nowrap;
+}
+
+.communication-form .communication-recipient-results label > span {
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.communication-form .communication-recipient-results label > span strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 </style>
