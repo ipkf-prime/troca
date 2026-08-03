@@ -33,6 +33,18 @@ class InternalMessageRepository extends BaseRepository
             return [];
         }
 
+        $cityJoin = '';
+        $cityTitle = "''";
+        if (Database::tableExists('cities') && Database::columnExists('persons', 'city_id')) {
+            foreach (['title', 'title_fa', 'name'] as $column) {
+                if (Database::columnExists('cities', $column)) {
+                    $cityJoin = 'LEFT JOIN cities ON cities.id = persons.city_id';
+                    $cityTitle = "COALESCE(NULLIF(cities.{$column}, ''), '')";
+                    break;
+                }
+            }
+        }
+
         $statement = $this->connection()->prepare("
             SELECT
                 users.id,
@@ -42,9 +54,19 @@ class InternalMessageRepository extends BaseRepository
                     NULLIF(users.email, ''),
                     CONCAT('کاربر ', users.id)
                 ) AS title,
-                users.username
+                users.username,
+                COALESCE(NULLIF(primary_org.title, ''), '') AS group_title,
+                {$cityTitle} AS city_title
             FROM users
             LEFT JOIN persons ON persons.id = users.person_id
+            LEFT JOIN user_org_assignments AS primary_user_org
+              ON primary_user_org.user_id = users.id
+             AND primary_user_org.is_primary = 1
+             AND primary_user_org.status = 'active'
+            LEFT JOIN org_units AS primary_org
+              ON primary_org.id = primary_user_org.org_unit_id
+             AND primary_org.deleted_at IS NULL
+            {$cityJoin}
             WHERE users.status = 'active'
               AND users.id <> ?
             ORDER BY title ASC, users.id ASC
@@ -56,6 +78,8 @@ class InternalMessageRepository extends BaseRepository
                 'id' => (int) $row['id'],
                 'title' => (string) $row['title'],
                 'username' => (string) ($row['username'] ?? ''),
+                'group_title' => (string) ($row['group_title'] ?? ''),
+                'city_title' => (string) ($row['city_title'] ?? ''),
             ],
             $statement->fetchAll(PDO::FETCH_ASSOC) ?: []
         );
@@ -76,7 +100,7 @@ class InternalMessageRepository extends BaseRepository
 
     public function createConversation(
         int $senderUserId,
-        int $recipientUserId,
+        array $recipientUserIds,
         string $subject,
         string $body
     ): array {
@@ -101,7 +125,7 @@ class InternalMessageRepository extends BaseRepository
                     updated_at
                 )
                 VALUES (
-                    ?, 'direct', ?, ?, 'active',
+                    ?, ?, ?, ?, 'active',
                     CURRENT_TIMESTAMP,
                     CURRENT_TIMESTAMP,
                     CURRENT_TIMESTAMP
@@ -109,6 +133,7 @@ class InternalMessageRepository extends BaseRepository
             ");
             $statement->execute([
                 $conversationReference,
+                count($recipientUserIds) > 1 ? 'group' : 'direct',
                 $subject,
                 $senderUserId,
             ]);
@@ -131,11 +156,13 @@ class InternalMessageRepository extends BaseRepository
                 $senderUserId,
                 'owner',
             ]);
-            $participant->execute([
-                $conversationId,
-                $recipientUserId,
-                'member',
-            ]);
+            foreach ($recipientUserIds as $recipientUserId) {
+                $participant->execute([
+                    $conversationId,
+                    $recipientUserId,
+                    'member',
+                ]);
+            }
 
             $message = $db->prepare("
                 INSERT INTO message_messages (
@@ -180,7 +207,7 @@ class InternalMessageRepository extends BaseRepository
             return [
                 'conversation_reference' => $conversationReference,
                 'message_reference' => $messageReference,
-                'recipient_user_ids' => [$recipientUserId],
+                'recipient_user_ids' => $recipientUserIds,
             ];
         } catch (Throwable $exception) {
             if ($db->inTransaction()) {

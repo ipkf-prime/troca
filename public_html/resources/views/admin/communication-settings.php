@@ -341,9 +341,11 @@ require BASE_PATH
                                     )
                                 ) ?></td>
                                 <td dir="ltr"><?= admin_h(
-                                    $item['delivered_at']
-                                    ?? $item['sent_at']
-                                    ?? '—'
+                                    \App\Support\AdminFormat::jalaliDateTime(
+                                        $item['delivered_at']
+                                        ?? $item['sent_at']
+                                        ?? ''
+                                    ) ?: '—'
                                 ) ?></td>
                                 <td><?= admin_h($item['last_error'] ?? '') ?></td>
                             </tr>

@@ -173,8 +173,8 @@ $router->post('/admin/messages/compose', function (
         )->send(
             (int) $context['user_id'],
             [
-                'recipient_user_id' =>
-                    $request->input('recipient_user_id'),
+                'recipient_user_ids' =>
+                    $request->input('recipient_user_ids', []),
                 'subject' => $request->input('subject'),
                 'body' => $request->input('body'),
             ],

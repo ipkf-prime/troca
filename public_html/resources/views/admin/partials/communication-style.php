@@ -22,7 +22,17 @@
     display: block;
     min-height: 108px;
     text-decoration: none;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
 }
+
+.communication-recipient-picker { border: 1px solid var(--admin-border); border-radius: 10px; padding: .75rem; }
+.communication-recipient-results { display: grid; gap: .35rem; max-height: 240px; overflow: auto; margin-top: .55rem; }
+.communication-recipient-results label { align-items: center; border: 1px solid var(--admin-border); border-radius: 8px; cursor: pointer; display: flex; grid-template-columns: auto 1fr; padding: .45rem .6rem; }
+.communication-recipient-results label:hover { background: var(--admin-primary-soft); }
+.communication-recipient-results input { width: auto; }
+.communication-recipient-results small { display: block; color: var(--admin-text-muted); margin-top: .1rem; }
 
 .communication-card:hover {
     border-color: var(--admin-primary);

@@ -41,36 +41,20 @@ require BASE_PATH
             ) ?>"
         >
 
-        <label>
-            <span>گیرنده</span>
-            <select
-                name="recipient_user_id"
-                required
-            >
-                <option value="">انتخاب کنید</option>
-
+        <fieldset class="communication-recipient-picker communication-form__wide">
+            <legend>گیرندگان</legend>
+            <input type="search" data-recipient-search placeholder="جست‌وجو بر اساس نام، نام کاربری، گروه یا شهر">
+            <div class="communication-recipient-results" data-recipient-results>
                 <?php foreach ($recipients as $recipient): ?>
-                    <option
-                        value="<?= admin_h(
-                            $recipient['id']
-                        ) ?>"
-                    >
-                        <?= admin_h(
-                            $recipient['title']
-                        ) ?>
-
-                        <?php if (
-                            ($recipient['username'] ?? '')
-                                !== ''
-                        ): ?>
-                            — <?= admin_h(
-                                $recipient['username']
-                            ) ?>
-                        <?php endif; ?>
-                    </option>
+                    <?php $searchText = implode(' ', [$recipient['title'] ?? '', $recipient['username'] ?? '', $recipient['group_title'] ?? '', $recipient['city_title'] ?? '']); ?>
+                    <label data-recipient-item data-search="<?= admin_h(mb_strtolower($searchText, 'UTF-8')) ?>">
+                        <input type="checkbox" name="recipient_user_ids[]" value="<?= admin_h($recipient['id']) ?>">
+                        <span><strong><?= admin_h($recipient['title']) ?></strong><small><?= admin_h(trim(($recipient['group_title'] ?? '') . ' ' . ($recipient['city_title'] ?? ''))) ?></small></span>
+                    </label>
                 <?php endforeach; ?>
-            </select>
-        </label>
+            </div>
+            <small class="communication-muted"><span data-recipient-count>۰</span> گیرنده انتخاب شده است.</small>
+        </fieldset>
 
         <label>
             <span>موضوع</span>
@@ -118,6 +102,21 @@ require BASE_PATH
     </form>
 </section>
 </div>
+<script>
+(function () {
+    var search = document.querySelector('[data-recipient-search]');
+    var items = Array.from(document.querySelectorAll('[data-recipient-item]'));
+    var count = document.querySelector('[data-recipient-count]');
+    function refresh() {
+        var query = (search.value || '').trim().toLocaleLowerCase('fa');
+        items.forEach(function (item) { item.hidden = query !== '' && !item.dataset.search.includes(query); });
+        count.textContent = String(items.filter(function (item) { return item.querySelector('input').checked; }).length).replace(/\d/g, function(d){return '۰۱۲۳۴۵۶۷۸۹'[d];});
+    }
+    search.addEventListener('input', refresh);
+    items.forEach(function (item) { item.querySelector('input').addEventListener('change', refresh); });
+    refresh();
+})();
+</script>
 <?php
 
 $content = ob_get_clean();

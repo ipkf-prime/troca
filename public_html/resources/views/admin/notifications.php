@@ -285,8 +285,8 @@ ob_start();
                         </strong>
                         <time>
                             <?= admin_h(
-                                \App\Support\AdminFormat::digits(
-                                    $item['created_at']
+                                \App\Support\AdminFormat::jalaliDateTime(
+                                    $item['created_at'] ?? ''
                                 )
                             ) ?>
                         </time>

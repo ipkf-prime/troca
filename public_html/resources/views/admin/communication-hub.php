@@ -5,19 +5,12 @@ ob_start();
 require BASE_PATH
     . '/resources/views/admin/partials/communication-style.php';
 ?>
-<section class="communication-panel">
-    <h2>پیام‌ها و اعلان‌ها</h2>
-    <p class="communication-muted">
-        منو، ترتیب، دسترسی، Badge و مسیرهای این بخش از
-        Registry دیتابیس خوانده می‌شوند.
-    </p>
-</section>
-
-<div class="communication-grid" style="margin-top:1rem">
+<div class="communication-grid">
     <?php foreach ($items as $item): ?>
         <a
             class="communication-card"
-            href="<?= admin_h($item['url']) ?>"
+            href="<?= admin_h((string) ($item['url'] ?? '#')) ?>"
+            data-communication-link
         >
             <h3><?= admin_h($item['title']) ?></h3>
             <p><?= admin_h($item['description']) ?></p>
@@ -29,6 +22,14 @@ require BASE_PATH
         </a>
     <?php endforeach; ?>
 </div>
+<script>
+document.querySelectorAll('[data-communication-link]').forEach(function (card) {
+    card.addEventListener('click', function (event) {
+        var href = card.getAttribute('href');
+        if (href && href !== '#') { event.preventDefault(); window.location.assign(href); }
+    });
+});
+</script>
 <?php
 $content = ob_get_clean();
 require BASE_PATH . '/resources/views/admin/layout.php';

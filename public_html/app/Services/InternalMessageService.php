@@ -82,22 +82,25 @@ class InternalMessageService extends BaseService
         if (($this->messages->settings()['enabled'] ?? '1') !== '1') {
             throw new InvalidArgumentException('internal_messages_disabled');
         }
-        $recipientUserId = (int) (
-            $input['recipient_user_id'] ?? 0
-        );
+        $recipientUserIds = array_values(array_unique(array_filter(
+            array_map('intval', (array) ($input['recipient_user_ids'] ?? [])),
+            static fn (int $id): bool => $id > 0
+        )));
         $subject = trim((string) ($input['subject'] ?? ''));
         $body = trim((string) ($input['body'] ?? ''));
 
         if (
-            $recipientUserId < 1
-            || !$this->messages->recipientAllowed(
-                $senderUserId,
-                $recipientUserId
-            )
+            $recipientUserIds === []
+            || count($recipientUserIds) > 100
         ) {
             throw new InvalidArgumentException(
                 'message_recipient_not_allowed'
             );
+        }
+        foreach ($recipientUserIds as $recipientUserId) {
+            if (!$this->messages->recipientAllowed($senderUserId, $recipientUserId)) {
+                throw new InvalidArgumentException('message_recipient_not_allowed');
+            }
         }
 
         if ($subject === '') {
@@ -114,7 +117,7 @@ class InternalMessageService extends BaseService
 
         $result = $this->messages->createConversation(
             $senderUserId,
-            $recipientUserId,
+            $recipientUserIds,
             mb_substr($subject, 0, 300, 'UTF-8'),
             mb_substr($body, 0, 20000, 'UTF-8')
         );
