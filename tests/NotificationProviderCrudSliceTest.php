@@ -208,6 +208,26 @@ $expect(
 );
 
 $expect(
+    str_contains(
+        $style,
+        'notification-provider-minimal-ui-v061'
+    )
+    && str_contains(
+        $style,
+        'minmax(105px, 132px)'
+    )
+    && str_contains(
+        $style,
+        '.provider-editor-panels'
+    )
+    && str_contains(
+        $style,
+        'position: static'
+    ),
+    'Provider minimal UI styles are incomplete.'
+);
+
+$expect(
     !preg_match(
         '/\b(?:DROP\s+TABLE|TRUNCATE\s+TABLE)\b/i',
         $migration . $repository

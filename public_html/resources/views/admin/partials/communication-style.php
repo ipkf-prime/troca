@@ -1046,3 +1046,359 @@
     }
 }
 </style>
+
+<style>
+/* notification-provider-minimal-ui-v061 */
+.provider-workspace {
+    gap: .55rem;
+}
+
+.provider-workspace-tabs {
+    align-items: center;
+    border-radius: 10px;
+    gap: .2rem;
+    min-height: 40px;
+    padding: .2rem;
+}
+
+.provider-workspace-tab {
+    border-radius: 8px;
+    font-size: .78rem;
+    min-height: 32px;
+    padding: .28rem .62rem;
+}
+
+.provider-workspace-tab > span {
+    font-size: .64rem;
+    min-height: 19px;
+    min-width: 19px;
+    padding: 0 .28rem;
+}
+
+.provider-workspace-tab.is-active {
+    box-shadow: none;
+}
+
+.provider-management-card {
+    border-radius: 10px;
+    padding: .68rem .75rem;
+}
+
+.provider-editor-card {
+    padding-bottom: 0;
+}
+
+.provider-management-card__head {
+    align-items: center;
+    gap: .65rem;
+    margin-bottom: .55rem;
+}
+
+.provider-management-card__head h3 {
+    font-size: .94rem;
+    margin-bottom: .12rem;
+}
+
+.provider-management-card__head .communication-muted {
+    font-size: .76rem;
+    line-height: 1.65;
+    margin: 0;
+}
+
+.provider-management-card .admin-button {
+    font-size: .78rem;
+    min-height: 34px;
+    padding: .34rem .7rem;
+}
+
+.provider-management-form {
+    gap: 0;
+}
+
+.provider-editor-tabs {
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--admin-border);
+    border-radius: 0;
+    gap: .15rem;
+    padding: 0;
+}
+
+.provider-editor-tab {
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    font-size: .76rem;
+    min-height: 34px;
+    padding: .3rem .58rem;
+}
+
+.provider-editor-tab.is-active {
+    background: transparent;
+    border-bottom-color: var(--admin-primary);
+    box-shadow: none;
+}
+
+.provider-editor-tab:focus-visible {
+    background: var(--admin-primary-soft);
+    outline: 0;
+}
+
+.provider-editor-panels {
+    min-height: 0;
+}
+
+.provider-editor-panel {
+    padding: .65rem 0 .55rem;
+}
+
+.provider-management-form fieldset {
+    display: grid;
+    gap: 0;
+}
+
+.provider-management-form legend {
+    font-size: .84rem;
+    margin: 0 0 .5rem;
+}
+
+.provider-form-grid,
+.provider-dynamic-grid {
+    gap: .48rem .72rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.provider-form-grid > label,
+.provider-dynamic-grid > label {
+    align-items: center;
+    column-gap: .5rem;
+    display: grid;
+    grid-template-columns:
+        minmax(105px, 132px)
+        minmax(0, 1fr);
+    min-width: 0;
+    row-gap: .14rem;
+}
+
+.provider-form-grid > label > span:first-child,
+.provider-dynamic-grid > label > span:first-child {
+    align-self: center;
+    color: var(--admin-text-muted);
+    font-size: .76rem;
+    font-weight: 700;
+    grid-column: 1;
+    grid-row: 1;
+    line-height: 1.45;
+    margin: 0;
+}
+
+.provider-form-grid > label > input,
+.provider-form-grid > label > select,
+.provider-form-grid > label > textarea,
+.provider-form-grid > label > .provider-secret-input,
+.provider-dynamic-grid > label > input,
+.provider-dynamic-grid > label > select,
+.provider-dynamic-grid > label > textarea,
+.provider-dynamic-grid > label > .provider-secret-input {
+    grid-column: 2;
+    min-width: 0;
+}
+
+.provider-form-grid > label > small,
+.provider-dynamic-grid > label > small {
+    grid-column: 2;
+    margin: 0;
+}
+
+.provider-form-grid > label:has(textarea),
+.provider-dynamic-grid > label:has(textarea) {
+    align-items: start;
+}
+
+.provider-form-grid > label:has(textarea) > span:first-child,
+.provider-dynamic-grid > label:has(textarea) > span:first-child {
+    padding-top: .45rem;
+}
+
+.provider-form-grid__wide {
+    grid-column: 1 / -1;
+}
+
+.provider-management-form input,
+.provider-management-form select,
+.provider-management-form textarea {
+    border-radius: 8px;
+    font-size: .8rem;
+    min-height: 36px;
+    padding: .38rem .55rem;
+}
+
+.provider-management-form textarea {
+    min-height: 64px;
+}
+
+.provider-management-form input:focus,
+.provider-management-form select:focus,
+.provider-management-form textarea:focus {
+    box-shadow: 0 0 0 2px var(--admin-primary-soft);
+}
+
+.provider-form-grid label > small,
+.provider-dynamic-grid label > small,
+.provider-status-field__text small {
+    font-size: .66rem;
+    line-height: 1.55;
+}
+
+.provider-status-field {
+    align-items: center;
+    border-radius: 8px;
+    column-gap: .55rem;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto auto !important;
+    min-height: 50px;
+    padding: .42rem .55rem;
+}
+
+.provider-status-field > .provider-status-field__text {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+}
+
+.provider-status-field__text {
+    gap: .05rem;
+}
+
+.provider-status-field__text strong {
+    font-size: .78rem;
+}
+
+.provider-status-field > .communication-switch {
+    grid-column: 2;
+}
+
+.provider-status-field > strong:last-child {
+    font-size: .74rem;
+    grid-column: 3;
+    min-width: 48px;
+}
+
+.provider-secret-input {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.provider-secret-toggle {
+    border-radius: 8px 0 0 8px;
+    font-size: .7rem;
+    min-width: 58px;
+    padding-inline: .48rem;
+}
+
+.provider-tab-empty,
+.provider-empty-state {
+    border-radius: 8px;
+    padding: .68rem;
+}
+
+.provider-empty-state {
+    gap: .3rem;
+    min-height: 120px;
+}
+
+.provider-empty-state p {
+    font-size: .74rem;
+}
+
+.provider-form-actions {
+    background: transparent;
+    bottom: auto;
+    gap: .4rem;
+    justify-content: flex-start;
+    margin: .1rem -.75rem 0;
+    padding: .55rem .75rem;
+    position: static;
+}
+
+.provider-form-actions .admin-button {
+    min-height: 35px;
+}
+
+.provider-row-actions {
+    flex-wrap: nowrap;
+    gap: .28rem;
+}
+
+.provider-row-actions .admin-button {
+    white-space: nowrap;
+}
+
+.provider-accounts-table th,
+.provider-accounts-table td {
+    padding-block: .5rem;
+}
+
+.provider-code {
+    margin-top: .08rem;
+}
+
+@media (max-width: 1100px) {
+    .provider-form-grid,
+    .provider-dynamic-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .provider-form-grid__wide {
+        grid-column: 1;
+    }
+}
+
+@media (max-width: 680px) {
+    .provider-management-card {
+        padding: .62rem;
+    }
+
+    .provider-management-card__head {
+        align-items: stretch;
+    }
+
+    .provider-form-grid > label,
+    .provider-dynamic-grid > label {
+        grid-template-columns: 1fr;
+        row-gap: .24rem;
+    }
+
+    .provider-form-grid > label > span:first-child,
+    .provider-dynamic-grid > label > span:first-child,
+    .provider-form-grid > label > input,
+    .provider-form-grid > label > select,
+    .provider-form-grid > label > textarea,
+    .provider-form-grid > label > .provider-secret-input,
+    .provider-form-grid > label > small,
+    .provider-dynamic-grid > label > input,
+    .provider-dynamic-grid > label > select,
+    .provider-dynamic-grid > label > textarea,
+    .provider-dynamic-grid > label > .provider-secret-input,
+    .provider-dynamic-grid > label > small {
+        grid-column: 1;
+    }
+
+    .provider-form-grid > label:has(textarea) > span:first-child,
+    .provider-dynamic-grid > label:has(textarea) > span:first-child {
+        padding-top: 0;
+    }
+
+    .provider-status-field {
+        grid-template-columns: minmax(0, 1fr) auto auto !important;
+    }
+
+    .provider-form-actions {
+        margin-inline: -.62rem;
+        padding-inline: .62rem;
+    }
+
+    .provider-form-actions .admin-button {
+        flex: 1 1 auto;
+        width: auto;
+    }
+}
+</style>
