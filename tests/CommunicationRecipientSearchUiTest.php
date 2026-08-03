@@ -26,4 +26,13 @@ final class CommunicationRecipientSearchUiTest extends TestCase
         self::assertStringContainsString('AdminFormat::jalaliDateTime', $notifications);
         self::assertStringContainsString('AdminFormat::jalaliDateTime', $settings);
     }
+
+    public function testSettingsRouteAuthorizesSectionsThroughSettingsService(): void
+    {
+        $route = file_get_contents(__DIR__ . '/../public_html/routes/communication-center.php');
+
+        self::assertStringContainsString('$page = $settings->page(', $route);
+        self::assertStringContainsString("(\$page['allowed'] ?? false) !== true", $route);
+        self::assertStringNotContainsString("\$itemQuery['section']", $route);
+    }
 }

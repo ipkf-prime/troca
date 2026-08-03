@@ -485,49 +485,14 @@ $router->get(
             )
         );
 
-        $allowedItems = (
-            new \App\Services\DynamicAdminNavigationService()
-        )->children(
+        $settings =
+            new \App\Services\CommunicationSettingsService();
+        $page = $settings->page(
             (int) $context['user_id'],
-            'core',
-            'communications'
+            $section
         );
-        $requestedPath =
-            '/admin/communications/settings';
-        $sectionAllowed = $section === 'internal'
-            && (new \App\Services\AuthorizationService())->hasPermission(
-                (int) $context['user_id'], 'messages.admin.manage'
-            );
 
-        foreach ($allowedItems as $item) {
-            $itemPath = (string) (
-                parse_url(
-                    (string) $item['url'],
-                    PHP_URL_PATH
-                ) ?: ''
-            );
-            parse_str(
-                (string) (
-                    parse_url(
-                        (string) $item['url'],
-                        PHP_URL_QUERY
-                    ) ?: ''
-                ),
-                $itemQuery
-            );
-
-            if (
-                $itemPath === $requestedPath
-                && (string) (
-                    $itemQuery['section'] ?? ''
-                ) === $section
-            ) {
-                $sectionAllowed = true;
-                break;
-            }
-        }
-
-        if (!$sectionAllowed) {
+        if (($page['allowed'] ?? false) !== true) {
             return $response->redirect(
                 '/admin/communications?error=forbidden'
             );
@@ -539,12 +504,7 @@ $router->get(
             [
                 'title' => 'تنظیمات پیام و اعلان',
                 'context' => $context,
-                'page' => (
-                    new \App\Services\CommunicationSettingsService()
-                )->page(
-                    (int) $context['user_id'],
-                    $section
-                ),
+                'page' => $page,
             ]
         );
     }
