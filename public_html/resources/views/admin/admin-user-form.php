@@ -71,6 +71,10 @@ foreach ($verificationParts as $part) {
 }
 $requestedTab = trim((string) ($_GET['tab'] ?? ''));
 
+if ($status === 'roles_saved') {
+    $verificationMessages[] = 'نقش‌ها و دسترسی‌های کاربر ذخیره شد.';
+}
+
 $contactErrorKeys = [
     'email',
     'mobile',
@@ -417,7 +421,7 @@ ob_start();
             <section class="access-card"><div class="permission-next"><div><strong>مجوزهای ریزدانه</strong><small>مدیریت مستقیم Permissionها در مرحله توسعه دسترسی‌ها به همین تب اضافه می‌شود.</small></div><span class="admin-pill">مرحله بعد</span></div></section>
         </section>
 
-        <footer class="user-actions"><div><button class="admin-button" type="submit"><?= $isEdit ? 'ذخیره تغییرات' : 'ایجاد کاربر' ?></button><a class="admin-button admin-button--soft" href="/admin/users">انصراف</a></div><div><?php if($isEdit):?><a class="admin-button admin-button--soft" href="<?= admin_h('/admin/users/'.$userId) ?>">مشاهده جزئیات</a><?php endif;?></div></footer>
+        <footer class="user-actions"><div><button class="admin-button" type="submit"><?= $isEdit ? 'ذخیره تغییرات' : 'ایجاد کاربر' ?></button><?php if($isEdit):?><button class="admin-button admin-button--soft" type="submit" formaction="<?= admin_h('/admin/users/'.$userId.'/roles') ?>" formnovalidate>ذخیره نقش‌ها و دسترسی‌ها</button><?php endif;?><a class="admin-button admin-button--soft" href="/admin/users">انصراف</a></div><div><?php if($isEdit):?><a class="admin-button admin-button--soft" href="<?= admin_h('/admin/users/'.$userId) ?>">مشاهده جزئیات</a><?php endif;?></div></footer>
     </form>
 </div>
 

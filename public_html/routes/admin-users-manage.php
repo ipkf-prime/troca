@@ -326,6 +326,72 @@ $router->post('/admin/users/{id}', function (
     ], 422);
 });
 
+$router->post('/admin/users/{id}/roles', function (
+    $request,
+    $response
+) use (
+    $adminRender,
+    $adminGuard,
+    $adminUserManagementForbidden
+) {
+    $context = $adminGuard($response, '/admin/users');
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $service = new \App\Services\AdminUserManagementService();
+    if (!$service->canUpdate((int) $context['user_id'])) {
+        return $adminUserManagementForbidden($response, $adminRender, $context);
+    }
+
+    $userId = filter_var(
+        $request->route('id'),
+        FILTER_VALIDATE_INT,
+        ['options' => ['min_range' => 1]]
+    );
+    if ($userId === false) {
+        return $adminRender($response, 'user-not-found', [
+            'title' => 'کاربر پیدا نشد',
+            'context' => $context,
+        ], 404);
+    }
+
+    $result = $service->updateRoles(
+        (int) $context['user_id'],
+        (int) $userId,
+        $request->all()
+    );
+    if (($result['ok'] ?? false) === true) {
+        return $response->redirect(
+            '/admin/users/' . $userId . '/edit?status=roles_saved&tab=access'
+        );
+    }
+    if (($result['not_found'] ?? false) === true) {
+        return $adminRender($response, 'user-not-found', [
+            'title' => 'کاربر پیدا نشد',
+            'context' => $context,
+        ], 404);
+    }
+    if (($result['forbidden'] ?? false) === true) {
+        return $adminUserManagementForbidden($response, $adminRender, $context);
+    }
+
+    $page = $service->form(
+        (int) $context['user_id'],
+        (int) $userId,
+        $result['form'] ?? []
+    );
+    return $adminRender($response, 'admin-user-form', [
+        'title' => 'ویرایش کاربر',
+        'context' => $context,
+        'page' => $page,
+        'errors' => $result['errors'] ?? [
+            'invalid' => 'نقش‌های انتخاب‌شده معتبر نیستند.',
+        ],
+        'status' => '',
+    ], 422);
+});
+
 $adminManagedUserDetailRoute = function (
     string $pattern,
     string $tab

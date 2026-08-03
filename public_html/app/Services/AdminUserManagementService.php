@@ -295,6 +295,48 @@ class AdminUserManagementService extends BaseService
         ];
     }
 
+    public function updateRoles(
+        int $actorUserId,
+        int $userId,
+        array $input
+    ): array {
+        if (!$this->canUpdate($actorUserId)) {
+            return ['ok' => false, 'forbidden' => true, 'errors' => []];
+        }
+
+        if ($this->users->findForForm($userId) === null) {
+            return ['ok' => false, 'not_found' => true, 'errors' => []];
+        }
+
+        $roleIdsRaw = $input['role_ids'] ?? [];
+        if (!is_array($roleIdsRaw)) {
+            $roleIdsRaw = [];
+        }
+
+        $roleIds = $this->users->roleIdsByIds(
+            $roleIdsRaw,
+            $this->canAssignProtectedRoles($actorUserId)
+        );
+        $preserveOwnSuperAdmin = $actorUserId === $userId
+            && $this->users->userHasGlobalRole($userId, 'super_admin');
+
+        try {
+            $this->users->updateRoles(
+                $userId,
+                $roleIds,
+                $preserveOwnSuperAdmin
+            );
+        } catch (Throwable) {
+            return [
+                'ok' => false,
+                'errors' => ['database' => 'ذخیره نقش‌ها و دسترسی‌ها انجام نشد.'],
+                'form' => ['role_ids' => array_map('intval', $roleIdsRaw)],
+            ];
+        }
+
+        return ['ok' => true, 'user_id' => $userId];
+    }
+
     private function validate(
         array $input,
         ?int $exceptUserId,

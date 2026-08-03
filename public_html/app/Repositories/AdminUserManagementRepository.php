@@ -643,6 +643,38 @@ class AdminUserManagementRepository extends BaseRepository
         }
     }
 
+    public function updateRoles(
+        int $userId,
+        array $roleIds,
+        bool $preserveSuperAdmin
+    ): bool {
+        $db = $this->connection();
+        $db->beginTransaction();
+
+        try {
+            if ($this->findForForm($userId) === null) {
+                throw new RuntimeException('user_not_found');
+            }
+
+            if ($preserveSuperAdmin) {
+                $superAdminId = $this->roleIdByCode('super_admin');
+                if ($superAdminId !== null) {
+                    $roleIds[] = $superAdminId;
+                }
+            }
+
+            $this->syncGlobalRoles($userId, $roleIds);
+            $db->commit();
+
+            return true;
+        } catch (Throwable $exception) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            throw $exception;
+        }
+    }
+
     public function updateOwnProfile(
         int $userId,
         array $data

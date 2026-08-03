@@ -68,6 +68,7 @@ class CommunicationCenterSeeder extends Seeder
 
         foreach (self::PERMISSIONS as [$code]) {
             $assign->execute([$code, 'super_admin']);
+            $assign->execute([$code, 'system_admin']);
         }
     }
 
