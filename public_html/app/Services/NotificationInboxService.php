@@ -131,15 +131,6 @@ class NotificationInboxService extends BaseService
         }
     }
 
-    public function markActionRead(int $userId, string $actionUrl): int
-    {
-        try {
-            return $this->notifications->markActionRead($userId, $actionUrl);
-        } catch (Throwable) {
-            return 0;
-        }
-    }
-
     private function item(array $row): array
     {
         $createdAt = (string) ($row['created_at'] ?? '');
