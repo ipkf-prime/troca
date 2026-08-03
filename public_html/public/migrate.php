@@ -126,6 +126,7 @@ try {
         new \IPKF\Database\Migrations\CreateNotificationCoreFoundationTables(),
         new \IPKF\Database\Migrations\CreateCommunicationCenterFoundationTables(),
         new \IPKF\Database\Migrations\CreateSecureMessageExtensionTables(),
+        new \IPKF\Database\Migrations\ExtendNotificationProviderManagement(),
     ]);
 
     $manager->migrate();
