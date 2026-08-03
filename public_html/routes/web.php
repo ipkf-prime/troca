@@ -1698,10 +1698,17 @@ $router->get('/admin/access', function ($request, $response) use ($adminRender, 
         return $context;
     }
 
+    $canManage = (new \App\Services\AuthorizationService())
+        ->hasPermission((int) $context['user_id'], 'access.manage');
+
     return $adminRender($response, 'access', [
         'title' => 'سطح دسترسی فعال',
         'context' => $context,
         'status' => trim((string) $request->input('status', '')),
+        'canManageCommunicationAccess' => $canManage,
+        'communicationMatrix' => $canManage
+            ? (new \App\Repositories\PermissionRepository())->communicationMatrix()
+            : [],
     ]);
 });
 
@@ -1895,6 +1902,20 @@ $router->post('/admin/access', function ($request, $response) {
     }
 
     return $response->redirect('/admin/access?status=' . ($assignment === null ? 'forbidden' : 'switched'));
+});
+
+$router->post('/admin/access/communications', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/access');
+    if (!is_array($context)) return $context;
+    if (!(new \App\Services\AuthorizationService())->hasPermission((int) $context['user_id'], 'access.manage')) {
+        return $response->redirect('/admin/access?status=forbidden');
+    }
+    $codes = $request->input('permissions', []);
+    $saved = (new \App\Repositories\PermissionRepository())->saveCommunicationRolePermissions(
+        (int) $request->input('role_id', 0),
+        is_array($codes) ? $codes : []
+    );
+    return $response->redirect('/admin/access?status=' . ($saved ? 'permissions_saved' : 'protected_role'));
 });
 
 $router->post('/admin/profile/access', function ($request, $response) {

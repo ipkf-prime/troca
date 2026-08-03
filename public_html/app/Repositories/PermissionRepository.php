@@ -75,4 +75,45 @@ class PermissionRepository extends BaseRepository
 
         return (int) $statement->fetchColumn() > 0;
     }
+
+    public function communicationMatrix(): array
+    {
+        $roles = $this->connection()->query("SELECT id, code, title FROM roles WHERE is_active = 1 ORDER BY priority, id")
+            ->fetchAll() ?: [];
+        $permissions = $this->connection()->query("SELECT id, code, title FROM permissions WHERE module = 'communications' AND is_active = 1 ORDER BY resource, action, id")
+            ->fetchAll() ?: [];
+        $assigned = $this->connection()->query("SELECT role_permissions.role_id, permissions.code FROM role_permissions INNER JOIN permissions ON permissions.id = role_permissions.permission_id WHERE permissions.module = 'communications'")
+            ->fetchAll() ?: [];
+        $map = [];
+        foreach ($assigned as $row) {
+            $map[(int) $row['role_id']][(string) $row['code']] = true;
+        }
+        return ['roles' => $roles, 'permissions' => $permissions, 'assigned' => $map];
+    }
+
+    public function saveCommunicationRolePermissions(int $roleId, array $codes): bool
+    {
+        $role = $this->connection()->prepare('SELECT code FROM roles WHERE id = ? AND is_active = 1 LIMIT 1');
+        $role->execute([$roleId]);
+        $roleCode = (string) ($role->fetchColumn() ?: '');
+        if ($roleCode === '' || $roleCode === 'super_admin') {
+            return false;
+        }
+        $allowed = $this->connection()->query("SELECT code FROM permissions WHERE module = 'communications' AND is_active = 1")
+            ->fetchAll(\PDO::FETCH_COLUMN) ?: [];
+        $codes = array_values(array_intersect($allowed, array_map('strval', $codes)));
+        $db = $this->connection();
+        $db->beginTransaction();
+        try {
+            $delete = $db->prepare("DELETE role_permissions FROM role_permissions INNER JOIN permissions ON permissions.id = role_permissions.permission_id WHERE role_permissions.role_id = ? AND permissions.module = 'communications'");
+            $delete->execute([$roleId]);
+            $insert = $db->prepare("INSERT IGNORE INTO role_permissions (role_id, permission_id, created_at) SELECT ?, id, CURRENT_TIMESTAMP FROM permissions WHERE code = ? AND module = 'communications' AND is_active = 1");
+            foreach ($codes as $code) { $insert->execute([$roleId, $code]); }
+            $db->commit();
+            return true;
+        } catch (\Throwable $exception) {
+            if ($db->inTransaction()) $db->rollBack();
+            throw $exception;
+        }
+    }
 }

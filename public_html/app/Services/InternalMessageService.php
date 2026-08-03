@@ -31,22 +31,21 @@ class InternalMessageService extends BaseService
         ];
     }
 
-    public function inbox(int $userId): array
+    public function inbox(int $userId, array $filters = []): array
     {
         $this->notificationInbox->markActionRead(
             $userId,
             '/admin/messages/inbox'
         );
 
-        return [
-            'items' => $this->messages->inbox($userId),
+        return $this->messages->inbox($userId, $filters) + [
             'unread_count' => $this->messages->unreadCount($userId),
         ];
     }
 
-    public function sent(int $userId): array
+    public function sent(int $userId, array $filters = []): array
     {
-        return ['items' => $this->messages->sent($userId)];
+        return $this->messages->sent($userId, $filters);
     }
 
     public function thread(

@@ -10,14 +10,13 @@ ob_start();
 require BASE_PATH
     . '/resources/views/admin/partials/communication-style.php';
 ?>
+<div class="message-page-shell message-compose-shell">
 <section class="communication-panel">
     <header class="communication-panel__head">
         <div>
             <h2>ارسال پیام داخلی</h2>
             <p class="communication-muted">
-                گیرندگان از سیاست فعال دیتابیس خوانده می‌شوند.
-                قواعد نقش، سازمان و حوزه دسترسی در مرحله بعد
-                تکمیل می‌شوند.
+                یک گفتگوی داخلی جدید ایجاد کنید.
             </p>
         </div>
     </header>
@@ -118,6 +117,7 @@ require BASE_PATH
         </div>
     </form>
 </section>
+</div>
 <?php
 
 $content = ob_get_clean();

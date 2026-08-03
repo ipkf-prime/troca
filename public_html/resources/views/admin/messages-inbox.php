@@ -37,6 +37,12 @@ require BASE_PATH
 </section>
 
 <section class="communication-panel" style="margin-top:1rem">
+    <?php
+    $listBasePath = '/admin/messages/inbox';
+    $showUnreadFilter = true;
+    $listSortOptions = ['date' => 'تاریخ', 'counterpart' => 'طرف گفتگو', 'subject' => 'موضوع', 'status' => 'وضعیت', 'unread' => 'خوانده‌نشده'];
+    require BASE_PATH . '/resources/views/admin/partials/message-list-tools.php';
+    ?>
     <?php if ($items === []): ?>
         <p class="communication-muted">
             هنوز گفتگویی برای شما ثبت نشده است.

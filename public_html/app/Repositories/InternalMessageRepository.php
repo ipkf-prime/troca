@@ -292,9 +292,55 @@ class InternalMessageRepository extends BaseRepository
         }
     }
 
-    public function inbox(int $userId, int $limit = 50): array
+    public function inbox(int $userId, array $filters = []): array
     {
-        $limit = max(1, min(100, $limit));
+        $page = max(1, (int) ($filters['page'] ?? 1));
+        $perPage = max(10, min(100, (int) ($filters['per_page'] ?? 20)));
+        $offset = ($page - 1) * $perPage;
+        $sorts = [
+            'counterpart' => 'counterpart_title',
+            'subject' => 'conversations.subject',
+            'date' => 'conversations.last_message_at',
+            'status' => 'conversations.status_code',
+            'unread' => 'unread_count',
+        ];
+        $sort = $sorts[(string) ($filters['sort'] ?? 'date')] ?? $sorts['date'];
+        $direction = strtolower((string) ($filters['direction'] ?? 'desc')) === 'asc' ? 'ASC' : 'DESC';
+        $where = [
+            'participants.user_id = :user_id',
+            'participants.left_at IS NULL',
+            'participants.archived_at IS NULL',
+            "conversations.status_code IN ('active', 'closed')",
+        ];
+        $params = ['unread_user' => $userId, 'other_user' => $userId, 'user_id' => $userId];
+        $search = trim((string) ($filters['q'] ?? ''));
+        if ($search !== '') {
+            $where[] = "(conversations.subject LIKE :search_subject OR last_message.body LIKE :search_body OR COALESCE(other_person.full_name, other_user.username, other_user.email, '') LIKE :search_person)";
+            $params['search_subject'] = $params['search_body'] = $params['search_person'] = '%' . $search . '%';
+        }
+        $status = (string) ($filters['status'] ?? '');
+        if (in_array($status, ['active', 'closed'], true)) {
+            $where[] = 'conversations.status_code = :status';
+            $params['status'] = $status;
+        }
+        if (($filters['unread'] ?? '') === '1') {
+            $where[] = '(SELECT COUNT(*) FROM message_messages um WHERE um.conversation_id = conversations.id AND um.deleted_at IS NULL AND um.sender_user_id <> :unread_filter_user AND um.id > COALESCE(participants.last_read_message_id, 0)) > 0';
+            $params['unread_filter_user'] = $userId;
+        }
+        foreach (['from' => 'from_date', 'to' => 'to_date'] as $key => $parameter) {
+            $value = trim((string) ($filters[$key] ?? ''));
+            if ($value !== '') {
+                $where[] = 'DATE(conversations.last_message_at) ' . ($key === 'from' ? '>=' : '<=') . ' :' . $parameter;
+                $params[$parameter] = $value;
+            }
+        }
+        $from = "FROM message_conversation_participants AS participants
+            INNER JOIN message_conversations AS conversations ON conversations.id = participants.conversation_id
+            LEFT JOIN message_messages AS last_message ON last_message.id = (SELECT MAX(latest.id) FROM message_messages AS latest WHERE latest.conversation_id = conversations.id AND latest.deleted_at IS NULL)
+            LEFT JOIN message_conversation_participants AS other_participant ON other_participant.conversation_id = conversations.id AND other_participant.user_id <> :other_user AND other_participant.left_at IS NULL
+            LEFT JOIN users AS other_user ON other_user.id = other_participant.user_id
+            LEFT JOIN persons AS other_person ON other_person.id = other_user.person_id
+            WHERE " . implode(' AND ', $where);
 
         $statement = $this->connection()->prepare("
             SELECT
@@ -319,44 +365,37 @@ class InternalMessageRepository extends BaseRepository
                       AND unread_messages.id >
                         COALESCE(participants.last_read_message_id, 0)
                 ) AS unread_count
-            FROM message_conversation_participants AS participants
-            INNER JOIN message_conversations AS conversations
-              ON conversations.id = participants.conversation_id
-            LEFT JOIN message_messages AS last_message
-              ON last_message.id = (
-                  SELECT MAX(latest.id)
-                  FROM message_messages AS latest
-                  WHERE latest.conversation_id = conversations.id
-                    AND latest.deleted_at IS NULL
-              )
-            LEFT JOIN message_conversation_participants AS other_participant
-              ON other_participant.conversation_id = conversations.id
-             AND other_participant.user_id <> :other_user
-             AND other_participant.left_at IS NULL
-            LEFT JOIN users AS other_user
-              ON other_user.id = other_participant.user_id
-            LEFT JOIN persons AS other_person
-              ON other_person.id = other_user.person_id
-            WHERE participants.user_id = :user_id
-              AND participants.left_at IS NULL
-              AND participants.archived_at IS NULL
-              AND conversations.status_code IN ('active', 'closed')
-            ORDER BY conversations.last_message_at DESC,
-                conversations.id DESC
-            LIMIT {$limit}
+            {$from}
+            ORDER BY {$sort} {$direction}, conversations.id DESC
+            LIMIT {$perPage} OFFSET {$offset}
         ");
-        $statement->execute([
-            'unread_user' => $userId,
-            'other_user' => $userId,
-            'user_id' => $userId,
-        ]);
-
-        return $statement->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $statement->execute($params);
+        $items = $statement->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $count = $this->connection()->prepare("SELECT COUNT(DISTINCT conversations.id) {$from}");
+        $countParams = $params;
+        unset($countParams['unread_user']);
+        $count->execute($countParams);
+        return $this->pageResult($items, (int) $count->fetchColumn(), $page, $perPage, $filters);
     }
 
-    public function sent(int $userId, int $limit = 100): array
+    public function sent(int $userId, array $filters = []): array
     {
-        $limit = max(1, min(200, $limit));
+        $page = max(1, (int) ($filters['page'] ?? 1));
+        $perPage = max(10, min(100, (int) ($filters['per_page'] ?? 20)));
+        $offset = ($page - 1) * $perPage;
+        $sorts = ['recipient' => 'recipients_title', 'subject' => 'conversations.subject', 'date' => 'messages.sent_at', 'status' => 'conversations.status_code'];
+        $sort = $sorts[(string) ($filters['sort'] ?? 'date')] ?? $sorts['date'];
+        $direction = strtolower((string) ($filters['direction'] ?? 'desc')) === 'asc' ? 'ASC' : 'DESC';
+        $where = ['messages.sender_user_id = :user_id', 'messages.deleted_at IS NULL'];
+        $params = ['recipient_user' => $userId, 'user_id' => $userId];
+        $search = trim((string) ($filters['q'] ?? ''));
+        if ($search !== '') { $where[] = '(conversations.subject LIKE :search_subject OR messages.body LIKE :search_body)'; $params['search_subject'] = $params['search_body'] = '%' . $search . '%'; }
+        $status = (string) ($filters['status'] ?? '');
+        if (in_array($status, ['active', 'closed'], true)) { $where[] = 'conversations.status_code = :status'; $params['status'] = $status; }
+        foreach (['from' => 'from_date', 'to' => 'to_date'] as $key => $parameter) {
+            $value = trim((string) ($filters[$key] ?? ''));
+            if ($value !== '') { $where[] = 'DATE(messages.sent_at) ' . ($key === 'from' ? '>=' : '<=') . ' :' . $parameter; $params[$parameter] = $value; }
+        }
 
         $statement = $this->connection()->prepare("
             SELECT
@@ -388,20 +427,22 @@ class InternalMessageRepository extends BaseRepository
                          recipient_user.person_id
                     WHERE recipient_participant.conversation_id =
                         conversations.id
-                      AND recipient_participant.user_id <> ?
+                      AND recipient_participant.user_id <> :recipient_user
                       AND recipient_participant.left_at IS NULL
                 ) AS recipients_title
             FROM message_messages AS messages
             INNER JOIN message_conversations AS conversations
               ON conversations.id = messages.conversation_id
-            WHERE messages.sender_user_id = ?
-              AND messages.deleted_at IS NULL
-            ORDER BY messages.sent_at DESC, messages.id DESC
-            LIMIT {$limit}
+            WHERE " . implode(' AND ', $where) . "
+            ORDER BY {$sort} {$direction}, messages.id DESC
+            LIMIT {$perPage} OFFSET {$offset}
         ");
-        $statement->execute([$userId, $userId]);
-
-        return $statement->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $statement->execute($params);
+        $items = $statement->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $countParams = $params; unset($countParams['recipient_user']);
+        $count = $this->connection()->prepare('SELECT COUNT(*) FROM message_messages messages INNER JOIN message_conversations conversations ON conversations.id = messages.conversation_id WHERE ' . implode(' AND ', $where));
+        $count->execute($countParams);
+        return $this->pageResult($items, (int) $count->fetchColumn(), $page, $perPage, $filters);
     }
 
     public function thread(
@@ -580,20 +621,34 @@ class InternalMessageRepository extends BaseRepository
         }
     }
 
-    public function monitor(int $limit = 100): array
+    public function monitor(array $filters = []): array
     {
-        $limit = max(1, min(200, $limit));
-        return $this->connection()->query("SELECT conversations.public_reference,
+        $page = max(1, (int) ($filters['page'] ?? 1));
+        $perPage = max(10, min(100, (int) ($filters['per_page'] ?? 20)));
+        $offset = ($page - 1) * $perPage;
+        $sorts = ['creator' => 'creator_title', 'subject' => 'conversations.subject', 'date' => 'conversations.last_message_at', 'status' => 'conversations.status_code', 'messages' => 'message_count'];
+        $sort = $sorts[(string) ($filters['sort'] ?? 'date')] ?? $sorts['date'];
+        $direction = strtolower((string) ($filters['direction'] ?? 'desc')) === 'asc' ? 'ASC' : 'DESC';
+        $where = ['1=1']; $params = [];
+        $search = trim((string) ($filters['q'] ?? ''));
+        if ($search !== '') { $where[] = "(conversations.subject LIKE :search_subject OR COALESCE(persons.full_name, users.username, users.email, '') LIKE :search_person)"; $params['search_subject'] = $params['search_person'] = '%' . $search . '%'; }
+        $status = (string) ($filters['status'] ?? '');
+        if (in_array($status, ['active', 'closed'], true)) { $where[] = 'conversations.status_code = :status'; $params['status'] = $status; }
+        $sql = "SELECT conversations.public_reference,
             conversations.subject, conversations.status_code, conversations.last_message_at,
-            COUNT(messages.id) AS message_count, COUNT(attachments.id) AS attachment_count,
+            COUNT(DISTINCT messages.id) AS message_count, COUNT(DISTINCT attachments.id) AS attachment_count,
             COALESCE(NULLIF(persons.full_name, ''), users.username, users.email) AS creator_title
             FROM message_conversations conversations
             INNER JOIN users ON users.id = conversations.created_by_user_id
             LEFT JOIN persons ON persons.id = users.person_id
             LEFT JOIN message_messages messages ON messages.conversation_id = conversations.id AND messages.deleted_at IS NULL
             LEFT JOIN message_attachments attachments ON attachments.message_id = messages.id
-            GROUP BY conversations.id ORDER BY conversations.last_message_at DESC LIMIT {$limit}")
-            ->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            WHERE " . implode(' AND ', $where) . " GROUP BY conversations.id ORDER BY {$sort} {$direction}, conversations.id DESC LIMIT {$perPage} OFFSET {$offset}";
+        $statement = $this->connection()->prepare($sql); $statement->execute($params);
+        $items = $statement->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $count = $this->connection()->prepare('SELECT COUNT(*) FROM message_conversations conversations INNER JOIN users ON users.id = conversations.created_by_user_id LEFT JOIN persons ON persons.id = users.person_id WHERE ' . implode(' AND ', $where));
+        $count->execute($params);
+        return $this->pageResult($items, (int) $count->fetchColumn(), $page, $perPage, $filters);
     }
 
     public function auditLog(int $limit = 100): array
@@ -662,6 +717,25 @@ class InternalMessageRepository extends BaseRepository
         $label = $statement->fetchColumn();
 
         return $label === false ? 'کاربر' : (string) $label;
+    }
+
+    private function pageResult(
+        array $items,
+        int $total,
+        int $page,
+        int $perPage,
+        array $filters
+    ): array {
+        return [
+            'items' => $items,
+            'pagination' => [
+                'page' => $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'last_page' => max(1, (int) ceil($total / $perPage)),
+            ],
+            'filters' => $filters,
+        ];
     }
 
     private function conversationIdForUser(

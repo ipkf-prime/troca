@@ -13,6 +13,20 @@ $communicationAccess = static function (
         );
 };
 
+$communicationFilters = static function ($request): array {
+    return [
+        'q' => trim((string) $request->input('q', '')),
+        'status' => trim((string) $request->input('status', '')),
+        'unread' => trim((string) $request->input('unread', '')),
+        'from' => trim((string) $request->input('from', '')),
+        'to' => trim((string) $request->input('to', '')),
+        'sort' => trim((string) $request->input('sort', 'date')),
+        'direction' => trim((string) $request->input('direction', 'desc')),
+        'page' => max(1, (int) $request->input('page', 1)),
+        'per_page' => (int) $request->input('per_page', 20),
+    ];
+};
+
 $router->get('/admin/communications', function (
     $request,
     $response
@@ -58,7 +72,7 @@ $router->get('/admin/communications', function (
 $router->get('/admin/messages/inbox', function (
     $request,
     $response
-) use ($adminRender, $adminGuard, $communicationAccess) {
+) use ($adminRender, $adminGuard, $communicationAccess, $communicationFilters) {
     $context = $adminGuard(
         $response,
         '/admin/messages/inbox'
@@ -86,7 +100,7 @@ $router->get('/admin/messages/inbox', function (
             'context' => $context,
             'page' => (
                 new \App\Services\InternalMessageService()
-            )->inbox((int) $context['user_id']),
+            )->inbox((int) $context['user_id'], $communicationFilters($request)),
         ]
     );
 });
@@ -185,7 +199,7 @@ $router->post('/admin/messages/compose', function (
 $router->get('/admin/messages/sent', function (
     $request,
     $response
-) use ($adminRender, $adminGuard, $communicationAccess) {
+) use ($adminRender, $adminGuard, $communicationAccess, $communicationFilters) {
     $context = $adminGuard(
         $response,
         '/admin/messages/sent'
@@ -213,7 +227,7 @@ $router->get('/admin/messages/sent', function (
             'context' => $context,
             'page' => (
                 new \App\Services\InternalMessageService()
-            )->sent((int) $context['user_id']),
+            )->sent((int) $context['user_id'], $communicationFilters($request)),
         ]
     );
 });
@@ -401,10 +415,11 @@ $router->get('/admin/messages/attachments/{reference}', function ($request, $res
         ->body($content);
 });
 
-$router->get('/admin/messages/monitor', function ($request, $response) use ($adminRender, $adminGuard) {
+$router->get('/admin/messages/monitor', function ($request, $response) use ($adminRender, $adminGuard, $communicationAccess, $communicationFilters) {
     $context = $adminGuard($response, '/admin/messages/monitor');
     if (!is_array($context)) return $context;
-    try { $page = (new \App\Services\InternalMessageAdministrationService())->index((int) $context['user_id']); }
+    if (!$communicationAccess($context, 'GET', '/admin/messages/monitor')) return $response->redirect('/admin/dashboard?error=forbidden');
+    try { $page = (new \App\Services\InternalMessageAdministrationService())->index((int) $context['user_id'], $communicationFilters($request)); }
     catch (\Throwable) { return $response->redirect('/admin/dashboard?error=forbidden'); }
     return $adminRender($response, 'messages-monitor', ['title' => 'نظارت بر پیام‌ها', 'context' => $context, 'page' => $page]);
 });

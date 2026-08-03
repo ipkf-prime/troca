@@ -20,10 +20,12 @@ class InternalMessageAdministrationService extends BaseService
         return $this->authorization->hasPermission($userId, 'messages.admin.view');
     }
 
-    public function index(int $userId): array
+    public function index(int $userId, array $filters = []): array
     {
         $this->guard($userId);
-        return ['items' => $this->messages->monitor(), 'audit' => $this->messages->auditLog()];
+        return $this->messages->monitor($filters) + [
+            'audit' => $this->messages->auditLog(50),
+        ];
     }
 
     public function thread(int $userId, string $reference, string $reason): ?array

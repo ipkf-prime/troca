@@ -30,6 +30,12 @@ require BASE_PATH
 </section>
 
 <section class="communication-panel" style="margin-top:1rem">
+    <?php
+    $listBasePath = '/admin/messages/sent';
+    $showUnreadFilter = false;
+    $listSortOptions = ['date' => 'تاریخ', 'recipient' => 'گیرنده', 'subject' => 'موضوع', 'status' => 'وضعیت'];
+    require BASE_PATH . '/resources/views/admin/partials/message-list-tools.php';
+    ?>
     <?php if ($items === []): ?>
         <p class="communication-muted">
             هنوز پیامی ارسال نکرده‌اید.

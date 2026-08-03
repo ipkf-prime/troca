@@ -23,7 +23,6 @@ class RouteLoader
             BASE_PATH . '/routes/profile-avatar.php',
             BASE_PATH . '/routes/notifications.php',
             BASE_PATH . '/routes/communication-center.php',
-            BASE_PATH . '/routes/communication-ui.php',
             BASE_PATH . '/routes/work-runtime.php',
         ] as $routeFile) {
             if (is_readable($routeFile)) {

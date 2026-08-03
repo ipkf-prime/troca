@@ -68,7 +68,6 @@ class CommunicationCenterSeeder extends Seeder
 
         foreach (self::PERMISSIONS as [$code]) {
             $assign->execute([$code, 'super_admin']);
-            $assign->execute([$code, 'system_admin']);
         }
     }
 
@@ -599,6 +598,12 @@ class CommunicationCenterSeeder extends Seeder
                 ['messages.view'], 'any', 30],
             ['POST', '/admin/messages/thread/{reference}/reply',
                 ['messages.reply'], 'any', 30],
+            ['GET', '/admin/messages/monitor',
+                ['messages.admin.view'], 'any', 35],
+            ['POST', '/admin/messages/monitor/{reference}',
+                ['messages.admin.view'], 'any', 35],
+            ['GET', '/admin/messages/monitor/view/{reference}',
+                ['messages.admin.view'], 'any', 35],
             ['GET', '/admin/communications/settings',
                 ['notifications.providers.manage',
                     'notifications.routing.manage',

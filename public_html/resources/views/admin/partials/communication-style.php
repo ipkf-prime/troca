@@ -66,7 +66,8 @@
     gap: .7rem .9rem;
     grid-template-columns:
         repeat(2, minmax(0, 1fr));
-    max-width: 980px;
+    max-width: 760px;
+    margin-inline: auto;
 }
 
 .communication-form label {
@@ -200,6 +201,50 @@
     margin-inline: auto;
     max-width: 1040px;
 }
+
+.message-page-shell--wide { max-width: 1280px; }
+.message-compose-shell { max-width: 820px; }
+.communication-compact-head { padding-block: .7rem; }
+.communication-filters {
+    align-items: end;
+    display: grid;
+    gap: .5rem;
+    grid-template-columns: minmax(180px, 2fr) repeat(6, minmax(110px, 1fr)) auto auto;
+    margin-bottom: .65rem;
+}
+.communication-filters input,
+.communication-filters select {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    color: inherit;
+    font: inherit;
+    min-height: 38px;
+    min-width: 0;
+    padding: .4rem .55rem;
+}
+.communication-list-meta,
+.communication-pagination { align-items: center; display: flex; gap: .65rem; }
+.communication-list-meta { color: var(--admin-text-muted); font-size: .8rem; justify-content: space-between; margin-bottom: .5rem; }
+.communication-pagination a { color: var(--admin-primary); font-weight: 750; text-decoration: none; }
+.monitor-reason { position: relative; }
+.monitor-reason > summary { cursor: pointer; list-style: none; }
+.monitor-reason > form {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(0,0,0,.12);
+    display: grid;
+    gap: .55rem;
+    inset-inline-end: 0;
+    min-width: 300px;
+    padding: .75rem;
+    position: absolute;
+    z-index: 5;
+}
+.monitor-reason label { display: grid; font-size: .8rem; gap: .3rem; }
+.monitor-reason input { border: 1px solid var(--admin-border); border-radius: 8px; font: inherit; padding: .5rem; }
+.communication-audit > summary { cursor: pointer; font-weight: 800; }
 
 .message-thread-head {
     align-items: center;
@@ -408,6 +453,15 @@
         flex: 1 1 auto;
         justify-content: center;
     }
+
+    .communication-filters { grid-template-columns: 1fr 1fr; }
+    .communication-filters input[type="search"] { grid-column: 1 / -1; }
+    .monitor-reason > form { inset-inline: auto 0; min-width: min(82vw, 300px); }
+}
+
+@media (min-width: 761px) and (max-width: 1280px) {
+    .communication-filters { grid-template-columns: repeat(4, minmax(120px, 1fr)); }
+    .communication-filters input[type="search"] { grid-column: span 2; }
 }
 </style>
 
