@@ -1402,3 +1402,173 @@
     }
 }
 </style>
+
+<!-- notification-provider-compact-alignment-v061:start -->
+<style>
+/*
+ * Final compact alignment for notification-provider forms.
+ * Keeps both desktop columns on the same baseline and places every
+ * field label directly beside its own control.
+ */
+.provider-editor-panels {
+    min-height: 0;
+}
+
+.provider-editor-panel {
+    padding-top: .05rem;
+}
+
+.provider-form-grid,
+.provider-dynamic-grid {
+    align-items: start;
+    gap: .5rem .85rem;
+}
+
+.provider-form-grid > label:not(.provider-status-field),
+.provider-dynamic-grid > label {
+    align-items: start;
+    display: grid;
+    gap: .18rem .48rem;
+    grid-template-columns:
+        minmax(120px, 145px)
+        minmax(0, 1fr);
+    margin: 0;
+    min-width: 0;
+}
+
+.provider-form-grid > label:not(.provider-status-field) > span,
+.provider-dynamic-grid > label > span {
+    align-self: center;
+    grid-column: 1;
+    grid-row: 1;
+    line-height: 1.55;
+    margin: 0;
+    min-width: 0;
+    text-align: right;
+}
+
+.provider-form-grid > label:not(.provider-status-field) > input,
+.provider-form-grid > label:not(.provider-status-field) > select,
+.provider-form-grid > label:not(.provider-status-field) > textarea,
+.provider-form-grid > label:not(.provider-status-field) > .provider-secret-input,
+.provider-dynamic-grid > label > input,
+.provider-dynamic-grid > label > select,
+.provider-dynamic-grid > label > textarea,
+.provider-dynamic-grid > label > .provider-secret-input {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+}
+
+.provider-form-grid > label:not(.provider-status-field) > small,
+.provider-dynamic-grid > label > small {
+    grid-column: 2;
+    line-height: 1.55;
+    margin: 0;
+    padding-top: .02rem;
+}
+
+.provider-form-grid > label:not(.provider-status-field):has(> textarea) > span,
+.provider-dynamic-grid > label:has(> textarea) > span {
+    align-self: start;
+    padding-top: .48rem;
+}
+
+.provider-management-form input,
+.provider-management-form select,
+.provider-management-form textarea {
+    min-height: 38px;
+    padding-block: .42rem;
+}
+
+.provider-management-form textarea {
+    min-height: 72px;
+}
+
+.provider-management-form legend {
+    margin-bottom: .52rem;
+}
+
+.provider-editor-tabs {
+    gap: .16rem;
+    padding-bottom: .42rem;
+}
+
+.provider-editor-tab {
+    min-height: 34px;
+    padding: .32rem .58rem;
+}
+
+.provider-status-field {
+    gap: .5rem;
+    padding: .52rem .65rem;
+}
+
+.provider-secret-input {
+    align-items: center;
+    display: grid;
+    gap: .45rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-width: 0;
+}
+
+.provider-secret-input input {
+    border-radius: 9px;
+    min-width: 0;
+}
+
+.provider-secret-toggle {
+    align-items: center;
+    background: var(--admin-surface-muted);
+    border: 1px solid var(--admin-border);
+    border-radius: 9px;
+    display: inline-flex;
+    font: inherit;
+    font-size: .74rem;
+    font-weight: 750;
+    justify-content: center;
+    min-height: 38px;
+    min-width: 66px;
+    padding: .4rem .62rem;
+}
+
+.provider-form-actions {
+    gap: .5rem;
+    padding-block: .58rem;
+}
+
+@media (max-width: 900px) {
+    .provider-form-grid,
+    .provider-dynamic-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .provider-form-grid > label:not(.provider-status-field),
+    .provider-dynamic-grid > label {
+        gap: .22rem;
+        grid-template-columns: 1fr;
+    }
+
+    .provider-form-grid > label:not(.provider-status-field) > span,
+    .provider-form-grid > label:not(.provider-status-field) > input,
+    .provider-form-grid > label:not(.provider-status-field) > select,
+    .provider-form-grid > label:not(.provider-status-field) > textarea,
+    .provider-form-grid > label:not(.provider-status-field) > small,
+    .provider-form-grid > label:not(.provider-status-field) > .provider-secret-input,
+    .provider-dynamic-grid > label > span,
+    .provider-dynamic-grid > label > input,
+    .provider-dynamic-grid > label > select,
+    .provider-dynamic-grid > label > textarea,
+    .provider-dynamic-grid > label > small,
+    .provider-dynamic-grid > label > .provider-secret-input {
+        grid-column: 1;
+        grid-row: auto;
+    }
+
+    .provider-form-grid > label:not(.provider-status-field):has(> textarea) > span,
+    .provider-dynamic-grid > label:has(> textarea) > span {
+        padding-top: 0;
+    }
+}
+</style>
+<!-- notification-provider-compact-alignment-v061:end -->

@@ -228,6 +228,26 @@ $expect(
 );
 
 $expect(
+    str_contains(
+        $style,
+        'notification-provider-compact-alignment-v061'
+    )
+    && str_contains(
+        $style,
+        'minmax(120px, 145px)'
+    )
+    && str_contains(
+        $style,
+        'gap: .45rem;'
+    )
+    && str_contains(
+        $style,
+        '.provider-secret-toggle'
+    ),
+    'Provider field alignment and secret-button spacing are incomplete.'
+);
+
+$expect(
     !preg_match(
         '/\b(?:DROP\s+TABLE|TRUNCATE\s+TABLE)\b/i',
         $migration . $repository
