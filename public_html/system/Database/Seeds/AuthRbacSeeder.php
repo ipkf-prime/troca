@@ -20,6 +20,7 @@ class AuthRbacSeeder extends Seeder
         $this->seedAdminNavigationPermissions();
         $this->seedUsersOrganizationPermissions();
         $this->assignDefaultAdminNavigationPermissions();
+        $this->enforceSystemAdminPermissionBoundary();
         $this->assignSuperAdminPermissions();
         $this->seedAdminThemeDefaults();
         $this->seedAdminUser();
@@ -277,7 +278,6 @@ class AuthRbacSeeder extends Seeder
                 'account.security.view',
                 'account.password.change',
                 'account.theme.manage',
-                'access.manage',
                 'users.view',
                 'users.manage',
                 'org_units.view',
@@ -285,12 +285,8 @@ class AuthRbacSeeder extends Seeder
                 'positions.view',
                 'positions.manage',
                 'user_org_assignments.manage',
-                'admin.theme.manage',
-                'admin.settings.manage',
-                'admin.pages.manage',
                 'admin.reports.view',
                 'support.view',
-                'admin.navigation.debug',
             ],
             'province_admin' => [
                 'admin.dashboard.view',
@@ -334,6 +330,36 @@ class AuthRbacSeeder extends Seeder
                 }
             }
         }
+    }
+
+    private function enforceSystemAdminPermissionBoundary(): void
+    {
+        $roleId = $this->idFor('roles', 'system_admin');
+
+        if ($roleId === null) {
+            return;
+        }
+
+        // These permissions belong to the super-admin governance boundary.
+        // Keep this cleanup idempotent so existing installations are corrected
+        // as well as fresh installations.
+        $restrictedPermissionCodes = [
+            'access.manage',
+            'admin.settings.manage',
+            'admin.pages.manage',
+            'admin.theme.manage',
+            'admin.navigation.debug',
+        ];
+
+        $placeholders = implode(', ', array_fill(0, count($restrictedPermissionCodes), '?'));
+        $statement = $this->db->prepare("
+            DELETE rp
+            FROM role_permissions rp
+            INNER JOIN permissions p ON p.id = rp.permission_id
+            WHERE rp.role_id = ?
+              AND p.code IN ({$placeholders})
+        ");
+        $statement->execute(array_merge([$roleId], $restrictedPermissionCodes));
     }
 
     private function assignSuperAdminPermissions(): void
