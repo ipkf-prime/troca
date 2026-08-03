@@ -30,21 +30,21 @@ class NotificationProviderManagementService extends BaseService
         'smtp' => [
             [
                 'key' => 'password',
-                'label' => 'رمز عبور SMTP',
+                'label' => 'رمز عبور ایمیل (SMTP)',
                 'required' => false,
             ],
         ],
         'kavenegar' => [
             [
                 'key' => 'api_key',
-                'label' => 'کلید API کاوه‌نگار',
+                'label' => 'کلید سرویس کاوه‌نگار',
                 'required' => true,
             ],
         ],
         'generic_sms' => [
             [
                 'key' => 'api_key',
-                'label' => 'کلید API',
+                'label' => 'کلید سرویس',
                 'required' => false,
             ],
             [
@@ -66,7 +66,7 @@ class NotificationProviderManagementService extends BaseService
             ],
             [
                 'key' => 'webhook_secret',
-                'label' => 'Secret وب‌هوک',
+                'label' => 'کلید محرمانه وب‌هوک',
                 'required' => false,
             ],
         ],
@@ -78,7 +78,7 @@ class NotificationProviderManagementService extends BaseService
             ],
             [
                 'key' => 'webhook_secret',
-                'label' => 'Secret وب‌هوک',
+                'label' => 'کلید محرمانه وب‌هوک',
                 'required' => false,
             ],
         ],
@@ -90,24 +90,24 @@ class NotificationProviderManagementService extends BaseService
             ],
             [
                 'key' => 'webhook_secret',
-                'label' => 'Secret وب‌هوک',
+                'label' => 'کلید محرمانه وب‌هوک',
                 'required' => false,
             ],
         ],
         'whatsapp_cloud' => [
             [
                 'key' => 'access_token',
-                'label' => 'Access Token واتساپ',
+                'label' => 'توکن دسترسی واتساپ',
                 'required' => true,
             ],
             [
                 'key' => 'app_secret',
-                'label' => 'App Secret',
+                'label' => 'کلید محرمانه برنامه',
                 'required' => false,
             ],
             [
                 'key' => 'verify_token',
-                'label' => 'Verify Token وب‌هوک',
+                'label' => 'توکن تأیید وب‌هوک',
                 'required' => false,
             ],
         ],

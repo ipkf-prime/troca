@@ -113,7 +113,7 @@ require BASE_PATH
         </div>
     <?php elseif (str_starts_with($status, 'provider_secret_required_')): ?>
         <div class="admin-alert admin-alert--danger">
-            Credential الزامی سرویس‌دهنده وارد نشده است.
+            اطلاعات محرمانه الزامی سرویس‌دهنده وارد نشده است.
         </div>
     <?php endif; ?>
 
@@ -158,556 +158,932 @@ require BASE_PATH
                 $providerForm['stored_secret_keys'] ?? null
             ) ? $providerForm['stored_secret_keys'] : [];
             $providerCsrf = (new \IPKF\Security\Csrf())->token();
+            $providerError = in_array($status, [
+                'invalid_csrf',
+                'provider_type_required',
+                'provider_title_invalid',
+                'provider_code_invalid',
+                'provider_code_exists',
+                'provider_limit_invalid',
+                'provider_instance_not_found',
+                'provider_save_failed',
+                'provider_status_failed',
+            ], true)
+                || str_starts_with($status, 'provider_config_')
+                || str_starts_with($status, 'provider_secret_');
+            $providerEditorOpen = $isProviderEdit || $providerError;
+            $providerOptionLabels = [
+                'none' => 'بدون رمزنگاری',
+                'tls' => 'TLS',
+                'ssl' => 'SSL',
+                'plain' => 'متن ساده',
+                'HTML' => 'HTML',
+                'MarkdownV2' => 'MarkdownV2',
+            ];
             ?>
-            <div class="provider-management-layout">
-                <section class="provider-management-card">
-                    <header class="provider-management-card__head">
-                        <div>
-                            <h3>
-                                <?= $isProviderEdit
-                                    ? 'ویرایش حساب سرویس‌دهنده'
-                                    : 'ثبت حساب سرویس‌دهنده' ?>
-                            </h3>
-                            <p class="communication-muted">
-                                تنظیمات عمومی و Credentialهای محرمانه جداگانه
-                                ذخیره می‌شوند. Secretهای ثبت‌شده هرگز نمایش
-                                داده نمی‌شوند.
-                            </p>
-                        </div>
-                        <?php if ($isProviderEdit): ?>
-                            <a
-                                class="admin-button admin-button--soft"
-                                href="/admin/communications/settings?section=providers"
-                            >
-                                ثبت حساب جدید
-                            </a>
-                        <?php endif; ?>
-                    </header>
-
-                    <?php if (
-                        ($providerForm['secret_state'] ?? '')
-                        === 'unavailable'
-                    ): ?>
-                        <div class="admin-alert admin-alert--danger">
-                            Secretهای این حساب قابل رمزگشایی نیستند.
-                            پیش از ذخیره، وضعیت کلید رمزنگاری را بررسی کنید.
-                        </div>
-                    <?php endif; ?>
-
-                    <form
-                        class="communication-form provider-management-form"
-                        method="post"
-                        action="/admin/communications/settings/providers/save"
-                        data-provider-form
+            <div
+                class="provider-workspace"
+                data-provider-workspace
+                data-initial-view="<?= $providerEditorOpen
+                    ? 'editor'
+                    : 'accounts' ?>"
+            >
+                <div
+                    class="provider-workspace-tabs"
+                    role="tablist"
+                    aria-label="مدیریت حساب‌های سرویس‌دهنده"
+                >
+                    <button
+                        class="provider-workspace-tab <?= !$providerEditorOpen
+                            ? 'is-active'
+                            : '' ?>"
+                        type="button"
+                        role="tab"
+                        aria-selected="<?= !$providerEditorOpen
+                            ? 'true'
+                            : 'false' ?>"
+                        data-provider-workspace-tab="accounts"
                     >
-                        <input
-                            type="hidden"
-                            name="_token"
-                            value="<?= admin_h($providerCsrf) ?>"
-                        >
-                        <input
-                            type="hidden"
-                            name="public_reference"
-                            value="<?= admin_h(
-                                $providerForm['public_reference'] ?? ''
-                            ) ?>"
-                        >
+                        حساب‌های ثبت‌شده
+                        <span><?= admin_h(
+                            \App\Support\AdminFormat::digits(
+                                count($instances)
+                            )
+                        ) ?></span>
+                    </button>
+                    <button
+                        class="provider-workspace-tab <?= $providerEditorOpen
+                            ? 'is-active'
+                            : '' ?>"
+                        type="button"
+                        role="tab"
+                        aria-selected="<?= $providerEditorOpen
+                            ? 'true'
+                            : 'false' ?>"
+                        data-provider-workspace-tab="editor"
+                    >
+                        <?= $isProviderEdit
+                            ? 'ویرایش حساب'
+                            : 'افزودن حساب' ?>
+                    </button>
+                </div>
 
-                        <label>
-                            <span>نوع سرویس‌دهنده</span>
+                <section
+                    class="provider-workspace-panel"
+                    role="tabpanel"
+                    data-provider-workspace-panel="accounts"
+                    <?= $providerEditorOpen ? 'hidden' : '' ?>
+                >
+                    <section class="provider-management-card">
+                        <header class="provider-management-card__head">
+                            <div>
+                                <h3>حساب‌ها و بات‌های ثبت‌شده</h3>
+                                <p class="communication-muted">
+                                    برای هر سرویس‌دهنده می‌توان چند حساب، بات یا
+                                    شماره مستقل ثبت کرد.
+                                </p>
+                            </div>
                             <?php if ($isProviderEdit): ?>
-                                <input
-                                    type="hidden"
-                                    name="provider_type_id"
-                                    value="<?= $providerTypeId ?>"
+                                <a
+                                    class="admin-button"
+                                    href="/admin/communications/settings?section=providers"
                                 >
+                                    افزودن حساب جدید
+                                </a>
+                            <?php else: ?>
+                                <button
+                                    class="admin-button"
+                                    type="button"
+                                    data-provider-open-editor
+                                >
+                                    افزودن حساب جدید
+                                </button>
                             <?php endif; ?>
-                            <select
-                                name="<?= $isProviderEdit
-                                    ? 'provider_type_display'
-                                    : 'provider_type_id' ?>"
-                                data-provider-type
-                                <?= $isProviderEdit ? 'disabled' : '' ?>
-                                required
-                            >
-                                <option value="">
-                                    انتخاب سرویس‌دهنده
-                                </option>
-                                <?php foreach (
-                                    $providerDefinitions as $definition
-                                ): ?>
-                                    <option
-                                        value="<?= (int) $definition['id'] ?>"
-                                        data-provider-code="<?= admin_h(
-                                            $definition['code']
-                                        ) ?>"
-                                        <?= $providerTypeId
-                                            === (int) $definition['id']
-                                            ? 'selected'
-                                            : '' ?>
-                                    >
-                                        <?= admin_h(
-                                            $definition['title']
-                                        ) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </label>
+                        </header>
 
-                        <label>
-                            <span>عنوان حساب یا بات</span>
-                            <input
-                                name="title"
-                                maxlength="190"
-                                required
-                                value="<?= admin_h(
-                                    $providerForm['title'] ?? ''
-                                ) ?>"
-                                placeholder="مثلاً ایمیل رسمی سازمان"
-                            >
-                        </label>
-
-                        <label>
-                            <span>کد داخلی</span>
-                            <input
-                                name="code"
-                                maxlength="120"
-                                dir="ltr"
-                                value="<?= admin_h(
-                                    $providerForm['code'] ?? ''
-                                ) ?>"
-                                placeholder="در صورت خالی‌بودن خودکار ساخته می‌شود"
-                            >
-                        </label>
-
-                        <label>
-                            <span>اولویت اجرایی</span>
-                            <input
-                                type="number"
-                                name="priority"
-                                min="-1000"
-                                max="1000"
-                                value="<?= admin_h(
-                                    $providerForm['priority'] ?? 0
-                                ) ?>"
-                            >
-                        </label>
-
-                        <label>
-                            <span>سقف روزانه</span>
-                            <input
-                                type="number"
-                                name="daily_limit"
-                                min="0"
-                                max="1000000000"
-                                value="<?= admin_h(
-                                    $providerForm['daily_limit'] ?? ''
-                                ) ?>"
-                                placeholder="اختیاری"
-                            >
-                        </label>
-
-                        <label>
-                            <span>سقف ماهانه</span>
-                            <input
-                                type="number"
-                                name="monthly_limit"
-                                min="0"
-                                max="1000000000"
-                                value="<?= admin_h(
-                                    $providerForm['monthly_limit'] ?? ''
-                                ) ?>"
-                                placeholder="اختیاری"
-                            >
-                        </label>
-
-                        <label class="communication-form__wide">
-                            <span>توضیحات</span>
-                            <textarea
-                                name="description"
-                                maxlength="1000"
-                                placeholder="کاربرد این حساب یا بات"
-                            ><?= admin_h(
-                                $providerForm['description'] ?? ''
-                            ) ?></textarea>
-                        </label>
-
-                        <label class="provider-enabled-field">
-                            <span>وضعیت حساب</span>
-                            <input
-                                type="checkbox"
-                                name="is_enabled"
-                                value="1"
-                                <?= !empty($providerForm['is_enabled'])
-                                    ? 'checked'
-                                    : '' ?>
-                            >
-                            <small>فعال باشد</small>
-                        </label>
-
-                        <?php foreach (
-                            $providerDefinitions as $definition
-                        ): ?>
-                            <?php
-                            $definitionSelected = $providerTypeId
-                                === (int) $definition['id'];
-                            ?>
-                            <fieldset
-                                class="provider-dynamic-fields communication-form__wide"
-                                data-provider-fields="<?= (int) $definition['id'] ?>"
-                                <?= $definitionSelected ? '' : 'hidden' ?>
-                            >
-                                <legend>
-                                    تنظیمات عمومی
-                                    <?= admin_h($definition['title']) ?>
-                                </legend>
-                                <div class="provider-dynamic-grid">
-                                    <?php foreach (
-                                        $definition['public_fields'] as $field
-                                    ): ?>
+                        <?php if ($instances === []): ?>
+                            <div class="provider-empty-state">
+                                <strong>هنوز حسابی ثبت نشده است.</strong>
+                                <p>
+                                    نخستین حساب ایمیل، پیامک یا پیام‌رسان را از
+                                    تب «افزودن حساب» ثبت کنید.
+                                </p>
+                                <button
+                                    class="admin-button"
+                                    type="button"
+                                    data-provider-open-editor
+                                >
+                                    ثبت نخستین حساب
+                                </button>
+                            </div>
+                        <?php else: ?>
+                            <div class="communication-table-wrap">
+                                <table class="communication-table provider-accounts-table">
+                                    <thead>
+                                        <tr>
+                                            <th>عنوان</th>
+                                            <th>نوع</th>
+                                            <th>کانال</th>
+                                            <th>وضعیت</th>
+                                            <th>اطلاعات محرمانه</th>
+                                            <th>اولویت</th>
+                                            <th>عملیات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    <?php foreach ($instances as $instance): ?>
                                         <?php
-                                        $fieldKey = (string) $field['key'];
-                                        $fieldType = (string) $field['type'];
-                                        $fieldValue = $definitionSelected
-                                            ? ($providerConfiguration[
-                                                $fieldKey
-                                            ] ?? '')
-                                            : '';
+                                        $instanceEnabled = !empty(
+                                            $instance['is_enabled']
+                                        );
+                                        $reference = (string) (
+                                            $instance['public_reference'] ?? ''
+                                        );
+                                        $channelCode = (string) (
+                                            $instance['channel_code'] ?? ''
+                                        );
                                         ?>
-                                        <label>
-                                            <span>
-                                                <?= admin_h(
-                                                    $field['label']
-                                                ) ?>
-                                                <?= !empty(
-                                                    $field['required']
-                                                ) ? ' *' : '' ?>
-                                            </span>
-                                            <?php if (
-                                                $fieldType === 'select'
-                                            ): ?>
-                                                <select
-                                                    name="configuration[<?= admin_h(
-                                                        $fieldKey
-                                                    ) ?>]"
-                                                    <?= $definitionSelected
-                                                        ? ''
-                                                        : 'disabled' ?>
-                                                    <?= !empty(
-                                                        $field['required']
-                                                    ) ? 'required' : '' ?>
-                                                >
-                                                    <option value="">
-                                                        انتخاب کنید
-                                                    </option>
-                                                    <?php foreach (
-                                                        $field['options']
-                                                        as $option
-                                                    ): ?>
-                                                        <option
-                                                            value="<?= admin_h(
-                                                                $option
-                                                            ) ?>"
-                                                            <?= (string) $fieldValue
-                                                                === (string) $option
-                                                                ? 'selected'
-                                                                : '' ?>
-                                                        >
-                                                            <?= admin_h(
-                                                                $option
-                                                            ) ?>
-                                                        </option>
-                                                    <?php endforeach; ?>
-                                                </select>
-                                            <?php else: ?>
-                                                <input
-                                                    type="<?= admin_h(
-                                                        $fieldType
-                                                    ) ?>"
-                                                    name="configuration[<?= admin_h(
-                                                        $fieldKey
-                                                    ) ?>]"
-                                                    value="<?= admin_h(
-                                                        $fieldValue
-                                                    ) ?>"
-                                                    <?= in_array(
-                                                        $fieldType,
-                                                        ['url', 'email'],
-                                                        true
-                                                    ) ? 'dir="ltr"' : '' ?>
-                                                    <?= $fieldType === 'number'
-                                                        ? 'step="1"'
-                                                        : '' ?>
-                                                    <?= !empty(
-                                                        $field['required']
-                                                    ) ? 'required' : '' ?>
-                                                    <?= $definitionSelected
-                                                        ? ''
-                                                        : 'disabled' ?>
-                                                >
-                                            <?php endif; ?>
-                                        </label>
-                                    <?php endforeach; ?>
-                                </div>
-                            </fieldset>
-
-                            <fieldset
-                                class="provider-dynamic-fields communication-form__wide"
-                                data-provider-secrets="<?= (int) $definition['id'] ?>"
-                                <?= $definitionSelected ? '' : 'hidden' ?>
-                            >
-                                <legend>
-                                    اطلاعات محرمانه
-                                    <?= admin_h($definition['title']) ?>
-                                </legend>
-                                <?php if (
-                                    $definition['secret_fields'] === []
-                                ): ?>
-                                    <p class="communication-muted">
-                                        این سرویس‌دهنده Credential اختصاصی
-                                        تعریف‌شده‌ای ندارد.
-                                    </p>
-                                <?php else: ?>
-                                    <div class="provider-dynamic-grid">
-                                        <?php foreach (
-                                            $definition['secret_fields']
-                                            as $secretField
-                                        ): ?>
-                                            <?php
-                                            $secretKey = (string) $secretField['key'];
-                                            $secretStored = $definitionSelected
-                                                && in_array(
-                                                    $secretKey,
-                                                    $storedSecretKeys,
-                                                    true
-                                                );
-                                            ?>
-                                            <label>
-                                                <span>
-                                                    <?= admin_h(
-                                                        $secretField['label']
-                                                    ) ?>
-                                                    <?= !empty(
-                                                        $secretField['required']
-                                                    ) && !$secretStored
-                                                        ? ' *'
-                                                        : '' ?>
-                                                </span>
-                                                <input
-                                                    type="password"
-                                                    name="secrets[<?= admin_h(
-                                                        $secretKey
-                                                    ) ?>]"
-                                                    autocomplete="new-password"
+                                        <tr>
+                                            <td>
+                                                <strong><?= admin_h(
+                                                    $instance['title']
+                                                ) ?></strong>
+                                                <small
+                                                    class="provider-code"
                                                     dir="ltr"
-                                                    <?= $definitionSelected
-                                                        ? ''
-                                                        : 'disabled' ?>
-                                                    <?= !empty(
-                                                        $secretField['required']
-                                                    ) && !$secretStored
-                                                        ? 'required'
-                                                        : '' ?>
-                                                    placeholder="<?= $secretStored
-                                                        ? 'ثبت شده؛ برای حفظ مقدار فعلی خالی بگذارید'
-                                                        : 'مقدار محرمانه را وارد کنید' ?>"
                                                 >
-                                                <?php if ($secretStored): ?>
-                                                    <small class="provider-secret-state">
-                                                        مقدار رمز‌شده ثبت شده است.
-                                                    </small>
-                                                <?php endif; ?>
-                                            </label>
-                                        <?php endforeach; ?>
-                                    </div>
-                                <?php endif; ?>
-                            </fieldset>
-                        <?php endforeach; ?>
+                                                    <?= admin_h(
+                                                        $instance['code']
+                                                    ) ?>
+                                                </small>
+                                            </td>
+                                            <td><?= admin_h(
+                                                $instance[
+                                                    'provider_type_title'
+                                                ]
+                                            ) ?></td>
+                                            <td><?= admin_h(
+                                                $channelLabels[$channelCode]
+                                                ?? $channelCode
+                                            ) ?></td>
+                                            <td>
+                                                <span class="communication-status <?= $instanceEnabled
+                                                    ? 'communication-status--active'
+                                                    : 'communication-status--closed' ?>">
+                                                    <?= $instanceEnabled
+                                                        ? 'فعال'
+                                                        : 'غیرفعال' ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <?= !empty(
+                                                    $instance['has_secret']
+                                                )
+                                                    ? 'ثبت شده'
+                                                    : 'ثبت نشده' ?>
+                                            </td>
+                                            <td><?= admin_h(
+                                                \App\Support\AdminFormat::digits(
+                                                    $instance['priority']
+                                                )
+                                            ) ?></td>
+                                            <td>
+                                                <div class="provider-row-actions">
+                                                    <a
+                                                        class="admin-button admin-button--soft admin-button--compact"
+                                                        href="<?= admin_h(
+                                                            '/admin/communications/settings?section=providers&edit='
+                                                            . rawurlencode(
+                                                                $reference
+                                                            )
+                                                        ) ?>"
+                                                    >
+                                                        ویرایش
+                                                    </a>
+                                                    <form
+                                                        method="post"
+                                                        action="<?= admin_h(
+                                                            '/admin/communications/settings/providers/'
+                                                            . rawurlencode(
+                                                                $reference
+                                                            )
+                                                            . '/status'
+                                                        ) ?>"
+                                                    >
+                                                        <input
+                                                            type="hidden"
+                                                            name="_token"
+                                                            value="<?= admin_h(
+                                                                $providerCsrf
+                                                            ) ?>"
+                                                        >
+                                                        <input
+                                                            type="hidden"
+                                                            name="enabled"
+                                                            value="<?= $instanceEnabled
+                                                                ? '0'
+                                                                : '1' ?>"
+                                                        >
+                                                        <button
+                                                            class="admin-button admin-button--compact <?= $instanceEnabled
+                                                                ? 'admin-button--soft'
+                                                                : '' ?>"
+                                                            type="submit"
+                                                        >
+                                                            <?= $instanceEnabled
+                                                                ? 'غیرفعال‌کردن'
+                                                                : 'فعال‌کردن' ?>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                    </section>
+                </section>
 
-                        <div class="communication-actions communication-form__wide">
-                            <button class="admin-button" type="submit">
-                                <?= $isProviderEdit
-                                    ? 'ذخیره تغییرات حساب'
-                                    : 'ثبت حساب سرویس‌دهنده' ?>
-                            </button>
+                <section
+                    class="provider-workspace-panel"
+                    role="tabpanel"
+                    data-provider-workspace-panel="editor"
+                    <?= $providerEditorOpen ? '' : 'hidden' ?>
+                >
+                    <section class="provider-management-card provider-editor-card">
+                        <header class="provider-management-card__head">
+                            <div>
+                                <h3>
+                                    <?= $isProviderEdit
+                                        ? 'ویرایش حساب سرویس‌دهنده'
+                                        : 'ثبت حساب سرویس‌دهنده' ?>
+                                </h3>
+                                <p class="communication-muted">
+                                    اطلاعات اتصال و اطلاعات محرمانه جداگانه
+                                    ذخیره می‌شوند. مقدارهای محرمانه ثبت‌شده
+                                    هرگز دوباره نمایش داده نمی‌شوند.
+                                </p>
+                            </div>
                             <?php if ($isProviderEdit): ?>
                                 <a
                                     class="admin-button admin-button--soft"
                                     href="/admin/communications/settings?section=providers"
                                 >
-                                    انصراف
+                                    ثبت حساب جدید
                                 </a>
                             <?php endif; ?>
-                        </div>
-                    </form>
-                </section>
+                        </header>
 
-                <section class="provider-management-card">
-                    <header class="provider-management-card__head">
-                        <div>
-                            <h3>حساب‌ها و بات‌های ثبت‌شده</h3>
-                            <p class="communication-muted">
-                                برای هر سرویس‌دهنده می‌توان چند حساب یا بات
-                                مستقل ثبت کرد.
-                            </p>
-                        </div>
-                        <span class="communication-badge">
-                            <?= admin_h(
-                                \App\Support\AdminFormat::digits(
-                                    count($instances)
-                                )
-                            ) ?>
-                            حساب
-                        </span>
-                    </header>
+                        <?php if (
+                            ($providerForm['secret_state'] ?? '')
+                            === 'unavailable'
+                        ): ?>
+                            <div class="admin-alert admin-alert--danger">
+                                اطلاعات محرمانه این حساب قابل رمزگشایی نیست.
+                                پیش از ذخیره، کلید رمزنگاری سامانه را بررسی کنید.
+                            </div>
+                        <?php endif; ?>
 
-                    <?php if ($instances === []): ?>
-                        <p class="admin-empty-state">
-                            هنوز حساب سرویس‌دهنده‌ای ثبت نشده است.
-                        </p>
-                    <?php else: ?>
-                        <div class="communication-table-wrap">
-                            <table class="communication-table">
-                                <thead>
-                                    <tr>
-                                        <th>عنوان</th>
-                                        <th>نوع</th>
-                                        <th>کانال</th>
-                                        <th>وضعیت</th>
-                                        <th>Secret</th>
-                                        <th>اولویت</th>
-                                        <th>عملیات</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                <?php foreach ($instances as $instance): ?>
-                                    <?php
-                                    $instanceEnabled = !empty(
-                                        $instance['is_enabled']
-                                    );
-                                    $reference = (string) (
-                                        $instance['public_reference'] ?? ''
-                                    );
-                                    $channelCode = (string) (
-                                        $instance['channel_code'] ?? ''
-                                    );
-                                    ?>
-                                    <tr>
-                                        <td>
-                                            <strong><?= admin_h(
-                                                $instance['title']
-                                            ) ?></strong>
-                                            <small
-                                                class="provider-code"
-                                                dir="ltr"
+                        <form
+                            class="communication-form provider-management-form"
+                            method="post"
+                            action="/admin/communications/settings/providers/save"
+                            data-provider-form
+                        >
+                            <input
+                                type="hidden"
+                                name="_token"
+                                value="<?= admin_h($providerCsrf) ?>"
+                            >
+                            <input
+                                type="hidden"
+                                name="public_reference"
+                                value="<?= admin_h(
+                                    $providerForm['public_reference'] ?? ''
+                                ) ?>"
+                            >
+
+                            <div
+                                class="provider-editor-tabs communication-form__wide"
+                                role="tablist"
+                                aria-label="بخش‌های فرم حساب سرویس‌دهنده"
+                            >
+                                <button
+                                    class="provider-editor-tab is-active"
+                                    type="button"
+                                    role="tab"
+                                    aria-selected="true"
+                                    data-provider-editor-tab="account"
+                                >
+                                    مشخصات حساب
+                                </button>
+                                <button
+                                    class="provider-editor-tab"
+                                    type="button"
+                                    role="tab"
+                                    aria-selected="false"
+                                    data-provider-editor-tab="connection"
+                                    <?= $providerTypeId < 1
+                                        ? 'disabled aria-disabled="true"'
+                                        : '' ?>
+                                >
+                                    تنظیمات اتصال
+                                </button>
+                                <button
+                                    class="provider-editor-tab"
+                                    type="button"
+                                    role="tab"
+                                    aria-selected="false"
+                                    data-provider-editor-tab="secrets"
+                                    <?= $providerTypeId < 1
+                                        ? 'disabled aria-disabled="true"'
+                                        : '' ?>
+                                >
+                                    اطلاعات محرمانه
+                                </button>
+                                <button
+                                    class="provider-editor-tab"
+                                    type="button"
+                                    role="tab"
+                                    aria-selected="false"
+                                    data-provider-editor-tab="advanced"
+                                >
+                                    تنظیمات پیشرفته
+                                </button>
+                            </div>
+
+                            <div class="provider-editor-panels communication-form__wide">
+                                <section
+                                    class="provider-editor-panel"
+                                    role="tabpanel"
+                                    data-provider-editor-panel="account"
+                                >
+                                    <div class="provider-form-grid">
+                                        <label>
+                                            <span>نوع سرویس‌دهنده</span>
+                                            <?php if ($isProviderEdit): ?>
+                                                <input
+                                                    type="hidden"
+                                                    name="provider_type_id"
+                                                    value="<?= $providerTypeId ?>"
+                                                >
+                                            <?php endif; ?>
+                                            <select
+                                                name="<?= $isProviderEdit
+                                                    ? 'provider_type_display'
+                                                    : 'provider_type_id' ?>"
+                                                data-provider-type
+                                                <?= $isProviderEdit
+                                                    ? 'disabled'
+                                                    : '' ?>
+                                                required
                                             >
-                                                <?= admin_h(
-                                                    $instance['code']
-                                                ) ?>
-                                            </small>
-                                        </td>
-                                        <td><?= admin_h(
-                                            $instance[
-                                                'provider_type_title'
-                                            ]
-                                        ) ?></td>
-                                        <td><?= admin_h(
-                                            $channelLabels[$channelCode]
-                                            ?? $channelCode
-                                        ) ?></td>
-                                        <td>
-                                            <span class="communication-status <?= $instanceEnabled
-                                                ? 'communication-status--active'
-                                                : 'communication-status--closed' ?>">
-                                                <?= $instanceEnabled
-                                                    ? 'فعال'
-                                                    : 'غیرفعال' ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <?= !empty(
-                                                $instance['has_secret']
-                                            ) ? 'ثبت شده' : 'ثبت نشده' ?>
-                                        </td>
-                                        <td><?= admin_h(
-                                            \App\Support\AdminFormat::digits(
-                                                $instance['priority']
-                                            )
-                                        ) ?></td>
-                                        <td>
-                                            <div class="provider-row-actions">
-                                                <a
-                                                    class="admin-button admin-button--soft admin-button--compact"
-                                                    href="<?= admin_h(
-                                                        '/admin/communications/settings?section=providers&edit='
-                                                        . rawurlencode(
-                                                            $reference
-                                                        )
-                                                    ) ?>"
-                                                >
-                                                    ویرایش
-                                                </a>
-                                                <form
-                                                    method="post"
-                                                    action="<?= admin_h(
-                                                        '/admin/communications/settings/providers/'
-                                                        . rawurlencode(
-                                                            $reference
-                                                        )
-                                                        . '/status'
-                                                    ) ?>"
-                                                >
-                                                    <input
-                                                        type="hidden"
-                                                        name="_token"
-                                                        value="<?= admin_h(
-                                                            $providerCsrf
+                                                <option value="">
+                                                    انتخاب سرویس‌دهنده
+                                                </option>
+                                                <?php foreach (
+                                                    $providerDefinitions
+                                                    as $definition
+                                                ): ?>
+                                                    <option
+                                                        value="<?= (int) $definition['id'] ?>"
+                                                        data-provider-code="<?= admin_h(
+                                                            $definition['code']
                                                         ) ?>"
+                                                        <?= $providerTypeId
+                                                            === (int) $definition['id']
+                                                            ? 'selected'
+                                                            : '' ?>
                                                     >
-                                                    <input
-                                                        type="hidden"
-                                                        name="enabled"
-                                                        value="<?= $instanceEnabled
-                                                            ? '0'
-                                                            : '1' ?>"
-                                                    >
-                                                    <button
-                                                        class="admin-button admin-button--compact <?= $instanceEnabled
-                                                            ? 'admin-button--soft'
-                                                            : '' ?>"
-                                                        type="submit"
-                                                    >
-                                                        <?= $instanceEnabled
-                                                            ? 'غیرفعال‌کردن'
-                                                            : 'فعال‌کردن' ?>
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php endif; ?>
+                                                        <?= admin_h(
+                                                            $definition['title']
+                                                        ) ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <small>
+                                                نوع سرویس پس از ثبت قابل تغییر نیست.
+                                            </small>
+                                        </label>
+
+                                        <label>
+                                            <span>عنوان حساب</span>
+                                            <input
+                                                name="title"
+                                                maxlength="190"
+                                                required
+                                                value="<?= admin_h(
+                                                    $providerForm['title'] ?? ''
+                                                ) ?>"
+                                                placeholder="مثلاً بات اطلاع‌رسانی سازمان"
+                                            >
+                                        </label>
+
+                                        <label class="provider-form-grid__wide">
+                                            <span>توضیحات</span>
+                                            <textarea
+                                                name="description"
+                                                maxlength="1000"
+                                                placeholder="کاربرد این حساب، بات یا شماره"
+                                            ><?= admin_h(
+                                                $providerForm['description'] ?? ''
+                                            ) ?></textarea>
+                                        </label>
+
+                                        <label class="provider-status-field provider-form-grid__wide">
+                                            <span class="provider-status-field__text">
+                                                <strong>وضعیت حساب</strong>
+                                                <small>
+                                                    حساب غیرفعال در ارسال خودکار استفاده نمی‌شود.
+                                                </small>
+                                            </span>
+                                            <span class="communication-switch">
+                                                <input
+                                                    type="checkbox"
+                                                    name="is_enabled"
+                                                    value="1"
+                                                    data-provider-enabled
+                                                    <?= !empty(
+                                                        $providerForm['is_enabled']
+                                                    ) ? 'checked' : '' ?>
+                                                >
+                                                <span aria-hidden="true"></span>
+                                            </span>
+                                            <strong data-provider-enabled-label>
+                                                <?= !empty(
+                                                    $providerForm['is_enabled']
+                                                ) ? 'فعال' : 'غیرفعال' ?>
+                                            </strong>
+                                        </label>
+                                    </div>
+                                </section>
+
+                                <section
+                                    class="provider-editor-panel"
+                                    role="tabpanel"
+                                    data-provider-editor-panel="connection"
+                                    hidden
+                                >
+                                    <div
+                                        class="provider-tab-empty"
+                                        data-provider-connection-empty
+                                        <?= $providerTypeId > 0
+                                            ? 'hidden'
+                                            : '' ?>
+                                    >
+                                        ابتدا نوع سرویس‌دهنده را در تب
+                                        «مشخصات حساب» انتخاب کنید.
+                                    </div>
+                                    <?php foreach (
+                                        $providerDefinitions as $definition
+                                    ): ?>
+                                        <?php
+                                        $definitionSelected = $providerTypeId
+                                            === (int) $definition['id'];
+                                        ?>
+                                        <fieldset
+                                            class="provider-dynamic-fields"
+                                            data-provider-fields="<?= (int) $definition['id'] ?>"
+                                            <?= $definitionSelected ? '' : 'hidden' ?>
+                                        >
+                                            <legend>
+                                                تنظیمات اتصال
+                                                <?= admin_h($definition['title']) ?>
+                                            </legend>
+                                            <?php if (
+                                                $definition['public_fields'] === []
+                                            ): ?>
+                                                <p class="provider-tab-empty">
+                                                    برای این سرویس‌دهنده تنظیم عمومی
+                                                    جداگانه‌ای تعریف نشده است.
+                                                </p>
+                                            <?php else: ?>
+                                                <div class="provider-dynamic-grid">
+                                                    <?php foreach (
+                                                        $definition['public_fields']
+                                                        as $field
+                                                    ): ?>
+                                                        <?php
+                                                        $fieldKey = (string) $field['key'];
+                                                        $fieldType = (string) $field['type'];
+                                                        $fieldValue = $definitionSelected
+                                                            ? ($providerConfiguration[
+                                                                $fieldKey
+                                                            ] ?? '')
+                                                            : '';
+                                                        ?>
+                                                        <label>
+                                                            <span>
+                                                                <?= admin_h(
+                                                                    $field['label']
+                                                                ) ?>
+                                                                <?= !empty(
+                                                                    $field['required']
+                                                                ) ? ' *' : '' ?>
+                                                            </span>
+                                                            <?php if (
+                                                                $fieldType === 'select'
+                                                            ): ?>
+                                                                <select
+                                                                    name="configuration[<?= admin_h(
+                                                                        $fieldKey
+                                                                    ) ?>]"
+                                                                    <?= $definitionSelected
+                                                                        ? ''
+                                                                        : 'disabled' ?>
+                                                                    <?= !empty(
+                                                                        $field['required']
+                                                                    ) ? 'required' : '' ?>
+                                                                >
+                                                                    <option value="">
+                                                                        انتخاب کنید
+                                                                    </option>
+                                                                    <?php foreach (
+                                                                        $field['options']
+                                                                        as $option
+                                                                    ): ?>
+                                                                        <option
+                                                                            value="<?= admin_h(
+                                                                                $option
+                                                                            ) ?>"
+                                                                            <?= (string) $fieldValue
+                                                                                === (string) $option
+                                                                                ? 'selected'
+                                                                                : '' ?>
+                                                                        >
+                                                                            <?= admin_h(
+                                                                                $providerOptionLabels[
+                                                                                    (string) $option
+                                                                                ] ?? $option
+                                                                            ) ?>
+                                                                        </option>
+                                                                    <?php endforeach; ?>
+                                                                </select>
+                                                            <?php else: ?>
+                                                                <input
+                                                                    type="<?= admin_h(
+                                                                        $fieldType
+                                                                    ) ?>"
+                                                                    name="configuration[<?= admin_h(
+                                                                        $fieldKey
+                                                                    ) ?>]"
+                                                                    value="<?= admin_h(
+                                                                        $fieldValue
+                                                                    ) ?>"
+                                                                    <?= in_array(
+                                                                        $fieldType,
+                                                                        ['url', 'email'],
+                                                                        true
+                                                                    ) ? 'dir="ltr"' : '' ?>
+                                                                    <?= $fieldType === 'number'
+                                                                        ? 'step="1" inputmode="numeric"'
+                                                                        : '' ?>
+                                                                    <?= !empty(
+                                                                        $field['required']
+                                                                    ) ? 'required' : '' ?>
+                                                                    <?= $definitionSelected
+                                                                        ? ''
+                                                                        : 'disabled' ?>
+                                                                >
+                                                            <?php endif; ?>
+                                                        </label>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </fieldset>
+                                    <?php endforeach; ?>
+                                </section>
+
+                                <section
+                                    class="provider-editor-panel"
+                                    role="tabpanel"
+                                    data-provider-editor-panel="secrets"
+                                    hidden
+                                >
+                                    <div
+                                        class="provider-tab-empty"
+                                        data-provider-secrets-empty
+                                        <?= $providerTypeId > 0
+                                            ? 'hidden'
+                                            : '' ?>
+                                    >
+                                        ابتدا نوع سرویس‌دهنده را در تب
+                                        «مشخصات حساب» انتخاب کنید.
+                                    </div>
+                                    <?php foreach (
+                                        $providerDefinitions as $definition
+                                    ): ?>
+                                        <?php
+                                        $definitionSelected = $providerTypeId
+                                            === (int) $definition['id'];
+                                        ?>
+                                        <fieldset
+                                            class="provider-dynamic-fields"
+                                            data-provider-secrets="<?= (int) $definition['id'] ?>"
+                                            <?= $definitionSelected ? '' : 'hidden' ?>
+                                        >
+                                            <legend>
+                                                اطلاعات محرمانه
+                                                <?= admin_h($definition['title']) ?>
+                                            </legend>
+                                            <?php if (
+                                                $definition['secret_fields'] === []
+                                            ): ?>
+                                                <p class="provider-tab-empty">
+                                                    برای این سرویس‌دهنده اطلاعات محرمانه
+                                                    جداگانه‌ای تعریف نشده است.
+                                                </p>
+                                            <?php else: ?>
+                                                <div class="provider-dynamic-grid">
+                                                    <?php foreach (
+                                                        $definition['secret_fields']
+                                                        as $secretField
+                                                    ): ?>
+                                                        <?php
+                                                        $secretKey = (string) $secretField['key'];
+                                                        $secretStored = $definitionSelected
+                                                            && in_array(
+                                                                $secretKey,
+                                                                $storedSecretKeys,
+                                                                true
+                                                            );
+                                                        ?>
+                                                        <label>
+                                                            <span>
+                                                                <?= admin_h(
+                                                                    $secretField['label']
+                                                                ) ?>
+                                                                <?= !empty(
+                                                                    $secretField['required']
+                                                                ) && !$secretStored
+                                                                    ? ' *'
+                                                                    : '' ?>
+                                                            </span>
+                                                            <span class="provider-secret-input">
+                                                                <input
+                                                                    type="password"
+                                                                    name="secrets[<?= admin_h(
+                                                                        $secretKey
+                                                                    ) ?>]"
+                                                                    autocomplete="new-password"
+                                                                    dir="ltr"
+                                                                    data-provider-secret-input
+                                                                    <?= $definitionSelected
+                                                                        ? ''
+                                                                        : 'disabled' ?>
+                                                                    <?= !empty(
+                                                                        $secretField['required']
+                                                                    ) && !$secretStored
+                                                                        ? 'required'
+                                                                        : '' ?>
+                                                                    placeholder="<?= $secretStored
+                                                                        ? 'برای حفظ مقدار فعلی خالی بگذارید'
+                                                                        : 'مقدار محرمانه را وارد کنید' ?>"
+                                                                >
+                                                                <button
+                                                                    class="provider-secret-toggle"
+                                                                    type="button"
+                                                                    data-provider-secret-toggle
+                                                                    aria-label="نمایش مقدار محرمانه"
+                                                                >
+                                                                    نمایش
+                                                                </button>
+                                                            </span>
+                                                            <?php if ($secretStored): ?>
+                                                                <small class="provider-secret-state">
+                                                                    مقدار رمز‌شده قبلی حفظ می‌شود، مگر
+                                                                    اینکه مقدار جدیدی وارد کنید.
+                                                                </small>
+                                                            <?php endif; ?>
+                                                        </label>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </fieldset>
+                                    <?php endforeach; ?>
+                                </section>
+
+                                <section
+                                    class="provider-editor-panel"
+                                    role="tabpanel"
+                                    data-provider-editor-panel="advanced"
+                                    hidden
+                                >
+                                    <div class="provider-form-grid">
+                                        <label>
+                                            <span>کد داخلی</span>
+                                            <input
+                                                name="code"
+                                                maxlength="120"
+                                                dir="ltr"
+                                                value="<?= admin_h(
+                                                    $providerForm['code'] ?? ''
+                                                ) ?>"
+                                                placeholder="در صورت خالی‌بودن خودکار ساخته می‌شود"
+                                            >
+                                            <small>
+                                                شناسه فنی ثابت برای گزارش‌ها و یکپارچه‌سازی‌ها.
+                                            </small>
+                                        </label>
+
+                                        <label>
+                                            <span>اولویت اجرایی</span>
+                                            <input
+                                                type="number"
+                                                name="priority"
+                                                min="-1000"
+                                                max="1000"
+                                                inputmode="numeric"
+                                                value="<?= admin_h(
+                                                    $providerForm['priority'] ?? 0
+                                                ) ?>"
+                                            >
+                                        </label>
+
+                                        <label>
+                                            <span>سقف روزانه</span>
+                                            <input
+                                                type="number"
+                                                name="daily_limit"
+                                                min="0"
+                                                max="1000000000"
+                                                inputmode="numeric"
+                                                value="<?= admin_h(
+                                                    $providerForm['daily_limit'] ?? ''
+                                                ) ?>"
+                                                placeholder="اختیاری"
+                                            >
+                                        </label>
+
+                                        <label>
+                                            <span>سقف ماهانه</span>
+                                            <input
+                                                type="number"
+                                                name="monthly_limit"
+                                                min="0"
+                                                max="1000000000"
+                                                inputmode="numeric"
+                                                value="<?= admin_h(
+                                                    $providerForm['monthly_limit'] ?? ''
+                                                ) ?>"
+                                                placeholder="اختیاری"
+                                            >
+                                        </label>
+                                    </div>
+                                </section>
+                            </div>
+
+                            <div class="provider-form-actions communication-form__wide">
+                                <button class="admin-button" type="submit">
+                                    <?= $isProviderEdit
+                                        ? 'ذخیره تغییرات حساب'
+                                        : 'ثبت حساب سرویس‌دهنده' ?>
+                                </button>
+                                <?php if ($isProviderEdit): ?>
+                                    <a
+                                        class="admin-button admin-button--soft"
+                                        href="/admin/communications/settings?section=providers"
+                                    >
+                                        انصراف
+                                    </a>
+                                <?php else: ?>
+                                    <button
+                                        class="admin-button admin-button--soft"
+                                        type="reset"
+                                        data-provider-reset
+                                    >
+                                        پاک‌کردن فرم
+                                    </button>
+                                <?php endif; ?>
+                            </div>
+                        </form>
+                    </section>
                 </section>
             </div>
 
             <script>
             (() => {
-                const form = document.querySelector(
+                const workspace = document.querySelector(
+                    '[data-provider-workspace]'
+                );
+
+                if (!workspace) {
+                    return;
+                }
+
+                const form = workspace.querySelector(
                     '[data-provider-form]'
                 );
                 const select = form?.querySelector(
                     '[data-provider-type]'
                 );
+                const workspaceTabs = Array.from(
+                    workspace.querySelectorAll(
+                        '[data-provider-workspace-tab]'
+                    )
+                );
+                const workspacePanels = Array.from(
+                    workspace.querySelectorAll(
+                        '[data-provider-workspace-panel]'
+                    )
+                );
+                const editorTabs = Array.from(
+                    workspace.querySelectorAll(
+                        '[data-provider-editor-tab]'
+                    )
+                );
+                const editorPanels = Array.from(
+                    workspace.querySelectorAll(
+                        '[data-provider-editor-panel]'
+                    )
+                );
+
+                const activateWorkspace = (name) => {
+                    workspaceTabs.forEach((tab) => {
+                        const active =
+                            tab.dataset.providerWorkspaceTab === name;
+                        tab.classList.toggle('is-active', active);
+                        tab.setAttribute(
+                            'aria-selected',
+                            active ? 'true' : 'false'
+                        );
+                    });
+
+                    workspacePanels.forEach((panel) => {
+                        panel.hidden =
+                            panel.dataset.providerWorkspacePanel !== name;
+                    });
+                };
+
+                const activateEditor = (name) => {
+                    const target = editorTabs.find(
+                        (tab) => tab.dataset.providerEditorTab === name
+                    );
+
+                    if (!target || target.disabled) {
+                        return;
+                    }
+
+                    editorTabs.forEach((tab) => {
+                        const active =
+                            tab.dataset.providerEditorTab === name;
+                        tab.classList.toggle('is-active', active);
+                        tab.setAttribute(
+                            'aria-selected',
+                            active ? 'true' : 'false'
+                        );
+                    });
+
+                    editorPanels.forEach((panel) => {
+                        panel.hidden =
+                            panel.dataset.providerEditorPanel !== name;
+                    });
+                };
+
+                workspaceTabs.forEach((tab) => {
+                    tab.addEventListener('click', () => {
+                        activateWorkspace(
+                            tab.dataset.providerWorkspaceTab
+                        );
+                    });
+                });
+
+                workspace.querySelectorAll(
+                    '[data-provider-open-editor]'
+                ).forEach((button) => {
+                    button.addEventListener('click', () => {
+                        activateWorkspace('editor');
+                        activateEditor('account');
+                    });
+                });
+
+                editorTabs.forEach((tab) => {
+                    tab.addEventListener('click', () => {
+                        activateEditor(
+                            tab.dataset.providerEditorTab
+                        );
+                    });
+                });
 
                 if (!form || !select) {
+                    activateWorkspace(
+                        workspace.dataset.initialView || 'accounts'
+                    );
                     return;
                 }
 
+                const connectionEmpty = form.querySelector(
+                    '[data-provider-connection-empty]'
+                );
+                const secretsEmpty = form.querySelector(
+                    '[data-provider-secrets-empty]'
+                );
+
                 const updateProviderFields = () => {
                     const selectedId = select.value;
+                    const hasProvider = selectedId !== '';
 
                     form.querySelectorAll(
                         '[data-provider-fields], [data-provider-secrets]'
@@ -725,13 +1101,109 @@ require BASE_PATH
                             field.disabled = !active;
                         });
                     });
+
+                    if (connectionEmpty) {
+                        connectionEmpty.hidden = hasProvider;
+                    }
+
+                    if (secretsEmpty) {
+                        secretsEmpty.hidden = hasProvider;
+                    }
+
+                    editorTabs.forEach((tab) => {
+                        if (!['connection', 'secrets'].includes(
+                            tab.dataset.providerEditorTab
+                        )) {
+                            return;
+                        }
+
+                        tab.disabled = !hasProvider;
+                        tab.setAttribute(
+                            'aria-disabled',
+                            hasProvider ? 'false' : 'true'
+                        );
+                    });
+
+                    const activeEditorTab = editorTabs.find(
+                        (tab) => tab.classList.contains('is-active')
+                    );
+
+                    if (
+                        !hasProvider
+                        && ['connection', 'secrets'].includes(
+                            activeEditorTab?.dataset.providerEditorTab
+                        )
+                    ) {
+                        activateEditor('account');
+                    }
                 };
 
                 select.addEventListener(
                     'change',
                     updateProviderFields
                 );
+
+                const enabledInput = form.querySelector(
+                    '[data-provider-enabled]'
+                );
+                const enabledLabel = form.querySelector(
+                    '[data-provider-enabled-label]'
+                );
+
+                const updateEnabledLabel = () => {
+                    if (!enabledInput || !enabledLabel) {
+                        return;
+                    }
+
+                    enabledLabel.textContent = enabledInput.checked
+                        ? 'فعال'
+                        : 'غیرفعال';
+                };
+
+                enabledInput?.addEventListener(
+                    'change',
+                    updateEnabledLabel
+                );
+
+                form.querySelectorAll(
+                    '[data-provider-secret-toggle]'
+                ).forEach((button) => {
+                    button.addEventListener('click', () => {
+                        const input = button.parentElement?.querySelector(
+                            '[data-provider-secret-input]'
+                        );
+
+                        if (!input) {
+                            return;
+                        }
+
+                        const visible = input.type === 'text';
+                        input.type = visible ? 'password' : 'text';
+                        button.textContent = visible
+                            ? 'نمایش'
+                            : 'پنهان';
+                        button.setAttribute(
+                            'aria-label',
+                            visible
+                                ? 'نمایش مقدار محرمانه'
+                                : 'پنهان‌کردن مقدار محرمانه'
+                        );
+                    });
+                });
+
+                form.addEventListener('reset', () => {
+                    window.setTimeout(() => {
+                        updateProviderFields();
+                        updateEnabledLabel();
+                        activateEditor('account');
+                    }, 0);
+                });
+
                 updateProviderFields();
+                updateEnabledLabel();
+                activateWorkspace(
+                    workspace.dataset.initialView || 'accounts'
+                );
             })();
             </script>
 

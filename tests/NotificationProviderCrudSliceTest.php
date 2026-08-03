@@ -138,6 +138,10 @@ foreach ([
     'data-provider-type',
     'data-provider-fields',
     'data-provider-secrets',
+    'data-provider-workspace-tab',
+    'data-provider-editor-tab',
+    'data-provider-secret-toggle',
+    'data-provider-enabled-label',
     'secrets[',
     'برای حفظ مقدار فعلی خالی بگذارید',
 ] as $marker) {
@@ -187,10 +191,20 @@ $expect(
 );
 
 $expect(
-    str_contains($style, '.provider-management-layout')
+    str_contains($style, '.provider-workspace-tabs')
+    && str_contains($style, '.provider-editor-tabs')
     && str_contains($style, '.provider-dynamic-grid')
+    && str_contains($style, '.provider-secret-toggle')
     && str_contains($style, '.provider-row-actions'),
     'Provider management styles are incomplete.'
+);
+
+$expect(
+    str_contains($view, 'اطلاعات محرمانه')
+    && str_contains($service, 'کلید محرمانه وب‌هوک')
+    && !str_contains($view, 'Credential')
+    && !str_contains($view, '>Secret<'),
+    'Provider management UI is not fully localized.'
 );
 
 $expect(
