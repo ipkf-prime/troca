@@ -609,6 +609,12 @@ class CommunicationCenterSeeder extends Seeder
                     'notifications.routing.manage',
                     'notifications.preferences.self',
                     'notifications.reports.view'], 'any', 40],
+            ['POST',
+                '/admin/communications/settings/providers/save',
+                ['notifications.providers.manage'], 'any', 50],
+            ['POST',
+                '/admin/communications/settings/providers/{reference}/status',
+                ['notifications.providers.manage'], 'any', 50],
             ['POST', '/admin/communications/settings/preferences',
                 ['notifications.preferences.self'], 'any', 50],
         ];

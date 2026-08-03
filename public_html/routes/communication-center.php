@@ -502,7 +502,8 @@ $router->get(
             new \App\Services\CommunicationSettingsService();
         $page = $settings->page(
             (int) $context['user_id'],
-            $section
+            $section,
+            trim((string) $request->input('edit', ''))
         );
 
         if (($page['allowed'] ?? false) !== true) {
@@ -518,6 +519,9 @@ $router->get(
                 'title' => 'تنظیمات پیام و اعلان',
                 'context' => $context,
                 'page' => $page,
+                'status' => trim(
+                    (string) $request->input('status', '')
+                ),
             ]
         );
     }
@@ -559,5 +563,226 @@ $router->post(
             '/admin/communications/settings'
             . '?section=preferences&status=saved'
         );
+    }
+);
+
+$router->post(
+    '/admin/communications/settings/providers/save',
+    function (
+        $request,
+        $response
+    ) use ($adminGuard, $communicationAccess) {
+        $context = $adminGuard(
+            $response,
+            '/admin/communications/settings'
+        );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $path =
+            '/admin/communications/settings/providers/save';
+
+        if (!$communicationAccess(
+            $context,
+            'POST',
+            $path
+        )) {
+            return $response->redirect(
+                '/admin/dashboard?error=forbidden'
+            );
+        }
+
+        $token = (string) $request->input(
+            '_token',
+            ''
+        );
+
+        if (!(new \IPKF\Security\Csrf())->check($token)) {
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=providers&status=invalid_csrf'
+            );
+        }
+
+        $reference = trim(
+            (string) $request->input(
+                'public_reference',
+                ''
+            )
+        );
+
+        try {
+            $result = (
+                new \App\Services\NotificationProviderManagementService()
+            )->save(
+                (int) $context['user_id'],
+                [
+                    'public_reference' => $reference,
+                    'provider_type_id' =>
+                        $request->input(
+                            'provider_type_id',
+                            0
+                        ),
+                    'code' =>
+                        $request->input('code', ''),
+                    'title' =>
+                        $request->input('title', ''),
+                    'description' =>
+                        $request->input(
+                            'description',
+                            ''
+                        ),
+                    'priority' =>
+                        $request->input(
+                            'priority',
+                            0
+                        ),
+                    'daily_limit' =>
+                        $request->input(
+                            'daily_limit',
+                            ''
+                        ),
+                    'monthly_limit' =>
+                        $request->input(
+                            'monthly_limit',
+                            ''
+                        ),
+                    'is_enabled' =>
+                        $request->input(
+                            'is_enabled',
+                            ''
+                        ),
+                    'configuration' =>
+                        $request->input(
+                            'configuration',
+                            []
+                        ),
+                    'secrets' =>
+                        $request->input(
+                            'secrets',
+                            []
+                        ),
+                ]
+            );
+
+            $status = !empty($result['created'])
+                ? 'provider_created'
+                : 'provider_updated';
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=providers'
+                . '&status=' . $status
+                . '&edit=' . rawurlencode(
+                    (string) $result[
+                        'public_reference'
+                    ]
+                )
+            );
+        } catch (
+            \InvalidArgumentException
+            | \RuntimeException $exception
+        ) {
+            $query = '?section=providers&status='
+                . rawurlencode(
+                    $exception->getMessage()
+                );
+
+            if ($reference !== '') {
+                $query .= '&edit='
+                    . rawurlencode($reference);
+            }
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . $query
+            );
+        } catch (\Throwable) {
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=providers'
+                . '&status=provider_save_failed'
+            );
+        }
+    }
+);
+
+$router->post(
+    '/admin/communications/settings/providers/{reference}/status',
+    function (
+        $request,
+        $response
+    ) use ($adminGuard, $communicationAccess) {
+        $context = $adminGuard(
+            $response,
+            '/admin/communications/settings'
+        );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $reference = trim(
+            (string) $request->route('reference')
+        );
+        $path =
+            '/admin/communications/settings/providers/'
+            . rawurlencode($reference)
+            . '/status';
+
+        if (!$communicationAccess(
+            $context,
+            'POST',
+            $path
+        )) {
+            return $response->redirect(
+                '/admin/dashboard?error=forbidden'
+            );
+        }
+
+        $token = (string) $request->input(
+            '_token',
+            ''
+        );
+
+        if (!(new \IPKF\Security\Csrf())->check($token)) {
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=providers&status=invalid_csrf'
+            );
+        }
+
+        $enabled = (string) $request->input(
+            'enabled',
+            '0'
+        ) === '1';
+
+        try {
+            (
+                new \App\Services\NotificationProviderManagementService()
+            )->setEnabled(
+                (int) $context['user_id'],
+                $reference,
+                $enabled
+            );
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=providers&status='
+                . (
+                    $enabled
+                        ? 'provider_enabled'
+                        : 'provider_disabled'
+                )
+            );
+        } catch (\Throwable) {
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=providers'
+                . '&status=provider_status_failed'
+            );
+        }
     }
 );

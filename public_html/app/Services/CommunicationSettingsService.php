@@ -35,12 +35,15 @@ class CommunicationSettingsService extends BaseService
 
     public function __construct(
         private ?CommunicationSettingsRepository $repository = null,
-        private ?AuthorizationService $authorization = null
+        private ?AuthorizationService $authorization = null,
+        private ?NotificationProviderManagementService $providers = null
     ) {
         $this->repository ??=
             new CommunicationSettingsRepository();
         $this->authorization ??=
             new AuthorizationService();
+        $this->providers ??=
+            new NotificationProviderManagementService();
     }
 
     public function allowedSections(int $userId): array
@@ -59,8 +62,11 @@ class CommunicationSettingsService extends BaseService
         return $sections;
     }
 
-    public function page(int $userId, string $section): array
-    {
+    public function page(
+        int $userId,
+        string $section,
+        string $editProviderReference = ''
+    ): array {
         $sections = $this->allowedSections($userId);
 
         if ($sections === []) {
@@ -81,6 +87,18 @@ class CommunicationSettingsService extends BaseService
         $preferencesAllowed = isset($sections['preferences']);
         $reportsAllowed = isset($sections['reports']);
 
+        $providerManagement = [];
+
+        if (
+            $section === 'providers'
+            && isset($sections['providers'])
+        ) {
+            $providerManagement = $this->providers->page(
+                $userId,
+                $editProviderReference
+            );
+        }
+
         return [
             'allowed' => true,
             'section' => $section,
@@ -91,6 +109,7 @@ class CommunicationSettingsService extends BaseService
             'provider_instances' => $providersAllowed
                 ? $this->repository->providerInstances()
                 : [],
+            'provider_management' => $providerManagement,
             'provider_defaults' => $providersAllowed
                 ? $this->repository->providerDefaults()
                 : [],
@@ -111,7 +130,8 @@ class CommunicationSettingsService extends BaseService
                     ? $this->repository->deliveryReport()
                     : [],
             'message_settings' => $section === 'internal'
-                ? (new InternalMessageAdministrationService())->settings($userId)
+                ? (new InternalMessageAdministrationService())
+                    ->settings($userId)
                 : [],
         ];
     }

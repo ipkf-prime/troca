@@ -23,12 +23,20 @@ class CommunicationSettingsRepository extends BaseRepository
         $statement = $this->connection()->query("
             SELECT
                 instances.*,
+                types.code AS provider_type_code,
                 types.title AS provider_type_title,
                 types.channel_code,
-                types.supports_balance
+                types.driver_code,
+                types.supports_balance,
+                CASE
+                    WHEN secrets.id IS NULL THEN 0
+                    ELSE 1
+                END AS has_secret
             FROM notification_provider_instances AS instances
             INNER JOIN notification_provider_types AS types
               ON types.id = instances.provider_type_id
+            LEFT JOIN notification_provider_secret_sets AS secrets
+              ON secrets.provider_instance_id = instances.id
             ORDER BY
                 types.channel_code ASC,
                 instances.priority DESC,
