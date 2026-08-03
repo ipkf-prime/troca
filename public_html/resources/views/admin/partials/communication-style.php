@@ -31,9 +31,9 @@
 .communication-recipient-search { display: grid; gap: .4rem; grid-template-columns: minmax(0, 1fr) auto; }
 .communication-recipient-results { display: grid; gap: .3rem; max-height: 180px; overflow: auto; margin-top: .45rem; }
 .communication-recipient-results[hidden] { display: none; }
-.communication-recipient-results label { align-items: center; border: 1px solid var(--admin-border); border-radius: 8px; cursor: pointer; display: flex; grid-template-columns: auto 1fr; padding: .45rem .6rem; }
+.communication-recipient-results label { align-items: center; border: 1px solid var(--admin-border); border-radius: 8px; cursor: pointer; display: flex; gap: .55rem; padding: .42rem .58rem; }
 .communication-recipient-results label:hover { background: var(--admin-primary-soft); }
-.communication-recipient-results input { width: auto; }
+.communication-recipient-results input[type="checkbox"] { flex: 0 0 17px; height: 17px; margin: 0; min-height: 0; padding: 0; width: 17px; }
 .communication-recipient-results small { display: block; color: var(--admin-text-muted); margin-top: .1rem; }
 
 .communication-card:hover {
@@ -92,6 +92,21 @@
     color: var(--admin-text-muted);
     font-size: .82rem;
     font-weight: 650;
+}
+
+.communication-form label:has(> input[type="checkbox"]) {
+    align-items: center;
+    column-gap: .55rem;
+    grid-template-columns: auto 18px auto;
+    justify-content: start;
+}
+
+.communication-form label > input[type="checkbox"] {
+    height: 18px;
+    margin: 0;
+    min-height: 0;
+    padding: 0;
+    width: 18px;
 }
 
 .communication-form input,
@@ -214,11 +229,15 @@
 .communication-compact-head { padding-block: .7rem; }
 .communication-filters {
     align-items: end;
-    display: grid;
+    display: flex;
+    flex-wrap: nowrap;
     gap: .5rem;
-    grid-template-columns: minmax(170px, 2fr) repeat(6, minmax(96px, 1fr)) auto auto;
     margin-bottom: .65rem;
 }
+.communication-filters > input[type="search"] { flex: 2 1 210px; }
+.communication-filters > input[type="text"] { flex: 1 1 125px; }
+.communication-filters > select { flex: 1 1 112px; }
+.communication-filters > .admin-button { flex: 0 0 auto; white-space: nowrap; }
 .communication-filters input,
 .communication-filters select {
     background: var(--admin-surface);
@@ -237,12 +256,12 @@
 .communication-settings-shell .communication-form select { min-height: 36px; padding-block: .35rem; }
 
 @media (max-width: 1100px) {
-    .communication-filters,
+    .communication-filters { flex-wrap: wrap; }
     .communication-report-tools { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (max-width: 680px) {
-    .communication-filters,
+    .communication-filters { display: grid; grid-template-columns: 1fr 1fr; }
     .communication-report-tools { grid-template-columns: 1fr 1fr; }
     .communication-recipient-search { grid-template-columns: 1fr; }
 }
@@ -486,7 +505,7 @@
 }
 
 @media (min-width: 761px) and (max-width: 1280px) {
-    .communication-filters { grid-template-columns: repeat(4, minmax(120px, 1fr)); }
+    .communication-filters { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); }
     .communication-filters input[type="search"] { grid-column: span 2; }
 }
 

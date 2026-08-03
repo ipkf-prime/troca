@@ -114,9 +114,9 @@ require BASE_PATH
     var count = document.querySelector('[data-recipient-count]');
     function runSearch() {
         var query = (search.value || '').trim().toLocaleLowerCase('fa');
-        results.hidden = query.length < 2;
+        results.hidden = false;
         items.forEach(function (item) {
-            item.hidden = query.length < 2 || !item.dataset.search.includes(query);
+            item.hidden = query !== '' && !item.dataset.search.includes(query);
         });
     }
     function refreshCount() {

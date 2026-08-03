@@ -30,7 +30,7 @@ $query = static function (array $changes = []) use ($filters): string {
     <input type="text" inputmode="numeric" name="to" value="<?= admin_h($displayDate($filters['to'] ?? '')) ?>" placeholder="تا تاریخ شمسی" aria-label="تا تاریخ شمسی">
     <select name="sort"><?php foreach ($sortOptions as $value => $label): ?><option value="<?= admin_h($value) ?>" <?= ($filters['sort'] ?? 'date') === $value ? 'selected' : '' ?>>مرتب‌سازی: <?= admin_h($label) ?></option><?php endforeach; ?></select>
     <select name="direction"><option value="desc" <?= ($filters['direction'] ?? 'desc') === 'desc' ? 'selected' : '' ?>>نزولی</option><option value="asc" <?= ($filters['direction'] ?? '') === 'asc' ? 'selected' : '' ?>>صعودی</option></select>
-    <select name="per_page"><?php foreach ([10,20,50,100] as $size): ?><option value="<?= $size ?>" <?= (int) ($pagination['per_page'] ?? 20) === $size ? 'selected' : '' ?>><?= $size ?> ردیف</option><?php endforeach; ?></select>
+    <select name="per_page"><?php foreach ([10,20,50,100] as $size): ?><option value="<?= $size ?>" <?= (int) ($pagination['per_page'] ?? 20) === $size ? 'selected' : '' ?>><?= admin_h(\App\Support\AdminFormat::digits($size)) ?> ردیف</option><?php endforeach; ?></select>
     <button class="admin-button" type="submit">اعمال</button>
     <a class="admin-button admin-button--soft" href="<?= admin_h($basePath) ?>">پاک‌کردن</a>
 </form>

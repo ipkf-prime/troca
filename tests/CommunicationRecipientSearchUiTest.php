@@ -14,6 +14,8 @@ final class CommunicationRecipientSearchUiTest extends TestCase
 
         self::assertStringContainsString('data-recipient-search', $view);
         self::assertStringContainsString('recipient_user_ids[]', $view);
+        self::assertStringContainsString("query !== '' && !item.dataset.search.includes(query)", $view);
+        self::assertStringNotContainsString('query.length < 2', $view);
         self::assertStringContainsString("input('recipient_user_ids', [])", $route);
         self::assertStringContainsString('count($recipientUserIds) > 100', $service);
     }
@@ -25,6 +27,9 @@ final class CommunicationRecipientSearchUiTest extends TestCase
 
         self::assertStringContainsString('AdminFormat::jalaliDateTime', $notifications);
         self::assertStringContainsString('AdminFormat::jalaliDateTime', $settings);
+        self::assertStringContainsString("'in_app' => 'پیام‌رسان داخلی'", $settings);
+        self::assertStringContainsString("'delivered' => 'تحویل‌شده'", $settings);
+        self::assertStringContainsString('$displayDeliveryDate', $settings);
     }
 
     public function testSettingsRouteAuthorizesSectionsThroughSettingsService(): void

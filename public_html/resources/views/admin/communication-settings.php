@@ -14,6 +14,21 @@ $deliveries = $page['deliveries'] ?? [];
 $messageSettings = $page['message_settings'] ?? [];
 $status = (string) ($status ?? '');
 $enabled = [];
+$channelLabels = [
+    'in_app' => 'پیام‌رسان داخلی',
+    'email' => 'ایمیل',
+    'sms' => 'پیامک',
+    'bale' => 'پیام‌رسان بله',
+];
+$deliveryStatusLabels = [
+    'delivered' => 'تحویل‌شده',
+    'sent' => 'ارسال‌شده',
+    'failed' => 'ناموفق',
+    'pending' => 'در انتظار',
+    'queued' => 'در صف ارسال',
+    'processing' => 'در حال ارسال',
+    'cancelled' => 'لغوشده',
+];
 
 foreach ($preferences as $preference) {
     if (!empty($preference['is_enabled'])) {
@@ -334,26 +349,37 @@ require BASE_PATH
                         </thead>
                         <tbody>
                         <?php foreach ($deliveries as $item): ?>
-                            <tr data-title="<?= admin_h(mb_strtolower((string) ($item['title'] ?? ''), 'UTF-8')) ?>" data-status="<?= admin_h(mb_strtolower((string) ($item['status_code'] ?? ''), 'UTF-8')) ?>" data-search="<?= admin_h(mb_strtolower(implode(' ', [(string) ($item['title'] ?? ''), (string) ($item['user_id'] ?? $item['user_reference'] ?? ''), (string) ($item['channel_code'] ?? ''), (string) ($item['status_code'] ?? ''), (string) ($item['last_error'] ?? '')]), 'UTF-8')) ?>" data-date="<?= admin_h((string) ($item['delivered_at'] ?? $item['sent_at'] ?? '')) ?>">
+                            <?php
+                            $channelCode = (string) ($item['channel_code'] ?? '');
+                            $statusCode = (string) ($item['status_code'] ?? '');
+                            $userValue = $item['user_title'] ?? $item['user_name'] ?? $item['user_id'] ?? $item['user_reference'] ?? '';
+                            $deliveryDate = $item['delivered_at'] ?? $item['sent_at'] ?? '';
+                            $displayDeliveryDate = \App\Support\AdminFormat::jalaliDateTime($deliveryDate) ?: '—';
+                            $searchValue = implode(' ', [
+                                (string) ($item['title'] ?? ''),
+                                (string) $userValue,
+                                \App\Support\AdminFormat::digits((string) $userValue),
+                                $channelCode,
+                                $channelLabels[$channelCode] ?? $channelCode,
+                                $statusCode,
+                                $deliveryStatusLabels[$statusCode] ?? $statusCode,
+                                $displayDeliveryDate,
+                                (string) ($item['last_error'] ?? ''),
+                            ]);
+                            ?>
+                            <tr data-title="<?= admin_h(mb_strtolower((string) ($item['title'] ?? ''), 'UTF-8')) ?>" data-status="<?= admin_h(mb_strtolower($statusCode, 'UTF-8')) ?>" data-search="<?= admin_h(mb_strtolower($searchValue, 'UTF-8')) ?>" data-date="<?= admin_h((string) $deliveryDate) ?>">
                                 <td><?= admin_h($item['title']) ?></td>
                                 <td><?= admin_h(
-                                    $item['user_id']
-                                    ?? $item['user_reference']
+                                    \App\Support\AdminFormat::digits($userValue)
                                 ) ?></td>
-                                <td><?= admin_h($item['channel_code']) ?></td>
-                                <td><?= admin_h($item['status_code']) ?></td>
+                                <td><?= admin_h($channelLabels[$channelCode] ?? $channelCode) ?></td>
+                                <td><?= admin_h($deliveryStatusLabels[$statusCode] ?? $statusCode) ?></td>
                                 <td><?= admin_h(
                                     \App\Support\AdminFormat::digits(
                                         $item['attempt_count']
                                     )
                                 ) ?></td>
-                                <td dir="ltr"><?= admin_h(
-                                    \App\Support\AdminFormat::jalaliDateTime(
-                                        $item['delivered_at']
-                                        ?? $item['sent_at']
-                                        ?? ''
-                                    ) ?: '—'
-                                ) ?></td>
+                                <td dir="ltr"><?= admin_h($displayDeliveryDate) ?></td>
                                 <td><?= admin_h($item['last_error'] ?? '') ?></td>
                             </tr>
                         <?php endforeach; ?>

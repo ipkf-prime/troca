@@ -175,12 +175,22 @@ class CommunicationSettingsRepository extends BaseRepository
                 deliveries.last_error,
                 notifications.title,
                 recipients.user_id,
-                recipients.user_reference
+                recipients.user_reference,
+                COALESCE(
+                    NULLIF(persons.full_name, ''),
+                    NULLIF(users.username, ''),
+                    users.email,
+                    recipients.user_reference
+                ) AS user_title
             FROM notification_deliveries AS deliveries
             INNER JOIN notification_recipients AS recipients
               ON recipients.id = deliveries.recipient_id
             INNER JOIN notifications
               ON notifications.id = recipients.notification_id
+            LEFT JOIN users
+              ON users.id = recipients.user_id
+            LEFT JOIN persons
+              ON persons.user_id = users.id
             ORDER BY deliveries.id DESC
             LIMIT {$limit}
         ");
