@@ -620,6 +620,11 @@ $router->post(
                 (int) $context['user_id'],
                 [
                     'public_reference' => $reference,
+                    'channel_code' =>
+                        $request->input(
+                            'channel_code',
+                            ''
+                        ),
                     'provider_type_id' =>
                         $request->input(
                             'provider_type_id',

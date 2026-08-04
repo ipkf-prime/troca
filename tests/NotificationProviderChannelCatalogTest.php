@@ -33,6 +33,10 @@ $view = $read(
     'public_html/resources/views/admin/'
     . 'communication-settings.php'
 );
+$routes = $read(
+    'public_html/routes/'
+    . 'communication-center.php'
+);
 $seeder = $read(
     'public_html/system/Database/Seeds/'
     . 'CommunicationCenterSeeder.php'
@@ -93,6 +97,16 @@ $expect(
     && str_contains($service, "'provider_name'"),
     'Provider channel validation is incomplete.'
 );
+$expect(
+    str_contains(
+        $routes,
+        "'channel_code' =>\n"
+        . "                        \$request->input(\n"
+        . "                            'channel_code',"
+    ),
+    'Provider save route does not forward the selected channel.'
+);
+
 
 $expect(
     str_contains(
