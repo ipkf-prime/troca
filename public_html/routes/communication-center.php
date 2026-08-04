@@ -606,12 +606,21 @@ $router->post(
             );
         }
 
-        $reference = trim(
+        $formMode = strtolower(trim(
             (string) $request->input(
-                'public_reference',
-                ''
+                'form_mode',
+                'create'
             )
-        );
+        ));
+
+        $reference = $formMode === 'edit'
+            ? trim(
+                (string) $request->input(
+                    'public_reference',
+                    ''
+                )
+            )
+            : '';
 
         try {
             $result = (

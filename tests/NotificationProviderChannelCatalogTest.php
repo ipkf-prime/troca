@@ -107,6 +107,19 @@ $expect(
     'Provider save route does not forward the selected channel.'
 );
 
+$expect(
+    str_contains($view, 'name="form_mode"')
+    && str_contains($view, "? 'edit'")
+    && str_contains($view, ": 'create'"),
+    'Provider form does not declare create/edit mode.'
+);
+
+$expect(
+    str_contains($routes, "\$formMode === 'edit'")
+    && str_contains($routes, ": '';"),
+    'Provider create route does not discard stale public references.'
+);
+
 
 $expect(
     str_contains(

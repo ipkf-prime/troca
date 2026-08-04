@@ -466,6 +466,13 @@ require BASE_PATH
                             >
                             <input
                                 type="hidden"
+                                name="form_mode"
+                                value="<?= $isProviderEdit
+                                    ? 'edit'
+                                    : 'create' ?>"
+                            >
+                            <input
+                                type="hidden"
                                 name="public_reference"
                                 value="<?= admin_h(
                                     $providerForm['public_reference'] ?? ''
