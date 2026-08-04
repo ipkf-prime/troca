@@ -120,8 +120,7 @@ class NotificationProviderManagementRepository extends BaseRepository
 
             if (
                 preg_match(
-                    '/^npi_[a-f0-9]{24}
-',
+                    '/^npi_[a-f0-9]{24}$/',
                     $reference
                 ) !== 1
             ) {

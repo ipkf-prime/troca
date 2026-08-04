@@ -100,4 +100,20 @@ $expect(
     'Legacy reference-based create/update detection is still present.'
 );
 
+$expect(
+    str_contains(
+        $repository,
+        '/^npi_[a-f0-9]{24}$/'
+    ),
+    'Provider reference validation pattern is not anchored correctly.'
+);
+
+$expect(
+    !str_contains(
+        $repository,
+        "{24}\n',"
+    ),
+    'Provider reference validation pattern contains an embedded newline.'
+);
+
 echo "Notification provider create persistence checks passed.\n";
