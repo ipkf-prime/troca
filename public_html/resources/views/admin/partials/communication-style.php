@@ -516,6 +516,131 @@
 @media (max-width: 680px) {
     .communication-report-tools { grid-template-columns: 1fr 1fr; }
 }
+
+/* notification-provider-test-send-v061 */
+body.provider-test-dialog-open {
+    overflow: hidden;
+}
+
+.provider-test-dialog {
+    inset: 0;
+    position: fixed;
+    z-index: 1200;
+}
+
+.provider-test-dialog[hidden] {
+    display: none;
+}
+
+.provider-test-dialog__backdrop {
+    background: rgba(15, 23, 42, .42);
+    border: 0;
+    inset: 0;
+    padding: 0;
+    position: absolute;
+    width: 100%;
+}
+
+.provider-test-dialog__panel {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 16px;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, .22);
+    left: 50%;
+    max-height: calc(100vh - 2rem);
+    max-width: min(92vw, 620px);
+    overflow: auto;
+    padding: 1rem;
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+}
+
+.provider-test-dialog__head {
+    align-items: flex-start;
+    display: flex;
+    gap: .75rem;
+    justify-content: space-between;
+    margin-bottom: .8rem;
+}
+
+.provider-test-dialog__head h3 {
+    margin: 0;
+}
+
+.provider-test-dialog__close {
+    align-items: center;
+    background: var(--admin-surface-muted);
+    border: 1px solid var(--admin-border);
+    border-radius: 9px;
+    color: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    flex: 0 0 36px;
+    font: inherit;
+    font-size: 1.35rem;
+    height: 36px;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+}
+
+.provider-test-form {
+    display: grid;
+    gap: .7rem;
+}
+
+.provider-test-form label {
+    display: grid;
+    gap: .3rem;
+}
+
+.provider-test-form label > span {
+    color: var(--admin-text-muted);
+    font-size: .82rem;
+    font-weight: 700;
+}
+
+.provider-test-form input,
+.provider-test-form textarea {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 9px;
+    color: inherit;
+    font: inherit;
+    min-height: 40px;
+    padding: .55rem .7rem;
+    width: 100%;
+}
+
+.provider-test-form textarea {
+    min-height: 130px;
+    resize: vertical;
+}
+
+.provider-test-form input:focus,
+.provider-test-form textarea:focus {
+    border-color: var(--admin-primary);
+    box-shadow: 0 0 0 3px var(--admin-primary-soft);
+    outline: 0;
+}
+
+.provider-test-form__actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    justify-content: flex-start;
+}
+
+@media (max-width: 640px) {
+    .provider-test-dialog__panel {
+        max-height: calc(100vh - 1rem);
+        max-width: calc(100vw - 1rem);
+        padding: .8rem;
+    }
+}
 </style>
 
 <style>

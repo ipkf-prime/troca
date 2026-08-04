@@ -39,6 +39,21 @@ $statusMessages = [
     'provider_instance_not_found' => ['error', 'حساب سرویس‌دهنده پیدا نشد.'],
     'provider_save_failed' => ['error', 'ذخیره حساب سرویس‌دهنده انجام نشد.'],
     'provider_status_failed' => ['error', 'تغییر وضعیت حساب انجام نشد.'],
+    'provider_test_sent' => ['success', 'ایمیل آزمایشی با موفقیت به سرور ایمیل تحویل شد.'],
+    'provider_test_email_unsupported' => ['error', 'این حساب از آزمون ارسال ایمیل پشتیبانی نمی‌کند.'],
+    'provider_test_recipient_invalid' => ['error', 'نشانی ایمیل مقصد معتبر نیست.'],
+    'provider_test_subject_invalid' => ['error', 'موضوع ایمیل آزمایشی معتبر نیست.'],
+    'provider_test_body_invalid' => ['error', 'متن ایمیل آزمایشی معتبر نیست.'],
+    'provider_test_config_invalid' => ['error', 'تنظیمات اتصال حساب ایمیل کامل یا معتبر نیست.'],
+    'provider_test_secret_unavailable' => ['error', 'اطلاعات محرمانه حساب ایمیل قابل استفاده نیست.'],
+    'provider_test_connection_failed' => ['error', 'اتصال به سرور SMTP برقرار نشد.'],
+    'provider_test_timeout' => ['error', 'مهلت اتصال یا پاسخ سرور SMTP به پایان رسید.'],
+    'provider_test_tls_failed' => ['error', 'برقراری ارتباط امن TLS با سرور SMTP ناموفق بود.'],
+    'provider_test_auth_failed' => ['error', 'احراز هویت در سرور SMTP ناموفق بود.'],
+    'provider_test_sender_rejected' => ['error', 'سرور SMTP نشانی فرستنده را نپذیرفت.'],
+    'provider_test_recipient_rejected' => ['error', 'سرور SMTP نشانی گیرنده را نپذیرفت.'],
+    'provider_test_send_failed' => ['error', 'سرور SMTP پیام آزمایشی را نپذیرفت.'],
+    'provider_test_failed' => ['error', 'ارسال آزمایشی ایمیل انجام نشد.'],
 ];
 $enabled = [];
 $channelLabels = [
@@ -367,6 +382,28 @@ require BASE_PATH
                                                     >
                                                         ویرایش
                                                     </a>
+                                                    <?php if (
+                                                        $channelCode === 'email'
+                                                        && (string) (
+                                                            $instance[
+                                                                'driver_code'
+                                                            ] ?? ''
+                                                        ) === 'smtp'
+                                                    ): ?>
+                                                        <button
+                                                            class="admin-button admin-button--soft admin-button--compact"
+                                                            type="button"
+                                                            data-provider-test-open
+                                                            data-provider-reference="<?= admin_h(
+                                                                $reference
+                                                            ) ?>"
+                                                            data-provider-title="<?= admin_h(
+                                                                $instance['title']
+                                                            ) ?>"
+                                                        >
+                                                            تست ارسال
+                                                        </button>
+                                                    <?php endif; ?>
                                                     <form
                                                         method="post"
                                                         action="<?= admin_h(
@@ -1035,6 +1072,181 @@ require BASE_PATH
                     </section>
                 </section>
             </div>
+
+            <div
+                class="provider-test-dialog"
+                data-provider-test-dialog
+                hidden
+            >
+                <button
+                    class="provider-test-dialog__backdrop"
+                    type="button"
+                    data-provider-test-close
+                    aria-label="بستن پنجره آزمون ارسال"
+                ></button>
+                <section
+                    class="provider-test-dialog__panel"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="provider-test-dialog-title"
+                >
+                    <header class="provider-test-dialog__head">
+                        <div>
+                            <h3 id="provider-test-dialog-title">
+                                تست ارسال ایمیل
+                            </h3>
+                            <p class="communication-muted">
+                                ارسال مستقیم با حساب
+                                <strong data-provider-test-title></strong>
+                            </p>
+                        </div>
+                        <button
+                            class="provider-test-dialog__close"
+                            type="button"
+                            data-provider-test-close
+                            aria-label="بستن"
+                        >
+                            ×
+                        </button>
+                    </header>
+
+                    <form
+                        class="provider-test-form"
+                        method="post"
+                        data-provider-test-form
+                    >
+                        <input
+                            type="hidden"
+                            name="_token"
+                            value="<?= admin_h($providerCsrf) ?>"
+                        >
+
+                        <label>
+                            <span>ایمیل مقصد</span>
+                            <input
+                                type="email"
+                                name="recipient"
+                                dir="ltr"
+                                autocomplete="email"
+                                required
+                                data-provider-test-recipient
+                                placeholder="example@example.com"
+                            >
+                        </label>
+
+                        <label>
+                            <span>موضوع</span>
+                            <input
+                                name="subject"
+                                maxlength="190"
+                                required
+                                value="آزمون ارسال ایمیل سامانه IPKF"
+                            >
+                        </label>
+
+                        <label>
+                            <span>متن پیام</span>
+                            <textarea
+                                name="body"
+                                maxlength="10000"
+                                required
+                            >این پیام برای بررسی تنظیمات ارسال ایمیل سامانه IPKF ارسال شده است.</textarea>
+                        </label>
+
+                        <div class="provider-test-form__actions">
+                            <button
+                                class="admin-button"
+                                type="submit"
+                            >
+                                ارسال آزمایشی
+                            </button>
+                            <button
+                                class="admin-button admin-button--soft"
+                                type="button"
+                                data-provider-test-close
+                            >
+                                انصراف
+                            </button>
+                        </div>
+                    </form>
+                </section>
+            </div>
+
+            <script>
+            (() => {
+                const dialog = document.querySelector(
+                    '[data-provider-test-dialog]'
+                );
+
+                if (!dialog) {
+                    return;
+                }
+
+                const form = dialog.querySelector(
+                    '[data-provider-test-form]'
+                );
+                const title = dialog.querySelector(
+                    '[data-provider-test-title]'
+                );
+                const recipient = dialog.querySelector(
+                    '[data-provider-test-recipient]'
+                );
+
+                const close = () => {
+                    dialog.hidden = true;
+                    document.body.classList.remove(
+                        'provider-test-dialog-open'
+                    );
+                };
+
+                document.querySelectorAll(
+                    '[data-provider-test-open]'
+                ).forEach((button) => {
+                    button.addEventListener('click', () => {
+                        const reference =
+                            button.dataset.providerReference || '';
+
+                        if (!form || reference === '') {
+                            return;
+                        }
+
+                        form.action =
+                            '/admin/communications/settings/providers/'
+                            + encodeURIComponent(reference)
+                            + '/test-email';
+
+                        if (title) {
+                            title.textContent =
+                                button.dataset.providerTitle || '';
+                        }
+
+                        dialog.hidden = false;
+                        document.body.classList.add(
+                            'provider-test-dialog-open'
+                        );
+                        window.setTimeout(
+                            () => recipient?.focus(),
+                            0
+                        );
+                    });
+                });
+
+                dialog.querySelectorAll(
+                    '[data-provider-test-close]'
+                ).forEach((button) => {
+                    button.addEventListener('click', close);
+                });
+
+                document.addEventListener('keydown', (event) => {
+                    if (
+                        event.key === 'Escape'
+                        && !dialog.hidden
+                    ) {
+                        close();
+                    }
+                });
+            })();
+            </script>
 
             <script>
             (() => {

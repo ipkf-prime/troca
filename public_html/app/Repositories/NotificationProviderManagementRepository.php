@@ -315,6 +315,61 @@ class NotificationProviderManagementRepository extends BaseRepository
         }
     }
 
+
+    public function recordTestResult(
+        int $providerInstanceId,
+        int $actorUserId,
+        bool $success,
+        string $message,
+        array $summary
+    ): void {
+        $db = $this->connection();
+        $db->beginTransaction();
+
+        try {
+            $message = mb_substr(
+                trim($message),
+                0,
+                1000,
+                'UTF-8'
+            );
+
+            $statement = $db->prepare("
+                UPDATE notification_provider_instances
+                SET last_tested_at = CURRENT_TIMESTAMP,
+                    last_test_status_code = ?,
+                    last_test_message = ?,
+                    updated_by_user_id = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ");
+            $statement->execute([
+                $success ? 'success' : 'failed',
+                $message,
+                $actorUserId,
+                $providerInstanceId,
+            ]);
+
+            $this->insertAudit(
+                $db,
+                $providerInstanceId,
+                $actorUserId,
+                $success
+                    ? 'provider.test_email.sent'
+                    : 'provider.test_email.failed',
+                $summary
+            );
+
+            $db->commit();
+        } catch (Throwable $exception) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+
+            throw $exception;
+        }
+    }
+
     public function setEnabled(
         string $reference,
         bool $enabled,

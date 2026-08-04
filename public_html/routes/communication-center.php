@@ -724,6 +724,120 @@ $router->post(
 );
 
 $router->post(
+    '/admin/communications/settings/providers/{reference}/test-email',
+    function (
+        $request,
+        $response
+    ) use ($adminGuard, $communicationAccess) {
+        $context = $adminGuard(
+            $response,
+            '/admin/communications/settings'
+        );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $reference = trim(
+            (string) $request->route('reference')
+        );
+        $path =
+            '/admin/communications/settings/providers/'
+            . rawurlencode($reference)
+            . '/test-email';
+
+        if (!$communicationAccess(
+            $context,
+            'POST',
+            $path
+        )) {
+            return $response->redirect(
+                '/admin/dashboard?error=forbidden'
+            );
+        }
+
+        $token = (string) $request->input(
+            '_token',
+            ''
+        );
+
+        if (!(new \IPKF\Security\Csrf())->check($token)) {
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=providers&status=invalid_csrf'
+            );
+        }
+
+        try {
+            (
+                new \App\Services\NotificationProviderTestService()
+            )->sendEmail(
+                (int) $context['user_id'],
+                $reference,
+                [
+                    'recipient' => $request->input(
+                        'recipient',
+                        ''
+                    ),
+                    'subject' => $request->input(
+                        'subject',
+                        ''
+                    ),
+                    'body' => $request->input(
+                        'body',
+                        ''
+                    ),
+                ]
+            );
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=providers'
+                . '&status=provider_test_sent'
+            );
+        } catch (
+            \InvalidArgumentException
+            | \RuntimeException $exception
+        ) {
+            $status = trim($exception->getMessage());
+
+            if (
+                $status === ''
+                || (
+                    !str_starts_with(
+                        $status,
+                        'provider_test_'
+                    )
+                    && !in_array(
+                        $status,
+                        [
+                            'provider_reference_invalid',
+                            'provider_instance_not_found',
+                            'provider_management_forbidden',
+                        ],
+                        true
+                    )
+                )
+            ) {
+                $status = 'provider_test_failed';
+            }
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=providers&status='
+                . rawurlencode($status)
+            );
+        } catch (\Throwable) {
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=providers'
+                . '&status=provider_test_failed'
+            );
+        }
+    }
+);
+
+$router->post(
     '/admin/communications/settings/providers/{reference}/status',
     function (
         $request,
