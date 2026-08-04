@@ -24,6 +24,7 @@ class NotificationProviderManagementService extends BaseService
         'phone_number_id' => 'شناسه شماره واتساپ',
         'business_account_id' => 'شناسه حساب تجاری',
         'api_version' => 'نسخه API',
+        'provider_name' => 'نام سرویس‌دهنده',
     ];
 
     private const SECRET_FIELDS = [
@@ -34,10 +35,50 @@ class NotificationProviderManagementService extends BaseService
                 'required' => false,
             ],
         ],
+        'gmail_smtp' => [
+            [
+                'key' => 'password',
+                'label' => 'رمز برنامه یا رمز عبور Gmail',
+                'required' => false,
+            ],
+        ],
+        'yahoo_smtp' => [
+            [
+                'key' => 'password',
+                'label' => 'رمز برنامه یا رمز عبور Yahoo',
+                'required' => false,
+            ],
+        ],
+        'microsoft365_smtp' => [
+            [
+                'key' => 'password',
+                'label' => 'رمز عبور Microsoft 365',
+                'required' => false,
+            ],
+        ],
         'kavenegar' => [
             [
                 'key' => 'api_key',
                 'label' => 'کلید سرویس کاوه‌نگار',
+                'required' => true,
+            ],
+        ],
+        'melipayamak' => [
+            [
+                'key' => 'password',
+                'label' => 'رمز عبور ملی پیامک',
+                'required' => false,
+            ],
+            [
+                'key' => 'api_key',
+                'label' => 'کلید سرویس ملی پیامک',
+                'required' => false,
+            ],
+        ],
+        'ippanel' => [
+            [
+                'key' => 'api_key',
+                'label' => 'کلید سرویس IPPanel',
                 'required' => true,
             ],
         ],
@@ -185,6 +226,8 @@ class NotificationProviderManagementService extends BaseService
                     (int) $instance['provider_type_id'],
                 'provider_type_code' =>
                     (string) $instance['provider_type_code'],
+                'channel_code' =>
+                    (string) $instance['channel_code'],
                 'code' => (string) $instance['code'],
                 'title' => (string) $instance['title'],
                 'description' =>
@@ -245,6 +288,31 @@ class NotificationProviderManagementService extends BaseService
         if ($type === null) {
             throw new InvalidArgumentException(
                 'provider_type_required'
+            );
+        }
+
+        $channelCode = strtolower(trim(
+            (string) ($input['channel_code'] ?? '')
+        ));
+
+        if ($existing !== null) {
+            $channelCode =
+                (string) $existing['channel_code'];
+        }
+
+        if (!in_array(
+            $channelCode,
+            ['email', 'sms', 'messenger'],
+            true
+        )) {
+            throw new InvalidArgumentException(
+                'provider_channel_required'
+            );
+        }
+
+        if ((string) $type['channel_code'] !== $channelCode) {
+            throw new InvalidArgumentException(
+                'provider_channel_mismatch'
             );
         }
 
@@ -399,6 +467,7 @@ class NotificationProviderManagementService extends BaseService
             $userId,
             [
                 'provider_type_code' => $providerCode,
+                'channel_code' => $channelCode,
                 'code' => $code,
                 'title' => $title,
                 'enabled' => $enabled,
@@ -724,15 +793,12 @@ class NotificationProviderManagementService extends BaseService
 
     private function emptyForm(array $definitions): array
     {
-        $first = $definitions[0] ?? [];
-
         return [
             'is_edit' => false,
             'public_reference' => '',
-            'provider_type_id' =>
-                (int) ($first['id'] ?? 0),
-            'provider_type_code' =>
-                (string) ($first['code'] ?? ''),
+            'channel_code' => '',
+            'provider_type_id' => 0,
+            'provider_type_code' => '',
             'code' => '',
             'title' => '',
             'description' => '',

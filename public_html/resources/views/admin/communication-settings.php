@@ -29,7 +29,9 @@ $statusMessages = [
     'provider_enabled' => ['success', 'حساب سرویس‌دهنده فعال شد.'],
     'provider_disabled' => ['success', 'حساب سرویس‌دهنده غیرفعال شد.'],
     'invalid_csrf' => ['error', 'اعتبار درخواست منقضی شده است. صفحه را تازه‌سازی کنید.'],
-    'provider_type_required' => ['error', 'نوع سرویس‌دهنده را انتخاب کنید.'],
+    'provider_channel_required' => ['error', 'کانال ارسال را انتخاب کنید.'],
+    'provider_channel_mismatch' => ['error', 'سرویس‌دهنده با کانال انتخاب‌شده سازگار نیست.'],
+    'provider_type_required' => ['error', 'سرویس‌دهنده را انتخاب کنید.'],
     'provider_title_invalid' => ['error', 'عنوان حساب معتبر نیست.'],
     'provider_code_invalid' => ['error', 'کد داخلی حساب معتبر نیست.'],
     'provider_code_exists' => ['error', 'این کد داخلی قبلاً استفاده شده است.'],
@@ -42,7 +44,7 @@ $enabled = [];
 $channelLabels = [
     'in_app' => 'پیام‌رسان داخلی',
     'email' => 'ایمیل',
-    'sms' => 'پیامک',
+    'sms' => 'پیام کوتاه (SMS)',
     'messenger' => 'پیام‌رسان',
     'bale' => 'پیام‌رسان بله',
 ];
@@ -148,6 +150,9 @@ require BASE_PATH
             $providerTypeId = (int) (
                 $providerForm['provider_type_id'] ?? 0
             );
+            $providerChannelCode = (string) (
+                $providerForm['channel_code'] ?? ''
+            );
             $isProviderEdit = !empty(
                 $providerForm['is_edit']
             );
@@ -160,6 +165,8 @@ require BASE_PATH
             $providerCsrf = (new \IPKF\Security\Csrf())->token();
             $providerError = in_array($status, [
                 'invalid_csrf',
+                'provider_channel_required',
+                'provider_channel_mismatch',
                 'provider_type_required',
                 'provider_title_invalid',
                 'provider_code_invalid',
@@ -265,7 +272,7 @@ require BASE_PATH
                             <div class="provider-empty-state">
                                 <strong>هنوز حسابی ثبت نشده است.</strong>
                                 <p>
-                                    نخستین حساب ایمیل، پیامک یا پیام‌رسان را از
+                                    نخستین حساب ایمیل، پیام کوتاه یا پیام‌رسان را از
                                     تب «افزودن حساب» ثبت کنید.
                                 </p>
                                 <button
@@ -282,7 +289,7 @@ require BASE_PATH
                                     <thead>
                                         <tr>
                                             <th>عنوان</th>
-                                            <th>نوع</th>
+                                            <th>سرویس‌دهنده</th>
                                             <th>کانال</th>
                                             <th>وضعیت</th>
                                             <th>اطلاعات محرمانه</th>
@@ -522,7 +529,57 @@ require BASE_PATH
                                 >
                                     <div class="provider-form-grid">
                                         <label>
-                                            <span>نوع سرویس‌دهنده</span>
+                                            <span>کانال ارسال</span>
+                                            <?php if ($isProviderEdit): ?>
+                                                <input
+                                                    type="hidden"
+                                                    name="channel_code"
+                                                    value="<?= admin_h(
+                                                        $providerChannelCode
+                                                    ) ?>"
+                                                >
+                                            <?php endif; ?>
+                                            <select
+                                                name="<?= $isProviderEdit
+                                                    ? 'channel_code_display'
+                                                    : 'channel_code' ?>"
+                                                data-provider-channel
+                                                <?= $isProviderEdit
+                                                    ? 'disabled'
+                                                    : '' ?>
+                                                required
+                                            >
+                                                <option value="">
+                                                    انتخاب کانال
+                                                </option>
+                                                <?php foreach (
+                                                    ['email', 'sms', 'messenger']
+                                                    as $channelCode
+                                                ): ?>
+                                                    <option
+                                                        value="<?= admin_h(
+                                                            $channelCode
+                                                        ) ?>"
+                                                        <?= $providerChannelCode
+                                                            === $channelCode
+                                                            ? 'selected'
+                                                            : '' ?>
+                                                    >
+                                                        <?= admin_h(
+                                                            $channelLabels[
+                                                                $channelCode
+                                                            ] ?? $channelCode
+                                                        ) ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                            <small>
+                                                ابتدا نوع کانال ارسال را انتخاب کنید.
+                                            </small>
+                                        </label>
+
+                                        <label>
+                                            <span>سرویس‌دهنده</span>
                                             <?php if ($isProviderEdit): ?>
                                                 <input
                                                     type="hidden"
@@ -535,7 +592,11 @@ require BASE_PATH
                                                     ? 'provider_type_display'
                                                     : 'provider_type_id' ?>"
                                                 data-provider-type
+                                                data-provider-locked="<?= $isProviderEdit
+                                                    ? 'true'
+                                                    : 'false' ?>"
                                                 <?= $isProviderEdit
+                                                    || $providerChannelCode === ''
                                                     ? 'disabled'
                                                     : '' ?>
                                                 required
@@ -552,6 +613,11 @@ require BASE_PATH
                                                         data-provider-code="<?= admin_h(
                                                             $definition['code']
                                                         ) ?>"
+                                                        data-provider-channel-code="<?= admin_h(
+                                                            $definition[
+                                                                'channel_code'
+                                                            ]
+                                                        ) ?>"
                                                         <?= $providerTypeId
                                                             === (int) $definition['id']
                                                             ? 'selected'
@@ -564,7 +630,7 @@ require BASE_PATH
                                                 <?php endforeach; ?>
                                             </select>
                                             <small>
-                                                نوع سرویس پس از ثبت قابل تغییر نیست.
+                                                سرویس‌دهنده پس از ثبت قابل تغییر نیست.
                                             </small>
                                         </label>
 
@@ -976,7 +1042,10 @@ require BASE_PATH
                 const form = workspace.querySelector(
                     '[data-provider-form]'
                 );
-                const select = form?.querySelector(
+                const channelSelect = form?.querySelector(
+                    '[data-provider-channel]'
+                );
+                const providerSelect = form?.querySelector(
                     '[data-provider-type]'
                 );
                 const workspaceTabs = Array.from(
@@ -1067,7 +1136,7 @@ require BASE_PATH
                     });
                 });
 
-                if (!form || !select) {
+                if (!form || !channelSelect || !providerSelect) {
                     activateWorkspace(
                         workspace.dataset.initialView || 'accounts'
                     );
@@ -1081,8 +1150,40 @@ require BASE_PATH
                     '[data-provider-secrets-empty]'
                 );
 
+                const updateProviderOptions = () => {
+                    const channelCode = channelSelect.value;
+                    const locked =
+                        providerSelect.dataset.providerLocked
+                        === 'true';
+
+                    providerSelect.querySelectorAll(
+                        'option[data-provider-channel-code]'
+                    ).forEach((option) => {
+                        const matches =
+                            option.dataset.providerChannelCode
+                            === channelCode;
+
+                        option.hidden = !matches;
+                        option.disabled = !matches;
+                    });
+
+                    const selectedOption =
+                        providerSelect.selectedOptions[0];
+
+                    if (
+                        !locked
+                        && selectedOption?.dataset
+                            .providerChannelCode !== channelCode
+                    ) {
+                        providerSelect.value = '';
+                    }
+
+                    providerSelect.disabled =
+                        locked || channelCode === '';
+                };
+
                 const updateProviderFields = () => {
-                    const selectedId = select.value;
+                    const selectedId = providerSelect.value;
                     const hasProvider = selectedId !== '';
 
                     form.querySelectorAll(
@@ -1138,7 +1239,22 @@ require BASE_PATH
                     }
                 };
 
-                select.addEventListener(
+                channelSelect.addEventListener(
+                    'change',
+                    () => {
+                        if (
+                            providerSelect.dataset.providerLocked
+                            !== 'true'
+                        ) {
+                            providerSelect.value = '';
+                        }
+
+                        updateProviderOptions();
+                        updateProviderFields();
+                    }
+                );
+
+                providerSelect.addEventListener(
                     'change',
                     updateProviderFields
                 );
@@ -1193,12 +1309,14 @@ require BASE_PATH
 
                 form.addEventListener('reset', () => {
                     window.setTimeout(() => {
+                        updateProviderOptions();
                         updateProviderFields();
                         updateEnabledLabel();
                         activateEditor('account');
                     }, 0);
                 });
 
+                updateProviderOptions();
                 updateProviderFields();
                 updateEnabledLabel();
                 activateWorkspace(

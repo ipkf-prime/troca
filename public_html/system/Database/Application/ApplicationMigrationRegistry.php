@@ -47,6 +47,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateSecureMessageExtensionTables::class,
                     \IPKF\Database\Migrations\ExtendNotificationProviderManagement::class,
                     \IPKF\Database\Migrations\EnableNotificationProviderManagementCrud::class,
+                    \IPKF\Database\Migrations\ExpandNotificationProviderCatalog::class,
                 ],
             ],
             'automation' => [

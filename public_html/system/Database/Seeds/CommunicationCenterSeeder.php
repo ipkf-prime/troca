@@ -94,7 +94,7 @@ class CommunicationCenterSeeder extends Seeder
         foreach ([
             ['in_app', 'کارتابل داخلی', 'in_app', 1, 1, 10, 1],
             ['email', 'ایمیل', 'email', 0, 1, 20, 1],
-            ['sms', 'پیام کوتاه', 'sms', 0, 0, 30, 1],
+            ['sms', 'پیام کوتاه (SMS)', 'sms', 0, 0, 30, 1],
             ['messenger', 'پیام‌رسان', 'messenger', 0, 0, 40, 1],
         ] as $channel) {
             $statement->execute($channel);
@@ -123,41 +123,79 @@ class CommunicationCenterSeeder extends Seeder
         ");
 
         $providers = [
-            ['smtp', 'email', 'SMTP / ایمیل سازمانی', 'smtp', 0, [
+            ['gmail_smtp', 'email', 'Gmail', 'smtp', 0, [
+                ['key' => 'host', 'type' => 'text', 'required' => true],
+                ['key' => 'port', 'type' => 'number', 'required' => true],
+                ['key' => 'encryption', 'type' => 'select',
+                    'options' => ['none', 'tls', 'ssl']],
+                ['key' => 'username', 'type' => 'text', 'required' => true],
+                ['key' => 'from_address', 'type' => 'email', 'required' => true],
+            ], 10],
+            ['yahoo_smtp', 'email', 'Yahoo Mail', 'smtp', 0, [
+                ['key' => 'host', 'type' => 'text', 'required' => true],
+                ['key' => 'port', 'type' => 'number', 'required' => true],
+                ['key' => 'encryption', 'type' => 'select',
+                    'options' => ['none', 'tls', 'ssl']],
+                ['key' => 'username', 'type' => 'text', 'required' => true],
+                ['key' => 'from_address', 'type' => 'email', 'required' => true],
+            ], 20],
+            ['microsoft365_smtp', 'email', 'Microsoft 365 / Outlook', 'smtp', 0, [
+                ['key' => 'host', 'type' => 'text', 'required' => true],
+                ['key' => 'port', 'type' => 'number', 'required' => true],
+                ['key' => 'encryption', 'type' => 'select',
+                    'options' => ['none', 'tls', 'ssl']],
+                ['key' => 'username', 'type' => 'text', 'required' => true],
+                ['key' => 'from_address', 'type' => 'email', 'required' => true],
+            ], 30],
+            ['smtp', 'email', 'SMTP سفارشی / سازمانی', 'smtp', 0, [
+                ['key' => 'provider_name', 'type' => 'text'],
                 ['key' => 'host', 'type' => 'text', 'required' => true],
                 ['key' => 'port', 'type' => 'number', 'required' => true],
                 ['key' => 'encryption', 'type' => 'select',
                     'options' => ['none', 'tls', 'ssl']],
                 ['key' => 'username', 'type' => 'text'],
                 ['key' => 'from_address', 'type' => 'email'],
-            ], 10],
+            ], 40],
             ['kavenegar', 'sms', 'کاوه‌نگار', 'kavenegar', 1, [
                 ['key' => 'sender', 'type' => 'text'],
                 ['key' => 'balance_endpoint', 'type' => 'url'],
-            ], 20],
-            ['generic_sms', 'sms', 'درگاه پیامک عمومی', 'generic_sms', 1, [
+            ], 100],
+            ['melipayamak', 'sms', 'ملی پیامک', 'melipayamak', 1, [
+                ['key' => 'username', 'type' => 'text'],
+                ['key' => 'sender', 'type' => 'text'],
+                ['key' => 'endpoint', 'type' => 'url'],
+                ['key' => 'balance_endpoint', 'type' => 'url'],
+            ], 110],
+            ['ippanel', 'sms', 'IPPanel / فراز اس‌ام‌اس', 'ippanel', 1, [
+                ['key' => 'sender', 'type' => 'text'],
+                ['key' => 'endpoint', 'type' => 'url'],
+                ['key' => 'balance_endpoint', 'type' => 'url'],
+            ], 120],
+            ['generic_sms', 'sms', 'سرویس پیامک سفارشی', 'generic_sms', 1, [
+                ['key' => 'provider_name', 'type' => 'text', 'required' => true],
                 ['key' => 'endpoint', 'type' => 'url', 'required' => true],
+                ['key' => 'username', 'type' => 'text'],
                 ['key' => 'sender', 'type' => 'text'],
                 ['key' => 'balance_endpoint', 'type' => 'url'],
-            ], 30],
+            ], 130],
             ['bale_bot', 'messenger', 'پیام‌رسان بله', 'bale_bot', 0, [
                 ['key' => 'api_base', 'type' => 'url'],
                 ['key' => 'bot_username', 'type' => 'text'],
-            ], 40],
+            ], 200],
             ['telegram_bot', 'messenger', 'تلگرام', 'telegram_bot', 0, [
                 ['key' => 'api_base', 'type' => 'url'],
                 ['key' => 'parse_mode', 'type' => 'select',
                     'options' => ['plain', 'HTML', 'MarkdownV2']],
-            ], 50],
+            ], 210],
             ['eitaa_bot', 'messenger', 'ایتا', 'eitaa_bot', 0, [
                 ['key' => 'api_base', 'type' => 'url'],
                 ['key' => 'bot_username', 'type' => 'text'],
-            ], 60],
+            ], 220],
             ['whatsapp_cloud', 'messenger', 'WhatsApp Cloud API', 'whatsapp_cloud', 0, [
                 ['key' => 'phone_number_id', 'type' => 'text'],
                 ['key' => 'business_account_id', 'type' => 'text'],
                 ['key' => 'api_version', 'type' => 'text'],
-            ], 70],
+            ], 230],
         ];
 
         foreach ($providers as $provider) {
