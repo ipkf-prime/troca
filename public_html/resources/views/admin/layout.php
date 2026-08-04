@@ -958,7 +958,12 @@ $accountNav = $themeUserId !== null
                                     '&#x0646;&#x0633;&#x062E;&#x0647;'
                                 )
                             ) ?>
-                            <?= admin_h($runtimeVersion) ?>
+                            <bdi
+                                class="admin-footer__version"
+                                dir="ltr"
+                            >
+                                <?= admin_h($runtimeVersion) ?>
+                            </bdi>
                         </span>
                         <span><?= admin_h($year) ?></span>
                     </span>

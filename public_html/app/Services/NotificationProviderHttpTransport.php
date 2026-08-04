@@ -10,7 +10,8 @@ class NotificationProviderHttpTransport extends BaseService
     public function postJson(
         string $url,
         array $payload,
-        int $timeout = 15
+        int $timeout = 15,
+        string $userAgent = 'IPKF-Notification-Test/1.0'
     ): array {
         return $this->request(
             $url,
@@ -21,14 +22,16 @@ class NotificationProviderHttpTransport extends BaseService
                 | JSON_THROW_ON_ERROR
             ),
             ['Content-Type: application/json'],
-            $timeout
+            $timeout,
+            $userAgent
         );
     }
 
     public function postForm(
         string $url,
         array $payload,
-        int $timeout = 15
+        int $timeout = 15,
+        string $userAgent = 'IPKF-Notification-Test/1.0'
     ): array {
         return $this->request(
             $url,
@@ -42,7 +45,8 @@ class NotificationProviderHttpTransport extends BaseService
                 'Content-Type: '
                 . 'application/x-www-form-urlencoded',
             ],
-            $timeout
+            $timeout,
+            $userAgent
         );
     }
 
@@ -50,7 +54,8 @@ class NotificationProviderHttpTransport extends BaseService
         string $url,
         string $body,
         array $headers,
-        int $timeout
+        int $timeout,
+        string $userAgent
     ): array {
         $timeout = max(3, min(30, $timeout));
         $startedAt = microtime(true);
@@ -61,7 +66,8 @@ class NotificationProviderHttpTransport extends BaseService
                 $body,
                 $headers,
                 $timeout,
-                $startedAt
+                $startedAt,
+                $userAgent
             );
         }
 
@@ -70,7 +76,8 @@ class NotificationProviderHttpTransport extends BaseService
             $body,
             $headers,
             $timeout,
-            $startedAt
+            $startedAt,
+            $userAgent
         );
     }
 
@@ -79,7 +86,8 @@ class NotificationProviderHttpTransport extends BaseService
         string $body,
         array $headers,
         int $timeout,
-        float $startedAt
+        float $startedAt,
+        string $userAgent
     ): array {
         $curl = curl_init($url);
 
@@ -96,7 +104,7 @@ class NotificationProviderHttpTransport extends BaseService
                 $headers,
                 [
                     'Accept: application/json',
-                    'User-Agent: IPKF-Notification-Test/1.0',
+                    'User-Agent: ' . $userAgent,
                 ]
             ),
             CURLOPT_RETURNTRANSFER => true,
@@ -142,7 +150,8 @@ class NotificationProviderHttpTransport extends BaseService
         string $body,
         array $headers,
         int $timeout,
-        float $startedAt
+        float $startedAt,
+        string $userAgent
     ): array {
         $context = stream_context_create([
             'http' => [
@@ -154,7 +163,7 @@ class NotificationProviderHttpTransport extends BaseService
                         [
                             'Accept: application/json',
                             'User-Agent: '
-                            . 'IPKF-Notification-Test/1.0',
+                            . $userAgent,
                         ]
                     )
                 ),

@@ -34,6 +34,10 @@ class NotificationSmtpTransport extends BaseService
             3,
             min(30, (int) ($message['timeout'] ?? 12))
         );
+        $isTest = !array_key_exists(
+            'is_test',
+            $message
+        ) || !empty($message['is_test']);
 
         $endpoint = $encryption === 'ssl'
             ? 'ssl://' . $host . ':' . $port
@@ -138,7 +142,8 @@ class NotificationSmtpTransport extends BaseService
                 $recipient,
                 $subject,
                 $body,
-                $messageId
+                $messageId,
+                $isTest
             );
 
             $this->writeAll(
@@ -340,7 +345,8 @@ class NotificationSmtpTransport extends BaseService
         string $recipient,
         string $subject,
         string $body,
-        string $messageId
+        string $messageId,
+        bool $isTest
     ): string {
         $safeFromName = $this->headerText(
             $fromName !== '' ? $fromName : $fromAddress
@@ -357,8 +363,11 @@ class NotificationSmtpTransport extends BaseService
             'MIME-Version: 1.0',
             'Content-Type: text/plain; charset=UTF-8',
             'Content-Transfer-Encoding: base64',
-            'X-IPKF-Notification-Test: 1',
         ];
+
+        $headers[] = $isTest
+            ? 'X-IPKF-Notification-Test: 1'
+            : 'X-IPKF-Notification-Gateway: 1';
 
         $encodedBody = rtrim(
             chunk_split(

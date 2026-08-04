@@ -3674,3 +3674,19 @@ input[aria-invalid="true"] {
         grid-template-columns: 1fr;
     }
 }
+
+/* notification-footer-layout-v061 */
+.admin-content {
+    padding-bottom: 18px;
+}
+
+.admin-footer__version {
+    direction: ltr;
+    unicode-bidi: isolate;
+}
+
+@media (max-width: 760px) {
+    .admin-content {
+        padding-bottom: 12px;
+    }
+}

@@ -52,6 +52,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\EnableNotificationProviderTestSend::class,
                     \IPKF\Database\Migrations\EnableNotificationProviderExtendedTestSend::class,
                     \IPKF\Database\Migrations\EnableNotificationProviderDefaultManagement::class,
+                    \IPKF\Database\Migrations\CreateNotificationGatewayFoundation::class,
                 ],
             ],
             'automation' => [
