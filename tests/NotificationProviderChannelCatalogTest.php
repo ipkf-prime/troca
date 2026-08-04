@@ -115,4 +115,11 @@ $expect(
     'Destructive SQL is present.'
 );
 
+$expect(
+    str_contains($migration, 'notification_channels')
+    && str_contains($migration, 'updateChannelTitles')
+    && str_contains($migration, 'پیام کوتاه (SMS)'),
+    'Provider catalog migration does not update the SMS channel title.'
+);
+
 echo "Notification provider channel catalog checks passed.\n";

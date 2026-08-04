@@ -10,6 +10,8 @@ class ExpandNotificationProviderCatalog extends Migration
             return;
         }
 
+        $this->updateChannelTitles();
+
         $statement = $this->db->prepare("
             INSERT INTO notification_provider_types (
                 code,
@@ -69,6 +71,25 @@ class ExpandNotificationProviderCatalog extends Migration
 
     public function down(): void
     {
+    }
+
+    private function updateChannelTitles(): void
+    {
+        if (!$this->tableExists('notification_channels')) {
+            return;
+        }
+
+        $statement = $this->db->prepare("
+            UPDATE notification_channels
+            SET
+                title = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE code = 'sms'
+        ");
+
+        $statement->execute([
+            'پیام کوتاه (SMS)',
+        ]);
     }
 
     private function providers(): array
