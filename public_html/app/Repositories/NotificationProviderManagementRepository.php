@@ -113,9 +113,24 @@ class NotificationProviderManagementRepository extends BaseRepository
             $reference = trim(
                 (string) ($instance['public_reference'] ?? '')
             );
+            $isCreate = !empty(
+                $instance['is_create']
+            );
             $existing = null;
 
-            if ($reference !== '') {
+            if (
+                preg_match(
+                    '/^npi_[a-f0-9]{24}
+',
+                    $reference
+                ) !== 1
+            ) {
+                throw new RuntimeException(
+                    'provider_reference_invalid'
+                );
+            }
+
+            if (!$isCreate) {
                 $statement = $db->prepare("
                     SELECT *
                     FROM notification_provider_instances
@@ -133,7 +148,7 @@ class NotificationProviderManagementRepository extends BaseRepository
                 }
             }
 
-            if ($existing === null) {
+            if ($isCreate) {
                 $insert = $db->prepare("
                     INSERT INTO notification_provider_instances (
                         public_reference,

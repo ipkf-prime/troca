@@ -445,6 +445,7 @@ class NotificationProviderManagementService extends BaseService
         $savedReference = $this->repository->save(
             [
                 'public_reference' => $reference,
+                'is_create' => $created,
                 'provider_type_id' => $providerTypeId,
                 'code' => $code,
                 'title' => $title,
