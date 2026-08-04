@@ -50,6 +50,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\ExpandNotificationProviderCatalog::class,
                     \IPKF\Database\Migrations\ExtendEmailProviderSenderIdentity::class,
                     \IPKF\Database\Migrations\EnableNotificationProviderTestSend::class,
+                    \IPKF\Database\Migrations\EnableNotificationProviderExtendedTestSend::class,
                 ],
             ],
             'automation' => [

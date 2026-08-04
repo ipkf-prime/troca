@@ -321,7 +321,8 @@ class NotificationProviderManagementRepository extends BaseRepository
         int $actorUserId,
         bool $success,
         string $message,
-        array $summary
+        array $summary,
+        string $testKind = 'email'
     ): void {
         $db = $this->connection();
         $db->beginTransaction();
@@ -350,13 +351,19 @@ class NotificationProviderManagementRepository extends BaseRepository
                 $providerInstanceId,
             ]);
 
+            $testKind = in_array(
+                $testKind,
+                ['email', 'sms', 'bale'],
+                true
+            ) ? $testKind : 'unknown';
+
             $this->insertAudit(
                 $db,
                 $providerInstanceId,
                 $actorUserId,
-                $success
-                    ? 'provider.test_email.sent'
-                    : 'provider.test_email.failed',
+                'provider.test_'
+                    . $testKind
+                    . ($success ? '.sent' : '.failed'),
                 $summary
             );
 

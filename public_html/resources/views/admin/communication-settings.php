@@ -40,6 +40,19 @@ $statusMessages = [
     'provider_save_failed' => ['error', 'ذخیره حساب سرویس‌دهنده انجام نشد.'],
     'provider_status_failed' => ['error', 'تغییر وضعیت حساب انجام نشد.'],
     'provider_test_sent' => ['success', 'ایمیل آزمایشی با موفقیت به سرور ایمیل تحویل شد.'],
+    'provider_test_email_sent' => ['success', 'ایمیل آزمایشی با موفقیت به سرور ایمیل تحویل شد.'],
+    'provider_test_sms_sent' => ['success', 'پیامک آزمایشی با موفقیت به کاوه‌نگار تحویل شد.'],
+    'provider_test_bale_sent' => ['success', 'پیام آزمایشی با موفقیت در بله ارسال شد.'],
+    'provider_test_unsupported' => ['error', 'آزمون ارسال برای این سرویس‌دهنده هنوز پشتیبانی نمی‌شود.'],
+    'provider_test_mobile_invalid' => ['error', 'شماره تلفن همراه مقصد معتبر نیست.'],
+    'provider_test_chat_id_invalid' => ['error', 'شناسه گفت‌وگوی بله معتبر نیست.'],
+    'provider_test_api_key_missing' => ['error', 'کلید API پیامک در اطلاعات محرمانه حساب ثبت نشده است.'],
+    'provider_test_bot_token_missing' => ['error', 'توکن بات بله در اطلاعات محرمانه حساب ثبت نشده است.'],
+    'provider_test_api_endpoint_invalid' => ['error', 'نشانی API سرویس‌دهنده معتبر یا مجاز نیست.'],
+    'provider_test_api_connection_failed' => ['error', 'اتصال به API سرویس‌دهنده برقرار نشد.'],
+    'provider_test_api_timeout' => ['error', 'مهلت اتصال یا پاسخ API سرویس‌دهنده به پایان رسید.'],
+    'provider_test_api_response_invalid' => ['error', 'پاسخ API سرویس‌دهنده معتبر نبود.'],
+    'provider_test_api_rejected' => ['error', 'سرویس‌دهنده درخواست ارسال آزمایشی را نپذیرفت.'],
     'provider_test_email_unsupported' => ['error', 'این حساب از آزمون ارسال ایمیل پشتیبانی نمی‌کند.'],
     'provider_test_recipient_invalid' => ['error', 'نشانی ایمیل مقصد معتبر نیست.'],
     'provider_test_subject_invalid' => ['error', 'موضوع ایمیل آزمایشی معتبر نیست.'],
@@ -324,6 +337,31 @@ require BASE_PATH
                                         $channelCode = (string) (
                                             $instance['channel_code'] ?? ''
                                         );
+                                        $providerTypeCode = (string) (
+                                            $instance[
+                                                'provider_type_code'
+                                            ] ?? ''
+                                        );
+                                        $providerTestKind = '';
+
+                                        if (
+                                            $channelCode === 'email'
+                                            && (string) (
+                                                $instance[
+                                                    'driver_code'
+                                                ] ?? ''
+                                            ) === 'smtp'
+                                        ) {
+                                            $providerTestKind = 'email';
+                                        } elseif (
+                                            $providerTypeCode === 'kavenegar'
+                                        ) {
+                                            $providerTestKind = 'sms';
+                                        } elseif (
+                                            $providerTypeCode === 'bale_bot'
+                                        ) {
+                                            $providerTestKind = 'bale';
+                                        }
                                         ?>
                                         <tr>
                                             <td>
@@ -383,17 +421,15 @@ require BASE_PATH
                                                         ویرایش
                                                     </a>
                                                     <?php if (
-                                                        $channelCode === 'email'
-                                                        && (string) (
-                                                            $instance[
-                                                                'driver_code'
-                                                            ] ?? ''
-                                                        ) === 'smtp'
+                                                        $providerTestKind !== ''
                                                     ): ?>
                                                         <button
                                                             class="admin-button admin-button--soft admin-button--compact"
                                                             type="button"
                                                             data-provider-test-open
+                                                            data-provider-test-kind="<?= admin_h(
+                                                                $providerTestKind
+                                                            ) ?>"
                                                             data-provider-reference="<?= admin_h(
                                                                 $reference
                                                             ) ?>"
@@ -1092,8 +1128,11 @@ require BASE_PATH
                 >
                     <header class="provider-test-dialog__head">
                         <div>
-                            <h3 id="provider-test-dialog-title">
-                                تست ارسال ایمیل
+                            <h3
+                                id="provider-test-dialog-title"
+                                data-provider-test-heading
+                            >
+                                تست ارسال
                             </h3>
                             <p class="communication-muted">
                                 ارسال مستقیم با حساب
@@ -1122,25 +1161,24 @@ require BASE_PATH
                         >
 
                         <label>
-                            <span>ایمیل مقصد</span>
+                            <span data-provider-test-recipient-label>
+                                مقصد
+                            </span>
                             <input
-                                type="email"
+                                type="text"
                                 name="recipient"
                                 dir="ltr"
-                                autocomplete="email"
                                 required
                                 data-provider-test-recipient
-                                placeholder="example@example.com"
                             >
                         </label>
 
-                        <label>
+                        <label data-provider-test-subject-row>
                             <span>موضوع</span>
                             <input
                                 name="subject"
                                 maxlength="190"
-                                required
-                                value="آزمون ارسال ایمیل سامانه IPKF"
+                                data-provider-test-subject
                             >
                         </label>
 
@@ -1150,7 +1188,8 @@ require BASE_PATH
                                 name="body"
                                 maxlength="10000"
                                 required
-                            >این پیام برای بررسی تنظیمات ارسال ایمیل سامانه IPKF ارسال شده است.</textarea>
+                                data-provider-test-body
+                            ></textarea>
                         </label>
 
                         <div class="provider-test-form__actions">
@@ -1185,12 +1224,76 @@ require BASE_PATH
                 const form = dialog.querySelector(
                     '[data-provider-test-form]'
                 );
+                const heading = dialog.querySelector(
+                    '[data-provider-test-heading]'
+                );
                 const title = dialog.querySelector(
                     '[data-provider-test-title]'
                 );
                 const recipient = dialog.querySelector(
                     '[data-provider-test-recipient]'
                 );
+                const recipientLabel = dialog.querySelector(
+                    '[data-provider-test-recipient-label]'
+                );
+                const subjectRow = dialog.querySelector(
+                    '[data-provider-test-subject-row]'
+                );
+                const subject = dialog.querySelector(
+                    '[data-provider-test-subject]'
+                );
+                const body = dialog.querySelector(
+                    '[data-provider-test-body]'
+                );
+
+                const modes = {
+                    email: {
+                        heading: 'تست ارسال ایمیل',
+                        recipientLabel: 'ایمیل مقصد',
+                        recipientType: 'email',
+                        inputMode: 'email',
+                        autocomplete: 'email',
+                        placeholder: 'example@example.com',
+                        subject: 'آزمون ارسال ایمیل سامانه IPKF',
+                        body:
+                            'این پیام برای بررسی تنظیمات '
+                            + 'ارسال ایمیل سامانه IPKF '
+                            + 'ارسال شده است.',
+                        showSubject: true,
+                        endpoint: 'test-send',
+                    },
+                    sms: {
+                        heading: 'تست ارسال پیامک',
+                        recipientLabel: 'شماره تلفن همراه مقصد',
+                        recipientType: 'tel',
+                        inputMode: 'tel',
+                        autocomplete: 'tel',
+                        placeholder: '09123456789',
+                        subject: '',
+                        body:
+                            'پیامک آزمایشی سامانه IPKF؛ '
+                            + 'تنظیمات ارسال با موفقیت '
+                            + 'در حال بررسی است.',
+                        showSubject: false,
+                        endpoint: 'test-send',
+                    },
+                    bale: {
+                        heading: 'تست ارسال پیام در بله',
+                        recipientLabel:
+                            'شناسه گفت‌وگو (Chat ID)',
+                        recipientType: 'text',
+                        inputMode: 'numeric',
+                        autocomplete: 'off',
+                        placeholder: '123456789',
+                        subject: '',
+                        body:
+                            'این پیام برای بررسی تنظیمات '
+                            + 'ربات بله سامانه IPKF '
+                            + 'ارسال شده است.',
+                        showSubject: false,
+                        endpoint: 'test-send',
+                    },
+                };
 
                 const close = () => {
                     dialog.hidden = true;
@@ -1205,19 +1308,58 @@ require BASE_PATH
                     button.addEventListener('click', () => {
                         const reference =
                             button.dataset.providerReference || '';
+                        const kind =
+                            button.dataset.providerTestKind || '';
+                        const mode = modes[kind];
 
-                        if (!form || reference === '') {
+                        if (
+                            !form
+                            || reference === ''
+                            || !mode
+                        ) {
                             return;
                         }
 
                         form.action =
                             '/admin/communications/settings/providers/'
                             + encodeURIComponent(reference)
-                            + '/test-email';
+                            + '/'
+                            + mode.endpoint;
+
+                        if (heading) {
+                            heading.textContent = mode.heading;
+                        }
 
                         if (title) {
                             title.textContent =
                                 button.dataset.providerTitle || '';
+                        }
+
+                        if (recipientLabel) {
+                            recipientLabel.textContent =
+                                mode.recipientLabel;
+                        }
+
+                        if (recipient) {
+                            recipient.type = mode.recipientType;
+                            recipient.inputMode = mode.inputMode;
+                            recipient.autocomplete =
+                                mode.autocomplete;
+                            recipient.placeholder =
+                                mode.placeholder;
+                            recipient.value = '';
+                        }
+
+                        if (subjectRow && subject) {
+                            subjectRow.hidden =
+                                !mode.showSubject;
+                            subject.required =
+                                mode.showSubject;
+                            subject.value = mode.subject;
+                        }
+
+                        if (body) {
+                            body.value = mode.body;
                         }
 
                         dialog.hidden = false;
