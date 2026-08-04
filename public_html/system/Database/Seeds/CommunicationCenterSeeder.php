@@ -130,6 +130,7 @@ class CommunicationCenterSeeder extends Seeder
                     'options' => ['none', 'tls', 'ssl']],
                 ['key' => 'username', 'type' => 'text', 'required' => true],
                 ['key' => 'from_address', 'type' => 'email', 'required' => true],
+                ['key' => 'from_name', 'type' => 'text'],
             ], 10],
             ['yahoo_smtp', 'email', 'Yahoo Mail', 'smtp', 0, [
                 ['key' => 'host', 'type' => 'text', 'required' => true],
@@ -138,6 +139,7 @@ class CommunicationCenterSeeder extends Seeder
                     'options' => ['none', 'tls', 'ssl']],
                 ['key' => 'username', 'type' => 'text', 'required' => true],
                 ['key' => 'from_address', 'type' => 'email', 'required' => true],
+                ['key' => 'from_name', 'type' => 'text'],
             ], 20],
             ['microsoft365_smtp', 'email', 'Microsoft 365 / Outlook', 'smtp', 0, [
                 ['key' => 'host', 'type' => 'text', 'required' => true],
@@ -146,6 +148,7 @@ class CommunicationCenterSeeder extends Seeder
                     'options' => ['none', 'tls', 'ssl']],
                 ['key' => 'username', 'type' => 'text', 'required' => true],
                 ['key' => 'from_address', 'type' => 'email', 'required' => true],
+                ['key' => 'from_name', 'type' => 'text'],
             ], 30],
             ['smtp', 'email', 'SMTP سفارشی / سازمانی', 'smtp', 0, [
                 ['key' => 'provider_name', 'type' => 'text'],
@@ -155,6 +158,7 @@ class CommunicationCenterSeeder extends Seeder
                     'options' => ['none', 'tls', 'ssl']],
                 ['key' => 'username', 'type' => 'text'],
                 ['key' => 'from_address', 'type' => 'email'],
+                ['key' => 'from_name', 'type' => 'text'],
             ], 40],
             ['kavenegar', 'sms', 'کاوه‌نگار', 'kavenegar', 1, [
                 ['key' => 'sender', 'type' => 'text'],

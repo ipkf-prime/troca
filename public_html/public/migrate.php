@@ -129,6 +129,7 @@ try {
         new \IPKF\Database\Migrations\ExtendNotificationProviderManagement(),
         new \IPKF\Database\Migrations\EnableNotificationProviderManagementCrud(),
         new \IPKF\Database\Migrations\ExpandNotificationProviderCatalog(),
+        new \IPKF\Database\Migrations\ExtendEmailProviderSenderIdentity(),
     ]);
 
     $manager->migrate();

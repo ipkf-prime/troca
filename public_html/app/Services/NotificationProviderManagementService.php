@@ -15,6 +15,7 @@ class NotificationProviderManagementService extends BaseService
         'encryption' => 'رمزنگاری ارتباط',
         'username' => 'نام کاربری',
         'from_address' => 'نشانی فرستنده',
+        'from_name' => 'نام نمایشی فرستنده',
         'sender' => 'خط یا شناسه فرستنده',
         'balance_endpoint' => 'نشانی استعلام اعتبار',
         'endpoint' => 'نشانی API',

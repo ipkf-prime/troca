@@ -48,6 +48,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\ExtendNotificationProviderManagement::class,
                     \IPKF\Database\Migrations\EnableNotificationProviderManagementCrud::class,
                     \IPKF\Database\Migrations\ExpandNotificationProviderCatalog::class,
+                    \IPKF\Database\Migrations\ExtendEmailProviderSenderIdentity::class,
                 ],
             ],
             'automation' => [
