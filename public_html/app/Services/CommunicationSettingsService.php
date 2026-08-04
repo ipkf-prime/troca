@@ -36,7 +36,8 @@ class CommunicationSettingsService extends BaseService
     public function __construct(
         private ?CommunicationSettingsRepository $repository = null,
         private ?AuthorizationService $authorization = null,
-        private ?NotificationProviderManagementService $providers = null
+        private ?NotificationProviderManagementService $providers = null,
+        private ?NotificationProviderDefaultService $providerDefaults = null
     ) {
         $this->repository ??=
             new CommunicationSettingsRepository();
@@ -44,6 +45,8 @@ class CommunicationSettingsService extends BaseService
             new AuthorizationService();
         $this->providers ??=
             new NotificationProviderManagementService();
+        $this->providerDefaults ??=
+            new NotificationProviderDefaultService();
     }
 
     public function allowedSections(int $userId): array
@@ -88,6 +91,7 @@ class CommunicationSettingsService extends BaseService
         $reportsAllowed = isset($sections['reports']);
 
         $providerManagement = [];
+        $providerDefaultManagement = [];
 
         if (
             $section === 'providers'
@@ -97,6 +101,14 @@ class CommunicationSettingsService extends BaseService
                 $userId,
                 $editProviderReference
             );
+        }
+
+        if (
+            $section === 'defaults'
+            && isset($sections['defaults'])
+        ) {
+            $providerDefaultManagement =
+                $this->providerDefaults->page($userId);
         }
 
         return [
@@ -110,6 +122,8 @@ class CommunicationSettingsService extends BaseService
                 ? $this->repository->providerInstances()
                 : [],
             'provider_management' => $providerManagement,
+            'provider_default_management' =>
+                $providerDefaultManagement,
             'provider_defaults' => $providersAllowed
                 ? $this->repository->providerDefaults()
                 : [],
@@ -135,6 +149,22 @@ class CommunicationSettingsService extends BaseService
                 : [],
         ];
     }
+    public function saveProviderDefaults(
+        int $userId,
+        mixed $defaults
+    ): void {
+        if (!isset($this->allowedSections($userId)['defaults'])) {
+            throw new \RuntimeException(
+                'provider_management_forbidden'
+            );
+        }
+
+        $this->providerDefaults->save(
+            $userId,
+            $defaults
+        );
+    }
+
 
     public function savePreferences(
         int $userId,

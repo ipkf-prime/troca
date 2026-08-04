@@ -9,6 +9,9 @@ $instances = $page['provider_instances'] ?? [];
 $providerManagement = is_array(
     $page['provider_management'] ?? null
 ) ? $page['provider_management'] : [];
+$providerDefaultManagement = is_array(
+    $page['provider_default_management'] ?? null
+) ? $page['provider_default_management'] : [];
 $providerDefinitions = is_array(
     $providerManagement['definitions'] ?? null
 ) ? $providerManagement['definitions'] : [];
@@ -39,6 +42,13 @@ $statusMessages = [
     'provider_instance_not_found' => ['error', 'حساب سرویس‌دهنده پیدا نشد.'],
     'provider_save_failed' => ['error', 'ذخیره حساب سرویس‌دهنده انجام نشد.'],
     'provider_status_failed' => ['error', 'تغییر وضعیت حساب انجام نشد.'],
+    'provider_defaults_saved' => ['success', 'پیش‌فرض سرویس‌دهنده‌ها با موفقیت ذخیره شد.'],
+    'provider_defaults_input_invalid' => ['error', 'اطلاعات پیش‌فرض سرویس‌دهنده‌ها معتبر نیست.'],
+    'provider_defaults_primary_required' => ['error', 'برای انتخاب سرویس جایگزین، ابتدا سرویس اصلی را انتخاب کنید.'],
+    'provider_defaults_duplicate' => ['error', 'سرویس اصلی و جایگزین نمی‌توانند یکسان باشند.'],
+    'provider_defaults_instance_invalid' => ['error', 'حساب انتخاب‌شده فعال یا معتبر نیست.'],
+    'provider_defaults_channel_mismatch' => ['error', 'حساب انتخاب‌شده با کانال مربوط سازگار نیست.'],
+    'provider_defaults_save_failed' => ['error', 'ذخیره پیش‌فرض سرویس‌دهنده‌ها انجام نشد.'],
     'provider_test_sent' => ['success', 'ایمیل آزمایشی با موفقیت به سرور ایمیل تحویل شد.'],
     'provider_test_email_sent' => ['success', 'ایمیل آزمایشی با موفقیت به سرور ایمیل تحویل شد.'],
     'provider_test_sms_sent' => ['success', 'پیامک آزمایشی با موفقیت به کاوه‌نگار تحویل شد.'],
@@ -1687,36 +1697,250 @@ require BASE_PATH
             </script>
 
         <?php elseif ($section === 'defaults'): ?>
-            <?php if ($defaults === []): ?>
-                <p class="admin-empty-state">
-                    هنوز سرویس پیش‌فرضی ثبت نشده است.
-                </p>
-            <?php else: ?>
-                <div class="communication-table-wrap">
-                    <table class="communication-table">
-                        <thead>
-                            <tr>
-                                <th>کانال</th>
-                                <th>سرویس‌دهنده</th>
-                                <th>اولویت</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($defaults as $item): ?>
-                            <tr>
-                                <td><?= admin_h($item['channel_code']) ?></td>
-                                <td><?= admin_h($item['provider_title']) ?></td>
-                                <td><?= admin_h(
-                                    \App\Support\AdminFormat::digits(
-                                        $item['priority']
-                                    )
-                                ) ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
+            <?php
+            $defaultChannels = is_array(
+                $providerDefaultManagement['channels'] ?? null
+            ) ? $providerDefaultManagement['channels'] : [];
+            $defaultCsrf = (new \IPKF\Security\Csrf())->token();
+            ?>
+
+            <form
+                class="provider-default-form"
+                method="post"
+                action="/admin/communications/settings/defaults/save"
+                data-provider-default-form
+            >
+                <input
+                    type="hidden"
+                    name="_token"
+                    value="<?= admin_h($defaultCsrf) ?>"
+                >
+
+                <section class="provider-default-intro">
+                    <div>
+                        <h3>مسیر پیش‌فرض ارسال</h3>
+                        <p class="communication-muted">
+                            برای هر کانال، حساب اصلی و حساب جایگزین را
+                            تعیین کنید. درگاه ارسال از همین ترتیب استفاده
+                            خواهد کرد.
+                        </p>
+                    </div>
+                    <div class="provider-default-scope">
+                        <span>دامنه</span>
+                        <strong>کل سامانه</strong>
+                        <small>هدف عمومی</small>
+                    </div>
+                </section>
+
+                <div class="provider-default-grid">
+                    <?php foreach ($defaultChannels as $channel): ?>
+                        <?php
+                        $code = (string) ($channel['code'] ?? '');
+                        $title = (string) (
+                            $channel['title'] ?? $code
+                        );
+                        $instances = is_array(
+                            $channel['instances'] ?? null
+                        ) ? $channel['instances'] : [];
+                        $selection = is_array(
+                            $channel['selection'] ?? null
+                        ) ? $channel['selection'] : [];
+                        $resolved = is_array(
+                            $channel['resolved'] ?? null
+                        ) ? $channel['resolved'] : [];
+                        $primary = (string) (
+                            $selection['primary_reference'] ?? ''
+                        );
+                        $fallback = (string) (
+                            $selection['fallback_reference'] ?? ''
+                        );
+                        ?>
+
+                        <section
+                            class="provider-default-card"
+                            data-provider-default-channel
+                        >
+                            <header class="provider-default-card__head">
+                                <div>
+                                    <h3><?= admin_h($title) ?></h3>
+                                    <p class="communication-muted">
+                                        <?= admin_h(
+                                            \App\Support\AdminFormat::digits(
+                                                count($instances)
+                                            )
+                                        ) ?>
+                                        حساب فعال
+                                    </p>
+                                </div>
+                                <span><?= admin_h($code) ?></span>
+                            </header>
+
+                            <?php if ($instances === []): ?>
+                                <div class="provider-default-empty">
+                                    حساب فعالی برای این کانال وجود ندارد.
+                                </div>
+                            <?php else: ?>
+                                <label>
+                                    <span>حساب اصلی</span>
+                                    <select
+                                        name="defaults[<?= admin_h(
+                                            $code
+                                        ) ?>][primary_reference]"
+                                        data-provider-default-primary
+                                    >
+                                        <option value="">
+                                            انتخاب نشده
+                                        </option>
+                                        <?php foreach (
+                                            $instances as $instance
+                                        ): ?>
+                                            <?php
+                                            $reference = (string) (
+                                                $instance[
+                                                    'public_reference'
+                                                ] ?? ''
+                                            );
+                                            ?>
+                                            <option
+                                                value="<?= admin_h(
+                                                    $reference
+                                                ) ?>"
+                                                <?= $reference === $primary
+                                                    ? 'selected'
+                                                    : '' ?>
+                                            >
+                                                <?= admin_h(
+                                                    $instance['title']
+                                                ) ?>
+                                                —
+                                                <?= admin_h(
+                                                    $instance[
+                                                        'provider_type_title'
+                                                    ]
+                                                ) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </label>
+
+                                <label>
+                                    <span>حساب جایگزین</span>
+                                    <select
+                                        name="defaults[<?= admin_h(
+                                            $code
+                                        ) ?>][fallback_reference]"
+                                        data-provider-default-fallback
+                                    >
+                                        <option value="">
+                                            بدون جایگزین
+                                        </option>
+                                        <?php foreach (
+                                            $instances as $instance
+                                        ): ?>
+                                            <?php
+                                            $reference = (string) (
+                                                $instance[
+                                                    'public_reference'
+                                                ] ?? ''
+                                            );
+                                            ?>
+                                            <option
+                                                value="<?= admin_h(
+                                                    $reference
+                                                ) ?>"
+                                                <?= $reference === $fallback
+                                                    ? 'selected'
+                                                    : '' ?>
+                                            >
+                                                <?= admin_h(
+                                                    $instance['title']
+                                                ) ?>
+                                                —
+                                                <?= admin_h(
+                                                    $instance[
+                                                        'provider_type_title'
+                                                    ]
+                                                ) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </label>
+                            <?php endif; ?>
+
+                            <div class="provider-default-preview">
+                                <span>ترتیب فعلی Resolver</span>
+                                <?php if ($resolved === []): ?>
+                                    <strong>مسیر تعیین نشده</strong>
+                                <?php else: ?>
+                                    <ol>
+                                        <?php foreach (
+                                            $resolved as $candidate
+                                        ): ?>
+                                            <li>
+                                                <strong><?= admin_h(
+                                                    $candidate['title']
+                                                ) ?></strong>
+                                                <small><?= admin_h(
+                                                    $candidate[
+                                                        'provider_type_title'
+                                                    ]
+                                                ) ?></small>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    </ol>
+                                <?php endif; ?>
+                            </div>
+                        </section>
+                    <?php endforeach; ?>
                 </div>
-            <?php endif; ?>
+
+                <div class="provider-default-actions">
+                    <button class="admin-button" type="submit">
+                        ذخیره پیش‌فرض‌ها
+                    </button>
+                    <span class="communication-muted">
+                        تغییرات در ارسال‌های بعدی اعمال می‌شود.
+                    </span>
+                </div>
+            </form>
+
+            <script>
+            (() => {
+                document.querySelectorAll(
+                    '[data-provider-default-channel]'
+                ).forEach((card) => {
+                    const primary = card.querySelector(
+                        '[data-provider-default-primary]'
+                    );
+                    const fallback = card.querySelector(
+                        '[data-provider-default-fallback]'
+                    );
+
+                    const sync = () => {
+                        if (!primary || !fallback) {
+                            return;
+                        }
+
+                        Array.from(fallback.options).forEach(
+                            (option) => {
+                                option.disabled =
+                                    option.value !== ''
+                                    && option.value === primary.value;
+                            }
+                        );
+
+                        if (fallback.value === primary.value) {
+                            fallback.value = '';
+                        }
+
+                        fallback.disabled = primary.value === '';
+                    };
+
+                    primary?.addEventListener('change', sync);
+                    sync();
+                });
+            })();
+            </script>
 
         <?php elseif ($section === 'routing'): ?>
             <div class="communication-table-wrap">

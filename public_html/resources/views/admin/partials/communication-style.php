@@ -641,6 +641,150 @@ body.provider-test-dialog-open {
         padding: .8rem;
     }
 }
+
+/* notification-provider-default-management-v061 */
+.provider-default-form {
+    display: grid;
+    gap: .85rem;
+}
+.provider-default-intro {
+    align-items: center;
+    background: var(--admin-surface-muted);
+    border: 1px solid var(--admin-border);
+    border-radius: 14px;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    padding: .85rem 1rem;
+}
+.provider-default-intro h3 { margin: 0 0 .25rem; }
+.provider-default-scope {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    display: grid;
+    gap: .1rem;
+    min-width: 130px;
+    padding: .55rem .75rem;
+    text-align: center;
+}
+.provider-default-scope span,
+.provider-default-scope small {
+    color: var(--admin-text-muted);
+    font-size: .72rem;
+}
+.provider-default-grid {
+    display: grid;
+    gap: .8rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.provider-default-card {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 14px;
+    display: grid;
+    gap: .7rem;
+    min-width: 0;
+    padding: .85rem;
+}
+.provider-default-card__head {
+    align-items: flex-start;
+    display: flex;
+    gap: .6rem;
+    justify-content: space-between;
+}
+.provider-default-card__head h3 { margin: 0; }
+.provider-default-card__head > span {
+    background: var(--admin-primary-soft);
+    border-radius: 999px;
+    direction: ltr;
+    font-size: .7rem;
+    font-weight: 800;
+    padding: .18rem .48rem;
+}
+.provider-default-card label {
+    display: grid;
+    gap: .28rem;
+}
+.provider-default-card label > span {
+    color: var(--admin-text-muted);
+    font-size: .8rem;
+    font-weight: 700;
+}
+.provider-default-card select {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 9px;
+    color: inherit;
+    font: inherit;
+    min-height: 40px;
+    min-width: 0;
+    padding: .45rem .6rem;
+    width: 100%;
+}
+.provider-default-card select:focus {
+    border-color: var(--admin-primary);
+    box-shadow: 0 0 0 3px var(--admin-primary-soft);
+    outline: 0;
+}
+.provider-default-empty {
+    background: var(--admin-surface-muted);
+    border-radius: 10px;
+    color: var(--admin-text-muted);
+    font-size: .82rem;
+    padding: .7rem;
+}
+.provider-default-preview {
+    border-top: 1px dashed var(--admin-border);
+    display: grid;
+    gap: .35rem;
+    padding-top: .65rem;
+}
+.provider-default-preview > span {
+    color: var(--admin-text-muted);
+    font-size: .75rem;
+    font-weight: 700;
+}
+.provider-default-preview > strong {
+    color: var(--admin-text-muted);
+    font-size: .8rem;
+}
+.provider-default-preview ol {
+    display: grid;
+    gap: .3rem;
+    margin: 0;
+    padding-inline-start: 1.3rem;
+}
+.provider-default-preview li {
+    font-size: .8rem;
+}
+.provider-default-preview li strong,
+.provider-default-preview li small {
+    display: block;
+}
+.provider-default-preview li small {
+    color: var(--admin-text-muted);
+}
+.provider-default-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .65rem;
+}
+@media (max-width: 1100px) {
+    .provider-default-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+@media (max-width: 720px) {
+    .provider-default-intro {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    .provider-default-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
 </style>
 
 <style>

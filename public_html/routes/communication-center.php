@@ -567,6 +567,95 @@ $router->post(
 );
 
 $router->post(
+    '/admin/communications/settings/defaults/save',
+    function (
+        $request,
+        $response
+    ) use ($adminGuard, $communicationAccess) {
+        $context = $adminGuard(
+            $response,
+            '/admin/communications/settings'
+        );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $path =
+            '/admin/communications/settings/defaults/save';
+
+        if (!$communicationAccess(
+            $context,
+            'POST',
+            $path
+        )) {
+            return $response->redirect(
+                '/admin/dashboard?error=forbidden'
+            );
+        }
+
+        $token = (string) $request->input(
+            '_token',
+            ''
+        );
+
+        if (!(new \IPKF\Security\Csrf())->check($token)) {
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=defaults&status=invalid_csrf'
+            );
+        }
+
+        try {
+            (
+                new \App\Services\CommunicationSettingsService()
+            )->saveProviderDefaults(
+                (int) $context['user_id'],
+                $request->input('defaults', [])
+            );
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=defaults'
+                . '&status=provider_defaults_saved'
+            );
+        } catch (
+            \InvalidArgumentException
+            | \RuntimeException $exception
+        ) {
+            $status = trim($exception->getMessage());
+
+            if (
+                $status === ''
+                || (
+                    !str_starts_with(
+                        $status,
+                        'provider_defaults_'
+                    )
+                    && $status !==
+                        'provider_management_forbidden'
+                )
+            ) {
+                $status =
+                    'provider_defaults_save_failed';
+            }
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=defaults&status='
+                . rawurlencode($status)
+            );
+        } catch (\Throwable) {
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=defaults'
+                . '&status=provider_defaults_save_failed'
+            );
+        }
+    }
+);
+
+$router->post(
     '/admin/communications/settings/providers/save',
     function (
         $request,

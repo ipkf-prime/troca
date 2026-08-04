@@ -132,6 +132,7 @@ try {
         new \IPKF\Database\Migrations\ExtendEmailProviderSenderIdentity(),
         new \IPKF\Database\Migrations\EnableNotificationProviderTestSend(),
         new \IPKF\Database\Migrations\EnableNotificationProviderExtendedTestSend(),
+        new \IPKF\Database\Migrations\EnableNotificationProviderDefaultManagement(),
     ]);
 
     $manager->migrate();
