@@ -503,7 +503,29 @@ $router->get(
         $page = $settings->page(
             (int) $context['user_id'],
             $section,
-            trim((string) $request->input('edit', ''))
+            trim((string) $request->input('edit', '')),
+            [
+                'q' => $request->input('q', ''),
+                'channel' =>
+                    $request->input('channel', ''),
+                'status' =>
+                    $request->input('report_status', ''),
+                'provider' =>
+                    $request->input('provider', ''),
+                'from' =>
+                    $request->input('from', ''),
+                'to' =>
+                    $request->input('to', ''),
+                'sort' =>
+                    $request->input(
+                        'sort',
+                        'created_desc'
+                    ),
+                'page' =>
+                    $request->input('page', 1),
+                'per_page' =>
+                    $request->input('per_page', 20),
+            ]
         );
 
         if (($page['allowed'] ?? false) !== true) {

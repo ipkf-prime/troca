@@ -22,7 +22,12 @@ $defaults = $page['provider_defaults'] ?? [];
 $rules = $page['routing_rules'] ?? [];
 $channels = $page['channels'] ?? [];
 $preferences = $page['preferences'] ?? [];
-$deliveries = $page['deliveries'] ?? [];
+$deliveryReport = is_array(
+    $page['delivery_report'] ?? null
+) ? $page['delivery_report'] : [];
+$deliveries = is_array(
+    $deliveryReport['items'] ?? null
+) ? $deliveryReport['items'] : [];
 $messageSettings = $page['message_settings'] ?? [];
 $status = (string) ($status ?? '');
 $statusMessages = [
@@ -2089,99 +2094,838 @@ require BASE_PATH
             </script>
 
         <?php elseif ($section === 'reports'): ?>
-            <?php if ($deliveries === []): ?>
-                <p class="admin-empty-state">
-                    هنوز گزارشی برای ارسال یا تحویل ثبت نشده است.
-                </p>
-            <?php else: ?>
-                <div class="communication-report-tools">
-                    <input type="search" placeholder="جست‌وجو در گزارش…" data-delivery-filter>
-                    <select data-delivery-status><option value="">همه وضعیت‌ها</option><option value="delivered">تحویل‌شده</option><option value="sent">ارسال‌شده</option><option value="failed">ناموفق</option><option value="pending">در انتظار</option></select>
-                    <select data-delivery-sort><option value="date-desc">جدیدترین تحویل</option><option value="date-asc">قدیمی‌ترین تحویل</option><option value="title-asc">عنوان: صعودی</option><option value="title-desc">عنوان: نزولی</option><option value="status-asc">وضعیت: صعودی</option><option value="status-desc">وضعیت: نزولی</option></select>
-                    <button class="admin-button" type="button" data-delivery-apply>اعمال</button>
-                    <button class="admin-button admin-button--soft" type="button" data-delivery-clear>پاک‌کردن</button>
-                </div>
-                <div class="communication-table-wrap">
-                    <table class="communication-table" data-delivery-table>
-                        <thead>
-                            <tr>
-                                <th>عنوان</th>
-                                <th>کاربر</th>
-                                <th>کانال</th>
-                                <th>وضعیت</th>
-                                <th>تلاش</th>
-                                <th>تحویل</th>
-                                <th>خطا</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($deliveries as $item): ?>
-                            <?php
-                            $channelCode = (string) ($item['channel_code'] ?? '');
-                            $statusCode = (string) ($item['status_code'] ?? '');
-                            $userValue = $item['user_title'] ?? $item['user_name'] ?? $item['user_id'] ?? $item['user_reference'] ?? '';
-                            $deliveryDate = $item['delivered_at'] ?? $item['sent_at'] ?? '';
-                            $displayDeliveryDate = \App\Support\AdminFormat::jalaliDateTime($deliveryDate) ?: '—';
-                            $searchValue = implode(' ', [
-                                (string) ($item['title'] ?? ''),
-                                (string) $userValue,
-                                \App\Support\AdminFormat::digits((string) $userValue),
-                                $channelCode,
-                                $channelLabels[$channelCode] ?? $channelCode,
-                                $statusCode,
-                                $deliveryStatusLabels[$statusCode] ?? $statusCode,
-                                $displayDeliveryDate,
-                                (string) ($item['last_error'] ?? ''),
-                            ]);
-                            ?>
-                            <tr data-title="<?= admin_h(mb_strtolower((string) ($item['title'] ?? ''), 'UTF-8')) ?>" data-status="<?= admin_h(mb_strtolower($statusCode, 'UTF-8')) ?>" data-search="<?= admin_h(mb_strtolower($searchValue, 'UTF-8')) ?>" data-date="<?= admin_h((string) $deliveryDate) ?>">
-                                <td><?= admin_h($item['title']) ?></td>
-                                <td><?= admin_h(
-                                    \App\Support\AdminFormat::digits($userValue)
-                                ) ?></td>
-                                <td><?= admin_h($channelLabels[$channelCode] ?? $channelCode) ?></td>
-                                <td><?= admin_h($deliveryStatusLabels[$statusCode] ?? $statusCode) ?></td>
-                                <td><?= admin_h(
-                                    \App\Support\AdminFormat::digits(
-                                        $item['attempt_count']
+            <?php
+            $reportFilters = is_array(
+                $deliveryReport['filters'] ?? null
+            ) ? $deliveryReport['filters'] : [];
+            $reportSummary = is_array(
+                $deliveryReport['summary'] ?? null
+            ) ? $deliveryReport['summary'] : [];
+            $reportProviders = is_array(
+                $deliveryReport['providers'] ?? null
+            ) ? $deliveryReport['providers'] : [];
+            $reportPage = max(1, (int) ($deliveryReport['page'] ?? 1));
+            $reportPages = max(1, (int) ($deliveryReport['pages'] ?? 1));
+            $reportTotal = max(0, (int) ($deliveryReport['total'] ?? 0));
+            $reportPerPage = (int) ($deliveryReport['per_page'] ?? 20);
+
+            $reportQuery = static function (
+                array $overrides = []
+            ) use ($reportFilters): string {
+                $values = [
+                    'section' => 'reports',
+                    'q' => (string) ($reportFilters['q'] ?? ''),
+                    'channel' => (string) ($reportFilters['channel'] ?? ''),
+                    'report_status' => (string) ($reportFilters['status'] ?? ''),
+                    'provider' => (string) ($reportFilters['provider'] ?? ''),
+                    'from' => (string) ($reportFilters['from_input'] ?? ''),
+                    'to' => (string) ($reportFilters['to_input'] ?? ''),
+                    'sort' => (string) (
+                        $reportFilters['sort'] ?? 'created_desc'
+                    ),
+                    'per_page' => (int) (
+                        $reportFilters['per_page'] ?? 20
+                    ),
+                    'page' => (int) ($reportFilters['page'] ?? 1),
+                ];
+
+                foreach ($overrides as $key => $value) {
+                    $values[$key] = $value;
+                }
+
+                $values = array_filter(
+                    $values,
+                    static fn (mixed $value): bool =>
+                        $value !== '' && $value !== null
+                );
+
+                return '/admin/communications/settings?'
+                    . http_build_query(
+                        $values,
+                        '',
+                        '&',
+                        PHP_QUERY_RFC3986
+                    );
+            };
+
+            $reportDate = static function (mixed $value): string {
+                $date = \App\Support\AdminFormat::jalaliDateTime($value);
+
+                return $date !== '' ? $date : '—';
+            };
+
+            $reportValue = static function (mixed $value): string {
+                if (is_bool($value)) {
+                    return $value ? 'بله' : 'خیر';
+                }
+
+                if ($value === null || $value === '') {
+                    return '—';
+                }
+
+                if (is_array($value)) {
+                    return json_encode(
+                        $value,
+                        JSON_UNESCAPED_UNICODE
+                        | JSON_UNESCAPED_SLASHES
+                    ) ?: '—';
+                }
+
+                return (string) $value;
+            };
+            ?>
+
+            <section
+                class="notification-delivery-report"
+                data-notification-delivery-report
+            >
+                <!-- notification-delivery-report-v061 -->
+                <header class="notification-report-intro">
+                    <div>
+                        <h3>گزارش یکپارچه ارسال‌ها</h3>
+                        <p class="communication-muted">
+                            وضعیت ارسال، سرویس‌دهنده، مقصد، پاسخ فنی،
+                            تلاش‌های مجدد و مسیر جایگزین هر اعلان را
+                            در یک گزارش مشاهده کنید.
+                        </p>
+                    </div>
+                    <span class="notification-report-intro__count">
+                        <?= admin_h(
+                            \App\Support\AdminFormat::digits(
+                                $reportTotal
+                            )
+                        ) ?>
+                        رکورد
+                    </span>
+                </header>
+
+                <div class="notification-report-summary">
+                    <?php foreach ([
+                        ['title' => 'کل نتایج', 'key' => 'total'],
+                        ['title' => 'موفق', 'key' => 'success'],
+                        ['title' => 'ناموفق', 'key' => 'failed'],
+                        ['title' => 'در انتظار', 'key' => 'pending'],
+                        ['title' => 'استفاده از جایگزین', 'key' => 'fallback'],
+                    ] as $summaryCard): ?>
+                        <article class="notification-report-summary__card">
+                            <span><?= admin_h(
+                                $summaryCard['title']
+                            ) ?></span>
+                            <strong><?= admin_h(
+                                \App\Support\AdminFormat::digits(
+                                    (int) (
+                                        $reportSummary[
+                                            $summaryCard['key']
+                                        ] ?? 0
                                     )
-                                ) ?></td>
-                                <td dir="ltr"><?= admin_h($displayDeliveryDate) ?></td>
-                                <td><?= admin_h($item['last_error'] ?? '') ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                                )
+                            ) ?></strong>
+                        </article>
+                    <?php endforeach; ?>
                 </div>
-                <p class="communication-muted" data-delivery-empty hidden>گزارشی مطابق فیلتر پیدا نشد.</p>
+
+                <form
+                    class="notification-report-filters"
+                    method="get"
+                    action="/admin/communications/settings"
+                >
+                    <input
+                        type="hidden"
+                        name="section"
+                        value="reports"
+                    >
+
+                    <label class="notification-report-filters__search">
+                        <span>جست‌وجو</span>
+                        <input
+                            type="search"
+                            name="q"
+                            value="<?= admin_h(
+                                $reportFilters['q'] ?? ''
+                            ) ?>"
+                            placeholder="عنوان، کاربر، مقصد، شناسه پیام یا سرویس‌دهنده"
+                        >
+                    </label>
+
+                    <label>
+                        <span>کانال</span>
+                        <select name="channel">
+                            <option value="">همه کانال‌ها</option>
+                            <?php foreach ([
+                                'in_app',
+                                'email',
+                                'sms',
+                                'messenger',
+                            ] as $channelCode): ?>
+                                <option
+                                    value="<?= admin_h($channelCode) ?>"
+                                    <?= (
+                                        $reportFilters['channel']
+                                        ?? ''
+                                    ) === $channelCode
+                                        ? 'selected'
+                                        : '' ?>
+                                >
+                                    <?= admin_h(
+                                        $channelLabels[$channelCode]
+                                        ?? $channelCode
+                                    ) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+
+                    <label>
+                        <span>وضعیت</span>
+                        <select name="report_status">
+                            <option value="">همه وضعیت‌ها</option>
+                            <?php foreach (
+                                $deliveryStatusLabels
+                                as $statusCode => $statusTitle
+                            ): ?>
+                                <option
+                                    value="<?= admin_h($statusCode) ?>"
+                                    <?= (
+                                        $reportFilters['status']
+                                        ?? ''
+                                    ) === $statusCode
+                                        ? 'selected'
+                                        : '' ?>
+                                >
+                                    <?= admin_h($statusTitle) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+
+                    <label>
+                        <span>سرویس‌دهنده</span>
+                        <select name="provider">
+                            <option value="">
+                                همه سرویس‌دهنده‌ها
+                            </option>
+                            <?php foreach (
+                                $reportProviders as $provider
+                            ): ?>
+                                <?php
+                                $providerCode = (string) (
+                                    $provider['code'] ?? ''
+                                );
+                                ?>
+                                <option
+                                    value="<?= admin_h($providerCode) ?>"
+                                    <?= (
+                                        $reportFilters['provider']
+                                        ?? ''
+                                    ) === $providerCode
+                                        ? 'selected'
+                                        : '' ?>
+                                >
+                                    <?= admin_h(
+                                        $provider['title']
+                                        ?? $providerCode
+                                    ) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+
+                    <label>
+                        <span>از تاریخ</span>
+                        <input
+                            name="from"
+                            inputmode="numeric"
+                            value="<?= admin_h(
+                                $reportFilters['from_input']
+                                ?? ''
+                            ) ?>"
+                            placeholder="۱۴۰۵/۰۵/۱۴"
+                        >
+                    </label>
+
+                    <label>
+                        <span>تا تاریخ</span>
+                        <input
+                            name="to"
+                            inputmode="numeric"
+                            value="<?= admin_h(
+                                $reportFilters['to_input']
+                                ?? ''
+                            ) ?>"
+                            placeholder="۱۴۰۵/۰۵/۱۴"
+                        >
+                    </label>
+
+                    <label>
+                        <span>مرتب‌سازی</span>
+                        <select name="sort">
+                            <?php foreach ([
+                                'created_desc' => 'جدیدترین',
+                                'created_asc' => 'قدیمی‌ترین',
+                                'status_asc' => 'وضعیت صعودی',
+                                'status_desc' => 'وضعیت نزولی',
+                                'channel_asc' => 'کانال',
+                                'attempts_desc' => 'بیشترین تلاش',
+                                'attempts_asc' => 'کمترین تلاش',
+                            ] as $sortCode => $sortTitle): ?>
+                                <option
+                                    value="<?= admin_h($sortCode) ?>"
+                                    <?= (
+                                        $reportFilters['sort']
+                                        ?? 'created_desc'
+                                    ) === $sortCode
+                                        ? 'selected'
+                                        : '' ?>
+                                >
+                                    <?= admin_h($sortTitle) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+
+                    <label>
+                        <span>تعداد در صفحه</span>
+                        <select name="per_page">
+                            <?php foreach ([20, 50, 100] as $size): ?>
+                                <option
+                                    value="<?= admin_h($size) ?>"
+                                    <?= $reportPerPage === $size
+                                        ? 'selected'
+                                        : '' ?>
+                                >
+                                    <?= admin_h(
+                                        \App\Support\AdminFormat::digits(
+                                            $size
+                                        )
+                                    ) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+
+                    <div class="notification-report-filters__actions">
+                        <button
+                            class="admin-button"
+                            type="submit"
+                        >
+                            اعمال فیلتر
+                        </button>
+                        <a
+                            class="admin-button admin-button--soft"
+                            href="/admin/communications/settings?section=reports"
+                        >
+                            پاک‌کردن
+                        </a>
+                    </div>
+                </form>
+
+                <?php if ($deliveries === []): ?>
+                    <p class="admin-empty-state">
+                        گزارشی مطابق فیلترهای انتخاب‌شده پیدا نشد.
+                    </p>
+                <?php else: ?>
+                    <div class="communication-table-wrap">
+                        <table class="communication-table notification-report-table">
+                            <thead>
+                                <tr>
+                                    <th>عنوان و شناسه</th>
+                                    <th>مقصد / کاربر</th>
+                                    <th>کانال</th>
+                                    <th>سرویس‌دهنده</th>
+                                    <th>وضعیت</th>
+                                    <th>تلاش</th>
+                                    <th>آخرین فعالیت</th>
+                                    <th>جزئیات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <?php foreach ($deliveries as $item): ?>
+                                <?php
+                                $reference = (string) (
+                                    $item['public_reference'] ?? ''
+                                );
+                                $channelCode = (string) (
+                                    $item['channel_code'] ?? ''
+                                );
+                                $statusCode = (string) (
+                                    $item['status_code'] ?? ''
+                                );
+                                $providerTitle = trim(
+                                    (string) (
+                                        $item['provider_title'] ?? ''
+                                    )
+                                );
+                                $providerTypeTitle = trim(
+                                    (string) (
+                                        $item['provider_type_title']
+                                        ?? $item[
+                                            'resolved_provider_type_code'
+                                        ]
+                                        ?? ''
+                                    )
+                                );
+                                $destination = trim(
+                                    (string) (
+                                        $item['destination_snapshot']
+                                        ?? ''
+                                    )
+                                );
+                                $userTitle = trim(
+                                    (string) (
+                                        $item['user_title'] ?? ''
+                                    )
+                                );
+                                $activityDate =
+                                    $item['delivered_at']
+                                    ?? $item['sent_at']
+                                    ?? $item['failed_at']
+                                    ?? $item['last_attempt_at']
+                                    ?? $item['created_at']
+                                    ?? '';
+                                $attempts = is_array(
+                                    $item['attempts'] ?? null
+                                ) ? $item['attempts'] : [];
+                                ?>
+                                <tr>
+                                    <td>
+                                        <strong><?= admin_h(
+                                            $item['title']
+                                            ?? 'بدون عنوان'
+                                        ) ?></strong>
+                                        <small
+                                            class="notification-report-reference"
+                                            dir="ltr"
+                                        >
+                                            <?= admin_h($reference) ?>
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <strong
+                                            class="notification-report-destination"
+                                            dir="ltr"
+                                        >
+                                            <?= admin_h(
+                                                $destination !== ''
+                                                    ? $destination
+                                                    : '—'
+                                            ) ?>
+                                        </strong>
+                                        <?php if (
+                                            $userTitle !== ''
+                                            && $userTitle !== $destination
+                                        ): ?>
+                                            <small><?= admin_h(
+                                                \App\Support\AdminFormat
+                                                    ::digits($userTitle)
+                                            ) ?></small>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?= admin_h(
+                                        $channelLabels[$channelCode]
+                                        ?? $channelCode
+                                    ) ?></td>
+                                    <td>
+                                        <strong><?= admin_h(
+                                            $providerTitle !== ''
+                                                ? $providerTitle
+                                                : 'انتخاب خودکار'
+                                        ) ?></strong>
+                                        <small><?= admin_h(
+                                            $providerTypeTitle !== ''
+                                                ? $providerTypeTitle
+                                                : '—'
+                                        ) ?></small>
+                                    </td>
+                                    <td>
+                                        <span
+                                            class="notification-report-status notification-report-status--<?= admin_h(
+                                                $statusCode
+                                            ) ?>"
+                                        >
+                                            <?= admin_h(
+                                                $deliveryStatusLabels[
+                                                    $statusCode
+                                                ] ?? $statusCode
+                                            ) ?>
+                                        </span>
+                                        <?php if (
+                                            !empty(
+                                                $item['fallback_used']
+                                            )
+                                        ): ?>
+                                            <small
+                                                class="notification-report-fallback"
+                                            >
+                                                مسیر جایگزین
+                                            </small>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?= admin_h(
+                                        \App\Support\AdminFormat::digits(
+                                            (int) (
+                                                $item['attempt_count']
+                                                ?? 0
+                                            )
+                                        )
+                                    ) ?></td>
+                                    <td><?= admin_h(
+                                        $reportDate($activityDate)
+                                    ) ?></td>
+                                    <td>
+                                        <button
+                                            class="admin-button admin-button--soft admin-button--compact"
+                                            type="button"
+                                            data-notification-report-toggle="<?= admin_h(
+                                                $reference
+                                            ) ?>"
+                                            aria-expanded="false"
+                                        >
+                                            مشاهده
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr
+                                    class="notification-report-detail-row"
+                                    data-notification-report-detail="<?= admin_h(
+                                        $reference
+                                    ) ?>"
+                                    hidden
+                                >
+                                    <td colspan="8">
+                                        <section class="notification-report-detail">
+                                            <div class="notification-report-detail__grid">
+                                                <?php foreach ([
+                                                    'شناسه اعلان' => $item[
+                                                        'notification_reference'
+                                                    ] ?? '',
+                                                    'شناسه درخواست' => $item[
+                                                        'request_reference'
+                                                    ] ?? '',
+                                                    'شناسه پیام سرویس‌دهنده' => $item[
+                                                        'provider_message_reference'
+                                                    ] ?? '',
+                                                    'هدف ارسال' => $item[
+                                                        'purpose_code'
+                                                    ] ?? 'general',
+                                                    'پاسخ آخر' => $item[
+                                                        'last_response_code'
+                                                    ] ?? '',
+                                                    'حداکثر تلاش' => $item[
+                                                        'max_attempts'
+                                                    ] ?? 0,
+                                                    'زمان ایجاد' => $reportDate(
+                                                        $item['created_at']
+                                                        ?? ''
+                                                    ),
+                                                    'زمان ارسال' => $reportDate(
+                                                        $item['sent_at']
+                                                        ?? ''
+                                                    ),
+                                                    'زمان تحویل' => $reportDate(
+                                                        $item['delivered_at']
+                                                        ?? ''
+                                                    ),
+                                                    'زمان شکست' => $reportDate(
+                                                        $item['failed_at']
+                                                        ?? ''
+                                                    ),
+                                                ] as $label => $value): ?>
+                                                    <div>
+                                                        <span><?= admin_h(
+                                                            $label
+                                                        ) ?></span>
+                                                        <strong><?= admin_h(
+                                                            \App\Support\AdminFormat
+                                                                ::digits(
+                                                                    $reportValue(
+                                                                        $value
+                                                                    )
+                                                                )
+                                                        ) ?></strong>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+
+                                            <div class="notification-report-message">
+                                                <span>متن پیام</span>
+                                                <p><?= nl2br(admin_h(
+                                                    $item['body'] ?? ''
+                                                )) ?></p>
+                                            </div>
+
+                                            <?php if (
+                                                trim((string) (
+                                                    $item['last_error']
+                                                    ?? ''
+                                                )) !== ''
+                                            ): ?>
+                                                <div class="notification-report-error">
+                                                    <span>آخرین خطا</span>
+                                                    <code><?= admin_h(
+                                                        $item['last_error']
+                                                    ) ?></code>
+                                                </div>
+                                            <?php endif; ?>
+
+                                            <section class="notification-report-attempts">
+                                                <header>
+                                                    <h4>تلاش‌های ارسال</h4>
+                                                    <span>
+                                                        <?= admin_h(
+                                                            \App\Support\AdminFormat
+                                                                ::digits(
+                                                                    count(
+                                                                        $attempts
+                                                                    )
+                                                                )
+                                                        ) ?>
+                                                        تلاش ثبت‌شده
+                                                    </span>
+                                                </header>
+
+                                                <?php if ($attempts === []): ?>
+                                                    <p class="admin-empty-state admin-empty-state--compact">
+                                                        برای این ارسال تلاش فنی ثبت نشده است.
+                                                    </p>
+                                                <?php else: ?>
+                                                    <div class="communication-table-wrap">
+                                                        <table class="communication-table notification-report-attempt-table">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>شماره</th>
+                                                                    <th>سرویس‌دهنده</th>
+                                                                    <th>وضعیت</th>
+                                                                    <th>پاسخ</th>
+                                                                    <th>مدت</th>
+                                                                    <th>زمان</th>
+                                                                    <th>اطلاعات فنی امن</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                            <?php foreach (
+                                                                $attempts
+                                                                as $attempt
+                                                            ): ?>
+                                                                <?php
+                                                                $metadata =
+                                                                    is_array(
+                                                                        $attempt[
+                                                                            'metadata'
+                                                                        ] ?? null
+                                                                    )
+                                                                        ? $attempt[
+                                                                            'metadata'
+                                                                        ]
+                                                                        : [];
+                                                                ?>
+                                                                <tr>
+                                                                    <td><?= admin_h(
+                                                                        \App\Support\AdminFormat
+                                                                            ::digits(
+                                                                                $attempt[
+                                                                                    'attempt_number'
+                                                                                ] ?? 0
+                                                                            )
+                                                                    ) ?></td>
+                                                                    <td>
+                                                                        <strong><?= admin_h(
+                                                                            $attempt[
+                                                                                'provider_title'
+                                                                            ]
+                                                                            ?? $attempt[
+                                                                                'provider_type_title'
+                                                                            ]
+                                                                            ?? $attempt[
+                                                                                'provider_type_code'
+                                                                            ]
+                                                                            ?? '—'
+                                                                        ) ?></strong>
+                                                                        <small dir="ltr"><?= admin_h(
+                                                                            $attempt[
+                                                                                'provider_message_reference'
+                                                                            ] ?? ''
+                                                                        ) ?></small>
+                                                                    </td>
+                                                                    <td><?= admin_h(
+                                                                        $deliveryStatusLabels[
+                                                                            $attempt[
+                                                                                'status_code'
+                                                                            ] ?? ''
+                                                                        ]
+                                                                        ?? $attempt[
+                                                                            'status_code'
+                                                                        ]
+                                                                        ?? ''
+                                                                    ) ?></td>
+                                                                    <td>
+                                                                        <strong dir="ltr"><?= admin_h(
+                                                                            $attempt[
+                                                                                'provider_response_code'
+                                                                            ] ?? '—'
+                                                                        ) ?></strong>
+                                                                        <small><?= admin_h(
+                                                                            $attempt[
+                                                                                'provider_response_message'
+                                                                            ] ?? ''
+                                                                        ) ?></small>
+                                                                    </td>
+                                                                    <td>
+                                                                        <?= admin_h(
+                                                                            \App\Support\AdminFormat
+                                                                                ::digits(
+                                                                                    $attempt[
+                                                                                        'duration_ms'
+                                                                                    ] ?? 0
+                                                                                )
+                                                                        ) ?>
+                                                                        ms
+                                                                    </td>
+                                                                    <td><?= admin_h(
+                                                                        $reportDate(
+                                                                            $attempt[
+                                                                                'attempted_at'
+                                                                            ] ?? ''
+                                                                        )
+                                                                    ) ?></td>
+                                                                    <td>
+                                                                        <?php if (
+                                                                            $metadata === []
+                                                                        ): ?>
+                                                                            —
+                                                                        <?php else: ?>
+                                                                            <dl class="notification-report-metadata">
+                                                                                <?php foreach (
+                                                                                    $metadata
+                                                                                    as $key => $value
+                                                                                ): ?>
+                                                                                    <div>
+                                                                                        <dt><?= admin_h(
+                                                                                            (string) $key
+                                                                                        ) ?></dt>
+                                                                                        <dd><?= admin_h(
+                                                                                            \App\Support\AdminFormat
+                                                                                                ::digits(
+                                                                                                    $reportValue(
+                                                                                                        $value
+                                                                                                    )
+                                                                                                )
+                                                                                        ) ?></dd>
+                                                                                    </div>
+                                                                                <?php endforeach; ?>
+                                                                            </dl>
+                                                                        <?php endif; ?>
+                                                                    </td>
+                                                                </tr>
+                                                            <?php endforeach; ?>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </section>
+                                        </section>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <?php if ($reportPages > 1): ?>
+                        <nav
+                            class="notification-report-pagination"
+                            aria-label="صفحه‌بندی گزارش ارسال"
+                        >
+                            <a
+                                class="<?= $reportPage <= 1
+                                    ? 'is-disabled'
+                                    : '' ?>"
+                                href="<?= admin_h(
+                                    $reportQuery([
+                                        'page' => max(
+                                            1,
+                                            $reportPage - 1
+                                        ),
+                                    ])
+                                ) ?>"
+                            >
+                                قبلی
+                            </a>
+
+                            <span>
+                                صفحه
+                                <?= admin_h(
+                                    \App\Support\AdminFormat::digits(
+                                        $reportPage
+                                    )
+                                ) ?>
+                                از
+                                <?= admin_h(
+                                    \App\Support\AdminFormat::digits(
+                                        $reportPages
+                                    )
+                                ) ?>
+                            </span>
+
+                            <a
+                                class="<?= $reportPage >= $reportPages
+                                    ? 'is-disabled'
+                                    : '' ?>"
+                                href="<?= admin_h(
+                                    $reportQuery([
+                                        'page' => min(
+                                            $reportPages,
+                                            $reportPage + 1
+                                        ),
+                                    ])
+                                ) ?>"
+                            >
+                                بعدی
+                            </a>
+                        </nav>
+                    <?php endif; ?>
+                <?php endif; ?>
+
                 <script>
-                (function () {
-                    var table = document.querySelector('[data-delivery-table]');
-                    if (!table) return;
-                    var body = table.tBodies[0];
-                    var rows = Array.from(body.rows);
-                    var query = document.querySelector('[data-delivery-filter]');
-                    var status = document.querySelector('[data-delivery-status]');
-                    var sort = document.querySelector('[data-delivery-sort]');
-                    var empty = document.querySelector('[data-delivery-empty]');
-                    function apply() {
-                        var needle = (query.value || '').trim().toLocaleLowerCase('fa');
-                        var wanted = status.value;
-                        var parts = sort.value.split('-');
-                        var key = parts[0];
-                        var direction = parts[1] === 'asc' ? 1 : -1;
-                        rows.sort(function (a, b) { return (a.dataset[key] || '').localeCompare(b.dataset[key] || '', 'fa') * direction; }).forEach(function (row) {
-                            row.hidden = !((!needle || row.dataset.search.includes(needle)) && (!wanted || row.dataset.status === wanted));
-                            body.appendChild(row);
-                        });
-                        empty.hidden = rows.some(function (row) { return !row.hidden; });
+                (() => {
+                    const report = document.querySelector(
+                        '[data-notification-delivery-report]'
+                    );
+
+                    if (!report) {
+                        return;
                     }
-                    document.querySelector('[data-delivery-apply]').addEventListener('click', apply);
-                    document.querySelector('[data-delivery-clear]').addEventListener('click', function () { query.value = ''; status.value = ''; sort.value = 'date-desc'; apply(); });
-                    query.addEventListener('keydown', function (event) { if (event.key === 'Enter') { event.preventDefault(); apply(); } });
+
+                    report.querySelectorAll(
+                        '[data-notification-report-toggle]'
+                    ).forEach((button) => {
+                        button.addEventListener('click', () => {
+                            const reference =
+                                button.dataset
+                                    .notificationReportToggle;
+                            const detail = report.querySelector(
+                                '[data-notification-report-detail="'
+                                + CSS.escape(reference)
+                                + '"]'
+                            );
+
+                            if (!detail) {
+                                return;
+                            }
+
+                            const open = detail.hidden;
+                            detail.hidden = !open;
+                            button.setAttribute(
+                                'aria-expanded',
+                                open ? 'true' : 'false'
+                            );
+                            button.textContent =
+                                open ? 'بستن' : 'مشاهده';
+                        });
+                    });
                 })();
                 </script>
-            <?php endif; ?>
+            </section>
+
         <?php endif; ?>
     </section>
 </section>

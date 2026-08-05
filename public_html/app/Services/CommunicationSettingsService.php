@@ -37,16 +37,14 @@ class CommunicationSettingsService extends BaseService
         private ?CommunicationSettingsRepository $repository = null,
         private ?AuthorizationService $authorization = null,
         private ?NotificationProviderManagementService $providers = null,
-        private ?NotificationProviderDefaultService $providerDefaults = null
+        private ?NotificationProviderDefaultService $providerDefaults = null,
+        private ?NotificationDeliveryReportService $deliveryReports = null
     ) {
-        $this->repository ??=
-            new CommunicationSettingsRepository();
-        $this->authorization ??=
-            new AuthorizationService();
-        $this->providers ??=
-            new NotificationProviderManagementService();
-        $this->providerDefaults ??=
-            new NotificationProviderDefaultService();
+        $this->repository ??= new CommunicationSettingsRepository();
+        $this->authorization ??= new AuthorizationService();
+        $this->providers ??= new NotificationProviderManagementService();
+        $this->providerDefaults ??= new NotificationProviderDefaultService();
+        $this->deliveryReports ??= new NotificationDeliveryReportService();
     }
 
     public function allowedSections(int $userId): array
@@ -68,7 +66,8 @@ class CommunicationSettingsService extends BaseService
     public function page(
         int $userId,
         string $section,
-        string $editProviderReference = ''
+        string $editProviderReference = '',
+        array $reportFilters = []
     ): array {
         $sections = $this->allowedSections($userId);
 
@@ -92,6 +91,7 @@ class CommunicationSettingsService extends BaseService
 
         $providerManagement = [];
         $providerDefaultManagement = [];
+        $deliveryReport = [];
 
         if (
             $section === 'providers'
@@ -109,6 +109,16 @@ class CommunicationSettingsService extends BaseService
         ) {
             $providerDefaultManagement =
                 $this->providerDefaults->page($userId);
+        }
+
+        if (
+            $section === 'reports'
+            && $reportsAllowed
+        ) {
+            $deliveryReport = $this->deliveryReports->page(
+                $userId,
+                $reportFilters
+            );
         }
 
         return [
@@ -139,21 +149,24 @@ class CommunicationSettingsService extends BaseService
             'preferences' => $preferencesAllowed
                 ? $this->repository->preferences($userId)
                 : [],
-            'deliveries' => $reportsAllowed
-                && $section === 'reports'
-                    ? $this->repository->deliveryReport()
-                    : [],
+            'delivery_report' => $deliveryReport,
+            'deliveries' => is_array(
+                $deliveryReport['items'] ?? null
+            ) ? $deliveryReport['items'] : [],
             'message_settings' => $section === 'internal'
                 ? (new InternalMessageAdministrationService())
                     ->settings($userId)
                 : [],
         ];
     }
+
     public function saveProviderDefaults(
         int $userId,
         mixed $defaults
     ): void {
-        if (!isset($this->allowedSections($userId)['defaults'])) {
+        if (!isset(
+            $this->allowedSections($userId)['defaults']
+        )) {
             throw new \RuntimeException(
                 'provider_management_forbidden'
             );
@@ -165,12 +178,13 @@ class CommunicationSettingsService extends BaseService
         );
     }
 
-
     public function savePreferences(
         int $userId,
         mixed $channels
     ): void {
-        if (!isset($this->allowedSections($userId)['preferences'])) {
+        if (!isset(
+            $this->allowedSections($userId)['preferences']
+        )) {
             return;
         }
 
