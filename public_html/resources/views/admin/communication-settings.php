@@ -3469,35 +3469,67 @@ require BASE_PATH
                         </div>
                     </fieldset>
 
-                    <fieldset class="notification-send-section">
+                    <fieldset
+                        class="notification-send-section notification-send-content-step"
+                        data-send-content-step
+                    >
                         <legend>۴. محتوای اعلان</legend>
 
-                        <div class="notification-send-content-grid">
-                            <label>
-                                <span>موضوع</span>
-                                <input
-                                    name="subject"
-                                    maxlength="190"
-                                    data-send-subject
-                                >
-                                <small class="communication-muted">
-                                    برای ایمیل الزامی است.
-                                </small>
-                            </label>
+                        <section class="notification-send-content-card">
+                            <header class="notification-send-content-card__header">
+                                <div>
+                                    <h3>محتوای پیام</h3>
+                                    <p>
+                                        متن اصلی اعلان را بنویسید؛
+                                        موضوع فقط برای ایمیل استفاده
+                                        می‌شود.
+                                    </p>
+                                </div>
+                                <span data-send-content-status>
+                                    آماده‌سازی محتوا
+                                </span>
+                            </header>
 
-                            <label class="notification-send-content-grid__body">
-                                <span>متن اعلان</span>
-                                <textarea
-                                    name="body"
-                                    maxlength="10000"
-                                    required
-                                    data-send-body
-                                ></textarea>
-                                <small class="communication-muted">
-                                    حداکثر ۱۰٬۰۰۰ نویسه
-                                </small>
-                            </label>
-                        </div>
+                            <div class="notification-send-content-grid">
+                                <label
+                                    class="notification-send-subject-field"
+                                    data-send-subject-field
+                                    hidden
+                                >
+                                    <span>
+                                        <strong>موضوع ایمیل</strong>
+                                        <small>الزامی برای ایمیل</small>
+                                    </span>
+                                    <input
+                                        name="subject"
+                                        maxlength="190"
+                                        data-send-subject
+                                        placeholder="موضوع کوتاه و روشن بنویسید"
+                                    >
+                                </label>
+
+                                <label class="notification-send-content-grid__body">
+                                    <span class="notification-send-body-heading">
+                                        <strong>متن اعلان</strong>
+                                        <small>
+                                            <b data-send-body-count>۰</b>
+                                            از ۱۰٬۰۰۰ نویسه
+                                        </small>
+                                    </span>
+                                    <textarea
+                                        name="body"
+                                        maxlength="10000"
+                                        required
+                                        data-send-body
+                                        placeholder="متن اعلان را بنویسید..."
+                                    ></textarea>
+                                    <small class="communication-muted">
+                                        متن برای همه کانال‌های انتخاب‌شده
+                                        استفاده می‌شود.
+                                    </small>
+                                </label>
+                            </div>
+                        </section>
                     </fieldset>
 
                     <section class="notification-send-review">
@@ -3892,21 +3924,53 @@ require BASE_PATH
                     mediaBlock.hidden = true;
                     mediaBlock.dataset.sendMediaFoundation = '';
                     mediaBlock.innerHTML = `
-                        <label class="notification-send-dropzone">
+                        <header class="notification-send-media-header">
+                            <div>
+                                <h3>فایل‌های پیوست</h3>
+                                <p>تصویر، ویدئو، صوت یا سند</p>
+                            </div>
+                            <span data-send-media-file-count>
+                                ۰ فایل
+                            </span>
+                        </header>
+
+                        <div
+                            class="notification-send-dropzone"
+                            data-send-dropzone
+                            tabindex="0"
+                            role="button"
+                            aria-label="انتخاب فایل‌های چندرسانه‌ای"
+                        >
                             <span class="notification-send-dropzone__icon">＋</span>
-                            <strong>انتخاب فایل‌های چندرسانه‌ای</strong>
-                            <span>تصویر، ویدئو، صوت یا سند</span>
-                            <em data-send-media-file-count>فایلی انتخاب نشده است</em>
-                            <input type="file"
-                                name="media_files[]" multiple
-                                data-send-media-files
-                                accept=".jpg,.jpeg,.png,.webp,.mp4,.mp3,.m4a,.ogg,.pdf,.docx,.xlsx,.txt">
-                        </label>
-                        <p class="notification-send-media-limits">
-                            حداکثر ۵ فایل، هر فایل ۱۰ مگابایت و مجموع ۳۰ مگابایت
-                        </p>
+                            <div>
+                                <strong>فایل را انتخاب یا اینجا رها کنید</strong>
+                                <small>
+                                    حداکثر ۵ فایل؛ هر فایل ۱۰ مگابایت
+                                </small>
+                            </div>
+                            <label class="notification-send-file-trigger">
+                                انتخاب فایل
+                                <input type="file"
+                                    name="media_files[]" multiple
+                                    data-send-media-files
+                                    accept=".jpg,.jpeg,.png,.webp,.mp4,.mp3,.m4a,.ogg,.pdf,.docx,.xlsx,.txt">
+                            </label>
+                        </div>
+
+                        <div
+                            class="notification-send-media-feedback"
+                            data-send-media-feedback
+                            aria-live="polite"
+                        >
+                            هنوز فایلی انتخاب نشده است.
+                        </div>
+
                         <div class="notification-send-media-preview"
                             data-send-media-preview></div>
+
+                        <p class="notification-send-media-limits">
+                            مجموع فایل‌ها حداکثر ۳۰ مگابایت
+                        </p>
                     `;
                     sections[3].append(mediaBlock);
 
@@ -4021,11 +4085,20 @@ require BASE_PATH
                         .forEach((tab) => {
                             tab.addEventListener(
                                 'click',
-                                () => showStep(
-                                    Number(
+                                () => {
+                                    const target = Number(
                                         tab.dataset.sendStepTab
-                                    )
-                                )
+                                    );
+
+                                    if (
+                                        target === 5
+                                        && !validateContent()
+                                    ) {
+                                        return;
+                                    }
+
+                                    showStep(target);
+                                }
                             );
                         });
 
@@ -4035,7 +4108,26 @@ require BASE_PATH
                     );
                     next.addEventListener(
                         'click',
-                        () => showStep(step + 1)
+                        () => {
+                            if (
+                                step === 4
+                                && !validateContent()
+                            ) {
+                                return;
+                            }
+
+                            showStep(step + 1);
+                        }
+                    );
+
+                    form.addEventListener(
+                        'submit',
+                        (event) => {
+                            if (!validateContent()) {
+                                event.preventDefault();
+                                showStep(4);
+                            }
+                        }
                     );
 
                     const messageTypes = Array.from(
@@ -4067,6 +4159,65 @@ require BASE_PATH
                         form.querySelector(
                             '[data-send-media-preview]'
                         );
+                    const mediaCount =
+                        form.querySelector(
+                            '[data-send-media-file-count]'
+                        );
+                    const mediaFeedback =
+                        form.querySelector(
+                            '[data-send-media-feedback]'
+                        );
+                    const dropzone =
+                        form.querySelector(
+                            '[data-send-dropzone]'
+                        );
+                    const contentStep =
+                        form.querySelector(
+                            '[data-send-content-step]'
+                        );
+                    const subjectField =
+                        form.querySelector(
+                            '[data-send-subject-field]'
+                        );
+                    const bodyInput =
+                        form.querySelector(
+                            '[data-send-body]'
+                        );
+                    const bodyCount =
+                        form.querySelector(
+                            '[data-send-body-count]'
+                        );
+                    const contentStatus =
+                        form.querySelector(
+                            '[data-send-content-status]'
+                        );
+                    const formatBytes = (bytes) => {
+                        const size = Number(bytes) || 0;
+
+                        if (size < 1024 * 1024) {
+                            return digits.format(
+                                Math.max(
+                                    1,
+                                    Math.ceil(size / 1024)
+                                )
+                            ) + ' کیلوبایت';
+                        }
+
+                        return new Intl.NumberFormat(
+                            'fa-IR',
+                            {
+                                maximumFractionDigits: 1,
+                            }
+                        ).format(
+                            size / (1024 * 1024)
+                        ) + ' مگابایت';
+                    };
+                    const maxFiles = 5;
+                    const maxFileBytes =
+                        10 * 1024 * 1024;
+                    const maxTotalBytes =
+                        30 * 1024 * 1024;
+                    let selectedFiles = [];
 
                     const refreshType = () => {
                         const type =
@@ -4075,6 +4226,12 @@ require BASE_PATH
                             )?.value || 'text';
                         const multimedia =
                             type === 'multimedia';
+                        const emailSelected =
+                            channels.some(
+                                (item) =>
+                                    item.value === 'email'
+                                    && item.checked
+                            );
 
                         if (sms) {
                             if (multimedia) {
@@ -4091,6 +4248,29 @@ require BASE_PATH
 
                         warning.hidden = !multimedia;
                         media.hidden = !multimedia;
+                        contentStep?.classList.toggle(
+                            'has-media',
+                            multimedia
+                        );
+
+                        if (subjectField) {
+                            subjectField.hidden =
+                                !emailSelected;
+                        }
+
+                        if (subject) {
+                            subject.required =
+                                emailSelected;
+                        }
+
+                        if (contentStatus) {
+                            contentStatus.textContent =
+                                multimedia
+                                    ? digits.format(
+                                        selectedFiles.length
+                                    ) + ' فایل پیوست'
+                                    : 'پیام متنی';
+                        }
 
                         messageTypes.forEach((item) => {
                             item.closest(
@@ -4102,41 +4282,298 @@ require BASE_PATH
                         });
                     };
 
-                    mediaInput?.addEventListener(
-                        'change',
-                        () => {
-                            mediaPreview.innerHTML = '';
-                            Array.from(
-                                mediaInput.files || []
-                            ).forEach((file) => {
+                    const syncInputFiles = () => {
+                        if (
+                            !mediaInput
+                            || typeof DataTransfer
+                                === 'undefined'
+                        ) {
+                            return;
+                        }
+
+                        const transfer =
+                            new DataTransfer();
+
+                        selectedFiles.forEach((file) => {
+                            transfer.items.add(file);
+                        });
+
+                        mediaInput.files = transfer.files;
+                    };
+
+                    const validateFiles = (files) => {
+                        if (files.length > maxFiles) {
+                            return 'حداکثر '
+                                + digits.format(maxFiles)
+                                + ' فایل مجاز است.';
+                        }
+
+                        if (files.some(
+                            (file) =>
+                                file.size > maxFileBytes
+                        )) {
+                            return 'حجم هر فایل باید حداکثر '
+                                + '۱۰ مگابایت باشد.';
+                        }
+
+                        const total = files.reduce(
+                            (sum, file) =>
+                                sum + file.size,
+                            0
+                        );
+
+                        if (total > maxTotalBytes) {
+                            return 'مجموع فایل‌ها باید حداکثر '
+                                + '۳۰ مگابایت باشد.';
+                        }
+
+                        return '';
+                    };
+
+                    const renderFiles = () => {
+                        if (!mediaPreview) {
+                            return;
+                        }
+
+                        mediaPreview.innerHTML = '';
+
+                        selectedFiles.forEach(
+                            (file, index) => {
                                 const item =
                                     document.createElement(
                                         'article'
                                     );
-                                item.innerHTML =
-                                    '<strong></strong><small></small>';
+                                const extension = (
+                                    file.name
+                                        .split('.')
+                                        .pop()
+                                    || 'فایل'
+                                ).toUpperCase();
+
+                                item.innerHTML = `
+                                    <span class="notification-send-media-preview__type"></span>
+                                    <span class="notification-send-media-preview__info">
+                                        <strong></strong>
+                                        <small></small>
+                                    </span>
+                                    <button
+                                        type="button"
+                                        aria-label="حذف فایل"
+                                    >
+                                        حذف
+                                    </button>
+                                `;
+
+                                item.querySelector(
+                                    '.notification-send-media-preview__type'
+                                ).textContent = extension;
                                 item.querySelector(
                                     'strong'
                                 ).textContent = file.name;
                                 item.querySelector(
                                     'small'
                                 ).textContent =
-                                    new Intl.NumberFormat(
-                                        'fa-IR'
-                                    ).format(
-                                        Math.ceil(
-                                            file.size / 1024
-                                        )
-                                    ) + ' کیلوبایت';
+                                    formatBytes(file.size);
+                                item.querySelector(
+                                    'button'
+                                )?.addEventListener(
+                                    'click',
+                                    () => {
+                                        selectedFiles.splice(
+                                            index,
+                                            1
+                                        );
+                                        syncInputFiles();
+                                        renderFiles();
+                                        refreshType();
+                                    }
+                                );
+
                                 mediaPreview.append(item);
-                            });
+                            }
+                        );
+
+                        if (mediaCount) {
+                            mediaCount.textContent =
+                                digits.format(
+                                    selectedFiles.length
+                                ) + ' فایل';
+                        }
+
+                        if (mediaFeedback) {
+                            const total = selectedFiles
+                                .reduce(
+                                    (sum, file) =>
+                                        sum + file.size,
+                                    0
+                                );
+
+                            mediaFeedback.textContent =
+                                selectedFiles.length > 0
+                                    ? digits.format(
+                                        selectedFiles.length
+                                    )
+                                        + ' فایل با مجموع '
+                                        + formatBytes(total)
+                                        + ' آماده ارسال است.'
+                                    : 'هنوز فایلی انتخاب نشده است.';
+                            mediaFeedback.classList.toggle(
+                                'is-ready',
+                                selectedFiles.length > 0
+                            );
+                        }
+                    };
+
+                    const setFiles = (files) => {
+                        const normalized =
+                            Array.from(files || []);
+                        const error =
+                            validateFiles(normalized);
+
+                        if (error !== '') {
+                            window.alert(error);
+                            selectedFiles = [];
+
+                            if (mediaInput) {
+                                mediaInput.value = '';
+                            }
+
+                            renderFiles();
+                            refreshType();
+                            return;
+                        }
+
+                        selectedFiles = normalized;
+                        syncInputFiles();
+                        renderFiles();
+                        refreshType();
+                    };
+
+                    mediaInput?.addEventListener(
+                        'change',
+                        () => setFiles(
+                            mediaInput.files || []
+                        )
+                    );
+
+                    dropzone?.addEventListener(
+                        'dragover',
+                        (event) => {
+                            event.preventDefault();
+                            dropzone.classList.add(
+                                'is-dragging'
+                            );
                         }
                     );
+                    dropzone?.addEventListener(
+                        'dragleave',
+                        () => dropzone.classList.remove(
+                            'is-dragging'
+                        )
+                    );
+                    dropzone?.addEventListener(
+                        'drop',
+                        (event) => {
+                            event.preventDefault();
+                            dropzone.classList.remove(
+                                'is-dragging'
+                            );
+                            setFiles(
+                                event.dataTransfer?.files
+                                || []
+                            );
+                        }
+                    );
+                    dropzone?.addEventListener(
+                        'keydown',
+                        (event) => {
+                            if (
+                                event.key === 'Enter'
+                                || event.key === ' '
+                            ) {
+                                event.preventDefault();
+                                mediaInput?.click();
+                            }
+                        }
+                    );
+
+                    bodyInput?.addEventListener(
+                        'input',
+                        () => {
+                            if (bodyCount) {
+                                bodyCount.textContent =
+                                    digits.format(
+                                        bodyInput.value.length
+                                    );
+                            }
+                        }
+                    );
+
+                    const validateContent = () => {
+                        const type =
+                            messageTypes.find(
+                                (item) => item.checked
+                            )?.value || 'text';
+                        const emailSelected =
+                            channels.some(
+                                (item) =>
+                                    item.value === 'email'
+                                    && item.checked
+                            );
+
+                        if (
+                            emailSelected
+                            && (subject?.value || '')
+                                .trim() === ''
+                        ) {
+                            window.alert(
+                                'برای ارسال ایمیل، موضوع '
+                                + 'را وارد کنید.'
+                            );
+                            subject?.focus();
+                            return false;
+                        }
+
+                        if (
+                            (bodyInput?.value || '')
+                                .trim() === ''
+                        ) {
+                            window.alert(
+                                'متن اعلان را وارد کنید.'
+                            );
+                            bodyInput?.focus();
+                            return false;
+                        }
+
+                        if (
+                            type === 'multimedia'
+                            && selectedFiles.length < 1
+                        ) {
+                            window.alert(
+                                'برای پیام چندرسانه‌ای '
+                                + 'حداقل یک فایل انتخاب کنید.'
+                            );
+                            mediaInput?.focus();
+                            return false;
+                        }
+
+                        return true;
+                    };
 
                     form.addEventListener(
                         'change',
                         refreshType
                     );
+
+                    renderFiles();
+
+                    if (bodyCount && bodyInput) {
+                        bodyCount.textContent =
+                            digits.format(
+                                bodyInput.value.length
+                            );
+                    }
+
                     refreshType();
                     showStep(1);
                 })();
@@ -4302,9 +4739,18 @@ require BASE_PATH
                                 '[data-send-message-type]:checked'
                             )?.value || 'text';
 
+                        const mediaFiles =
+                            form.querySelector(
+                                '[data-send-media-files]'
+                            )?.files?.length || 0;
+
                         typeView.textContent =
                             messageType === 'multimedia'
-                                ? 'چندرسانه‌ای'
+                                ? 'چندرسانه‌ای · '
+                                    + digits.format(
+                                        mediaFiles
+                                    )
+                                    + ' فایل'
                                 : 'متنی';
 
                         const selectedChannels =
