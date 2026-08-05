@@ -1842,8 +1842,8 @@ body.provider-test-dialog-open {
 </style>
 <!-- notification-provider-compact-alignment-v061:end -->
 
-/* notification-delivery-report-style-v061 */
 <style>
+/* notification-delivery-report-style-v061 */
 .notification-delivery-report {
     display: grid;
     gap: 1rem;
