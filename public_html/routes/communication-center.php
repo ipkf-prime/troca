@@ -775,7 +775,7 @@ $router->post(
 );
 
 $router->post(
-    '/webhooks/notifications/bale/{reference}',
+    '/webhooks/notifications/bale/{reference}/{signature}',
     function ($request, $response) {
         try {
             return $response->json(
@@ -784,6 +784,10 @@ $router->post(
                 )->handleWebhook(
                     trim((string) $request->route(
                         'reference',
+                        ''
+                    )),
+                    trim((string) $request->route(
+                        'signature',
                         ''
                     )),
                     $request->all()

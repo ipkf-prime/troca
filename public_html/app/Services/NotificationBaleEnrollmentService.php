@@ -207,6 +207,7 @@ class NotificationBaleEnrollmentService extends BaseService
 
     public function handleWebhook(
         string $providerReference,
+        string $signature,
         array $update
     ): array {
         $provider =
@@ -217,6 +218,24 @@ class NotificationBaleEnrollmentService extends BaseService
         if (!is_array($provider)) {
             throw new RuntimeException(
                 'notification_bale_provider_unavailable'
+            );
+        }
+
+        $expectedSignature =
+            $this->webhookSignature($provider);
+
+        if (
+            preg_match(
+                '/^[a-f0-9]{64}$/',
+                $signature
+            ) !== 1
+            || !hash_equals(
+                $expectedSignature,
+                $signature
+            )
+        ) {
+            throw new RuntimeException(
+                'notification_bale_webhook_signature_invalid'
             );
         }
 
@@ -408,6 +427,37 @@ class NotificationBaleEnrollmentService extends BaseService
         );
 
         return ['ok' => true, 'verified' => true];
+    }
+
+    private function webhookSignature(
+        array $provider
+    ): string {
+        $secrets =
+            $this->runtime->secrets($provider);
+        $botToken = trim((string) (
+            $secrets['bot_token'] ?? ''
+        ));
+        $providerReference = trim((string) (
+            $provider['public_reference'] ?? ''
+        ));
+
+        if (
+            $botToken === ''
+            || preg_match(
+                '/^npi_[a-f0-9]{24}$/',
+                $providerReference
+            ) !== 1
+        ) {
+            throw new RuntimeException(
+                'notification_gateway_secret_unavailable'
+            );
+        }
+
+        return hash_hmac(
+            'sha256',
+            $providerReference,
+            $botToken
+        );
     }
 
     private function sendText(
