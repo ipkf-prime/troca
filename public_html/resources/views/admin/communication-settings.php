@@ -3910,11 +3910,11 @@ require BASE_PATH
                         review
                     ];
                     const titles = [
-                        'نوع و کانال',
+                        'کانال',
                         'گیرندگان',
-                        'مقصدهای دستی',
+                        'مقصد دستی',
                         'محتوا',
-                        'بازبینی و ارسال'
+                        'بازبینی'
                     ];
                     const tabs =
                         document.createElement('nav');
@@ -4124,6 +4124,243 @@ require BASE_PATH
                     );
                     refreshType();
                     showStep(1);
+                })();
+                </script>
+                <!-- notification-send-minimal-overview-v061 -->
+                <script>
+                (() => {
+                    const root = document.querySelector(
+                        '[data-notification-send-center]'
+                    );
+                    const form = root?.querySelector(
+                        '[data-notification-send-form]'
+                    );
+                    const tabs = form?.querySelector(
+                        '[data-send-step-tabs]'
+                    );
+
+                    if (
+                        !root
+                        || !form
+                        || !tabs
+                        || form.querySelector(
+                            '[data-send-live-summary]'
+                        )
+                    ) {
+                        return;
+                    }
+
+                    const summary =
+                        document.createElement('section');
+
+                    summary.className =
+                        'notification-send-live-summary';
+                    summary.dataset.sendLiveSummary = '';
+                    summary.setAttribute(
+                        'aria-live',
+                        'polite'
+                    );
+                    summary.innerHTML = `
+                        <div>
+                            <span>مرحله جاری</span>
+                            <strong data-send-overview-step>
+                                ۱ از ۵
+                            </strong>
+                        </div>
+                        <div>
+                            <span>نوع پیام</span>
+                            <strong data-send-overview-type>
+                                متنی
+                            </strong>
+                        </div>
+                        <div>
+                            <span>کانال‌ها</span>
+                            <strong data-send-overview-channels>
+                                انتخاب نشده
+                            </strong>
+                        </div>
+                        <div>
+                            <span>گیرندگان و تحویل</span>
+                            <strong data-send-overview-targets>
+                                ۰ کاربر · ۰ تحویل
+                            </strong>
+                        </div>
+                    `;
+
+                    tabs.insertAdjacentElement(
+                        'afterend',
+                        summary
+                    );
+
+                    const stepView = summary.querySelector(
+                        '[data-send-overview-step]'
+                    );
+                    const typeView = summary.querySelector(
+                        '[data-send-overview-type]'
+                    );
+                    const channelView = summary.querySelector(
+                        '[data-send-overview-channels]'
+                    );
+                    const targetView = summary.querySelector(
+                        '[data-send-overview-targets]'
+                    );
+                    const digits = new Intl.NumberFormat(
+                        'fa-IR'
+                    );
+                    const channelLabels = {
+                        email: 'ایمیل',
+                        sms: 'پیامک',
+                        messenger: 'بله',
+                    };
+
+                    const toNumber = (value) =>
+                        Number(
+                            (value || '')
+                                .replace(
+                                    /[۰-۹]/g,
+                                    (digit) =>
+                                        '۰۱۲۳۴۵۶۷۸۹'
+                                            .indexOf(digit)
+                                )
+                                .replace(/[^\d]/g, '')
+                        ) || 0;
+
+                    const refresh = () => {
+                        const tabItems = Array.from(
+                            tabs.querySelectorAll(
+                                '[data-send-step-tab]'
+                            )
+                        );
+                        const activeTab = tabItems.find(
+                            (tab) =>
+                                tab.classList.contains(
+                                    'is-active'
+                                )
+                        ) || tabItems[0];
+                        const step = Number(
+                            activeTab?.dataset
+                                .sendStepTab || 1
+                        );
+                        const stepTitle = (
+                            activeTab?.textContent || ''
+                        )
+                            .replace(
+                                /^\s*[۰-۹0-9]+\s*/u,
+                                ''
+                            )
+                            .trim();
+
+                        tabItems.forEach((tab) => {
+                            const active =
+                                tab === activeTab;
+                            tab.setAttribute(
+                                'aria-selected',
+                                active
+                                    ? 'true'
+                                    : 'false'
+                            );
+
+                            if (active) {
+                                tab.setAttribute(
+                                    'aria-current',
+                                    'step'
+                                );
+                            } else {
+                                tab.removeAttribute(
+                                    'aria-current'
+                                );
+                            }
+                        });
+
+                        stepView.textContent =
+                            digits.format(step)
+                            + ' از '
+                            + digits.format(5)
+                            + (
+                                stepTitle !== ''
+                                    ? ' · ' + stepTitle
+                                    : ''
+                            );
+
+                        const messageType =
+                            form.querySelector(
+                                '[data-send-message-type]:checked'
+                            )?.value || 'text';
+
+                        typeView.textContent =
+                            messageType === 'multimedia'
+                                ? 'چندرسانه‌ای'
+                                : 'متنی';
+
+                        const selectedChannels =
+                            Array.from(
+                                form.querySelectorAll(
+                                    '[data-send-channel]:checked'
+                                )
+                            ).map(
+                                (channel) =>
+                                    channelLabels[
+                                        channel.value
+                                    ] || channel.value
+                            );
+
+                        channelView.textContent =
+                            selectedChannels.length > 0
+                                ? selectedChannels.join('، ')
+                                : 'انتخاب نشده';
+
+                        const selectedUsers =
+                            form.querySelectorAll(
+                                '[data-send-user-checkbox]:checked'
+                            ).length;
+                        const deliveries = toNumber(
+                            form.querySelector(
+                                '[data-send-estimated-count]'
+                            )?.textContent || '۰'
+                        );
+
+                        targetView.textContent =
+                            digits.format(selectedUsers)
+                            + ' کاربر · '
+                            + digits.format(deliveries)
+                            + ' تحویل';
+                    };
+
+                    form.addEventListener(
+                        'input',
+                        () => window.setTimeout(
+                            refresh,
+                            0
+                        )
+                    );
+                    form.addEventListener(
+                        'change',
+                        () => window.setTimeout(
+                            refresh,
+                            0
+                        )
+                    );
+                    tabs.addEventListener(
+                        'click',
+                        () => window.setTimeout(
+                            refresh,
+                            0
+                        )
+                    );
+
+                    const observer =
+                        new MutationObserver(refresh);
+
+                    observer.observe(
+                        tabs,
+                        {
+                            attributes: true,
+                            subtree: true,
+                            attributeFilter: ['class'],
+                        }
+                    );
+
+                    refresh();
                 })();
                 </script>
             </section>
