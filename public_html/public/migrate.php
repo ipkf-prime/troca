@@ -134,6 +134,7 @@ try {
         new \IPKF\Database\Migrations\EnableNotificationProviderExtendedTestSend(),
         new \IPKF\Database\Migrations\EnableNotificationProviderDefaultManagement(),
         new \IPKF\Database\Migrations\CreateNotificationGatewayFoundation(),
+        new \IPKF\Database\Migrations\EnableNotificationSendCenterFoundation(),
     ]);
 
     $manager->migrate();

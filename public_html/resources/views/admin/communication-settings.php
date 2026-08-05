@@ -22,6 +22,9 @@ $defaults = $page['provider_defaults'] ?? [];
 $rules = $page['routing_rules'] ?? [];
 $channels = $page['channels'] ?? [];
 $preferences = $page['preferences'] ?? [];
+$notificationSendCenter = is_array(
+    $page['notification_send_center'] ?? null
+) ? $page['notification_send_center'] : [];
 $deliveryReport = is_array(
     $page['delivery_report'] ?? null
 ) ? $page['delivery_report'] : [];
@@ -54,6 +57,16 @@ $statusMessages = [
     'provider_defaults_instance_invalid' => ['error', 'حساب انتخاب‌شده فعال یا معتبر نیست.'],
     'provider_defaults_channel_mismatch' => ['error', 'حساب انتخاب‌شده با کانال مربوط سازگار نیست.'],
     'provider_defaults_save_failed' => ['error', 'ذخیره پیش‌فرض سرویس‌دهنده‌ها انجام نشد.'],
+    'notification_send_completed' => ['success', 'عملیات ارسال اعلان انجام شد. نتیجه هر مقصد در همین صفحه نمایش داده می‌شود.'],
+    'notification_send_forbidden' => ['error', 'دسترسی ارسال اعلان برای این نقش فعال نیست.'],
+    'notification_send_channel_required' => ['error', 'حداقل یک کانال ارسال را انتخاب کنید.'],
+    'notification_send_confirmation_required' => ['error', 'تأیید نهایی ارسال الزامی است.'],
+    'notification_send_subject_invalid' => ['error', 'برای ارسال ایمیل، موضوع معتبر الزامی است.'],
+    'notification_send_body_invalid' => ['error', 'متن اعلان خالی یا بیش از حد مجاز است.'],
+    'notification_send_recipient_limit' => ['error', 'تعداد کاربران انتخاب‌شده بیش از حد مجاز این مرحله است.'],
+    'notification_send_destination_required' => ['error', 'هیچ مقصد معتبر و قابل ارسالی پیدا نشد.'],
+    'notification_send_immediate_limit_exceeded' => ['error', 'تعداد تحویل‌ها از سقف ارسال فوری بیشتر است. گروه بزرگ‌تر باید در صف ارسال انبوه قرار گیرد.'],
+    'notification_send_failed' => ['error', 'عملیات ارسال اعلان انجام نشد.'],
     'provider_test_sent' => ['success', 'ایمیل آزمایشی با موفقیت به سرور ایمیل تحویل شد.'],
     'provider_test_email_sent' => ['success', 'ایمیل آزمایشی با موفقیت به سرور ایمیل تحویل شد.'],
     'provider_test_sms_sent' => ['success', 'پیامک آزمایشی با موفقیت به کاوه‌نگار تحویل شد.'],
@@ -2092,6 +2105,930 @@ require BASE_PATH
                 updateCount();
             })();
             </script>
+
+        <?php elseif ($section === 'send'): ?>
+            <?php
+            $sendRecipients = is_array(
+                $notificationSendCenter[
+                    'recipients'
+                ] ?? null
+            ) ? $notificationSendCenter[
+                'recipients'
+            ] : [];
+            $sendOrganizations = is_array(
+                $notificationSendCenter[
+                    'organizations'
+                ] ?? null
+            ) ? $notificationSendCenter[
+                'organizations'
+            ] : [];
+            $sendRoles = is_array(
+                $notificationSendCenter[
+                    'roles'
+                ] ?? null
+            ) ? $notificationSendCenter[
+                'roles'
+            ] : [];
+            $sendCities = is_array(
+                $notificationSendCenter[
+                    'cities'
+                ] ?? null
+            ) ? $notificationSendCenter[
+                'cities'
+            ] : [];
+            $sendLimit = max(
+                1,
+                (int) (
+                    $notificationSendCenter[
+                        'immediate_limit'
+                    ] ?? 30
+                )
+            );
+            $sendResult = is_array(
+                $notificationSendCenter[
+                    'result'
+                ] ?? null
+            ) ? $notificationSendCenter[
+                'result'
+            ] : [];
+            $sendResultItems = is_array(
+                $sendResult['items'] ?? null
+            ) ? $sendResult['items'] : [];
+            ?>
+
+            <section
+                class="notification-send-center"
+                data-notification-send-center
+            >
+                <!-- notification-send-center-v061 -->
+                <header class="notification-send-intro">
+                    <div>
+                        <h3>ارسال تکی و گروهی اعلان</h3>
+                        <p class="communication-muted">
+                            کاربران سامانه یا مقصدهای دستی را انتخاب
+                            کنید و اعلان را از یک یا چند کانال فعال
+                            ارسال کنید.
+                        </p>
+                    </div>
+                    <div class="notification-send-limit">
+                        <span>سقف ارسال فوری</span>
+                        <strong>
+                            <?= admin_h(
+                                \App\Support\AdminFormat::digits(
+                                    $sendLimit
+                                )
+                            ) ?>
+                            تحویل
+                        </strong>
+                        <small>
+                            گروه‌های بزرگ‌تر در مرحله صف انبوه
+                        </small>
+                    </div>
+                </header>
+
+                <?php if ($sendResult !== []): ?>
+                    <section class="notification-send-result">
+                        <header>
+                            <div>
+                                <h3>نتیجه آخرین ارسال</h3>
+                                <small dir="ltr">
+                                    <?= admin_h(
+                                        $sendResult[
+                                            'public_reference'
+                                        ] ?? ''
+                                    ) ?>
+                                </small>
+                            </div>
+                            <a
+                                class="admin-button admin-button--soft"
+                                href="/admin/communications/settings?section=reports"
+                            >
+                                مشاهده گزارش کامل
+                            </a>
+                        </header>
+
+                        <div class="notification-send-result__summary">
+                            <?php foreach ([
+                                'total' => 'کل تحویل',
+                                'sent' => 'ارسال‌شده',
+                                'failed' => 'ناموفق',
+                                'skipped' => 'ردشده',
+                            ] as $key => $label): ?>
+                                <article>
+                                    <span><?= admin_h(
+                                        $label
+                                    ) ?></span>
+                                    <strong><?= admin_h(
+                                        \App\Support\AdminFormat
+                                            ::digits(
+                                                (int) (
+                                                    $sendResult[
+                                                        $key
+                                                    ] ?? 0
+                                                )
+                                            )
+                                    ) ?></strong>
+                                </article>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <?php if (
+                            $sendResultItems !== []
+                        ): ?>
+                            <div class="communication-table-wrap">
+                                <table class="communication-table notification-send-result-table">
+                                    <thead>
+                                        <tr>
+                                            <th>گیرنده</th>
+                                            <th>مقصد</th>
+                                            <th>کانال</th>
+                                            <th>وضعیت</th>
+                                            <th>سرویس‌دهنده</th>
+                                            <th>شناسه تحویل / خطا</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                    <?php foreach (
+                                        $sendResultItems
+                                        as $resultItem
+                                    ): ?>
+                                        <?php
+                                        $resultChannel = (string) (
+                                            $resultItem[
+                                                'channel_code'
+                                            ] ?? ''
+                                        );
+                                        $resultStatus = (string) (
+                                            $resultItem[
+                                                'status_code'
+                                            ] ?? ''
+                                        );
+                                        ?>
+                                        <tr>
+                                            <td><?= admin_h(
+                                                $resultItem[
+                                                    'recipient_title'
+                                                ] ?? '—'
+                                            ) ?></td>
+                                            <td dir="ltr"><?= admin_h(
+                                                $resultItem[
+                                                    'destination_masked'
+                                                ] ?? '—'
+                                            ) ?></td>
+                                            <td><?= admin_h(
+                                                $channelLabels[
+                                                    $resultChannel
+                                                ] ?? $resultChannel
+                                            ) ?></td>
+                                            <td>
+                                                <span
+                                                    class="notification-send-result-status notification-send-result-status--<?= admin_h(
+                                                        $resultStatus
+                                                    ) ?>"
+                                                >
+                                                    <?= admin_h(
+                                                        [
+                                                            'sent' => 'ارسال‌شده',
+                                                            'failed' => 'ناموفق',
+                                                            'skipped' => 'ردشده',
+                                                        ][$resultStatus]
+                                                        ?? $resultStatus
+                                                    ) ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <?= admin_h(
+                                                    $resultItem[
+                                                        'provider_title'
+                                                    ] ?? '—'
+                                                ) ?>
+                                                <?php if (
+                                                    !empty(
+                                                        $resultItem[
+                                                            'fallback_used'
+                                                        ]
+                                                    )
+                                                ): ?>
+                                                    <small>
+                                                        مسیر جایگزین
+                                                    </small>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?php if (
+                                                    $resultStatus
+                                                    === 'sent'
+                                                ): ?>
+                                                    <code dir="ltr"><?= admin_h(
+                                                        $resultItem[
+                                                            'delivery_reference'
+                                                        ] ?? ''
+                                                    ) ?></code>
+                                                <?php else: ?>
+                                                    <code dir="ltr"><?= admin_h(
+                                                        $resultItem[
+                                                            'error_code'
+                                                        ] ?? ''
+                                                    ) ?></code>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                    </section>
+                <?php endif; ?>
+
+                <form
+                    class="notification-send-form"
+                    method="post"
+                    action="/admin/communications/settings/send"
+                    data-notification-send-form
+                >
+                    <input
+                        type="hidden"
+                        name="_token"
+                        value="<?= admin_h(
+                            (new \IPKF\Security\Csrf())
+                                ->token()
+                        ) ?>"
+                    >
+
+                    <fieldset class="notification-send-section">
+                        <legend>۱. کانال‌های ارسال</legend>
+
+                        <div class="notification-send-channel-grid">
+                            <?php foreach ([
+                                'email' => [
+                                    'title' => 'ایمیل',
+                                    'description' =>
+                                        'نشانی ایمیل ثبت‌شده کاربران یا مقصد دستی',
+                                ],
+                                'sms' => [
+                                    'title' => 'پیام کوتاه (SMS)',
+                                    'description' =>
+                                        'شماره همراه کاربران یا مقصد دستی',
+                                ],
+                                'messenger' => [
+                                    'title' => 'پیام‌رسان بله',
+                                    'description' =>
+                                        'شناسه گفت‌وگوی ثبت‌شده یا مقصد دستی',
+                                ],
+                            ] as $channelCode => $definition): ?>
+                                <label
+                                    class="notification-send-channel"
+                                    data-send-channel-card="<?= admin_h(
+                                        $channelCode
+                                    ) ?>"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        name="channels[]"
+                                        value="<?= admin_h(
+                                            $channelCode
+                                        ) ?>"
+                                        data-send-channel="<?= admin_h(
+                                            $channelCode
+                                        ) ?>"
+                                    >
+                                    <span>
+                                        <strong><?= admin_h(
+                                            $definition['title']
+                                        ) ?></strong>
+                                        <small><?= admin_h(
+                                            $definition[
+                                                'description'
+                                            ]
+                                        ) ?></small>
+                                    </span>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="notification-send-section">
+                        <legend>۲. انتخاب کاربران</legend>
+
+                        <div class="notification-send-user-tools">
+                            <label class="notification-send-user-search">
+                                <span>جست‌وجو</span>
+                                <input
+                                    type="search"
+                                    data-send-user-search
+                                    placeholder="نام، نام کاربری، نقش، سازمان یا شهر"
+                                    autocomplete="off"
+                                >
+                            </label>
+
+                            <label>
+                                <span>سازمان</span>
+                                <select data-send-user-organization>
+                                    <option value="">
+                                        همه سازمان‌ها
+                                    </option>
+                                    <?php foreach (
+                                        $sendOrganizations
+                                        as $organization
+                                    ): ?>
+                                        <option value="<?= admin_h(
+                                            mb_strtolower(
+                                                $organization,
+                                                'UTF-8'
+                                            )
+                                        ) ?>">
+                                            <?= admin_h(
+                                                $organization
+                                            ) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </label>
+
+                            <label>
+                                <span>نقش</span>
+                                <select data-send-user-role>
+                                    <option value="">
+                                        همه نقش‌ها
+                                    </option>
+                                    <?php foreach (
+                                        $sendRoles as $role
+                                    ): ?>
+                                        <option value="<?= admin_h(
+                                            mb_strtolower(
+                                                $role,
+                                                'UTF-8'
+                                            )
+                                        ) ?>">
+                                            <?= admin_h($role) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </label>
+
+                            <label>
+                                <span>شهر</span>
+                                <select data-send-user-city>
+                                    <option value="">
+                                        همه شهرها
+                                    </option>
+                                    <?php foreach (
+                                        $sendCities as $city
+                                    ): ?>
+                                        <option value="<?= admin_h(
+                                            mb_strtolower(
+                                                $city,
+                                                'UTF-8'
+                                            )
+                                        ) ?>">
+                                            <?= admin_h($city) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </label>
+                        </div>
+
+                        <div class="notification-send-user-actions">
+                            <button
+                                class="admin-button admin-button--soft"
+                                type="button"
+                                data-send-select-visible
+                            >
+                                انتخاب نتایج نمایان
+                            </button>
+                            <button
+                                class="admin-button admin-button--soft"
+                                type="button"
+                                data-send-clear-users
+                            >
+                                پاک‌کردن انتخاب کاربران
+                            </button>
+                            <span class="communication-muted">
+                                <strong data-send-selected-count>۰</strong>
+                                کاربر انتخاب شده
+                            </span>
+                        </div>
+
+                        <div class="notification-send-user-list">
+                            <?php foreach (
+                                $sendRecipients as $recipient
+                            ): ?>
+                                <?php
+                                $recipientSearch = mb_strtolower(
+                                    implode(' ', [
+                                        $recipient['title'] ?? '',
+                                        $recipient['username'] ?? '',
+                                        $recipient[
+                                            'organization_title'
+                                        ] ?? '',
+                                        $recipient[
+                                            'role_titles'
+                                        ] ?? '',
+                                        $recipient[
+                                            'city_title'
+                                        ] ?? '',
+                                    ]),
+                                    'UTF-8'
+                                );
+                                ?>
+                                <label
+                                    class="notification-send-user"
+                                    data-send-user
+                                    data-search="<?= admin_h(
+                                        $recipientSearch
+                                    ) ?>"
+                                    data-organization="<?= admin_h(
+                                        mb_strtolower(
+                                            (string) (
+                                                $recipient[
+                                                    'organization_title'
+                                                ] ?? ''
+                                            ),
+                                            'UTF-8'
+                                        )
+                                    ) ?>"
+                                    data-role="<?= admin_h(
+                                        mb_strtolower(
+                                            (string) (
+                                                $recipient[
+                                                    'role_titles'
+                                                ] ?? ''
+                                            ),
+                                            'UTF-8'
+                                        )
+                                    ) ?>"
+                                    data-city="<?= admin_h(
+                                        mb_strtolower(
+                                            (string) (
+                                                $recipient[
+                                                    'city_title'
+                                                ] ?? ''
+                                            ),
+                                            'UTF-8'
+                                        )
+                                    ) ?>"
+                                    data-email="<?= !empty(
+                                        $recipient['has_email']
+                                    ) ? '1' : '0' ?>"
+                                    data-sms="<?= !empty(
+                                        $recipient['has_sms']
+                                    ) ? '1' : '0' ?>"
+                                    data-messenger="<?= !empty(
+                                        $recipient[
+                                            'has_messenger'
+                                        ]
+                                    ) ? '1' : '0' ?>"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        name="recipient_user_ids[]"
+                                        value="<?= admin_h(
+                                            $recipient['id']
+                                        ) ?>"
+                                        data-send-user-checkbox
+                                    >
+                                    <span class="notification-send-user__identity">
+                                        <strong><?= admin_h(
+                                            $recipient['title']
+                                        ) ?></strong>
+                                        <small>
+                                            <?= admin_h(
+                                                implode(' • ', array_filter([
+                                                    $recipient[
+                                                        'organization_title'
+                                                    ] ?? '',
+                                                    $recipient[
+                                                        'role_titles'
+                                                    ] ?? '',
+                                                    $recipient[
+                                                        'city_title'
+                                                    ] ?? '',
+                                                ]))
+                                            ) ?>
+                                        </small>
+                                    </span>
+                                    <span class="notification-send-user__channels">
+                                        <small class="<?= !empty(
+                                            $recipient['has_email']
+                                        ) ? 'is-ready' : '' ?>">
+                                            ایمیل
+                                        </small>
+                                        <small class="<?= !empty(
+                                            $recipient['has_sms']
+                                        ) ? 'is-ready' : '' ?>">
+                                            پیامک
+                                        </small>
+                                        <small class="<?= !empty(
+                                            $recipient[
+                                                'has_messenger'
+                                            ]
+                                        ) ? 'is-ready' : '' ?>">
+                                            بله
+                                        </small>
+                                    </span>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="notification-send-section">
+                        <legend>۳. مقصدهای دستی</legend>
+                        <p class="communication-muted">
+                            هر مقصد را در یک خط وارد کنید. جداکردن با
+                            ویرگول نیز پشتیبانی می‌شود. مقصدهای تکراری
+                            قبل از ارسال حذف می‌شوند.
+                        </p>
+
+                        <div class="notification-send-manual-grid">
+                            <label
+                                data-send-manual-channel="email"
+                                hidden
+                            >
+                                <span>ایمیل‌های دستی</span>
+                                <textarea
+                                    name="manual_email"
+                                    dir="ltr"
+                                    placeholder="user@example.com"
+                                ></textarea>
+                            </label>
+
+                            <label
+                                data-send-manual-channel="sms"
+                                hidden
+                            >
+                                <span>شماره‌های همراه دستی</span>
+                                <textarea
+                                    name="manual_sms"
+                                    dir="ltr"
+                                    placeholder="09123456789"
+                                ></textarea>
+                            </label>
+
+                            <label
+                                data-send-manual-channel="messenger"
+                                hidden
+                            >
+                                <span>Chat IDهای بله</span>
+                                <textarea
+                                    name="manual_messenger"
+                                    dir="ltr"
+                                    placeholder="123456789"
+                                ></textarea>
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="notification-send-section">
+                        <legend>۴. محتوای اعلان</legend>
+
+                        <div class="notification-send-content-grid">
+                            <label>
+                                <span>موضوع</span>
+                                <input
+                                    name="subject"
+                                    maxlength="190"
+                                    data-send-subject
+                                >
+                                <small class="communication-muted">
+                                    برای ایمیل الزامی است.
+                                </small>
+                            </label>
+
+                            <label class="notification-send-content-grid__body">
+                                <span>متن اعلان</span>
+                                <textarea
+                                    name="body"
+                                    maxlength="10000"
+                                    required
+                                    data-send-body
+                                ></textarea>
+                                <small class="communication-muted">
+                                    حداکثر ۱۰٬۰۰۰ نویسه
+                                </small>
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <section class="notification-send-review">
+                        <div>
+                            <span>برآورد ارسال فوری</span>
+                            <strong>
+                                <span data-send-estimated-count>۰</span>
+                                تحویل
+                            </strong>
+                            <small>
+                                فقط کاربران دارای مقصد معتبر در
+                                کانال انتخاب‌شده محاسبه می‌شوند.
+                            </small>
+                        </div>
+
+                        <label class="notification-send-confirm">
+                            <input
+                                type="checkbox"
+                                name="confirm_dispatch"
+                                value="1"
+                                required
+                            >
+                            <span>
+                                مقصدها و متن را بررسی کردم و ارسال
+                                واقعی را تأیید می‌کنم.
+                            </span>
+                        </label>
+                    </section>
+
+                    <div class="notification-send-actions">
+                        <button
+                            class="admin-button"
+                            type="submit"
+                            data-send-submit
+                        >
+                            ارسال واقعی اعلان
+                        </button>
+                        <a
+                            class="admin-button admin-button--soft"
+                            href="/admin/communications/settings?section=reports"
+                        >
+                            گزارش ارسال‌ها
+                        </a>
+                    </div>
+                </form>
+
+                <script>
+                (() => {
+                    const root = document.querySelector(
+                        '[data-notification-send-center]'
+                    );
+
+                    if (!root) {
+                        return;
+                    }
+
+                    const form = root.querySelector(
+                        '[data-notification-send-form]'
+                    );
+                    const users = Array.from(
+                        root.querySelectorAll(
+                            '[data-send-user]'
+                        )
+                    );
+                    const channels = Array.from(
+                        root.querySelectorAll(
+                            '[data-send-channel]'
+                        )
+                    );
+                    const search = root.querySelector(
+                        '[data-send-user-search]'
+                    );
+                    const organization = root.querySelector(
+                        '[data-send-user-organization]'
+                    );
+                    const role = root.querySelector(
+                        '[data-send-user-role]'
+                    );
+                    const city = root.querySelector(
+                        '[data-send-user-city]'
+                    );
+                    const selectedCount = root.querySelector(
+                        '[data-send-selected-count]'
+                    );
+                    const estimatedCount = root.querySelector(
+                        '[data-send-estimated-count]'
+                    );
+                    const subject = root.querySelector(
+                        '[data-send-subject]'
+                    );
+                    const limit = <?= (int) $sendLimit ?>;
+                    const digits = new Intl.NumberFormat(
+                        'fa-IR'
+                    );
+
+                    const selectedChannels = () =>
+                        channels
+                            .filter((item) => item.checked)
+                            .map((item) => item.value);
+
+                    const applyUserFilters = () => {
+                        const needle = (
+                            search?.value || ''
+                        ).trim().toLocaleLowerCase('fa');
+                        const wantedOrganization =
+                            organization?.value || '';
+                        const wantedRole =
+                            role?.value || '';
+                        const wantedCity =
+                            city?.value || '';
+
+                        users.forEach((user) => {
+                            user.hidden = !(
+                                (
+                                    needle === ''
+                                    || user.dataset.search
+                                        .includes(needle)
+                                )
+                                && (
+                                    wantedOrganization === ''
+                                    || user.dataset.organization
+                                        === wantedOrganization
+                                )
+                                && (
+                                    wantedRole === ''
+                                    || user.dataset.role
+                                        .includes(wantedRole)
+                                )
+                                && (
+                                    wantedCity === ''
+                                    || user.dataset.city
+                                        === wantedCity
+                                )
+                            );
+                        });
+                    };
+
+                    const manualCount = (channel) => {
+                        const field = root.querySelector(
+                            '[name="manual_'
+                            + channel
+                            + '"]'
+                        );
+
+                        if (!field) {
+                            return 0;
+                        }
+
+                        return new Set(
+                            (field.value || '')
+                                .split(/[\r\n,;،]+/u)
+                                .map((item) => item.trim())
+                                .filter(Boolean)
+                        ).size;
+                    };
+
+                    const refresh = () => {
+                        const activeChannels =
+                            selectedChannels();
+                        const selectedUsers = users.filter(
+                            (user) => user.querySelector(
+                                '[data-send-user-checkbox]'
+                            )?.checked
+                        );
+                        let estimated = 0;
+
+                        selectedUsers.forEach((user) => {
+                            activeChannels.forEach(
+                                (channel) => {
+                                    if (
+                                        user.dataset[channel]
+                                        === '1'
+                                    ) {
+                                        estimated++;
+                                    }
+                                }
+                            );
+                        });
+
+                        activeChannels.forEach((channel) => {
+                            estimated += manualCount(channel);
+                        });
+
+                        if (selectedCount) {
+                            selectedCount.textContent =
+                                digits.format(
+                                    selectedUsers.length
+                                );
+                        }
+
+                        if (estimatedCount) {
+                            estimatedCount.textContent =
+                                digits.format(estimated);
+                            estimatedCount.closest(
+                                'strong'
+                            )?.classList.toggle(
+                                'is-over-limit',
+                                estimated > limit
+                            );
+                        }
+
+                        channels.forEach((channel) => {
+                            const card = channel.closest(
+                                '[data-send-channel-card]'
+                            );
+                            card?.classList.toggle(
+                                'is-active',
+                                channel.checked
+                            );
+
+                            const manual = root.querySelector(
+                                '[data-send-manual-channel="'
+                                + channel.value
+                                + '"]'
+                            );
+
+                            if (manual) {
+                                manual.hidden =
+                                    !channel.checked;
+                            }
+                        });
+
+                        if (subject) {
+                            subject.required =
+                                activeChannels.includes(
+                                    'email'
+                                );
+                        }
+                    };
+
+                    search?.addEventListener(
+                        'input',
+                        applyUserFilters
+                    );
+                    organization?.addEventListener(
+                        'change',
+                        applyUserFilters
+                    );
+                    role?.addEventListener(
+                        'change',
+                        applyUserFilters
+                    );
+                    city?.addEventListener(
+                        'change',
+                        applyUserFilters
+                    );
+
+                    root.querySelector(
+                        '[data-send-select-visible]'
+                    )?.addEventListener('click', () => {
+                        users
+                            .filter((user) => !user.hidden)
+                            .forEach((user) => {
+                                const checkbox =
+                                    user.querySelector(
+                                        '[data-send-user-checkbox]'
+                                    );
+
+                                if (checkbox) {
+                                    checkbox.checked = true;
+                                }
+                            });
+                        refresh();
+                    });
+
+                    root.querySelector(
+                        '[data-send-clear-users]'
+                    )?.addEventListener('click', () => {
+                        users.forEach((user) => {
+                            const checkbox =
+                                user.querySelector(
+                                    '[data-send-user-checkbox]'
+                                );
+
+                            if (checkbox) {
+                                checkbox.checked = false;
+                            }
+                        });
+                        refresh();
+                    });
+
+                    form?.addEventListener(
+                        'input',
+                        refresh
+                    );
+                    form?.addEventListener(
+                        'change',
+                        refresh
+                    );
+                    form?.addEventListener(
+                        'submit',
+                        (event) => {
+                            const estimated = Number(
+                                (
+                                    estimatedCount
+                                        ?.textContent
+                                    || '۰'
+                                ).replace(
+                                    /[۰-۹]/g,
+                                    (digit) =>
+                                        '۰۱۲۳۴۵۶۷۸۹'
+                                            .indexOf(digit)
+                                )
+                            );
+
+                            if (estimated > limit) {
+                                event.preventDefault();
+                                window.alert(
+                                    'تعداد تحویل‌ها از سقف '
+                                    + digits.format(limit)
+                                    + ' بیشتر است.'
+                                );
+                            }
+                        }
+                    );
+
+                    applyUserFilters();
+                    refresh();
+                })();
+                </script>
+            </section>
 
         <?php elseif ($section === 'reports'): ?>
             <?php

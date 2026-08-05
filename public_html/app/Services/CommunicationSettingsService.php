@@ -23,6 +23,10 @@ class CommunicationSettingsService extends BaseService
             'title' => 'روش‌های دریافت اعلان',
             'permission' => 'notifications.preferences.self',
         ],
+        'send' => [
+            'title' => 'ارسال اعلان',
+            'permission' => 'notifications.send.manage',
+        ],
         'reports' => [
             'title' => 'گزارش ارسال و تحویل',
             'permission' => 'notifications.reports.view',
@@ -38,13 +42,15 @@ class CommunicationSettingsService extends BaseService
         private ?AuthorizationService $authorization = null,
         private ?NotificationProviderManagementService $providers = null,
         private ?NotificationProviderDefaultService $providerDefaults = null,
-        private ?NotificationDeliveryReportService $deliveryReports = null
+        private ?NotificationDeliveryReportService $deliveryReports = null,
+        private ?NotificationSendCenterService $sendCenter = null
     ) {
         $this->repository ??= new CommunicationSettingsRepository();
         $this->authorization ??= new AuthorizationService();
         $this->providers ??= new NotificationProviderManagementService();
         $this->providerDefaults ??= new NotificationProviderDefaultService();
         $this->deliveryReports ??= new NotificationDeliveryReportService();
+        $this->sendCenter ??= new NotificationSendCenterService();
     }
 
     public function allowedSections(int $userId): array
@@ -92,6 +98,7 @@ class CommunicationSettingsService extends BaseService
         $providerManagement = [];
         $providerDefaultManagement = [];
         $deliveryReport = [];
+        $notificationSendCenter = [];
 
         if (
             $section === 'providers'
@@ -109,6 +116,14 @@ class CommunicationSettingsService extends BaseService
         ) {
             $providerDefaultManagement =
                 $this->providerDefaults->page($userId);
+        }
+
+        if (
+            $section === 'send'
+            && isset($sections['send'])
+        ) {
+            $notificationSendCenter =
+                $this->sendCenter->page($userId);
         }
 
         if (
@@ -149,6 +164,8 @@ class CommunicationSettingsService extends BaseService
             'preferences' => $preferencesAllowed
                 ? $this->repository->preferences($userId)
                 : [],
+            'notification_send_center' =>
+                $notificationSendCenter,
             'delivery_report' => $deliveryReport,
             'deliveries' => is_array(
                 $deliveryReport['items'] ?? null

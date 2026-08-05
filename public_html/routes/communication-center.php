@@ -550,6 +550,139 @@ $router->get(
 );
 
 $router->post(
+    '/admin/communications/settings/send',
+    function (
+        $request,
+        $response
+    ) use ($adminGuard, $communicationAccess) {
+        $context = $adminGuard(
+            $response,
+            '/admin/communications/settings'
+        );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $path =
+            '/admin/communications/settings/send';
+
+        if (!$communicationAccess(
+            $context,
+            'POST',
+            $path
+        )) {
+            return $response->redirect(
+                '/admin/dashboard?error=forbidden'
+            );
+        }
+
+        $token = (string) $request->input(
+            '_token',
+            ''
+        );
+
+        if (!(new \IPKF\Security\Csrf())->check($token)) {
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=send&status=invalid_csrf'
+            );
+        }
+
+        try {
+            $service =
+                new \App\Services\NotificationSendCenterService();
+
+            $result = $service->send(
+                (int) $context['user_id'],
+                [
+                    'channels' =>
+                        $request->input(
+                            'channels',
+                            []
+                        ),
+                    'recipient_user_ids' =>
+                        $request->input(
+                            'recipient_user_ids',
+                            []
+                        ),
+                    'manual_email' =>
+                        $request->input(
+                            'manual_email',
+                            ''
+                        ),
+                    'manual_sms' =>
+                        $request->input(
+                            'manual_sms',
+                            ''
+                        ),
+                    'manual_messenger' =>
+                        $request->input(
+                            'manual_messenger',
+                            ''
+                        ),
+                    'subject' =>
+                        $request->input(
+                            'subject',
+                            ''
+                        ),
+                    'body' =>
+                        $request->input(
+                            'body',
+                            ''
+                        ),
+                    'confirm_dispatch' =>
+                        $request->input(
+                            'confirm_dispatch',
+                            ''
+                        ),
+                ]
+            );
+
+            $service->storeResult(
+                (int) $context['user_id'],
+                $result
+            );
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=send'
+                . '&status=notification_send_completed'
+            );
+        } catch (
+            \InvalidArgumentException
+            | \RuntimeException $exception
+        ) {
+            $status = trim(
+                $exception->getMessage()
+            );
+
+            if (
+                !str_starts_with(
+                    $status,
+                    'notification_send_'
+                )
+            ) {
+                $status =
+                    'notification_send_failed';
+            }
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=send&status='
+                . rawurlencode($status)
+            );
+        } catch (\Throwable) {
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=send'
+                . '&status=notification_send_failed'
+            );
+        }
+    }
+);
+
+$router->post(
     '/admin/communications/settings/preferences',
     function (
         $request,

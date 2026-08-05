@@ -14,7 +14,9 @@ class NotificationGatewayRepository extends BaseRepository
         string $destination,
         string $subject,
         string $body,
-        int $maxAttempts
+        int $maxAttempts,
+        ?int $recipientUserId = null,
+        ?string $recipientUserReference = null
     ): array {
         $db = $this->connection();
         $db->beginTransaction();
@@ -132,7 +134,7 @@ class NotificationGatewayRepository extends BaseRepository
                 )
                 VALUES (
                     ?,
-                    NULL,
+                    ?,
                     ?,
                     'immediate',
                     NULL,
@@ -142,14 +144,37 @@ class NotificationGatewayRepository extends BaseRepository
                     CURRENT_TIMESTAMP
                 )
             ");
-            $recipient->execute([
-                $notificationId,
-                'external:'
+            $recipientUserId =
+                $recipientUserId !== null
+                && $recipientUserId > 0
+                    ? $recipientUserId
+                    : null;
+            $recipientUserReference = trim(
+                (string) $recipientUserReference
+            );
+
+            if (
+                $recipientUserId !== null
+                && $recipientUserReference === ''
+            ) {
+                $recipientUserReference =
+                    'user:' . $recipientUserId;
+            }
+
+            if ($recipientUserReference === '') {
+                $recipientUserReference =
+                    'external:'
                     . substr(
                         hash('sha256', $destination),
                         0,
                         32
-                    ),
+                    );
+            }
+
+            $recipient->execute([
+                $notificationId,
+                $recipientUserId,
+                $recipientUserReference,
             ]);
             $recipientId =
                 (int) $db->lastInsertId();

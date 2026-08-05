@@ -58,6 +58,16 @@ class NotificationGatewayService extends BaseService
         $body = trim(
             (string) ($input['body'] ?? '')
         );
+        $recipientUserId = (int) (
+            $input['recipient_user_id'] ?? 0
+        );
+        $recipientUserReference = trim(
+            (string) (
+                $input[
+                    'recipient_user_reference'
+                ] ?? ''
+            )
+        );
 
         $this->validate(
             $channel,
@@ -86,7 +96,11 @@ class NotificationGatewayService extends BaseService
                 $destination,
                 $subject,
                 $body,
-                count($candidates)
+                count($candidates),
+                $recipientUserId > 0
+                    ? $recipientUserId
+                    : null,
+                $recipientUserReference
             );
 
         if ($candidates === []) {
