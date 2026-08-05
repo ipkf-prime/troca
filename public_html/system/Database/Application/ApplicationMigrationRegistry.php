@@ -54,6 +54,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\EnableNotificationProviderDefaultManagement::class,
                     \IPKF\Database\Migrations\CreateNotificationGatewayFoundation::class,
                     \IPKF\Database\Migrations\EnableNotificationSendCenterFoundation::class,
+                    \IPKF\Database\Migrations\EnableNotificationSendExperienceAndBaleEnrollment::class,
                 ],
             ],
             'automation' => [

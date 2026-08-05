@@ -67,6 +67,17 @@ $statusMessages = [
     'notification_send_destination_required' => ['error', 'هیچ مقصد معتبر و قابل ارسالی پیدا نشد.'],
     'notification_send_immediate_limit_exceeded' => ['error', 'تعداد تحویل‌ها از سقف ارسال فوری بیشتر است. گروه بزرگ‌تر باید در صف ارسال انبوه قرار گیرد.'],
     'notification_send_failed' => ['error', 'عملیات ارسال اعلان انجام نشد.'],
+    'notification_send_message_type_invalid' => ['error', 'نوع پیام معتبر نیست.'],
+    'notification_send_multimedia_delivery_pending' => ['error', 'ساختار محتوای چندرسانه‌ای ثبت شد؛ اتصال نهایی Adapter ایمیل و بله در مرحله بعد فعال می‌شود.'],
+    'notification_bale_invitation_sent' => ['success', 'لینک فعال‌سازی بله با پیامک برای کاربران قابل‌ارسال فرستاده شد.'],
+    'notification_bale_invitation_recipient_required' => ['error', 'برای دعوت بله حداقل یک کاربر را انتخاب کنید.'],
+    'notification_bale_invitation_limit' => ['error', 'تعداد کاربران دعوت بله بیش از سقف ارسال فوری است.'],
+    'notification_bale_provider_unavailable' => ['error', 'بات فعال عضویت و احراز هویت بله در دسترس نیست.'],
+    'notification_bale_auth_provider_unconfigured' => ['error', 'در تنظیمات بات جدید بله، کاربرد «عضویت و احراز هویت» را انتخاب کنید.'],
+    'notification_bale_auth_provider_ambiguous' => ['error', 'بیش از یک بات بله برای عضویت و احراز هویت تعیین شده است؛ فقط یک بات را انتخاب کنید.'],
+    'notification_bale_enrollment_link_missing' => ['error', 'نام کاربری ربات یا قالب لینک فعال‌سازی بله تنظیم نشده است.'],
+    'notification_bale_enrollment_link_invalid' => ['error', 'لینک فعال‌سازی بله معتبر نیست.'],
+    'notification_bale_invitation_failed' => ['error', 'ارسال دعوت فعال‌سازی بله انجام نشد.'],
     'provider_test_sent' => ['success', 'ایمیل آزمایشی با موفقیت به سرور ایمیل تحویل شد.'],
     'provider_test_email_sent' => ['success', 'ایمیل آزمایشی با موفقیت به سرور ایمیل تحویل شد.'],
     'provider_test_sms_sent' => ['success', 'پیامک آزمایشی با موفقیت به کاوه‌نگار تحویل شد.'],
@@ -2345,6 +2356,7 @@ require BASE_PATH
                     class="notification-send-form"
                     method="post"
                     action="/admin/communications/settings/send"
+                    enctype="multipart/form-data"
                     data-notification-send-form
                 >
                     <input
@@ -3026,6 +3038,340 @@ require BASE_PATH
 
                     applyUserFilters();
                     refresh();
+                })();
+                </script>
+                <!-- notification-send-tabs-v061 -->
+                <script>
+                (() => {
+                    const root = document.querySelector(
+                        '[data-notification-send-center]'
+                    );
+                    const form = root?.querySelector(
+                        '[data-notification-send-form]'
+                    );
+
+                    if (!root || !form) return;
+
+                    const sections = Array.from(
+                        form.querySelectorAll(
+                            '.notification-send-section'
+                        )
+                    );
+                    const review = form.querySelector(
+                        '.notification-send-review'
+                    );
+
+                    if (
+                        sections.length < 4
+                        || !review
+                        || form.querySelector(
+                            '[data-send-step-tabs]'
+                        )
+                    ) {
+                        return;
+                    }
+
+                    const typeBlock =
+                        document.createElement('section');
+                    typeBlock.className =
+                        'notification-send-message-types';
+                    typeBlock.innerHTML = `
+                        <h3>نوع پیام</h3>
+                        <div class="notification-send-type-grid">
+                            <label class="notification-send-type is-active">
+                                <input type="radio"
+                                    name="message_type_code"
+                                    value="text" checked
+                                    data-send-message-type>
+                                <span>
+                                    <strong>پیام متنی</strong>
+                                    <small>ایمیل، پیام کوتاه و بله</small>
+                                </span>
+                            </label>
+                            <label class="notification-send-type">
+                                <input type="radio"
+                                    name="message_type_code"
+                                    value="multimedia"
+                                    data-send-message-type>
+                                <span>
+                                    <strong>پیام چندرسانه‌ای</strong>
+                                    <small>ایمیل و بله؛ پیامک غیرفعال</small>
+                                </span>
+                            </label>
+                        </div>
+                        <p class="notification-send-media-note"
+                            data-send-media-note hidden>
+                            تصویر، ویدئو، صوت و سند پیش‌بینی شده است.
+                            پیامک در این حالت قابل انتخاب نیست.
+                        </p>
+                    `;
+                    sections[0].prepend(typeBlock);
+
+                    const mediaBlock =
+                        document.createElement('section');
+                    mediaBlock.className =
+                        'notification-send-media-foundation';
+                    mediaBlock.hidden = true;
+                    mediaBlock.dataset.sendMediaFoundation = '';
+                    mediaBlock.innerHTML = `
+                        <label class="notification-send-dropzone">
+                            <strong>فایل‌های چندرسانه‌ای</strong>
+                            <span>تصویر، ویدئو، صوت یا سند</span>
+                            <input type="file"
+                                name="media_files[]" multiple
+                                data-send-media-files
+                                accept=".jpg,.jpeg,.png,.webp,.mp4,.mp3,.m4a,.ogg,.pdf,.doc,.docx,.xls,.xlsx,.txt">
+                        </label>
+                        <div class="notification-send-media-preview"
+                            data-send-media-preview></div>
+                    `;
+                    sections[3].append(mediaBlock);
+
+                    const manualMessenger =
+                        sections[2].querySelector(
+                            '[data-send-manual-channel="messenger"]'
+                        );
+                    manualMessenger?.remove();
+
+                    const userActions =
+                        sections[1].querySelector(
+                            '.notification-send-user-actions'
+                        );
+                    const inviteButton =
+                        document.createElement('button');
+                    inviteButton.type = 'submit';
+                    inviteButton.className =
+                        'admin-button admin-button--soft';
+                    inviteButton.formAction =
+                        '/admin/communications/settings/send/bale-invitations';
+                    inviteButton.formMethod = 'post';
+                    inviteButton.formNoValidate = true;
+                    inviteButton.textContent =
+                        'ارسال لینک فعال‌سازی بله با پیامک';
+                    userActions?.append(inviteButton);
+
+                    const panels = [
+                        sections[0],
+                        sections[1],
+                        sections[2],
+                        sections[3],
+                        review
+                    ];
+                    const titles = [
+                        'نوع و کانال',
+                        'گیرندگان',
+                        'مقصدهای دستی',
+                        'محتوا',
+                        'بازبینی و ارسال'
+                    ];
+                    const tabs =
+                        document.createElement('nav');
+                    tabs.className =
+                        'notification-send-step-tabs';
+                    tabs.dataset.sendStepTabs = '';
+
+                    titles.forEach((title, index) => {
+                        const button =
+                            document.createElement('button');
+                        button.type = 'button';
+                        button.dataset.sendStepTab =
+                            String(index + 1);
+                        button.innerHTML =
+                            '<span>'
+                            + new Intl.NumberFormat('fa-IR')
+                                .format(index + 1)
+                            + '</span>'
+                            + title;
+                        tabs.append(button);
+                    });
+
+                    form.insertBefore(
+                        tabs,
+                        panels[0]
+                    );
+
+                    const actions =
+                        form.querySelector(
+                            '.notification-send-actions'
+                        );
+                    const originalSubmit =
+                        actions?.querySelector(
+                            '[type="submit"]'
+                        );
+                    const previous =
+                        document.createElement('button');
+                    const next =
+                        document.createElement('button');
+
+                    previous.type = 'button';
+                    previous.className =
+                        'admin-button admin-button--soft';
+                    previous.textContent = 'مرحله قبل';
+                    previous.dataset.sendPrevious = '';
+
+                    next.type = 'button';
+                    next.className = 'admin-button';
+                    next.textContent = 'مرحله بعد';
+                    next.dataset.sendNext = '';
+
+                    actions?.prepend(previous, next);
+
+                    let step = 1;
+
+                    const showStep = (value) => {
+                        step = Math.max(
+                            1,
+                            Math.min(5, value)
+                        );
+
+                        panels.forEach((panel, index) => {
+                            const active =
+                                index + 1 === step;
+                            panel.hidden = !active;
+                            panel.classList.toggle(
+                                'is-active',
+                                active
+                            );
+                        });
+
+                        Array.from(tabs.children)
+                            .forEach((tab, index) => {
+                                tab.classList.toggle(
+                                    'is-active',
+                                    index + 1 === step
+                                );
+                            });
+
+                        previous.hidden = step === 1;
+                        next.hidden = step === 5;
+                        if (originalSubmit) {
+                            originalSubmit.hidden =
+                                step !== 5;
+                        }
+                    };
+
+                    Array.from(tabs.children)
+                        .forEach((tab) => {
+                            tab.addEventListener(
+                                'click',
+                                () => showStep(
+                                    Number(
+                                        tab.dataset.sendStepTab
+                                    )
+                                )
+                            );
+                        });
+
+                    previous.addEventListener(
+                        'click',
+                        () => showStep(step - 1)
+                    );
+                    next.addEventListener(
+                        'click',
+                        () => showStep(step + 1)
+                    );
+
+                    const messageTypes = Array.from(
+                        form.querySelectorAll(
+                            '[data-send-message-type]'
+                        )
+                    );
+                    const channels = Array.from(
+                        form.querySelectorAll(
+                            '[data-send-channel]'
+                        )
+                    );
+                    const sms = channels.find(
+                        (item) => item.value === 'sms'
+                    );
+                    const warning =
+                        form.querySelector(
+                            '[data-send-media-note]'
+                        );
+                    const media =
+                        form.querySelector(
+                            '[data-send-media-foundation]'
+                        );
+                    const mediaInput =
+                        form.querySelector(
+                            '[data-send-media-files]'
+                        );
+                    const mediaPreview =
+                        form.querySelector(
+                            '[data-send-media-preview]'
+                        );
+
+                    const refreshType = () => {
+                        const type =
+                            messageTypes.find(
+                                (item) => item.checked
+                            )?.value || 'text';
+                        const multimedia =
+                            type === 'multimedia';
+
+                        if (sms) {
+                            if (multimedia) {
+                                sms.checked = false;
+                            }
+                            sms.disabled = multimedia;
+                            sms.closest(
+                                '[data-send-channel-card]'
+                            )?.classList.toggle(
+                                'is-disabled',
+                                multimedia
+                            );
+                        }
+
+                        warning.hidden = !multimedia;
+                        media.hidden = !multimedia;
+
+                        messageTypes.forEach((item) => {
+                            item.closest(
+                                '.notification-send-type'
+                            )?.classList.toggle(
+                                'is-active',
+                                item.checked
+                            );
+                        });
+                    };
+
+                    mediaInput?.addEventListener(
+                        'change',
+                        () => {
+                            mediaPreview.innerHTML = '';
+                            Array.from(
+                                mediaInput.files || []
+                            ).forEach((file) => {
+                                const item =
+                                    document.createElement(
+                                        'article'
+                                    );
+                                item.innerHTML =
+                                    '<strong></strong><small></small>';
+                                item.querySelector(
+                                    'strong'
+                                ).textContent = file.name;
+                                item.querySelector(
+                                    'small'
+                                ).textContent =
+                                    new Intl.NumberFormat(
+                                        'fa-IR'
+                                    ).format(
+                                        Math.ceil(
+                                            file.size / 1024
+                                        )
+                                    ) + ' کیلوبایت';
+                                mediaPreview.append(item);
+                            });
+                        }
+                    );
+
+                    form.addEventListener(
+                        'change',
+                        refreshType
+                    );
+                    refreshType();
+                    showStep(1);
                 })();
                 </script>
             </section>

@@ -2523,3 +2523,179 @@ body.provider-test-dialog-open {
     }
 }
 </style>
+
+<style>
+/* notification-minimal-controls-v061 */
+.communication-panel input[type="checkbox"],
+.communication-panel input[type="radio"],
+.notification-send-form input[type="checkbox"],
+.notification-send-form input[type="radio"] {
+    block-size: 15px !important;
+    flex: 0 0 15px !important;
+    inline-size: 15px !important;
+    margin: 0 !important;
+    max-block-size: 15px !important;
+    max-inline-size: 15px !important;
+    min-block-size: 15px !important;
+    min-inline-size: 15px !important;
+    padding: 0 !important;
+}
+
+.notification-send-step-tabs {
+    display: grid;
+    gap: .45rem;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.notification-send-step-tabs button {
+    align-items: center;
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    color: var(--admin-text);
+    cursor: pointer;
+    display: flex;
+    font: inherit;
+    gap: .4rem;
+    justify-content: center;
+    min-height: 42px;
+    padding: .5rem;
+}
+
+.notification-send-step-tabs button > span {
+    align-items: center;
+    background: var(--admin-surface-muted);
+    border-radius: 999px;
+    display: inline-flex;
+    height: 22px;
+    justify-content: center;
+    width: 22px;
+}
+
+.notification-send-step-tabs button.is-active {
+    background: var(--admin-primary-soft);
+    border-color: var(--admin-primary);
+    color: var(--admin-primary);
+    font-weight: 800;
+}
+
+.notification-send-section[hidden],
+.notification-send-review[hidden] {
+    display: none !important;
+}
+
+.notification-send-type-grid {
+    display: grid;
+    gap: .7rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: 1rem;
+}
+
+.notification-send-type {
+    align-items: flex-start;
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    gap: .65rem;
+    padding: .8rem;
+}
+
+.notification-send-type.is-active {
+    background: var(--admin-primary-soft);
+    border-color: var(--admin-primary);
+}
+
+.notification-send-type > span {
+    display: grid;
+    gap: .25rem;
+}
+
+.notification-send-type small {
+    color: var(--admin-text-muted);
+}
+
+.notification-send-channel.is-disabled {
+    cursor: not-allowed;
+    filter: grayscale(1);
+    opacity: .45;
+}
+
+.notification-send-media-note {
+    background: #fff8e7;
+    border: 1px solid #ead7a7;
+    border-radius: 10px;
+    color: #785100;
+    padding: .65rem;
+}
+
+.notification-send-media-foundation {
+    display: grid;
+    gap: .65rem;
+    margin-top: .8rem;
+}
+
+.notification-send-media-foundation[hidden] {
+    display: none !important;
+}
+
+.notification-send-dropzone {
+    align-items: center;
+    background: var(--admin-surface-muted);
+    border: 1px dashed var(--admin-border);
+    border-radius: 12px;
+    cursor: pointer;
+    display: grid;
+    gap: .3rem;
+    justify-items: center;
+    min-height: 120px;
+    padding: 1rem;
+    text-align: center;
+}
+
+.notification-send-media-preview {
+    display: grid;
+    gap: .55rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.notification-send-media-preview article {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    display: grid;
+    gap: .25rem;
+    min-width: 0;
+    padding: .55rem;
+}
+
+.notification-send-media-preview strong,
+.notification-send-media-preview small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+    .notification-send-step-tabs {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .notification-send-media-preview {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 650px) {
+    .notification-send-step-tabs,
+    .notification-send-type-grid,
+    .notification-send-media-preview {
+        grid-template-columns: 1fr;
+    }
+
+    .notification-send-step-tabs button {
+        justify-content: flex-start;
+    }
+}
+</style>

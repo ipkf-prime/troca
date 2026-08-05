@@ -98,6 +98,29 @@ class NotificationSendCenterService extends BaseService
     ): array {
         $this->authorize($actorUserId);
 
+        $messageType = strtolower(trim(
+            (string) (
+                $input['message_type_code']
+                    ?? 'text'
+            )
+        ));
+
+        if (!in_array(
+            $messageType,
+            ['text', 'multimedia'],
+            true
+        )) {
+            throw new InvalidArgumentException(
+                'notification_send_message_type_invalid'
+            );
+        }
+
+        if ($messageType === 'multimedia') {
+            throw new InvalidArgumentException(
+                'notification_send_multimedia_delivery_pending'
+            );
+        }
+
         $channels = array_values(array_unique(
             array_filter(
                 array_map(

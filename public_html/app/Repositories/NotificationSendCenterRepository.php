@@ -91,40 +91,18 @@ class NotificationSendCenterRepository extends BaseRepository
 
         $messenger = "''";
 
-        if (
-            Database::tableExists('person_contacts')
-            && Database::tableExists('contact_types')
-        ) {
+        if (Database::tableExists(
+            'notification_messenger_bindings'
+        )) {
             $messenger = "COALESCE((
-                SELECT
-                    COALESCE(
-                        NULLIF(
-                            person_contacts.normalized_value,
-                            ''
-                        ),
-                        person_contacts.value
-                    )
-                FROM person_contacts
-                INNER JOIN contact_types
-                  ON contact_types.id =
-                    person_contacts.contact_type_id
-                WHERE person_contacts.person_id =
-                    persons.id
-                  AND person_contacts.status = 'active'
-                  AND contact_types.status = 'active'
-                  AND (
-                    contact_types.channel =
-                        'messenger'
-                    OR contact_types.code IN (
-                        'bale',
-                        'bale_chat_id',
-                        'messenger_bale',
-                        'messenger'
-                    )
-                  )
+                SELECT bindings.chat_id
+                FROM notification_messenger_bindings
+                    AS bindings
+                WHERE bindings.user_id = users.id
+                  AND bindings.status_code = 'active'
                 ORDER BY
-                    person_contacts.is_primary DESC,
-                    person_contacts.id ASC
+                    bindings.verified_at DESC,
+                    bindings.id DESC
                 LIMIT 1
             ), '')";
         }

@@ -596,6 +596,11 @@ $router->post(
             $result = $service->send(
                 (int) $context['user_id'],
                 [
+                    'message_type_code' =>
+                        $request->input(
+                            'message_type_code',
+                            'text'
+                        ),
                     'channels' =>
                         $request->input(
                             'channels',
@@ -678,6 +683,116 @@ $router->post(
                 . '?section=send'
                 . '&status=notification_send_failed'
             );
+        }
+    }
+);
+
+$router->post(
+    '/admin/communications/settings/send/bale-invitations',
+    function (
+        $request,
+        $response
+    ) use ($adminGuard, $communicationAccess) {
+        $context = $adminGuard(
+            $response,
+            '/admin/communications/settings'
+        );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $path =
+            '/admin/communications/settings/send/bale-invitations';
+
+        if (!$communicationAccess(
+            $context,
+            'POST',
+            $path
+        )) {
+            return $response->redirect(
+                '/admin/dashboard?error=forbidden'
+            );
+        }
+
+        if (!(new \IPKF\Security\Csrf())->check(
+            (string) $request->input('_token', '')
+        )) {
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=send&status=invalid_csrf'
+            );
+        }
+
+        try {
+            $result = (
+                new \App\Services\NotificationBaleEnrollmentService()
+            )->invite(
+                (int) $context['user_id'],
+                is_array(
+                    $request->input(
+                        'recipient_user_ids',
+                        []
+                    )
+                )
+                    ? $request->input(
+                        'recipient_user_ids',
+                        []
+                    )
+                    : []
+            );
+
+            $status =
+                (int) ($result['sent'] ?? 0) > 0
+                    ? 'notification_bale_invitation_sent'
+                    : 'notification_bale_invitation_failed';
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=send&status='
+                . rawurlencode($status)
+            );
+        } catch (\Throwable $exception) {
+            $status = trim(
+                $exception->getMessage()
+            );
+
+            if (!str_starts_with(
+                $status,
+                'notification_bale_'
+            )) {
+                $status =
+                    'notification_bale_invitation_failed';
+            }
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=send&status='
+                . rawurlencode($status)
+            );
+        }
+    }
+);
+
+$router->post(
+    '/webhooks/notifications/bale/{reference}',
+    function ($request, $response) {
+        try {
+            return $response->json(
+                (
+                    new \App\Services\NotificationBaleEnrollmentService()
+                )->handleWebhook(
+                    trim((string) $request->route(
+                        'reference',
+                        ''
+                    )),
+                    $request->all()
+                )
+            );
+        } catch (\Throwable) {
+            return $response
+                ->status(200)
+                ->json(['ok' => false]);
         }
     }
 );
