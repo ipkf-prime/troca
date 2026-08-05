@@ -21,7 +21,8 @@ class NotificationSendCenterService extends BaseService
     public function __construct(
         private ?NotificationSendCenterRepository $repository = null,
         private ?NotificationGatewayService $gateway = null,
-        private ?AuthorizationService $authorization = null
+        private ?AuthorizationService $authorization = null,
+        private ?NotificationMediaUploadService $media = null
     ) {
         $this->repository ??=
             new NotificationSendCenterRepository();
@@ -29,6 +30,8 @@ class NotificationSendCenterService extends BaseService
             new NotificationGatewayService();
         $this->authorization ??=
             new AuthorizationService();
+        $this->media ??=
+            new NotificationMediaUploadService();
     }
 
     public function page(int $userId): array
@@ -94,7 +97,8 @@ class NotificationSendCenterService extends BaseService
 
     public function send(
         int $actorUserId,
-        array $input
+        array $input,
+        array $mediaFiles = []
     ): array {
         $this->authorize($actorUserId);
 
@@ -112,12 +116,6 @@ class NotificationSendCenterService extends BaseService
         )) {
             throw new InvalidArgumentException(
                 'notification_send_message_type_invalid'
-            );
-        }
-
-        if ($messageType === 'multimedia') {
-            throw new InvalidArgumentException(
-                'notification_send_multimedia_delivery_pending'
             );
         }
 
@@ -144,6 +142,15 @@ class NotificationSendCenterService extends BaseService
         if ($channels === []) {
             throw new InvalidArgumentException(
                 'notification_send_channel_required'
+            );
+        }
+
+        if (
+            $messageType === 'multimedia'
+            && in_array('sms', $channels, true)
+        ) {
+            throw new InvalidArgumentException(
+                'notification_send_multimedia_sms_not_supported'
             );
         }
 
@@ -313,6 +320,13 @@ class NotificationSendCenterService extends BaseService
             );
         }
 
+        $mediaAssets = $messageType === 'multimedia'
+            ? $this->media->store(
+                $actorUserId,
+                $mediaFiles
+            )
+            : [];
+
         $reference =
             'nsc_' . bin2hex(random_bytes(12));
         $items = [];
@@ -350,6 +364,10 @@ class NotificationSendCenterService extends BaseService
                                     . $target['user_id'],
                         'subject' => $subject,
                         'body' => $body,
+                        'message_type_code' =>
+                            $messageType,
+                        'media_assets' =>
+                            $mediaAssets,
                     ]
                 );
 
@@ -428,6 +446,8 @@ class NotificationSendCenterService extends BaseService
 
         return [
             'public_reference' => $reference,
+            'message_type_code' => $messageType,
+            'media_count' => count($mediaAssets),
             'created_at' => date(
                 'Y-m-d H:i:s'
             ),

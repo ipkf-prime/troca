@@ -71,7 +71,17 @@ $statusMessages = [
     'notification_send_immediate_limit_exceeded' => ['error', 'تعداد تحویل‌ها از سقف ارسال فوری بیشتر است. گروه بزرگ‌تر باید در صف ارسال انبوه قرار گیرد.'],
     'notification_send_failed' => ['error', 'عملیات ارسال اعلان انجام نشد.'],
     'notification_send_message_type_invalid' => ['error', 'نوع پیام معتبر نیست.'],
-    'notification_send_multimedia_delivery_pending' => ['error', 'ساختار محتوای چندرسانه‌ای ثبت شد؛ اتصال نهایی Adapter ایمیل و بله در مرحله بعد فعال می‌شود.'],
+    'notification_send_multimedia_sms_not_supported' => ['error', 'پیام چندرسانه‌ای فقط از طریق ایمیل و بله قابل ارسال است.'],
+    'notification_send_media_required' => ['error', 'برای پیام چندرسانه‌ای حداقل یک فایل انتخاب کنید.'],
+    'notification_send_media_count_exceeded' => ['error', 'حداکثر پنج فایل در هر ارسال مجاز است.'],
+    'notification_send_media_file_size_exceeded' => ['error', 'حجم هر فایل باید حداکثر ده مگابایت باشد.'],
+    'notification_send_media_total_size_exceeded' => ['error', 'مجموع حجم فایل‌ها باید حداکثر سی مگابایت باشد.'],
+    'notification_send_media_type_invalid' => ['error', 'نوع یا محتوای یکی از فایل‌ها مجاز نیست.'],
+    'notification_send_media_type_detection_failed' => ['error', 'تشخیص نوع واقعی یکی از فایل‌ها انجام نشد.'],
+    'notification_send_media_upload_invalid' => ['error', 'فایل بارگذاری‌شده معتبر نیست.'],
+    'notification_send_media_upload_failed' => ['error', 'بارگذاری فایل‌های چندرسانه‌ای انجام نشد.'],
+    'notification_send_media_storage_unavailable' => ['error', 'ساختار ذخیره‌سازی فایل‌های اعلان آماده نیست.'],
+    'notification_send_media_storage_failed' => ['error', 'ذخیره امن فایل‌های اعلان انجام نشد.'],
     'notification_bale_invitation_sent' => ['success', 'لینک فعال‌سازی بله با پیامک برای کاربران قابل‌ارسال فرستاده شد.'],
     'notification_bale_invitation_recipient_required' => ['error', 'برای دعوت بله حداقل یک کاربر را انتخاب کنید.'],
     'notification_bale_invitation_limit' => ['error', 'تعداد کاربران دعوت بله بیش از سقف ارسال فوری است.'],
@@ -3883,13 +3893,18 @@ require BASE_PATH
                     mediaBlock.dataset.sendMediaFoundation = '';
                     mediaBlock.innerHTML = `
                         <label class="notification-send-dropzone">
-                            <strong>فایل‌های چندرسانه‌ای</strong>
+                            <span class="notification-send-dropzone__icon">＋</span>
+                            <strong>انتخاب فایل‌های چندرسانه‌ای</strong>
                             <span>تصویر، ویدئو، صوت یا سند</span>
+                            <em data-send-media-file-count>فایلی انتخاب نشده است</em>
                             <input type="file"
                                 name="media_files[]" multiple
                                 data-send-media-files
-                                accept=".jpg,.jpeg,.png,.webp,.mp4,.mp3,.m4a,.ogg,.pdf,.doc,.docx,.xls,.xlsx,.txt">
+                                accept=".jpg,.jpeg,.png,.webp,.mp4,.mp3,.m4a,.ogg,.pdf,.docx,.xlsx,.txt">
                         </label>
+                        <p class="notification-send-media-limits">
+                            حداکثر ۵ فایل، هر فایل ۱۰ مگابایت و مجموع ۳۰ مگابایت
+                        </p>
                         <div class="notification-send-media-preview"
                             data-send-media-preview></div>
                     `;

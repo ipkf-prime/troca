@@ -69,6 +69,16 @@ class NotificationSmtpGatewayAdapter extends BaseService implements
         $body = trim(
             (string) ($message['body'] ?? '')
         );
+        $mediaAssets = array_values(array_filter(
+            is_array($message['media_assets'] ?? null)
+                ? $message['media_assets']
+                : [],
+            static fn (mixed $asset): bool =>
+                is_array($asset)
+                && is_readable((string) (
+                    $asset['storage_path'] ?? ''
+                ))
+        ));
 
         if (
             $host === ''
@@ -129,6 +139,14 @@ class NotificationSmtpGatewayAdapter extends BaseService implements
                 'recipient' => $destination,
                 'subject' => $subject,
                 'body' => $body,
+                'attachments' => array_map(
+                    static fn (array $asset): array => [
+                        'path' => (string) $asset['storage_path'],
+                        'mime_type' => (string) $asset['mime_type'],
+                        'original_name' => (string) $asset['original_name'],
+                    ],
+                    $mediaAssets
+                ),
                 'timeout' => 15,
                 'is_test' => false,
             ]);
@@ -149,6 +167,7 @@ class NotificationSmtpGatewayAdapter extends BaseService implements
                     'transport' => 'smtp',
                     'target_domain' =>
                         $this->emailDomain($destination),
+                    'media_count' => count($mediaAssets),
                 ],
             ];
         } catch (Throwable $exception) {

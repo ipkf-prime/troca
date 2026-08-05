@@ -30,6 +30,16 @@ class NotificationSmtpTransport extends BaseService
             (string) ($message['subject'] ?? '')
         );
         $body = trim((string) ($message['body'] ?? ''));
+        $attachments = array_values(array_filter(
+            is_array($message['attachments'] ?? null)
+                ? $message['attachments']
+                : [],
+            static fn (mixed $attachment): bool =>
+                is_array($attachment)
+                && is_readable((string) (
+                    $attachment['path'] ?? ''
+                ))
+        ));
         $timeout = max(
             3,
             min(30, (int) ($message['timeout'] ?? 12))
@@ -143,7 +153,8 @@ class NotificationSmtpTransport extends BaseService
                 $subject,
                 $body,
                 $messageId,
-                $isTest
+                $isTest,
+                $attachments
             );
 
             $this->writeAll(
@@ -346,7 +357,8 @@ class NotificationSmtpTransport extends BaseService
         string $subject,
         string $body,
         string $messageId,
-        bool $isTest
+        bool $isTest,
+        array $attachments = []
     ): string {
         $safeFromName = $this->headerText(
             $fromName !== '' ? $fromName : $fromAddress
@@ -361,26 +373,117 @@ class NotificationSmtpTransport extends BaseService
             'Subject: ' . $safeSubject,
             'Message-ID: <' . $messageId . '>',
             'MIME-Version: 1.0',
-            'Content-Type: text/plain; charset=UTF-8',
-            'Content-Transfer-Encoding: base64',
         ];
 
         $headers[] = $isTest
             ? 'X-IPKF-Notification-Test: 1'
             : 'X-IPKF-Notification-Gateway: 1';
 
-        $encodedBody = rtrim(
-            chunk_split(
-                base64_encode($body),
-                76,
-                "\r\n"
-            )
-        );
+        if ($attachments === []) {
+            $headers[] =
+                'Content-Type: text/plain; charset=UTF-8';
+            $headers[] =
+                'Content-Transfer-Encoding: base64';
 
-        $payload = implode("\r\n", $headers)
+            return $this->dotStuff(
+                implode("\r\n", $headers)
+                . "\r\n\r\n"
+                . $this->encodePart($body)
+            );
+        }
+
+        $boundary = '=_IPKF_'
+            . bin2hex(random_bytes(18));
+        $headers[] =
+            'Content-Type: multipart/mixed; boundary="'
+            . $boundary . '"';
+
+        $parts = [
+            '--' . $boundary,
+            'Content-Type: text/plain; charset=UTF-8',
+            'Content-Transfer-Encoding: base64',
+            '',
+            $this->encodePart($body),
+        ];
+
+        foreach ($attachments as $attachment) {
+            $path = (string) (
+                $attachment['path'] ?? ''
+            );
+
+            if ($path === '' || !is_readable($path)) {
+                throw new RuntimeException(
+                    'provider_test_send_failed'
+                );
+            }
+
+            $content = file_get_contents($path);
+
+            if (!is_string($content)) {
+                throw new RuntimeException(
+                    'provider_test_send_failed'
+                );
+            }
+
+            $mime = trim((string) (
+                $attachment['mime_type']
+                ?? 'application/octet-stream'
+            ));
+            $name = basename(str_replace(
+                '\\',
+                '/',
+                (string) (
+                    $attachment['original_name']
+                    ?? basename($path)
+                )
+            ));
+            $name = trim(preg_replace(
+                '/[\r\n]+/',
+                ' ',
+                $name
+            ) ?? 'attachment');
+            $ascii = preg_replace(
+                '/[^A-Za-z0-9._-]+/',
+                '_',
+                $name
+            ) ?: 'attachment';
+
+            array_push(
+                $parts,
+                '--' . $boundary,
+                'Content-Type: ' . $mime
+                    . '; name="' . $ascii . '"',
+                'Content-Transfer-Encoding: base64',
+                'Content-Disposition: attachment; filename="'
+                    . $ascii
+                    . '"; filename*=UTF-8\'\''
+                    . rawurlencode($name),
+                '',
+                $this->encodePart($content)
+            );
+        }
+
+        $parts[] = '--' . $boundary . '--';
+        $parts[] = '';
+
+        return $this->dotStuff(
+            implode("\r\n", $headers)
             . "\r\n\r\n"
-            . $encodedBody;
+            . implode("\r\n", $parts)
+        );
+    }
 
+    private function encodePart(string $content): string
+    {
+        return rtrim(chunk_split(
+            base64_encode($content),
+            76,
+            "\r\n"
+        ));
+    }
+
+    private function dotStuff(string $payload): string
+    {
         return preg_replace(
             '/(?m)^\./',
             '..',

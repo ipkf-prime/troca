@@ -50,6 +50,111 @@ class NotificationProviderHttpTransport extends BaseService
         );
     }
 
+    public function postMultipart(
+        string $url,
+        array $fields,
+        array $file,
+        int $timeout = 45,
+        string $userAgent = 'IPKF-Notification-Gateway/1.0'
+    ): array {
+        if (
+            !function_exists('curl_init')
+            || !class_exists(\CURLFile::class)
+        ) {
+            throw new RuntimeException(
+                'provider_test_api_connection_failed'
+            );
+        }
+
+        $path = (string) ($file['path'] ?? '');
+        $fieldName = trim((string) (
+            $file['field_name'] ?? ''
+        ));
+
+        if (
+            $path === ''
+            || $fieldName === ''
+            || !is_readable($path)
+        ) {
+            throw new RuntimeException(
+                'provider_test_api_connection_failed'
+            );
+        }
+
+        $payload = [];
+
+        foreach ($fields as $key => $value) {
+            $payload[(string) $key] = (string) $value;
+        }
+
+        $payload[$fieldName] = new \CURLFile(
+            $path,
+            (string) (
+                $file['mime_type']
+                ?? 'application/octet-stream'
+            ),
+            (string) (
+                $file['original_name']
+                ?? basename($path)
+            )
+        );
+
+        $timeout = max(3, min(60, $timeout));
+        $startedAt = microtime(true);
+        $curl = curl_init($url);
+
+        if ($curl === false) {
+            throw new RuntimeException(
+                'provider_test_api_connection_failed'
+            );
+        }
+
+        $options = [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_HTTPHEADER => [
+                'Accept: application/json',
+                'User-Agent: ' . $userAgent,
+            ],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_CONNECTTIMEOUT => min(10, $timeout),
+            CURLOPT_TIMEOUT => $timeout,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+        ];
+
+        if (defined('CURLOPT_PROTOCOLS')) {
+            $options[CURLOPT_PROTOCOLS] =
+                CURLPROTO_HTTPS;
+        }
+
+        curl_setopt_array($curl, $options);
+
+        $responseBody = curl_exec($curl);
+        $errorNumber = curl_errno($curl);
+        $statusCode = (int) curl_getinfo(
+            $curl,
+            CURLINFO_RESPONSE_CODE
+        );
+
+        curl_close($curl);
+
+        if ($responseBody === false) {
+            throw new RuntimeException(
+                $errorNumber === 28
+                    ? 'provider_test_api_timeout'
+                    : 'provider_test_api_connection_failed'
+            );
+        }
+
+        return $this->result(
+            $statusCode,
+            (string) $responseBody,
+            $startedAt
+        );
+    }
+
     private function request(
         string $url,
         string $body,

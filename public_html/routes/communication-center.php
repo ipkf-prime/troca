@@ -641,7 +641,10 @@ $router->post(
                             'confirm_dispatch',
                             ''
                         ),
-                ]
+                ],
+                is_array(
+                    $_FILES['media_files'] ?? null
+                ) ? $_FILES['media_files'] : []
             );
 
             $service->storeResult(

@@ -3496,3 +3496,59 @@ body.provider-test-dialog-open {
     }
 }
 </style>
+
+<style>
+/* notification-multimedia-delivery-core-v061 */
+.notification-send-actions [hidden] {
+    display: none !important;
+}
+
+.notification-send-dropzone {
+    align-items: center;
+    cursor: pointer;
+    display: grid;
+    gap: .25rem;
+    justify-items: center;
+    position: relative;
+    text-align: center;
+}
+
+.notification-send-dropzone input[type="file"] {
+    block-size: 1px;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    inline-size: 1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+}
+
+.notification-send-dropzone__icon {
+    align-items: center;
+    background: var(--admin-primary-soft);
+    border-radius: 999px;
+    color: var(--admin-primary);
+    display: inline-flex;
+    font-size: 1.1rem;
+    height: 32px;
+    justify-content: center;
+    width: 32px;
+}
+
+.notification-send-dropzone em {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 999px;
+    color: var(--admin-text-muted);
+    font-size: .72rem;
+    font-style: normal;
+    padding: .25rem .55rem;
+}
+
+.notification-send-media-limits {
+    color: var(--admin-text-muted);
+    font-size: .7rem;
+    margin: 0;
+    text-align: center;
+}
+</style>

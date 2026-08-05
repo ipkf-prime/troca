@@ -16,7 +16,9 @@ class NotificationGatewayRepository extends BaseRepository
         string $body,
         int $maxAttempts,
         ?int $recipientUserId = null,
-        ?string $recipientUserReference = null
+        ?string $recipientUserReference = null,
+        string $messageTypeCode = 'text',
+        array $mediaAssets = []
     ): array {
         $db = $this->connection();
         $db->beginTransaction();
@@ -86,6 +88,7 @@ class NotificationGatewayRepository extends BaseRepository
                     public_reference,
                     event_id,
                     template_code,
+                    message_type_code,
                     title,
                     body,
                     action_url,
@@ -101,6 +104,7 @@ class NotificationGatewayRepository extends BaseRepository
                     NULL,
                     ?,
                     ?,
+                    ?,
                     NULL,
                     'normal',
                     'general',
@@ -112,6 +116,7 @@ class NotificationGatewayRepository extends BaseRepository
             $notification->execute([
                 $notificationReference,
                 $eventId,
+                $messageTypeCode,
                 $subject !== ''
                     ? $subject
                     : 'اعلان سامانه',
@@ -241,6 +246,33 @@ class NotificationGatewayRepository extends BaseRepository
 
             $deliveryId =
                 (int) $db->lastInsertId();
+
+            if ($mediaAssets !== []) {
+                $link = $db->prepare("
+                    INSERT IGNORE INTO notification_media_links (
+                        notification_id,
+                        asset_id,
+                        sort_order,
+                        is_primary,
+                        alt_text,
+                        created_at
+                    )
+                    VALUES (?, ?, ?, ?, NULL, CURRENT_TIMESTAMP)
+                ");
+
+                foreach (array_values($mediaAssets) as $index => $asset) {
+                    $assetId = (int) ($asset['id'] ?? 0);
+
+                    if ($assetId > 0) {
+                        $link->execute([
+                            $notificationId,
+                            $assetId,
+                            $index,
+                            $index === 0 ? 1 : 0,
+                        ]);
+                    }
+                }
+            }
 
             $db->commit();
 

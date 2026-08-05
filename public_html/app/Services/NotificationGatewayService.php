@@ -58,6 +58,23 @@ class NotificationGatewayService extends BaseService
         $body = trim(
             (string) ($input['body'] ?? '')
         );
+        $messageType = strtolower(trim(
+            (string) (
+                $input['message_type_code']
+                ?? 'text'
+            )
+        ));
+        $mediaAssets = array_values(array_filter(
+            is_array($input['media_assets'] ?? null)
+                ? $input['media_assets']
+                : [],
+            static fn (mixed $asset): bool =>
+                is_array($asset)
+                && (int) ($asset['id'] ?? 0) > 0
+                && is_readable((string) (
+                    $asset['storage_path'] ?? ''
+                ))
+        ));
         $recipientUserId = (int) (
             $input['recipient_user_id'] ?? 0
         );
@@ -100,7 +117,9 @@ class NotificationGatewayService extends BaseService
                 $recipientUserId > 0
                     ? $recipientUserId
                     : null,
-                $recipientUserReference
+                $recipientUserReference,
+                $messageType,
+                $mediaAssets
             );
 
         if ($candidates === []) {
@@ -147,6 +166,10 @@ class NotificationGatewayService extends BaseService
                         'purpose_code' => $purpose,
                         'request_reference' =>
                             $tracking['request_reference'],
+                        'message_type_code' =>
+                            $messageType,
+                        'media_assets' =>
+                            $mediaAssets,
                     ]
                 );
 
@@ -184,6 +207,9 @@ class NotificationGatewayService extends BaseService
                         ),
                     'attempt_count' => $index + 1,
                     'fallback_used' => $index > 0,
+                    'media_count' => count(
+                        $mediaAssets
+                    ),
                 ];
             } catch (Throwable $exception) {
                 $errorCode =
