@@ -720,7 +720,7 @@ $router->post(
         )) {
             return $response->redirect(
                 '/admin/communications/settings'
-                . '?section=send&status=invalid_csrf'
+                . '?section=bale_connections&status=invalid_csrf'
             );
         }
 
@@ -749,7 +749,7 @@ $router->post(
 
             return $response->redirect(
                 '/admin/communications/settings'
-                . '?section=send&status='
+                . '?section=bale_connections&status='
                 . rawurlencode($status)
             );
         } catch (\Throwable $exception) {
@@ -767,7 +767,85 @@ $router->post(
 
             return $response->redirect(
                 '/admin/communications/settings'
-                . '?section=send&status='
+                . '?section=bale_connections&status='
+                . rawurlencode($status)
+            );
+        }
+    }
+);
+
+$router->post(
+    '/admin/communications/settings/bale-connections/disconnect',
+    function (
+        $request,
+        $response
+    ) use ($adminGuard, $communicationAccess) {
+        $context = $adminGuard(
+            $response,
+            '/admin/communications/settings'
+        );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        /*
+         * Reuse the established Bale invitation
+         * capability until route permissions become
+         * independently configurable.
+         */
+        $permissionPath =
+            '/admin/communications/settings/send/bale-invitations';
+
+        if (!$communicationAccess(
+            $context,
+            'POST',
+            $permissionPath
+        )) {
+            return $response->redirect(
+                '/admin/dashboard?error=forbidden'
+            );
+        }
+
+        if (!(new \IPKF\Security\Csrf())->check(
+            (string) $request->input('_token', '')
+        )) {
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=bale_connections'
+                . '&status=invalid_csrf'
+            );
+        }
+
+        try {
+            (
+                new \App\Services\NotificationBaleConnectionManagementService()
+            )->disconnect(
+                (int) $context['user_id'],
+                (int) $request->input('user_id', 0)
+            );
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=bale_connections'
+                . '&status=notification_bale_connection_disconnected'
+            );
+        } catch (\Throwable $exception) {
+            $status = trim(
+                $exception->getMessage()
+            );
+
+            if (!str_starts_with(
+                $status,
+                'notification_bale_'
+            )) {
+                $status =
+                    'notification_bale_connection_disconnect_failed';
+            }
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=bale_connections&status='
                 . rawurlencode($status)
             );
         }

@@ -23,6 +23,10 @@ class CommunicationSettingsService extends BaseService
             'title' => 'روش‌های دریافت اعلان',
             'permission' => 'notifications.preferences.self',
         ],
+        'bale_connections' => [
+            'title' => 'اتصال کاربران به بله',
+            'permission' => 'notifications.send.manage',
+        ],
         'send' => [
             'title' => 'ارسال اعلان',
             'permission' => 'notifications.send.manage',
@@ -43,7 +47,8 @@ class CommunicationSettingsService extends BaseService
         private ?NotificationProviderManagementService $providers = null,
         private ?NotificationProviderDefaultService $providerDefaults = null,
         private ?NotificationDeliveryReportService $deliveryReports = null,
-        private ?NotificationSendCenterService $sendCenter = null
+        private ?NotificationSendCenterService $sendCenter = null,
+        private ?NotificationBaleConnectionManagementService $baleConnections = null
     ) {
         $this->repository ??= new CommunicationSettingsRepository();
         $this->authorization ??= new AuthorizationService();
@@ -51,6 +56,8 @@ class CommunicationSettingsService extends BaseService
         $this->providerDefaults ??= new NotificationProviderDefaultService();
         $this->deliveryReports ??= new NotificationDeliveryReportService();
         $this->sendCenter ??= new NotificationSendCenterService();
+        $this->baleConnections ??=
+            new NotificationBaleConnectionManagementService();
     }
 
     public function allowedSections(int $userId): array
@@ -99,6 +106,7 @@ class CommunicationSettingsService extends BaseService
         $providerDefaultManagement = [];
         $deliveryReport = [];
         $notificationSendCenter = [];
+        $baleConnectionManagement = [];
 
         if (
             $section === 'providers'
@@ -116,6 +124,14 @@ class CommunicationSettingsService extends BaseService
         ) {
             $providerDefaultManagement =
                 $this->providerDefaults->page($userId);
+        }
+
+        if (
+            $section === 'bale_connections'
+            && isset($sections['bale_connections'])
+        ) {
+            $baleConnectionManagement =
+                $this->baleConnections->page($userId);
         }
 
         if (
@@ -166,6 +182,8 @@ class CommunicationSettingsService extends BaseService
                 : [],
             'notification_send_center' =>
                 $notificationSendCenter,
+            'bale_connection_management' =>
+                $baleConnectionManagement,
             'delivery_report' => $deliveryReport,
             'deliveries' => is_array(
                 $deliveryReport['items'] ?? null

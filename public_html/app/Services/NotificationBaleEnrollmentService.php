@@ -123,6 +123,22 @@ class NotificationBaleEnrollmentService extends BaseService
                 continue;
             }
 
+            if (!empty(
+                $recipient['has_active_binding']
+            )) {
+                $failed++;
+                $items[] = [
+                    'user_id' =>
+                        (int) $recipient['id'],
+                    'title' =>
+                        (string) $recipient['title'],
+                    'status_code' => 'skipped',
+                    'error_code' =>
+                        'recipient_already_connected',
+                ];
+                continue;
+            }
+
             $token = bin2hex(random_bytes(24));
             $link = str_replace(
                 '{token}',

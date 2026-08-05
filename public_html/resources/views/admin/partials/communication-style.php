@@ -2699,3 +2699,293 @@ body.provider-test-dialog-open {
     }
 }
 </style>
+
+<style>
+/* bale-connection-management-style-v061 */
+.bale-connection-management {
+    display: grid;
+    gap: 1rem;
+}
+
+.bale-connection-intro {
+    align-items: center;
+    background: var(--admin-surface-muted);
+    border: 1px solid var(--admin-border);
+    border-radius: 14px;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    padding: 1rem;
+}
+
+.bale-connection-intro h3 {
+    margin: 0;
+}
+
+.bale-connection-provider {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    display: grid;
+    gap: .2rem;
+    min-width: 250px;
+    padding: .75rem .9rem;
+}
+
+.bale-connection-provider > span,
+.bale-connection-provider > small {
+    color: var(--admin-text-muted);
+    font-size: .76rem;
+}
+
+.bale-connection-provider__state {
+    border-radius: 999px;
+    font-size: .74rem;
+    font-style: normal;
+    margin-top: .25rem;
+    padding: .25rem .5rem;
+}
+
+.bale-connection-provider__state--success {
+    background: #e8f7ef;
+    color: #17643c;
+}
+
+.bale-connection-provider__state--error {
+    background: #fff1f1;
+    color: #a33a3a;
+}
+
+.bale-connection-summary {
+    display: grid;
+    gap: .65rem;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.bale-connection-summary article {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    display: grid;
+    gap: .3rem;
+    padding: .75rem;
+}
+
+.bale-connection-summary span {
+    color: var(--admin-text-muted);
+    font-size: .76rem;
+}
+
+.bale-connection-summary strong {
+    font-size: 1.15rem;
+}
+
+.bale-connection-form {
+    display: grid;
+    gap: .8rem;
+}
+
+.bale-connection-filters {
+    align-items: end;
+    display: grid;
+    gap: .65rem;
+    grid-template-columns:
+        minmax(240px, 2fr)
+        repeat(4, minmax(135px, 1fr));
+}
+
+.bale-connection-filters label {
+    display: grid;
+    gap: .3rem;
+}
+
+.bale-connection-filters label > span {
+    color: var(--admin-text-muted);
+    font-size: .76rem;
+    font-weight: 700;
+}
+
+.bale-connection-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+
+.bale-connection-actions [data-bale-send-invitations] {
+    margin-inline-start: auto;
+}
+
+.bale-connection-user-list {
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    display: grid;
+    max-height: 560px;
+    overflow: auto;
+}
+
+.bale-connection-user {
+    align-items: center;
+    border-bottom: 1px solid var(--admin-border);
+    display: grid;
+    gap: .7rem;
+    grid-template-columns:
+        auto
+        minmax(210px, 1.5fr)
+        minmax(100px, .7fr)
+        minmax(180px, 1fr)
+        minmax(115px, auto);
+    padding: .7rem .8rem;
+}
+
+.bale-connection-user:last-child {
+    border-bottom: 0;
+}
+
+.bale-connection-user:hover {
+    background: var(--admin-surface-muted);
+}
+
+.bale-connection-user__select {
+    align-items: center;
+    display: flex;
+}
+
+.bale-connection-user__identity,
+.bale-connection-user__mobile,
+.bale-connection-user__status {
+    display: grid;
+    gap: .2rem;
+    min-width: 0;
+}
+
+.bale-connection-user__identity small,
+.bale-connection-user__mobile > span,
+.bale-connection-user__status > small,
+.bale-connection-user__row-actions > small {
+    color: var(--admin-text-muted);
+    font-size: .75rem;
+}
+
+.bale-connection-user__mobile strong {
+    font-size: .78rem;
+}
+
+.bale-connection-user__mobile strong.is-ready {
+    color: #17643c;
+}
+
+.bale-connection-user__mobile strong.is-missing {
+    color: #a33a3a;
+}
+
+.bale-connection-status {
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: .76rem;
+    font-weight: 700;
+    justify-self: start;
+    padding: .25rem .5rem;
+}
+
+.bale-connection-status--connected {
+    background: #e8f7ef;
+    color: #17643c;
+}
+
+.bale-connection-status--invited,
+.bale-connection-status--waiting_confirmation {
+    background: #eef4ff;
+    color: #315c9a;
+}
+
+.bale-connection-status--expired,
+.bale-connection-status--failed {
+    background: #fff1f1;
+    color: #a33a3a;
+}
+
+.bale-connection-status--disconnected,
+.bale-connection-status--not_connected {
+    background: var(--admin-surface-muted);
+    color: var(--admin-text-muted);
+}
+
+.bale-connection-user__row-actions {
+    align-items: center;
+    display: flex;
+    justify-content: flex-end;
+}
+
+@media (max-width: 1280px) {
+    .bale-connection-summary {
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+    }
+
+    .bale-connection-filters {
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+    }
+
+    .bale-connection-filter-search {
+        grid-column: span 2;
+    }
+
+    .bale-connection-user {
+        grid-template-columns:
+            auto
+            minmax(200px, 1fr)
+            minmax(160px, .8fr)
+            minmax(110px, auto);
+    }
+
+    .bale-connection-user__mobile {
+        display: none;
+    }
+}
+
+@media (max-width: 760px) {
+    .bale-connection-intro {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .bale-connection-provider {
+        min-width: 0;
+    }
+
+    .bale-connection-summary,
+    .bale-connection-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .bale-connection-filter-search {
+        grid-column: auto;
+    }
+
+    .bale-connection-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .bale-connection-actions > * {
+        margin-inline-start: 0 !important;
+        width: 100%;
+    }
+
+    .bale-connection-user {
+        align-items: flex-start;
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .bale-connection-user__status,
+    .bale-connection-user__row-actions {
+        grid-column: 2;
+    }
+
+    .bale-connection-user__row-actions {
+        justify-content: flex-start;
+    }
+}
+</style>

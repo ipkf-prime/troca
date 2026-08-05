@@ -92,7 +92,17 @@ class NotificationMessengerEnrollmentRepository extends BaseRepository
                     NULLIF(users.mobile_norm, ''),
                     NULLIF(users.mobile, ''),
                     ''
-                ) AS mobile
+                ) AS mobile,
+                EXISTS(
+                    SELECT 1
+                    FROM notification_messenger_bindings
+                        AS active_binding
+                    WHERE active_binding.user_id =
+                        users.id
+                      AND active_binding.provider_instance_id = ?
+                      AND active_binding.status_code =
+                        'active'
+                ) AS has_active_binding
             FROM users
             LEFT JOIN persons
               ON persons.id = users.person_id
@@ -105,7 +115,16 @@ class NotificationMessengerEnrollmentRepository extends BaseRepository
                 . ")
             ORDER BY users.id ASC
         ");
-        $statement->execute($userIds);
+        $providers =
+            $this->membershipAuthBaleProviders();
+        $providerId = count($providers) === 1
+            ? (int) $providers[0]['id']
+            : 0;
+
+        $statement->execute(array_merge(
+            [$providerId],
+            $userIds
+        ));
 
         return $statement->fetchAll(
             PDO::FETCH_ASSOC
@@ -422,6 +441,123 @@ class NotificationMessengerEnrollmentRepository extends BaseRepository
             throw $exception;
         }
     }
+    public function connectionStatuses(
+        int $providerInstanceId
+    ): array {
+        if ($providerInstanceId < 1) {
+            return [];
+        }
+
+        $statuses = [];
+
+        $bindings = $this->connection()->prepare("
+            SELECT
+                id,
+                public_reference,
+                user_id,
+                external_user_id,
+                chat_id,
+                username,
+                display_name,
+                verified_at,
+                last_activity_at
+            FROM notification_messenger_bindings
+            WHERE provider_instance_id = ?
+              AND status_code = 'active'
+            ORDER BY
+                verified_at DESC,
+                id DESC
+        ");
+        $bindings->execute([$providerInstanceId]);
+
+        foreach (
+            $bindings->fetchAll(PDO::FETCH_ASSOC) ?: []
+            as $binding
+        ) {
+            $userId = (int) (
+                $binding['user_id'] ?? 0
+            );
+
+            if (
+                $userId > 0
+                && !isset($statuses[$userId]['binding'])
+            ) {
+                $statuses[$userId]['binding'] =
+                    $binding;
+            }
+        }
+
+        $enrollments = $this->connection()->prepare("
+            SELECT enrollments.*
+            FROM notification_messenger_enrollments
+                AS enrollments
+            INNER JOIN (
+                SELECT
+                    user_id,
+                    MAX(id) AS latest_id
+                FROM notification_messenger_enrollments
+                WHERE provider_instance_id = ?
+                GROUP BY user_id
+            ) AS latest
+              ON latest.latest_id = enrollments.id
+            WHERE enrollments.provider_instance_id = ?
+            ORDER BY enrollments.id DESC
+        ");
+        $enrollments->execute([
+            $providerInstanceId,
+            $providerInstanceId,
+        ]);
+
+        foreach (
+            $enrollments->fetchAll(
+                PDO::FETCH_ASSOC
+            ) ?: []
+            as $enrollment
+        ) {
+            $userId = (int) (
+                $enrollment['user_id'] ?? 0
+            );
+
+            if ($userId > 0) {
+                $statuses[$userId]['enrollment'] =
+                    $enrollment;
+            }
+        }
+
+        return $statuses;
+    }
+
+    public function revokeBinding(
+        int $providerInstanceId,
+        int $userId
+    ): bool {
+        if (
+            $providerInstanceId < 1
+            || $userId < 1
+        ) {
+            return false;
+        }
+
+        $statement = $this->connection()->prepare("
+            UPDATE notification_messenger_bindings
+            SET status_code = 'revoked',
+                revoked_at = COALESCE(
+                    revoked_at,
+                    CURRENT_TIMESTAMP
+                ),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE provider_instance_id = ?
+              AND user_id = ?
+              AND status_code = 'active'
+        ");
+        $statement->execute([
+            $providerInstanceId,
+            $userId,
+        ]);
+
+        return $statement->rowCount() > 0;
+    }
+
     private function isMembershipAuthProvider(
         array $provider
     ): bool {

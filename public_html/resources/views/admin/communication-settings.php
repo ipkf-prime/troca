@@ -25,6 +25,9 @@ $preferences = $page['preferences'] ?? [];
 $notificationSendCenter = is_array(
     $page['notification_send_center'] ?? null
 ) ? $page['notification_send_center'] : [];
+$baleConnectionManagement = is_array(
+    $page['bale_connection_management'] ?? null
+) ? $page['bale_connection_management'] : [];
 $deliveryReport = is_array(
     $page['delivery_report'] ?? null
 ) ? $page['delivery_report'] : [];
@@ -78,6 +81,9 @@ $statusMessages = [
     'notification_bale_enrollment_link_missing' => ['error', 'نام کاربری ربات یا قالب لینک فعال‌سازی بله تنظیم نشده است.'],
     'notification_bale_enrollment_link_invalid' => ['error', 'لینک فعال‌سازی بله معتبر نیست.'],
     'notification_bale_invitation_failed' => ['error', 'ارسال دعوت فعال‌سازی بله انجام نشد.'],
+    'notification_bale_connection_disconnected' => ['success', 'اتصال کاربر به بله با موفقیت قطع شد.'],
+    'notification_bale_connection_not_found' => ['error', 'اتصال فعال بله برای این کاربر پیدا نشد.'],
+    'notification_bale_connection_disconnect_failed' => ['error', 'قطع اتصال کاربر به بله انجام نشد.'],
     'provider_test_sent' => ['success', 'ایمیل آزمایشی با موفقیت به سرور ایمیل تحویل شد.'],
     'provider_test_email_sent' => ['success', 'ایمیل آزمایشی با موفقیت به سرور ایمیل تحویل شد.'],
     'provider_test_sms_sent' => ['success', 'پیامک آزمایشی با موفقیت به کاوه‌نگار تحویل شد.'],
@@ -2117,6 +2123,768 @@ require BASE_PATH
             })();
             </script>
 
+        <?php elseif ($section === 'bale_connections'): ?>
+            <?php
+            $baleProviderState = (string) (
+                $baleConnectionManagement[
+                    'provider_state'
+                ] ?? 'unconfigured'
+            );
+            $baleProvider = is_array(
+                $baleConnectionManagement[
+                    'provider'
+                ] ?? null
+            ) ? $baleConnectionManagement[
+                'provider'
+            ] : [];
+            $baleSummary = is_array(
+                $baleConnectionManagement[
+                    'summary'
+                ] ?? null
+            ) ? $baleConnectionManagement[
+                'summary'
+            ] : [];
+            $baleUsers = is_array(
+                $baleConnectionManagement[
+                    'users'
+                ] ?? null
+            ) ? $baleConnectionManagement[
+                'users'
+            ] : [];
+            $baleOrganizations = is_array(
+                $baleConnectionManagement[
+                    'organizations'
+                ] ?? null
+            ) ? $baleConnectionManagement[
+                'organizations'
+            ] : [];
+            $baleRoles = is_array(
+                $baleConnectionManagement[
+                    'roles'
+                ] ?? null
+            ) ? $baleConnectionManagement[
+                'roles'
+            ] : [];
+            $baleCities = is_array(
+                $baleConnectionManagement[
+                    'cities'
+                ] ?? null
+            ) ? $baleConnectionManagement[
+                'cities'
+            ] : [];
+            $baleStatusLabels = [
+                'connected' => 'متصل به بله',
+                'invited' => 'دعوت ارسال‌شده',
+                'waiting_confirmation' =>
+                    'در انتظار اشتراک شماره',
+                'expired' => 'دعوت منقضی‌شده',
+                'failed' => 'ارسال دعوت ناموفق',
+                'disconnected' => 'اتصال قطع‌شده',
+                'not_connected' => 'متصل نیست',
+            ];
+            $baleProviderStateLabels = [
+                'ready' => [
+                    'success',
+                    'بات عضویت و احراز هویت آماده است.',
+                ],
+                'unconfigured' => [
+                    'error',
+                    'بات بله با کاربرد «عضویت و احراز هویت» تنظیم نشده است.',
+                ],
+                'ambiguous' => [
+                    'error',
+                    'بیش از یک بات برای عضویت و احراز هویت تعیین شده است.',
+                ],
+            ];
+            $baleProviderStateView =
+                $baleProviderStateLabels[
+                    $baleProviderState
+                ] ?? $baleProviderStateLabels[
+                    'unconfigured'
+                ];
+            $baleCsrf =
+                (new \IPKF\Security\Csrf())->token();
+            ?>
+
+            <section
+                class="bale-connection-management"
+                data-bale-connection-management
+            >
+                <!-- bale-connection-management-v061 -->
+                <header class="bale-connection-intro">
+                    <div>
+                        <h3>اتصال کاربران به پیام‌رسان بله</h3>
+                        <p class="communication-muted">
+                            دعوت اتصال را با پیامک ارسال کنید،
+                            وضعیت فعال‌سازی هر کاربر را ببینید و
+                            اتصال‌های ثبت‌شده را مدیریت کنید.
+                        </p>
+                    </div>
+
+                    <div class="bale-connection-provider">
+                        <span>بات عضویت و احراز هویت</span>
+                        <?php if ($baleProvider !== []): ?>
+                            <strong><?= admin_h(
+                                $baleProvider['title']
+                                ?? 'بات بله'
+                            ) ?></strong>
+                            <small dir="ltr">
+                                <?= admin_h(
+                                    trim((string) (
+                                        $baleProvider[
+                                            'username'
+                                        ] ?? ''
+                                    )) !== ''
+                                        ? '@' . $baleProvider[
+                                            'username'
+                                        ]
+                                        : 'username not set'
+                                ) ?>
+                            </small>
+                        <?php else: ?>
+                            <strong>تنظیم نشده</strong>
+                        <?php endif; ?>
+                        <em
+                            class="bale-connection-provider__state bale-connection-provider__state--<?= admin_h(
+                                $baleProviderStateView[0]
+                            ) ?>"
+                        >
+                            <?= admin_h(
+                                $baleProviderStateView[1]
+                            ) ?>
+                        </em>
+                    </div>
+                </header>
+
+                <div class="bale-connection-summary">
+                    <?php foreach ([
+                        'total' => 'کل کاربران',
+                        'connected' => 'متصل به بله',
+                        'awaiting' => 'در انتظار تکمیل',
+                        'needs_invitation' =>
+                            'نیازمند دعوت',
+                        'without_mobile' =>
+                            'فاقد شماره همراه',
+                    ] as $summaryKey => $summaryTitle): ?>
+                        <article>
+                            <span><?= admin_h(
+                                $summaryTitle
+                            ) ?></span>
+                            <strong><?= admin_h(
+                                \App\Support\AdminFormat
+                                    ::digits(
+                                        (int) (
+                                            $baleSummary[
+                                                $summaryKey
+                                            ] ?? 0
+                                        )
+                                    )
+                            ) ?></strong>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+
+                <form
+                    class="bale-connection-form"
+                    method="post"
+                    action="/admin/communications/settings/send/bale-invitations"
+                    data-bale-invite-form
+                >
+                    <input
+                        type="hidden"
+                        name="_token"
+                        value="<?= admin_h($baleCsrf) ?>"
+                    >
+
+                    <section class="bale-connection-filters">
+                        <label class="bale-connection-filter-search">
+                            <span>جست‌وجو</span>
+                            <input
+                                type="search"
+                                placeholder="نام، نام کاربری، نقش، سازمان، شهر یا وضعیت"
+                                autocomplete="off"
+                                data-bale-search
+                            >
+                        </label>
+
+                        <label>
+                            <span>وضعیت اتصال</span>
+                            <select data-bale-status-filter>
+                                <option value="">
+                                    همه وضعیت‌ها
+                                </option>
+                                <?php foreach (
+                                    $baleStatusLabels
+                                    as $statusCode =>
+                                        $statusTitle
+                                ): ?>
+                                    <option value="<?= admin_h(
+                                        $statusCode
+                                    ) ?>">
+                                        <?= admin_h(
+                                            $statusTitle
+                                        ) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+
+                        <label>
+                            <span>سازمان</span>
+                            <select data-bale-organization-filter>
+                                <option value="">
+                                    همه سازمان‌ها
+                                </option>
+                                <?php foreach (
+                                    $baleOrganizations
+                                    as $organization
+                                ): ?>
+                                    <option value="<?= admin_h(
+                                        mb_strtolower(
+                                            $organization,
+                                            'UTF-8'
+                                        )
+                                    ) ?>">
+                                        <?= admin_h(
+                                            $organization
+                                        ) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+
+                        <label>
+                            <span>نقش</span>
+                            <select data-bale-role-filter>
+                                <option value="">
+                                    همه نقش‌ها
+                                </option>
+                                <?php foreach (
+                                    $baleRoles as $role
+                                ): ?>
+                                    <option value="<?= admin_h(
+                                        mb_strtolower(
+                                            $role,
+                                            'UTF-8'
+                                        )
+                                    ) ?>">
+                                        <?= admin_h($role) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+
+                        <label>
+                            <span>شهر</span>
+                            <select data-bale-city-filter>
+                                <option value="">
+                                    همه شهرها
+                                </option>
+                                <?php foreach (
+                                    $baleCities as $city
+                                ): ?>
+                                    <option value="<?= admin_h(
+                                        mb_strtolower(
+                                            $city,
+                                            'UTF-8'
+                                        )
+                                    ) ?>">
+                                        <?= admin_h($city) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                    </section>
+
+                    <div class="bale-connection-actions">
+                        <button
+                            class="admin-button admin-button--soft"
+                            type="button"
+                            data-bale-select-visible
+                        >
+                            انتخاب کاربران قابل دعوت
+                        </button>
+                        <button
+                            class="admin-button admin-button--soft"
+                            type="button"
+                            data-bale-clear-selection
+                        >
+                            پاک‌کردن انتخاب
+                        </button>
+                        <span class="communication-muted">
+                            <strong
+                                data-bale-selected-count
+                            >۰</strong>
+                            کاربر انتخاب شده
+                        </span>
+                        <button
+                            class="admin-button"
+                            type="submit"
+                            data-bale-send-invitations
+                            <?= $baleProviderState === 'ready'
+                                ? ''
+                                : 'disabled' ?>
+                        >
+                            ارسال دعوت اتصال با پیامک
+                        </button>
+                    </div>
+
+                    <div class="bale-connection-user-list">
+                        <?php foreach (
+                            $baleUsers as $baleUser
+                        ): ?>
+                            <?php
+                            $baleUserStatus = (string) (
+                                $baleUser[
+                                    'bale_status_code'
+                                ] ?? 'not_connected'
+                            );
+                            $baleUserStatusTitle =
+                                $baleStatusLabels[
+                                    $baleUserStatus
+                                ] ?? $baleUserStatus;
+                            $baleActivity = trim(
+                                (string) (
+                                    $baleUser[
+                                        'bale_activity_at'
+                                    ] ?? ''
+                                )
+                            );
+                            $baleActivityTitle =
+                                $baleActivity !== ''
+                                    ? \App\Support\AdminFormat
+                                        ::jalaliDateTime(
+                                            $baleActivity
+                                        )
+                                    : '';
+                            $baleSearch = mb_strtolower(
+                                implode(' ', [
+                                    $baleUser['title'] ?? '',
+                                    $baleUser[
+                                        'username'
+                                    ] ?? '',
+                                    $baleUser[
+                                        'organization_title'
+                                    ] ?? '',
+                                    $baleUser[
+                                        'role_titles'
+                                    ] ?? '',
+                                    $baleUser[
+                                        'city_title'
+                                    ] ?? '',
+                                    $baleUserStatusTitle,
+                                ]),
+                                'UTF-8'
+                            );
+                            ?>
+                            <article
+                                class="bale-connection-user"
+                                data-bale-user
+                                data-search="<?= admin_h(
+                                    $baleSearch
+                                ) ?>"
+                                data-status="<?= admin_h(
+                                    $baleUserStatus
+                                ) ?>"
+                                data-organization="<?= admin_h(
+                                    mb_strtolower(
+                                        (string) (
+                                            $baleUser[
+                                                'organization_title'
+                                            ] ?? ''
+                                        ),
+                                        'UTF-8'
+                                    )
+                                ) ?>"
+                                data-role="<?= admin_h(
+                                    mb_strtolower(
+                                        (string) (
+                                            $baleUser[
+                                                'role_titles'
+                                            ] ?? ''
+                                        ),
+                                        'UTF-8'
+                                    )
+                                ) ?>"
+                                data-city="<?= admin_h(
+                                    mb_strtolower(
+                                        (string) (
+                                            $baleUser[
+                                                'city_title'
+                                            ] ?? ''
+                                        ),
+                                        'UTF-8'
+                                    )
+                                ) ?>"
+                                data-can-invite="<?= !empty(
+                                    $baleUser[
+                                        'can_invite_bale'
+                                    ]
+                                ) ? '1' : '0' ?>"
+                            >
+                                <label class="bale-connection-user__select">
+                                    <input
+                                        type="checkbox"
+                                        name="recipient_user_ids[]"
+                                        value="<?= admin_h(
+                                            $baleUser['id']
+                                        ) ?>"
+                                        data-bale-user-checkbox
+                                        <?= !empty(
+                                            $baleUser[
+                                                'can_invite_bale'
+                                            ]
+                                        ) ? '' : 'disabled' ?>
+                                    >
+                                </label>
+
+                                <div class="bale-connection-user__identity">
+                                    <strong><?= admin_h(
+                                        $baleUser['title']
+                                        ?? 'کاربر'
+                                    ) ?></strong>
+                                    <small>
+                                        <?= admin_h(
+                                            implode(
+                                                ' • ',
+                                                array_filter([
+                                                    $baleUser[
+                                                        'organization_title'
+                                                    ] ?? '',
+                                                    $baleUser[
+                                                        'role_titles'
+                                                    ] ?? '',
+                                                    $baleUser[
+                                                        'city_title'
+                                                    ] ?? '',
+                                                ])
+                                            )
+                                        ) ?>
+                                    </small>
+                                </div>
+
+                                <div class="bale-connection-user__mobile">
+                                    <span>شماره همراه</span>
+                                    <strong class="<?= !empty(
+                                        $baleUser['has_mobile']
+                                    ) ? 'is-ready' : 'is-missing' ?>">
+                                        <?= !empty(
+                                            $baleUser['has_mobile']
+                                        )
+                                            ? 'ثبت شده'
+                                            : 'ثبت نشده' ?>
+                                    </strong>
+                                </div>
+
+                                <div class="bale-connection-user__status">
+                                    <span
+                                        class="bale-connection-status bale-connection-status--<?= admin_h(
+                                            $baleUserStatus
+                                        ) ?>"
+                                    >
+                                        <?= admin_h(
+                                            $baleUserStatusTitle
+                                        ) ?>
+                                    </span>
+                                    <?php if (
+                                        $baleActivityTitle !== ''
+                                    ): ?>
+                                        <small>
+                                            آخرین فعالیت:
+                                            <?= admin_h(
+                                                $baleActivityTitle
+                                            ) ?>
+                                        </small>
+                                    <?php endif; ?>
+                                </div>
+
+                                <div class="bale-connection-user__row-actions">
+                                    <?php if (!empty(
+                                        $baleUser[
+                                            'can_disconnect_bale'
+                                        ]
+                                    )): ?>
+                                        <button
+                                            class="admin-button admin-button--soft admin-button--compact"
+                                            type="button"
+                                            data-bale-disconnect-user="<?= (int) $baleUser['id'] ?>"
+                                            data-bale-disconnect-title="<?= admin_h(
+                                                $baleUser['title']
+                                                ?? 'کاربر'
+                                            ) ?>"
+                                        >
+                                            قطع اتصال
+                                        </button>
+                                    <?php elseif (!empty(
+                                        $baleUser[
+                                            'can_invite_bale'
+                                        ]
+                                    )): ?>
+                                        <small>
+                                            قابل دعوت با پیامک
+                                        </small>
+                                    <?php else: ?>
+                                        <small>
+                                            ابتدا شماره همراه را
+                                            ثبت کنید
+                                        </small>
+                                    <?php endif; ?>
+                                </div>
+                            </article>
+                        <?php endforeach; ?>
+                    </div>
+                </form>
+
+                <form
+                    method="post"
+                    action="/admin/communications/settings/bale-connections/disconnect"
+                    data-bale-disconnect-form
+                    hidden
+                >
+                    <input
+                        type="hidden"
+                        name="_token"
+                        value="<?= admin_h($baleCsrf) ?>"
+                    >
+                    <input
+                        type="hidden"
+                        name="user_id"
+                        value=""
+                        data-bale-disconnect-user-id
+                    >
+                </form>
+
+                <script>
+                (() => {
+                    const root = document.querySelector(
+                        '[data-bale-connection-management]'
+                    );
+
+                    if (!root) {
+                        return;
+                    }
+
+                    const users = Array.from(
+                        root.querySelectorAll(
+                            '[data-bale-user]'
+                        )
+                    );
+                    const search = root.querySelector(
+                        '[data-bale-search]'
+                    );
+                    const status = root.querySelector(
+                        '[data-bale-status-filter]'
+                    );
+                    const organization = root.querySelector(
+                        '[data-bale-organization-filter]'
+                    );
+                    const role = root.querySelector(
+                        '[data-bale-role-filter]'
+                    );
+                    const city = root.querySelector(
+                        '[data-bale-city-filter]'
+                    );
+                    const selectedCount = root.querySelector(
+                        '[data-bale-selected-count]'
+                    );
+                    const submit = root.querySelector(
+                        '[data-bale-send-invitations]'
+                    );
+                    const digits = new Intl.NumberFormat(
+                        'fa-IR'
+                    );
+
+                    const refreshSelection = () => {
+                        const selected = users.filter(
+                            (user) => user.querySelector(
+                                '[data-bale-user-checkbox]'
+                            )?.checked
+                        ).length;
+
+                        if (selectedCount) {
+                            selectedCount.textContent =
+                                digits.format(selected);
+                        }
+
+                        if (submit) {
+                            submit.disabled =
+                                selected < 1
+                                || <?= $baleProviderState === 'ready'
+                                    ? 'false'
+                                    : 'true' ?>;
+                        }
+                    };
+
+                    const applyFilters = () => {
+                        const needle = (
+                            search?.value || ''
+                        ).trim().toLocaleLowerCase('fa');
+                        const wantedStatus =
+                            status?.value || '';
+                        const wantedOrganization =
+                            organization?.value || '';
+                        const wantedRole =
+                            role?.value || '';
+                        const wantedCity =
+                            city?.value || '';
+
+                        users.forEach((user) => {
+                            user.hidden = !(
+                                (
+                                    needle === ''
+                                    || user.dataset.search
+                                        .includes(needle)
+                                )
+                                && (
+                                    wantedStatus === ''
+                                    || user.dataset.status
+                                        === wantedStatus
+                                )
+                                && (
+                                    wantedOrganization === ''
+                                    || user.dataset.organization
+                                        === wantedOrganization
+                                )
+                                && (
+                                    wantedRole === ''
+                                    || user.dataset.role
+                                        .includes(wantedRole)
+                                )
+                                && (
+                                    wantedCity === ''
+                                    || user.dataset.city
+                                        === wantedCity
+                                )
+                            );
+                        });
+                    };
+
+                    search?.addEventListener(
+                        'input',
+                        applyFilters
+                    );
+                    status?.addEventListener(
+                        'change',
+                        applyFilters
+                    );
+                    organization?.addEventListener(
+                        'change',
+                        applyFilters
+                    );
+                    role?.addEventListener(
+                        'change',
+                        applyFilters
+                    );
+                    city?.addEventListener(
+                        'change',
+                        applyFilters
+                    );
+
+                    root.querySelector(
+                        '[data-bale-select-visible]'
+                    )?.addEventListener('click', () => {
+                        users
+                            .filter(
+                                (user) =>
+                                    !user.hidden
+                                    && user.dataset.canInvite
+                                        === '1'
+                            )
+                            .forEach((user) => {
+                                const checkbox =
+                                    user.querySelector(
+                                        '[data-bale-user-checkbox]'
+                                    );
+
+                                if (checkbox) {
+                                    checkbox.checked = true;
+                                }
+                            });
+
+                        refreshSelection();
+                    });
+
+                    root.querySelector(
+                        '[data-bale-clear-selection]'
+                    )?.addEventListener('click', () => {
+                        users.forEach((user) => {
+                            const checkbox =
+                                user.querySelector(
+                                    '[data-bale-user-checkbox]'
+                                );
+
+                            if (checkbox) {
+                                checkbox.checked = false;
+                            }
+                        });
+
+                        refreshSelection();
+                    });
+
+                    root.addEventListener(
+                        'change',
+                        (event) => {
+                            if (event.target.matches(
+                                '[data-bale-user-checkbox]'
+                            )) {
+                                refreshSelection();
+                            }
+                        }
+                    );
+
+                    const disconnectForm =
+                        root.querySelector(
+                            '[data-bale-disconnect-form]'
+                        );
+                    const disconnectUserId =
+                        disconnectForm?.querySelector(
+                            '[data-bale-disconnect-user-id]'
+                        );
+
+                    root.querySelectorAll(
+                        '[data-bale-disconnect-user]'
+                    ).forEach((button) => {
+                        button.addEventListener(
+                            'click',
+                            () => {
+                                const userId =
+                                    button.dataset
+                                        .baleDisconnectUser
+                                    || '';
+                                const title =
+                                    button.dataset
+                                        .baleDisconnectTitle
+                                    || 'این کاربر';
+
+                                if (
+                                    userId === ''
+                                    || !disconnectForm
+                                    || !disconnectUserId
+                                ) {
+                                    return;
+                                }
+
+                                if (!window.confirm(
+                                    'اتصال بله برای '
+                                    + title
+                                    + ' قطع شود؟'
+                                )) {
+                                    return;
+                                }
+
+                                disconnectUserId.value =
+                                    userId;
+                                disconnectForm.submit();
+                            }
+                        );
+                    });
+
+                    applyFilters();
+                    refreshSelection();
+                })();
+                </script>
+            </section>
+
         <?php elseif ($section === 'send'): ?>
             <?php
             $sendRecipients = is_array(
@@ -3133,22 +3901,6 @@ require BASE_PATH
                         );
                     manualMessenger?.remove();
 
-                    const userActions =
-                        sections[1].querySelector(
-                            '.notification-send-user-actions'
-                        );
-                    const inviteButton =
-                        document.createElement('button');
-                    inviteButton.type = 'submit';
-                    inviteButton.className =
-                        'admin-button admin-button--soft';
-                    inviteButton.formAction =
-                        '/admin/communications/settings/send/bale-invitations';
-                    inviteButton.formMethod = 'post';
-                    inviteButton.formNoValidate = true;
-                    inviteButton.textContent =
-                        'ارسال لینک فعال‌سازی بله با پیامک';
-                    userActions?.append(inviteButton);
 
                     const panels = [
                         sections[0],
