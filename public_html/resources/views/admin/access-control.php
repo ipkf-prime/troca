@@ -83,10 +83,64 @@ $groupTitles = [
     'reports' => 'گزارش‌ها',
     'messages' => 'پیام‌ها',
     'general' => 'عمومی',
+    'profile' => 'پروفایل',
+    'security' => 'امنیت حساب',
+    'password' => 'امنیت حساب',
+    'theme' => 'ظاهر پنل',
+    'access' => 'دسترسی',
+    'pages' => 'صفحات پنل',
+    'navigation' => 'منوها',
+    'routes' => 'مسیرها',
+    'login_tokens' => 'ورود و نشست',
+    'org_units' => 'واحدهای سازمانی',
+    'positions' => 'سمت‌ها',
+    'user_org_assignments' => 'انتساب کاربران',
+    'organizations' => 'سازمان‌ها',
+    'diagnostics' => 'پایش و عیب‌یابی',
+    'installer' => 'نصب و راه‌اندازی',
+    'notification_send' => 'ارسال اعلان',
+    'notification_recipients' => 'گیرندگان اعلان',
+    'notification_manual_targets' => 'مقصدهای دستی',
+    'notification_approval' => 'تأیید اعلان',
 ];
 
 $groupLabel = static fn ($value): string =>
     $groupTitles[mb_strtolower(trim((string) $value), 'UTF-8')]
+        ?? (string) $value;
+
+$scopeTitles = [
+    'global' => 'سراسری',
+    'organization' => 'سازمان',
+    'org_unit' => 'واحد سازمانی',
+    'province' => 'استان',
+    'county' => 'شهرستان',
+    'city' => 'شهر',
+    'own' => 'فقط خود کاربر',
+];
+
+$scopeLabel = static fn ($value): string =>
+    $scopeTitles[mb_strtolower(trim((string) $value), 'UTF-8')]
+        ?? (string) $value;
+
+$auditTargetTitles = [
+    'role' => 'نقش',
+    'user' => 'کاربر',
+    'role_assignment' => 'انتساب نقش',
+];
+
+$auditTargetLabel = static fn ($value): string =>
+    $auditTargetTitles[mb_strtolower(trim((string) $value), 'UTF-8')]
+        ?? (string) $value;
+
+$auditChangeTitles = [
+    'role_permissions_updated' => 'تغییر مجوزهای نقش',
+    'user_policy_updated' => 'تغییر سیاست دسترسی کاربر',
+    'user_permission_overrides_updated' =>
+        'تغییر استثناهای دسترسی کاربر',
+];
+
+$auditChangeLabel = static fn ($value): string =>
+    $auditChangeTitles[mb_strtolower(trim((string) $value), 'UTF-8')]
         ?? (string) $value;
 
 $notices = [
@@ -828,7 +882,7 @@ ob_start();
                                         <?= admin_h(
                                             $assignment['role_title']
                                             . ' — '
-                                            . $assignment['scope_type']
+                                            . $scopeLabel($assignment['scope_type'])
                                         ) ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -1052,7 +1106,7 @@ ob_start();
                                 ) ?></td>
                                 <td data-label="هدف">
                                     <?= admin_h(
-                                        $row['target_type']
+                                        $auditTargetLabel($row['target_type'])
                                     ) ?>
                                     #<?= admin_h(
                                         $digits($row['target_id'])
@@ -1060,7 +1114,7 @@ ob_start();
                                 </td>
                                 <td data-label="نوع تغییر">
                                     <code><?= admin_h(
-                                        $row['change_type']
+                                        $auditChangeLabel($row['change_type'])
                                     ) ?></code>
                                 </td>
                                 <td data-label="دلیل"><?= admin_h(

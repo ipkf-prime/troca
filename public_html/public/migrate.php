@@ -138,6 +138,7 @@ try {
         new \IPKF\Database\Migrations\EnableNotificationSendExperienceAndBaleEnrollment(),
         new \IPKF\Database\Migrations\CreateAccessControlFoundation(),
         new \IPKF\Database\Migrations\RefineAccessControlExperience(),
+        new \IPKF\Database\Migrations\CompleteAccessControlPersianLocalization(),
     ]);
 
     $manager->migrate();
