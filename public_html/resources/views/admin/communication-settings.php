@@ -4191,6 +4191,12 @@ require BASE_PATH
                         form.querySelector(
                             '[data-send-content-status]'
                         );
+                    const subject =
+                        form.querySelector(
+                            '[data-send-subject]'
+                        );
+                    const digits =
+                        new Intl.NumberFormat('fa-IR');
                     const formatBytes = (bytes) => {
                         const size = Number(bytes) || 0;
 

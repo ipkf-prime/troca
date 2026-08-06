@@ -3901,3 +3901,13 @@ body.provider-test-dialog-open {
     }
 }
 </style>
+
+<style>
+/* notification-send-wizard-runtime-hotfix-v061 */
+.notification-send-form
+    > .notification-send-section[hidden],
+.notification-send-form
+    > .notification-send-review[hidden] {
+    display: none !important;
+}
+</style>
