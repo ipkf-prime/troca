@@ -139,6 +139,7 @@ try {
         new \IPKF\Database\Migrations\CreateAccessControlFoundation(),
         new \IPKF\Database\Migrations\RefineAccessControlExperience(),
         new \IPKF\Database\Migrations\CompleteAccessControlPersianLocalization(),
+        new \IPKF\Database\Migrations\FinalizeAccessControlCatalogMetadata(),
     ]);
 
     $manager->migrate();
