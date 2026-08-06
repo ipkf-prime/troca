@@ -1712,6 +1712,166 @@ $router->get('/admin/access', function ($request, $response) use ($adminRender, 
     ]);
 });
 
+$router->get('/admin/access-control', function (
+    $request,
+    $response
+) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/access');
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    try {
+        $page = (new \App\Services\AccessControlService())->page(
+            (int) $context['user_id'],
+            [
+                'tab' => $request->input('tab', 'roles'),
+                'q' => $request->input('q', ''),
+                'user_id' => $request->input('user_id', 0),
+                'assignment_id' =>
+                    $request->input('assignment_id', 0),
+            ]
+        );
+    } catch (\Throwable) {
+        return $response->redirect(
+            '/admin/access?status=forbidden'
+        );
+    }
+
+    return $adminRender(
+        $response,
+        'access-control',
+        [
+            'title' => 'سطوح و نقش‌های دسترسی',
+            'context' => $context,
+            'page' => $page,
+            'status' => trim((string) $request->input(
+                'status',
+                ''
+            )),
+        ]
+    );
+});
+
+$router->post('/admin/access-control/roles', function (
+    $request,
+    $response
+) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/access');
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    if (!(new \IPKF\Security\Csrf())->check(
+        (string) $request->input('_token', '')
+    )) {
+        return $response->redirect(
+            '/admin/access-control?tab=roles&status=invalid_csrf'
+        );
+    }
+
+    $roleId = max(0, (int) $request->input('role_id', 0));
+
+    try {
+        (new \App\Services\AccessControlService())->saveRole(
+            (int) $context['user_id'],
+            [
+                'role_id' => $roleId,
+                'permissions' =>
+                    $request->input('permissions', []),
+                'reason' => $request->input('reason', ''),
+            ],
+            (string) ($_SERVER['REMOTE_ADDR'] ?? '')
+        );
+
+        return $response->redirect(
+            '/admin/access-control?tab=roles'
+            . '&status=role_permissions_saved'
+        );
+    } catch (\Throwable $exception) {
+        return $response->redirect(
+            '/admin/access-control?tab=roles&status='
+            . rawurlencode($exception->getMessage())
+        );
+    }
+});
+
+$router->post('/admin/access-control/users', function (
+    $request,
+    $response
+) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/access');
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    if (!(new \IPKF\Security\Csrf())->check(
+        (string) $request->input('_token', '')
+    )) {
+        return $response->redirect(
+            '/admin/access-control?tab=users&status=invalid_csrf'
+        );
+    }
+
+    $userId = max(0, (int) $request->input('user_id', 0));
+    $assignmentId = max(
+        0,
+        (int) $request->input('role_assignment_id', 0)
+    );
+
+    try {
+        (new \App\Services\AccessControlService())->saveUser(
+            (int) $context['user_id'],
+            [
+                'user_id' => $userId,
+                'role_assignment_id' => $assignmentId,
+                'notification_policy' =>
+                    $request->input(
+                        'notification_policy',
+                        'inherit'
+                    ),
+                'can_search_recipients' =>
+                    $request->input(
+                        'can_search_recipients',
+                        ''
+                    ),
+                'can_view_recipient_details' =>
+                    $request->input(
+                        'can_view_recipient_details',
+                        ''
+                    ),
+                'can_use_manual_targets' =>
+                    $request->input(
+                        'can_use_manual_targets',
+                        ''
+                    ),
+                'reason' => $request->input('reason', ''),
+            ],
+            (string) ($_SERVER['REMOTE_ADDR'] ?? '')
+        );
+
+        return $response->redirect(
+            '/admin/access-control?tab=users&user_id='
+            . $userId
+            . '&assignment_id='
+            . $assignmentId
+            . '&status=user_policy_saved'
+        );
+    } catch (\Throwable $exception) {
+        return $response->redirect(
+            '/admin/access-control?tab=users&user_id='
+            . $userId
+            . '&assignment_id='
+            . $assignmentId
+            . '&status='
+            . rawurlencode($exception->getMessage())
+        );
+    }
+});
+
 $router->get('/admin/theme', function ($request, $response) use ($adminRender, $adminGuard) {
     $context = $adminGuard($response, '/admin/theme');
 

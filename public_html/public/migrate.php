@@ -136,6 +136,7 @@ try {
         new \IPKF\Database\Migrations\CreateNotificationGatewayFoundation(),
         new \IPKF\Database\Migrations\EnableNotificationSendCenterFoundation(),
         new \IPKF\Database\Migrations\EnableNotificationSendExperienceAndBaleEnrollment(),
+        new \IPKF\Database\Migrations\CreateAccessControlFoundation(),
     ]);
 
     $manager->migrate();

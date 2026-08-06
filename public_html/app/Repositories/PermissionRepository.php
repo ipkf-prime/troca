@@ -76,6 +76,46 @@ class PermissionRepository extends BaseRepository
         return (int) $statement->fetchColumn() > 0;
     }
 
+    public function userPermissionOverride(
+        int $userId,
+        string $permissionCode,
+        ?int $assignmentId = null
+    ): ?string {
+        if (!\IPKF\Database\Database::tableExists(
+            'user_permission_overrides'
+        )) {
+            return null;
+        }
+
+        $assignmentId = max(0, (int) ($assignmentId ?? 0));
+
+        $statement = $this->connection()->prepare("
+            SELECT user_permission_overrides.effect_code
+            FROM user_permission_overrides
+            INNER JOIN permissions
+                ON permissions.id =
+                    user_permission_overrides.permission_id
+            WHERE user_permission_overrides.user_id = ?
+              AND permissions.code = ?
+              AND permissions.is_active = 1
+              AND user_permission_overrides.role_assignment_id
+                    IN (0, ?)
+            ORDER BY user_permission_overrides.role_assignment_id DESC
+            LIMIT 1
+        ");
+        $statement->execute([
+            $userId,
+            $permissionCode,
+            $assignmentId,
+        ]);
+
+        $effect = $statement->fetchColumn();
+
+        return in_array($effect, ['allow', 'deny'], true)
+            ? (string) $effect
+            : null;
+    }
+
     public function communicationMatrix(): array
     {
         $roles = $this->connection()->query("SELECT id, code, title FROM roles WHERE is_active = 1 ORDER BY priority, id")

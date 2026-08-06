@@ -29,7 +29,7 @@ class CommunicationSettingsService extends BaseService
         ],
         'send' => [
             'title' => 'ارسال اعلان',
-            'permission' => 'notifications.send.manage',
+            'permission' => 'notifications.send.view',
         ],
         'reports' => [
             'title' => 'گزارش ارسال و تحویل',

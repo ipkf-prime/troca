@@ -65,6 +65,23 @@ ob_start();
 </section>
 
 <?php if (($canManageCommunicationAccess ?? false) === true): ?>
+    <section class="admin-section" style="margin-top:1rem">
+        <div class="admin-section__header">
+            <div>
+                <h2>مرکز کنترل نقش و دسترسی</h2>
+                <p class="admin-muted">
+                    مدیریت تمام مجوزهای منو، زیرمنو، تب و عملیات،
+                    همراه با سیاست اختصاصی ارسال اعلان برای کاربران.
+                </p>
+            </div>
+            <a class="admin-button" href="/admin/access-control">
+                ورود به مرکز کنترل دسترسی
+            </a>
+        </div>
+    </section>
+<?php endif; ?>
+
+<?php if (($canManageCommunicationAccess ?? false) === true): ?>
     <?php
     $matrix = $communicationMatrix ?? [];
     $roles = $matrix['roles'] ?? [];

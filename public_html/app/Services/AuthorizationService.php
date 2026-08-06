@@ -28,19 +28,38 @@ class AuthorizationService extends BaseService
         return $this->permissions->getUserPermissions($userId, $this->activeAssignmentId());
     }
 
-    public function hasPermission(int $userId, string $permissionCode): bool
-    {
+    public function hasPermission(
+        int $userId,
+        string $permissionCode
+    ): bool {
         $assignmentId = $this->activeAssignmentId();
 
         if ($assignmentId !== null) {
-            $assignment = $this->roles->assignmentForUser($userId, $assignmentId);
+            $assignment = $this->roles->assignmentForUser(
+                $userId,
+                $assignmentId
+            );
 
             if (($assignment['role_code'] ?? '') === 'super_admin') {
                 return true;
             }
         }
 
-        return $this->permissions->userHasPermission($userId, $permissionCode, $assignmentId);
+        $override = $this->permissions->userPermissionOverride(
+            $userId,
+            $permissionCode,
+            $assignmentId
+        );
+
+        if ($override !== null) {
+            return $override === 'allow';
+        }
+
+        return $this->permissions->userHasPermission(
+            $userId,
+            $permissionCode,
+            $assignmentId
+        );
     }
 
     private function activeAssignmentId(): ?int

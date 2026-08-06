@@ -22,7 +22,8 @@ class NotificationSendCenterService extends BaseService
         private ?NotificationSendCenterRepository $repository = null,
         private ?NotificationGatewayService $gateway = null,
         private ?AuthorizationService $authorization = null,
-        private ?NotificationMediaUploadService $media = null
+        private ?NotificationMediaUploadService $media = null,
+        private ?NotificationSendAccessPolicyService $accessPolicy = null
     ) {
         $this->repository ??=
             new NotificationSendCenterRepository();
@@ -32,14 +33,31 @@ class NotificationSendCenterService extends BaseService
             new AuthorizationService();
         $this->media ??=
             new NotificationMediaUploadService();
+        $this->accessPolicy ??=
+            new NotificationSendAccessPolicyService(
+                $this->authorization
+            );
     }
 
     public function page(int $userId): array
     {
-        $this->authorize($userId);
+        $policy = $this->accessPolicy->resolve($userId);
 
-        $recipients =
-            $this->repository->recipientOptions();
+        if ($policy === 'hidden') {
+            throw new RuntimeException(
+                'notification_send_forbidden'
+            );
+        }
+
+        $canSearch = $this->accessPolicy->canSearch($userId);
+        $canViewDetails =
+            $this->accessPolicy->canViewDetails($userId);
+        $canUseManual =
+            $this->accessPolicy->canUseManual($userId);
+
+        $recipients = $canSearch
+            ? $this->repository->recipientOptions()
+            : [];
 
         $organizations = [];
         $roles = [];
@@ -90,6 +108,12 @@ class NotificationSendCenterService extends BaseService
             'cities' => array_values($cities),
             'immediate_limit' =>
                 self::IMMEDIATE_LIMIT,
+            'access_policy_code' => $policy,
+            'can_search_recipients' => $canSearch,
+            'can_view_recipient_details' =>
+                $canViewDetails,
+            'can_use_manual_targets' =>
+                $canUseManual,
             'result' =>
                 $this->consumeResult($userId),
         ];
@@ -100,7 +124,21 @@ class NotificationSendCenterService extends BaseService
         array $input,
         array $mediaFiles = []
     ): array {
-        $this->authorize($actorUserId);
+        $policy = $this->accessPolicy->resolve(
+            $actorUserId
+        );
+
+        if ($policy === 'hidden') {
+            throw new RuntimeException(
+                'notification_send_forbidden'
+            );
+        }
+
+        if ($policy === 'approval_required') {
+            throw new RuntimeException(
+                'notification_send_approval_required'
+            );
+        }
 
         $messageType = strtolower(trim(
             (string) (
@@ -214,6 +252,38 @@ class NotificationSendCenterService extends BaseService
         if (count($userIds) > 100) {
             throw new InvalidArgumentException(
                 'notification_send_recipient_limit'
+            );
+        }
+
+        if (
+            !$this->accessPolicy->canSearch(
+                $actorUserId
+            )
+            && $userIds !== []
+        ) {
+            throw new RuntimeException(
+                'notification_send_recipient_search_forbidden'
+            );
+        }
+
+        if (
+            !$this->accessPolicy->canUseManual(
+                $actorUserId
+            )
+            && (
+                trim((string) (
+                    $input['manual_email'] ?? ''
+                )) !== ''
+                || trim((string) (
+                    $input['manual_sms'] ?? ''
+                )) !== ''
+                || trim((string) (
+                    $input['manual_messenger'] ?? ''
+                )) !== ''
+            )
+        ) {
+            throw new RuntimeException(
+                'notification_send_manual_target_forbidden'
             );
         }
 
@@ -489,21 +559,6 @@ class NotificationSendCenterService extends BaseService
     {
         return 'notification_send_center_result_'
             . $userId;
-    }
-
-    private function authorize(int $userId): void
-    {
-        if (
-            $userId < 1
-            || !$this->authorization->hasPermission(
-                $userId,
-                'notifications.send.manage'
-            )
-        ) {
-            throw new RuntimeException(
-                'notification_send_forbidden'
-            );
-        }
     }
 
     private function addTarget(
