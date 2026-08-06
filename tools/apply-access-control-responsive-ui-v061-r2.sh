@@ -1,3 +1,72 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="${1:-/d/Documents/GitHub/troca}"
+expected_branch="v0.6.1-notification-provider-management-dev"
+expected_head="58ab262"
+
+cd "$repo_root"
+
+current_branch="$(git branch --show-current)"
+current_head="$(git rev-parse --short HEAD)"
+
+if [[ "$current_branch" != "$expected_branch" ]]; then
+    printf 'Expected branch %s; current branch is %s.\n' \
+        "$expected_branch" "$current_branch" >&2
+    exit 1
+fi
+
+if [[ "$current_head" != "$expected_head" ]]; then
+    printf 'Expected HEAD %s; current HEAD is %s.\n' \
+        "$expected_head" "$current_head" >&2
+    exit 1
+fi
+
+if ! git diff --quiet || ! git diff --cached --quiet; then
+    echo "Working tree or index is not clean. Patch stopped." >&2
+    git status --short --branch >&2
+    exit 1
+fi
+
+view_file="public_html/resources/views/admin/access-control.php"
+test_file="tests/AccessControlResponsiveUiTest.php"
+tool_file="tools/apply-access-control-responsive-ui-v061-r2.sh"
+
+if [[ ! -f "$view_file" ]]; then
+    printf 'Required file not found: %s\n' "$view_file" >&2
+    exit 1
+fi
+
+if [[ -e "$test_file" || -e "$tool_file" ]]; then
+    echo "One or more new patch files already exist. Patch stopped." >&2
+    exit 1
+fi
+
+if ! grep -Fq 'class="acl-shell"' "$view_file"; then
+    echo "Current access-control view marker was not found." >&2
+    exit 1
+fi
+
+cleanup_on_error() {
+    status=$?
+
+    if [[ "$status" -ne 0 ]]; then
+        echo
+        echo "PATCH FAILED; RESTORING CLEAN TREE" >&2
+        git restore --staged --worktree -- "$view_file" \
+            >/dev/null 2>&1 || true
+        rm -f -- "$test_file" "$tool_file"
+    fi
+
+    exit "$status"
+}
+
+trap cleanup_on_error EXIT
+
+echo
+echo "=== Replace Access Control UI ==="
+
+cat > "$view_file" <<'PHP'
 <?php
 
 if (!function_exists('admin_h')) {
@@ -2384,3 +2453,169 @@ ob_start();
 <?php
 $content = ob_get_clean();
 require __DIR__ . '/layout.php';
+
+PHP
+
+echo "UPDATED: $view_file"
+
+cat > "$test_file" <<'PHP'
+<?php
+
+declare(strict_types=1);
+
+$root = dirname(__DIR__);
+$path = $root
+    . '/public_html/resources/views/admin/'
+    . 'access-control.php';
+$content = file_get_contents($path);
+
+if (!is_string($content)) {
+    fwrite(
+        STDERR,
+        "FAIL: access-control.php is not readable.\n"
+    );
+    exit(1);
+}
+
+$expect = static function (
+    bool $condition,
+    string $message
+): void {
+    if (!$condition) {
+        fwrite(STDERR, "FAIL: {$message}\n");
+        exit(1);
+    }
+};
+
+$expect(
+    str_contains($content, 'data-acl-role-picker')
+    && str_contains($content, 'data-acl-role-button')
+    && str_contains($content, 'data-acl-role-panel'),
+    'Single-role workbench controls are missing.'
+);
+
+$expect(
+    str_contains($content, 'data-acl-module-picker')
+    && str_contains($content, 'data-acl-module-button')
+    && str_contains($content, 'data-acl-module-panel'),
+    'Single-module permission controls are missing.'
+);
+
+$expect(
+    str_contains($content, 'class="acl-native"')
+    && str_contains($content, 'class="acl-checkbox"')
+    && str_contains($content, 'class="acl-radio"')
+    && str_contains($content, 'height: 15px;')
+    && str_contains($content, 'width: 15px;'),
+    'Minimal checkbox and radio controls are incomplete.'
+);
+
+$expect(
+    str_contains($content, '@media (max-width: 1180px)')
+    && str_contains($content, '@media (max-width: 760px)')
+    && str_contains($content, '@media (max-width: 520px)')
+    && str_contains($content, '.acl-audit-table td::before'),
+    'Responsive desktop, tablet, mobile, or audit behavior is incomplete.'
+);
+
+$expect(
+    str_contains($content, 'data-acl-tech-toggle')
+    && str_contains($content, 'data-acl-dirty')
+    && str_contains($content, 'sessionStorage.setItem')
+    && str_contains($content, 'Intl.NumberFormat(\'fa-IR\')'),
+    'Technical details, unsaved state, or Persian counters are incomplete.'
+);
+
+$expect(
+    !str_contains($content, '<details class="acl-role"'),
+    'Legacy all-roles-open layout is still present.'
+);
+
+echo "Access control responsive UI checks passed.\n";
+
+PHP
+
+mkdir -p tools
+cp -- "$0" "$tool_file"
+
+# Keep exactly one newline at EOF so git diff --check remains clean.
+perl -0pi -e 's/\n+\z/\n/' \
+    "$view_file" \
+    "$test_file" \
+    "$tool_file"
+
+git add -- "$view_file" "$test_file" "$tool_file"
+
+echo
+echo "=== Cached Validation ==="
+
+git diff --cached --check
+
+if command -v php >/dev/null 2>&1; then
+    echo
+    echo "=== PHP Validation ==="
+    php -l "$view_file"
+    php -l "$test_file"
+    php "$test_file"
+else
+    echo
+    echo "PHP_NOT_AVAILABLE_ON_WINDOWS=SKIPPED"
+fi
+
+echo
+echo "=== Responsive UI Markers ==="
+
+git grep -n -E \
+    "data-acl-role-picker|data-acl-module-picker|class=\"acl-native\"|class=\"acl-checkbox\"|class=\"acl-radio\"|@media \(max-width: 760px\)|data-acl-tech-toggle|data-acl-dirty|Access control responsive UI checks passed" \
+    -- \
+    "$view_file" \
+    "$test_file"
+
+echo
+echo "=== Scope Checks ==="
+
+changed_count="$(git diff --cached --name-only | wc -l | tr -d ' ')"
+
+if [[ "$changed_count" -ne 3 ]]; then
+    echo "Unexpected staged file count: $changed_count" >&2
+    git diff --cached --name-only >&2
+    exit 1
+fi
+
+if git diff --cached --name-only \
+    | grep -Eq 'Migrations|public/migrate.php'
+then
+    echo "MIGRATION_SCOPE_CHANGED=1"
+    exit 1
+else
+    echo "MIGRATION_SCOPE_CHANGED=0"
+fi
+
+echo "MIGRATION_REQUIRED=NO"
+
+echo
+echo "=== Unstaged Changes Check ==="
+
+if git diff --quiet; then
+    echo "UNSTAGED_CHANGES=0"
+else
+    echo "UNSTAGED_CHANGES=1"
+    git status --short
+    exit 1
+fi
+
+echo
+echo "=== Cached Summary ==="
+
+git diff --cached --stat
+
+echo
+echo "=== Final Status ==="
+
+git status --short --branch
+
+echo
+echo "ACCESS CONTROL RESPONSIVE UI ADDED AND STAGED"
+echo "No commit was created."
+
+trap - EXIT
