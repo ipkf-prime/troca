@@ -1,3 +1,93 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="${1:-/d/Documents/GitHub/troca}"
+expected_branch="v0.6.1-notification-provider-management-dev"
+expected_head="d6eed2a"
+
+cd "$repo_root"
+
+current_branch="$(git branch --show-current)"
+current_head="$(git rev-parse --short HEAD)"
+
+if [[ "$current_branch" != "$expected_branch" ]]; then
+    printf 'Expected branch %s; current branch is %s.\n' \
+        "$expected_branch" "$current_branch" >&2
+    exit 1
+fi
+
+if [[ "$current_head" != "$expected_head" ]]; then
+    printf 'Expected HEAD %s; current HEAD is %s.\n' \
+        "$expected_head" "$current_head" >&2
+    exit 1
+fi
+
+if ! git diff --quiet || ! git diff --cached --quiet; then
+    echo "Working tree or index is not clean. Patch stopped." >&2
+    git status --short --branch >&2
+    exit 1
+fi
+
+view_file="public_html/resources/views/admin/access-control.php"
+migrate_file="public_html/public/migrate.php"
+migration_file="public_html/system/Database/Migrations/RefineAccessControlExperience.php"
+test_file="tests/AccessControlExperienceRefinementTest.php"
+tool_file="tools/apply-access-control-experience-refinement-v061.sh"
+
+for required in "$view_file" "$migrate_file"; do
+    if [[ ! -f "$required" ]]; then
+        printf 'Required file not found: %s\n' "$required" >&2
+        exit 1
+    fi
+done
+
+for target in "$migration_file" "$test_file" "$tool_file"; do
+    if [[ -e "$target" ]]; then
+        printf 'New patch target already exists: %s\n' "$target" >&2
+        exit 1
+    fi
+done
+
+if ! grep -Fq 'data-acl-role-picker' "$view_file"; then
+    echo "Responsive access-control UI marker was not found." >&2
+    exit 1
+fi
+
+if ! grep -Fq 'CreateAccessControlFoundation(),' "$migrate_file"; then
+    echo "Access-control foundation migration marker was not found." >&2
+    exit 1
+fi
+
+if grep -Fq 'RefineAccessControlExperience' "$migrate_file"; then
+    echo "Access-control refinement migration is already registered." >&2
+    exit 1
+fi
+
+cleanup_on_error() {
+    status=$?
+
+    if [[ "$status" -ne 0 ]]; then
+        echo
+        echo "PATCH FAILED; RESTORING CLEAN TREE" >&2
+        git restore --staged --worktree -- \
+            "$view_file" \
+            "$migrate_file" \
+            >/dev/null 2>&1 || true
+        rm -f -- \
+            "$migration_file" \
+            "$test_file" \
+            "$tool_file"
+    fi
+
+    exit "$status"
+}
+
+trap cleanup_on_error EXIT
+
+echo
+echo "=== Refine Access Control UI ==="
+
+cat > "$view_file" <<'PHP'
 <?php
 
 if (!function_exists('admin_h')) {
@@ -2516,3 +2606,433 @@ ob_start();
 <?php
 $content = ob_get_clean();
 require __DIR__ . '/layout.php';
+PHP
+
+echo "UPDATED: $view_file"
+
+echo
+echo "=== Add Access Control Navigation Migration ==="
+
+cat > "$migration_file" <<'PHP'
+<?php
+
+namespace IPKF\Database\Migrations;
+
+class RefineAccessControlExperience extends Migration
+{
+    public function up(): void
+    {
+        $this->alignNavigation();
+        $this->alignRoutes();
+    }
+
+    public function down(): void
+    {
+    }
+
+    private function alignNavigation(): void
+    {
+        if (!$this->tableExists('admin_navigation_items')) {
+            return;
+        }
+
+        $parent = $this->db->query("
+            SELECT id
+            FROM admin_navigation_items
+            WHERE shell_key = 'core'
+              AND is_active = 1
+              AND (
+                    title = 'مدیریت سامانه'
+                    OR item_key IN (
+                        'system-management',
+                        'system-settings',
+                        'system',
+                        'admin'
+                    )
+              )
+            ORDER BY
+                CASE
+                    WHEN title = 'مدیریت سامانه' THEN 0
+                    ELSE 1
+                END,
+                id
+            LIMIT 1
+        ");
+        $parentId = (int) $parent->fetchColumn();
+
+        if ($parentId < 1) {
+            return;
+        }
+
+        $permissions = $this->permissionsJson([
+            'access.manage',
+            'access.roles.manage',
+            'access.users.search',
+            'access.audit.view',
+        ]);
+        $activePaths = json_encode(
+            [
+                '/admin/access-control',
+                '/admin/access-control/*',
+            ],
+            JSON_UNESCAPED_UNICODE
+            | JSON_UNESCAPED_SLASHES
+            | JSON_THROW_ON_ERROR
+        );
+
+        $statement = $this->db->prepare("
+            INSERT INTO admin_navigation_items (
+                parent_id,
+                shell_key,
+                item_key,
+                item_type,
+                placement_code,
+                hide_when_badge_empty,
+                title,
+                description,
+                route_path,
+                target_application,
+                icon_code,
+                color_code,
+                permission_mode,
+                permission_codes_json,
+                badge_source,
+                active_paths_json,
+                sort_order,
+                is_active,
+                created_at,
+                updated_at
+            )
+            VALUES (
+                ?,
+                'core',
+                'access-control',
+                'link',
+                'sidebar',
+                0,
+                'سطوح و نقش‌های دسترسی',
+                'مدیریت نقش‌ها، مجوزها و استثناهای کاربران',
+                '/admin/access-control',
+                'core',
+                'shield',
+                NULL,
+                'any',
+                ?,
+                NULL,
+                ?,
+                35,
+                1,
+                CURRENT_TIMESTAMP,
+                CURRENT_TIMESTAMP
+            )
+            ON DUPLICATE KEY UPDATE
+                parent_id = VALUES(parent_id),
+                item_type = VALUES(item_type),
+                placement_code = VALUES(placement_code),
+                hide_when_badge_empty = 0,
+                title = VALUES(title),
+                description = VALUES(description),
+                route_path = VALUES(route_path),
+                target_application = VALUES(target_application),
+                icon_code = VALUES(icon_code),
+                permission_mode = VALUES(permission_mode),
+                permission_codes_json =
+                    VALUES(permission_codes_json),
+                badge_source = NULL,
+                active_paths_json = VALUES(active_paths_json),
+                sort_order = VALUES(sort_order),
+                is_active = 1,
+                updated_at = CURRENT_TIMESTAMP
+        ");
+        $statement->execute([
+            $parentId,
+            $permissions,
+            $activePaths,
+        ]);
+    }
+
+    private function alignRoutes(): void
+    {
+        if (!$this->tableExists('admin_route_permissions')) {
+            return;
+        }
+
+        $this->upsertRoute(
+            '/admin/access-control',
+            'GET',
+            [
+                'access.manage',
+                'access.roles.manage',
+                'access.users.search',
+                'access.audit.view',
+            ],
+            100
+        );
+
+        $this->upsertRoute(
+            '/admin/access-control/roles',
+            'POST',
+            [
+                'access.manage',
+                'access.roles.manage',
+            ],
+            110
+        );
+
+        $this->upsertRoute(
+            '/admin/access-control/users',
+            'POST',
+            [
+                'access.manage',
+                'access.users.manage',
+            ],
+            120
+        );
+    }
+
+    private function upsertRoute(
+        string $path,
+        string $method,
+        array $permissions,
+        int $priority
+    ): void {
+        $statement = $this->db->prepare("
+            INSERT INTO admin_route_permissions (
+                route_pattern,
+                http_method,
+                permission_mode,
+                permission_codes_json,
+                priority,
+                is_active,
+                created_at,
+                updated_at
+            )
+            VALUES (
+                ?,
+                ?,
+                'any',
+                ?,
+                ?,
+                1,
+                CURRENT_TIMESTAMP,
+                CURRENT_TIMESTAMP
+            )
+            ON DUPLICATE KEY UPDATE
+                permission_mode = 'any',
+                permission_codes_json =
+                    VALUES(permission_codes_json),
+                priority = VALUES(priority),
+                is_active = 1,
+                updated_at = CURRENT_TIMESTAMP
+        ");
+        $statement->execute([
+            $path,
+            $method,
+            $this->permissionsJson($permissions),
+            $priority,
+        ]);
+    }
+
+    private function permissionsJson(array $permissions): string
+    {
+        return json_encode(
+            array_values($permissions),
+            JSON_UNESCAPED_UNICODE
+            | JSON_UNESCAPED_SLASHES
+            | JSON_THROW_ON_ERROR
+        );
+    }
+
+    private function tableExists(string $table): bool
+    {
+        $statement = $this->db->prepare("
+            SELECT COUNT(*)
+            FROM information_schema.tables
+            WHERE table_schema = DATABASE()
+              AND table_name = ?
+        ");
+        $statement->execute([$table]);
+
+        return (int) $statement->fetchColumn() > 0;
+    }
+}
+PHP
+
+echo "ADDED: $migration_file"
+
+perl -0pi -e '
+    my $foundation = q{new \IPKF\Database\Migrations\CreateAccessControlFoundation(),};
+    my $refinement = q{new \IPKF\Database\Migrations\RefineAccessControlExperience(),};
+
+    s{^([ \t]*)\Q$foundation\E\r?\n}{$1$foundation\n$1$refinement\n}m
+        or die "CreateAccessControlFoundation registration not found\n";
+' "$migrate_file"
+
+echo "UPDATED: $migrate_file"
+
+cat > "$test_file" <<'PHP'
+<?php
+
+declare(strict_types=1);
+
+$root = dirname(__DIR__);
+$viewPath = $root
+    . '/public_html/resources/views/admin/'
+    . 'access-control.php';
+$migrationPath = $root
+    . '/public_html/system/Database/Migrations/'
+    . 'RefineAccessControlExperience.php';
+$migratePath = $root . '/public_html/public/migrate.php';
+
+$read = static function (string $path): string {
+    $content = file_get_contents($path);
+
+    if (!is_string($content)) {
+        fwrite(STDERR, "FAIL: {$path} is not readable.\n");
+        exit(1);
+    }
+
+    return $content;
+};
+
+$expect = static function (
+    bool $condition,
+    string $message
+): void {
+    if (!$condition) {
+        fwrite(STDERR, "FAIL: {$message}\n");
+        exit(1);
+    }
+};
+
+$view = $read($viewPath);
+$migration = $read($migrationPath);
+$migrate = $read($migratePath);
+
+$expect(
+    str_contains($view, "preg_match('/^\\d{3}$/', \$status)")
+    && str_contains($view, 'as $code => $tabTitle')
+    && !str_contains($view, 'as $code => $title'),
+    'Numeric status suppression or page-title isolation is incomplete.'
+);
+
+$expect(
+    str_contains($view, "'auth' => 'احراز هویت'")
+    && str_contains($view, "'users' => 'کاربران'")
+    && str_contains($view, "'system' => 'زیرساخت سامانه'")
+    && str_contains($view, "'audit' => 'ممیزی و تاریخچه'")
+    && str_contains($view, '$groupLabel($groupTitle)'),
+    'Persian module or permission-group labels are incomplete.'
+);
+
+$expect(
+    str_contains($view, 'data-acl-role-search')
+    && str_contains($view, 'class="acl-protected-note"')
+    && str_contains($view, '@media (max-width: 980px)')
+    && str_contains($view, 'class="acl-tech" dir="ltr"'),
+    'Role search, protected-role state, tablet behavior, or technical detail hiding is incomplete.'
+);
+
+$expect(
+    str_contains($migration, "title = 'مدیریت سامانه'")
+    && str_contains($migration, "'access-control'")
+    && str_contains($migration, "'/admin/access-control'")
+    && str_contains($migration, "'سطوح و نقش‌های دسترسی'")
+    && str_contains($migration, "'access.roles.manage'")
+    && str_contains($migration, "'access.users.manage'"),
+    'Access-control navigation or route authorization is incomplete.'
+);
+
+$expect(
+    str_contains(
+        $migrate,
+        'new \\IPKF\\Database\\Migrations\\RefineAccessControlExperience()'
+    ),
+    'Access-control refinement migration is not registered.'
+);
+
+echo "Access control experience refinement checks passed.\n";
+PHP
+
+echo "ADDED: $test_file"
+
+mkdir -p tools
+cp -- "$0" "$tool_file"
+
+# Keep exactly one newline at EOF.
+perl -0pi -e 's/
++\z/
+/'     "$view_file"     "$migrate_file"     "$migration_file"     "$test_file"     "$tool_file"
+
+git add --     "$view_file"     "$migrate_file"     "$migration_file"     "$test_file"     "$tool_file"
+
+echo
+echo "=== Cached Validation ==="
+
+git diff --cached --check
+
+if command -v php >/dev/null 2>&1; then
+    echo
+    echo "=== PHP Validation ==="
+    php -l "$view_file"
+    php -l "$migrate_file"
+    php -l "$migration_file"
+    php -l "$test_file"
+    php "$test_file"
+else
+    echo
+    echo "PHP_NOT_AVAILABLE_ON_WINDOWS=SKIPPED"
+fi
+
+echo
+echo "=== Experience Refinement Markers ==="
+
+git grep -n -E     "data-acl-role-search|acl-protected-note|max-width: 980px|tabTitle|RefineAccessControlExperience|item_key = 'access-control'|Access control experience refinement checks passed"     --     "$view_file"     "$migrate_file"     "$migration_file"     "$test_file"
+
+echo
+echo "=== Scope Checks ==="
+
+changed_count="$(git diff --cached --name-only | wc -l | tr -d ' ')"
+
+if [[ "$changed_count" -ne 5 ]]; then
+    echo "Unexpected staged file count: $changed_count" >&2
+    git diff --cached --name-only >&2
+    exit 1
+fi
+
+if git diff --cached --name-only     | grep -Eq 'Migrations|public/migrate.php'
+then
+    echo "MIGRATION_SCOPE_CHANGED=1"
+    echo "MIGRATION_REQUIRED=YES"
+else
+    echo "MIGRATION_SCOPE_CHANGED=0"
+    echo "Expected migration scope change was not found." >&2
+    exit 1
+fi
+
+echo
+echo "=== Unstaged Changes Check ==="
+
+if git diff --quiet; then
+    echo "UNSTAGED_CHANGES=0"
+else
+    echo "UNSTAGED_CHANGES=1"
+    git status --short
+    exit 1
+fi
+
+echo
+echo "=== Cached Summary ==="
+
+git diff --cached --stat
+
+echo
+echo "=== Final Status ==="
+
+git status --short --branch
+
+echo
+echo "ACCESS CONTROL EXPERIENCE REFINEMENT ADDED AND STAGED"
+echo "No commit was created."
+
+trap - EXIT
