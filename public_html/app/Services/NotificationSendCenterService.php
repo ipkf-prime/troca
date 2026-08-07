@@ -23,7 +23,8 @@ class NotificationSendCenterService extends BaseService
         private ?NotificationGatewayService $gateway = null,
         private ?AuthorizationService $authorization = null,
         private ?NotificationMediaUploadService $media = null,
-        private ?NotificationSendAccessPolicyService $accessPolicy = null
+        private ?NotificationSendAccessPolicyService $accessPolicy = null,
+        private ?NotificationApprovalWorkflowService $approval = null
     ) {
         $this->repository ??=
             new NotificationSendCenterRepository();
@@ -35,6 +36,12 @@ class NotificationSendCenterService extends BaseService
             new NotificationMediaUploadService();
         $this->accessPolicy ??=
             new NotificationSendAccessPolicyService(
+                $this->authorization
+            );
+        $this->approval ??=
+            new NotificationApprovalWorkflowService(
+                null,
+                null,
                 $this->authorization
             );
     }
@@ -134,11 +141,6 @@ class NotificationSendCenterService extends BaseService
             );
         }
 
-        if ($policy === 'approval_required') {
-            throw new RuntimeException(
-                'notification_send_approval_required'
-            );
-        }
 
         $messageType = strtolower(trim(
             (string) (
@@ -396,6 +398,183 @@ class NotificationSendCenterService extends BaseService
                 $mediaFiles
             )
             : [];
+
+        if ($policy === 'approval_required') {
+            $approvalTargets = array_map(
+                function (array $target): array {
+                    $channel =
+                        (string) $target[
+                            'channel_code'
+                        ];
+
+                    $destination =
+                        (string) $target[
+                            'destination'
+                        ];
+
+                    return [
+                        'channel_code' =>
+                            $channel,
+                        'destination' =>
+                            $destination,
+                        'user_id' =>
+                            $target['user_id'],
+                        'recipient_title' =>
+                            (string) $target[
+                                'recipient_title'
+                            ],
+                        'destination_masked' =>
+                            $this->mask(
+                                $channel,
+                                $destination
+                            ),
+                    ];
+                },
+                $targets
+            );
+
+            try {
+                $approvalRequest =
+                    $this->approval->submit(
+                        $actorUserId,
+                        [
+                            'message_type_code' =>
+                                $messageType,
+                            'channels' =>
+                                $channels,
+                            'subject' =>
+                                $subject,
+                            'body' =>
+                                $body,
+                            'targets' =>
+                                $approvalTargets,
+                            'media_assets' =>
+                                $mediaAssets,
+                            'request_reason' =>
+                                trim((string) (
+                                    $input[
+                                        'request_reason'
+                                    ] ?? ''
+                                )),
+                        ]
+                    );
+            } catch (Throwable $exception) {
+                if ($mediaAssets !== []) {
+                    try {
+                        $this->media->cleanup(
+                            $mediaAssets
+                        );
+                    } catch (Throwable) {
+                    }
+                }
+
+                throw $exception;
+            }
+
+            $channelSummary = [];
+            $items = [];
+
+            foreach ($targets as $target) {
+                $channel =
+                    (string) $target[
+                        'channel_code'
+                    ];
+
+                $channelSummary[$channel] ??= [
+                    'total' => 0,
+                    'sent' => 0,
+                    'failed' => 0,
+                ];
+
+                $channelSummary[
+                    $channel
+                ]['total']++;
+
+                $items[] = [
+                    'channel_code' =>
+                        $channel,
+                    'recipient_title' =>
+                        (string) $target[
+                            'recipient_title'
+                        ],
+                    'destination_masked' =>
+                        $this->mask(
+                            $channel,
+                            (string) $target[
+                                'destination'
+                            ]
+                        ),
+                    'status_code' =>
+                        'pending',
+                    'provider_title' =>
+                        '',
+                    'provider_type_code' =>
+                        '',
+                    'delivery_reference' =>
+                        '',
+                    'fallback_used' =>
+                        false,
+                    'error_code' =>
+                        '',
+                ];
+            }
+
+            foreach ($skipped as $item) {
+                $channel =
+                    (string) $item[
+                        'channel_code'
+                    ];
+
+                $channelSummary[$channel] ??= [
+                    'total' => 0,
+                    'sent' => 0,
+                    'failed' => 0,
+                ];
+            }
+
+            $approvalReference =
+                (string) (
+                    $approvalRequest[
+                        'public_reference'
+                    ] ?? ''
+                );
+
+            return [
+                'workflow_status' =>
+                    'pending_approval',
+                'approval_status' =>
+                    (string) (
+                        $approvalRequest[
+                            'status_code'
+                        ] ?? 'pending'
+                    ),
+                'approval_reference' =>
+                    $approvalReference,
+                'public_reference' =>
+                    $approvalReference,
+                'message_type_code' =>
+                    $messageType,
+                'media_count' =>
+                    count($mediaAssets),
+                'created_at' =>
+                    date('Y-m-d H:i:s'),
+                'total' =>
+                    count($targets),
+                'sent' =>
+                    0,
+                'failed' =>
+                    0,
+                'skipped' =>
+                    count($skipped),
+                'channels' =>
+                    $channelSummary,
+                'items' =>
+                    array_merge(
+                        $items,
+                        $skipped
+                    ),
+            ];
+        }
 
         $reference =
             'nsc_' . bin2hex(random_bytes(12));

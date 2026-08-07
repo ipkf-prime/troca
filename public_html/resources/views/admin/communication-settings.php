@@ -61,6 +61,7 @@ $statusMessages = [
     'provider_defaults_channel_mismatch' => ['error', 'حساب انتخاب‌شده با کانال مربوط سازگار نیست.'],
     'provider_defaults_save_failed' => ['error', 'ذخیره پیش‌فرض سرویس‌دهنده‌ها انجام نشد.'],
     'notification_send_completed' => ['success', 'عملیات ارسال اعلان انجام شد. نتیجه هر مقصد در همین صفحه نمایش داده می‌شود.'],
+    'notification_send_approval_submitted' => ['success', 'درخواست ارسال اعلان برای بررسی و تأیید ثبت شد.'],
     'notification_send_forbidden' => ['error', 'دسترسی ارسال اعلان برای این نقش فعال نیست.'],
     'notification_send_channel_required' => ['error', 'حداقل یک کانال ارسال را انتخاب کنید.'],
     'notification_send_confirmation_required' => ['error', 'تأیید نهایی ارسال الزامی است.'],

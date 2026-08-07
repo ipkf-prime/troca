@@ -652,10 +652,17 @@ $router->post(
                 $result
             );
 
+            $status =
+                (($result['workflow_status'] ?? '')
+                    === 'pending_approval')
+                    ? 'notification_send_approval_submitted'
+                    : 'notification_send_completed';
+
             return $response->redirect(
                 '/admin/communications/settings'
                 . '?section=send'
-                . '&status=notification_send_completed'
+                . '&status='
+                . rawurlencode($status)
             );
         } catch (
             \InvalidArgumentException
