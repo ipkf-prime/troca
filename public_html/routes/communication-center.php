@@ -596,8 +596,7 @@ $router->post(
 
         try {
             $result = (
-                new \App\Services\
-                    NotificationApprovalManagementService()
+                new \App\Services\NotificationApprovalManagementService()
             )->approve(
                 (int) $context['user_id'],
                 $reference,
@@ -702,8 +701,7 @@ $router->post(
 
         try {
             (
-                new \App\Services\
-                    NotificationApprovalManagementService()
+                new \App\Services\NotificationApprovalManagementService()
             )->reject(
                 (int) $context['user_id'],
                 $reference,
