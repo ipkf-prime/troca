@@ -141,6 +141,7 @@ try {
         new \IPKF\Database\Migrations\CompleteAccessControlPersianLocalization(),
         new \IPKF\Database\Migrations\FinalizeAccessControlCatalogMetadata(),
         new \IPKF\Database\Migrations\CompleteAccessControlCatalogDescriptions(),
+        new \IPKF\Database\Migrations\CreateNotificationApprovalWorkflowFoundation(),
     ]);
 
     $manager->migrate();
