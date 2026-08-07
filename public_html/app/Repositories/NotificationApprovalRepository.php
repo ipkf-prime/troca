@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use PDO;
+use RuntimeException;
 use Throwable;
 
 class NotificationApprovalRepository extends BaseRepository
@@ -248,6 +249,901 @@ class NotificationApprovalRepository extends BaseRepository
         return is_array($row)
             ? $row
             : null;
+    }
+
+
+    public function queue(
+        int $limit = 100
+    ): array {
+        $limit = max(
+            1,
+            min(200, $limit)
+        );
+
+        return $this->connection()->query("
+            SELECT
+                r.id,
+                r.public_reference,
+                r.requester_user_id,
+                r.requester_scope_type,
+                r.requester_scope_reference,
+                r.status_code,
+                r.message_type_code,
+                r.purpose_code,
+                r.priority_code,
+                r.subject,
+                r.body,
+                r.channels_json,
+                r.request_reason,
+                r.current_step_order,
+                r.total_steps,
+                r.submitted_at,
+                r.created_at,
+                COALESCE(
+                    NULLIF(p.full_name, ''),
+                    NULLIF(u.username, ''),
+                    CONCAT(
+                        'کاربر ',
+                        r.requester_user_id
+                    )
+                ) AS requester_title,
+                (
+                    SELECT COUNT(*)
+                    FROM notification_approval_targets t
+                    WHERE t.request_id = r.id
+                ) AS target_count,
+                (
+                    SELECT COUNT(*)
+                    FROM notification_approval_media_links ml
+                    WHERE ml.request_id = r.id
+                ) AS media_count
+            FROM notification_approval_requests r
+            INNER JOIN users u
+                ON u.id = r.requester_user_id
+            LEFT JOIN persons p
+                ON p.id = u.person_id
+            WHERE r.status_code = 'pending'
+            ORDER BY
+                r.submitted_at ASC,
+                r.id ASC
+            LIMIT {$limit}
+        ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function targets(
+        int $requestId
+    ): array {
+        $statement = $this->connection()->prepare("
+            SELECT *
+            FROM notification_approval_targets
+            WHERE request_id = ?
+            ORDER BY sort_order, id
+        ");
+
+        $statement->execute([
+            $requestId,
+        ]);
+
+        return $statement->fetchAll(
+            PDO::FETCH_ASSOC
+        ) ?: [];
+    }
+
+    public function mediaAssets(
+        int $requestId
+    ): array {
+        $statement = $this->connection()->prepare("
+            SELECT
+                a.id,
+                a.public_reference,
+                a.original_name,
+                a.stored_name,
+                a.storage_path,
+                a.mime_type,
+                a.extension,
+                a.media_kind,
+                a.size_bytes,
+                a.checksum_sha256,
+                ml.sort_order,
+                ml.is_primary,
+                ml.alt_text
+            FROM notification_approval_media_links ml
+            INNER JOIN notification_media_assets a
+                ON a.id = ml.asset_id
+            WHERE ml.request_id = ?
+              AND a.status_code = 'active'
+            ORDER BY
+                ml.sort_order,
+                ml.id
+        ");
+
+        $statement->execute([
+            $requestId,
+        ]);
+
+        return $statement->fetchAll(
+            PDO::FETCH_ASSOC
+        ) ?: [];
+    }
+
+    public function transaction(
+        callable $callback
+    ): mixed {
+        $db = $this->connection();
+
+        if ($db->inTransaction()) {
+            throw new RuntimeException(
+                'notification_approval_transaction_nested'
+            );
+        }
+
+        $db->beginTransaction();
+
+        try {
+            $result = $callback($this);
+
+            $db->commit();
+
+            return $result;
+        } catch (Throwable $exception) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+
+            throw $exception;
+        }
+    }
+
+    public function lockByReference(
+        string $publicReference
+    ): ?array {
+        $statement = $this->connection()->prepare("
+            SELECT *
+            FROM notification_approval_requests
+            WHERE public_reference = ?
+            LIMIT 1
+            FOR UPDATE
+        ");
+
+        $statement->execute([
+            $publicReference,
+        ]);
+
+        $row = $statement->fetch(
+            PDO::FETCH_ASSOC
+        );
+
+        return is_array($row)
+            ? $row
+            : null;
+    }
+
+    public function lockActiveStep(
+        int $requestId,
+        int $stepOrder
+    ): ?array {
+        $statement = $this->connection()->prepare("
+            SELECT *
+            FROM notification_approval_steps
+            WHERE request_id = ?
+              AND step_order = ?
+              AND status_code = 'active'
+            LIMIT 1
+            FOR UPDATE
+        ");
+
+        $statement->execute([
+            $requestId,
+            $stepOrder,
+        ]);
+
+        $row = $statement->fetch(
+            PDO::FETCH_ASSOC
+        );
+
+        return is_array($row)
+            ? $row
+            : null;
+    }
+
+    public function recordDecision(
+        array $request,
+        array $step,
+        int $actorUserId,
+        string $decisionCode,
+        ?string $reason,
+        array $actorSnapshot,
+        string $toStatus
+    ): array {
+        $requestId = (int) (
+            $request['id'] ?? 0
+        );
+
+        $stepId = (int) (
+            $step['id'] ?? 0
+        );
+
+        if (
+            $requestId < 1
+            || $stepId < 1
+            || $actorUserId < 1
+        ) {
+            throw new RuntimeException(
+                'notification_approval_decision_invalid'
+            );
+        }
+
+        if (!in_array(
+            $decisionCode,
+            ['approve', 'reject'],
+            true
+        )) {
+            throw new RuntimeException(
+                'notification_approval_decision_invalid'
+            );
+        }
+
+        if (!in_array(
+            $toStatus,
+            ['approved', 'rejected'],
+            true
+        )) {
+            throw new RuntimeException(
+                'notification_approval_status_invalid'
+            );
+        }
+
+        $decision = $this->connection()->prepare("
+            INSERT INTO notification_approval_decisions (
+                request_id,
+                step_id,
+                actor_user_id,
+                decision_code,
+                reason,
+                actor_snapshot_json,
+                decided_at,
+                created_at
+            )
+            VALUES (
+                ?, ?, ?, ?, ?, ?,
+                CURRENT_TIMESTAMP,
+                CURRENT_TIMESTAMP
+            )
+        ");
+
+        $decision->execute([
+            $requestId,
+            $stepId,
+            $actorUserId,
+            $decisionCode,
+            $reason,
+            json_encode(
+                $actorSnapshot,
+                JSON_UNESCAPED_UNICODE
+                | JSON_UNESCAPED_SLASHES
+            ),
+        ]);
+
+        $stepUpdate = $this->connection()->prepare("
+            UPDATE notification_approval_steps
+            SET
+                completed_decisions =
+                    completed_decisions + 1,
+                status_code = 'completed',
+                completed_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+              AND request_id = ?
+              AND status_code = 'active'
+        ");
+
+        $stepUpdate->execute([
+            $stepId,
+            $requestId,
+        ]);
+
+        if ($stepUpdate->rowCount() !== 1) {
+            throw new RuntimeException(
+                'notification_approval_step_conflict'
+            );
+        }
+
+        $timeColumn = $toStatus === 'approved'
+            ? 'approved_at'
+            : 'rejected_at';
+
+        $requestUpdate = $this->connection()->prepare("
+            UPDATE notification_approval_requests
+            SET
+                status_code = ?,
+                current_step_order = NULL,
+                {$timeColumn} = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+              AND status_code = 'pending'
+        ");
+
+        $requestUpdate->execute([
+            $toStatus,
+            $requestId,
+        ]);
+
+        if ($requestUpdate->rowCount() !== 1) {
+            throw new RuntimeException(
+                'notification_approval_request_conflict'
+            );
+        }
+
+        $this->insertEvent(
+            $requestId,
+            $actorUserId,
+            $decisionCode === 'approve'
+                ? 'request_approved'
+                : 'request_rejected',
+            'pending',
+            $toStatus,
+            $reason,
+            [
+                'step_id' => $stepId,
+                'step_order' => (int) (
+                    $step['step_order'] ?? 0
+                ),
+                'decision_code' =>
+                    $decisionCode,
+            ]
+        );
+
+        return [
+            'request_id' => $requestId,
+            'public_reference' => (string) (
+                $request['public_reference']
+                ?? ''
+            ),
+            'status_code' => $toStatus,
+            'decision_code' => $decisionCode,
+        ];
+    }
+
+
+    public function startDispatch(
+        array $request,
+        int $actorUserId,
+        string $fromStatus
+    ): array {
+        $requestId = (int) (
+            $request['id'] ?? 0
+        );
+
+        if (
+            $requestId < 1
+            || $actorUserId < 1
+            || $fromStatus === ''
+        ) {
+            throw new RuntimeException(
+                'notification_approval_dispatch_invalid'
+            );
+        }
+
+        $targetCount = $this->connection()->prepare("
+            SELECT COUNT(*)
+            FROM notification_approval_targets
+            WHERE request_id = ?
+              AND status_code IN (
+                  'pending',
+                  'failed'
+              )
+        ");
+
+        $targetCount->execute([
+            $requestId,
+        ]);
+
+        $totalCount =
+            (int) $targetCount->fetchColumn();
+
+        if ($totalCount < 1) {
+            throw new RuntimeException(
+                'notification_approval_dispatch_targets_empty'
+            );
+        }
+
+        $attempt = $this->connection()->prepare("
+            SELECT
+                COALESCE(
+                    MAX(attempt_number),
+                    0
+                ) + 1
+            FROM notification_approval_dispatch_runs
+            WHERE request_id = ?
+        ");
+
+        $attempt->execute([
+            $requestId,
+        ]);
+
+        $attemptNumber =
+            (int) $attempt->fetchColumn();
+
+        if ($attemptNumber < 1) {
+            $attemptNumber = 1;
+        }
+
+        $runReference =
+            'ndr_' . bin2hex(
+                random_bytes(12)
+            );
+
+        $run = $this->connection()->prepare("
+            INSERT INTO notification_approval_dispatch_runs (
+                public_reference,
+                request_id,
+                attempt_number,
+                started_by_user_id,
+                status_code,
+                total_count,
+                sent_count,
+                failed_count,
+                skipped_count,
+                started_at,
+                created_at,
+                updated_at
+            )
+            VALUES (
+                ?, ?, ?, ?,
+                'dispatching',
+                ?,
+                0,
+                0,
+                0,
+                CURRENT_TIMESTAMP,
+                CURRENT_TIMESTAMP,
+                CURRENT_TIMESTAMP
+            )
+        ");
+
+        $run->execute([
+            $runReference,
+            $requestId,
+            $attemptNumber,
+            $actorUserId,
+            $totalCount,
+        ]);
+
+        $runId = (int) $this->connection()
+            ->lastInsertId();
+
+        $update = $this->connection()->prepare("
+            UPDATE notification_approval_requests
+            SET
+                status_code = 'dispatching',
+                dispatch_started_at =
+                    CURRENT_TIMESTAMP,
+                failed_at = NULL,
+                last_error = NULL,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+              AND status_code = ?
+        ");
+
+        $update->execute([
+            $requestId,
+            $fromStatus,
+        ]);
+
+        if ($update->rowCount() !== 1) {
+            throw new RuntimeException(
+                'notification_approval_dispatch_conflict'
+            );
+        }
+
+        $this->insertEvent(
+            $requestId,
+            $actorUserId,
+            'dispatch_started',
+            $fromStatus,
+            'dispatching',
+            null,
+            [
+                'dispatch_run_id' =>
+                    $runId,
+                'dispatch_run_reference' =>
+                    $runReference,
+                'attempt_number' =>
+                    $attemptNumber,
+                'target_count' =>
+                    $totalCount,
+            ]
+        );
+
+        return [
+            'run_id' => $runId,
+            'run_reference' =>
+                $runReference,
+            'request_id' =>
+                $requestId,
+            'attempt_number' =>
+                $attemptNumber,
+            'total_count' =>
+                $totalCount,
+        ];
+    }
+
+    public function dispatchTargets(
+        int $requestId
+    ): array {
+        $statement = $this->connection()->prepare("
+            SELECT *
+            FROM notification_approval_targets
+            WHERE request_id = ?
+              AND status_code IN (
+                  'pending',
+                  'failed'
+              )
+            ORDER BY
+                sort_order,
+                id
+        ");
+
+        $statement->execute([
+            $requestId,
+        ]);
+
+        return $statement->fetchAll(
+            PDO::FETCH_ASSOC
+        ) ?: [];
+    }
+
+    public function markTargetSent(
+        int $targetId,
+        array $result
+    ): void {
+        if ($targetId < 1) {
+            throw new RuntimeException(
+                'notification_approval_target_invalid'
+            );
+        }
+
+        $providerReference = trim(
+            (string) (
+                $result[
+                    'provider_instance_reference'
+                ] ?? ''
+            )
+        );
+
+        $providerId = null;
+
+        if ($providerReference !== '') {
+            $provider = $this->connection()->prepare("
+                SELECT id
+                FROM notification_provider_instances
+                WHERE public_reference = ?
+                LIMIT 1
+            ");
+
+            $provider->execute([
+                $providerReference,
+            ]);
+
+            $value =
+                (int) $provider->fetchColumn();
+
+            if ($value > 0) {
+                $providerId = $value;
+            }
+        }
+
+        $statement = $this->connection()->prepare("
+            UPDATE notification_approval_targets
+            SET
+                status_code = 'sent',
+                provider_instance_id = ?,
+                provider_type_code = ?,
+                provider_title_snapshot = ?,
+                error_code = NULL,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+              AND status_code IN (
+                  'pending',
+                  'failed'
+              )
+        ");
+
+        $statement->execute([
+            $providerId,
+            trim((string) (
+                $result[
+                    'provider_type_code'
+                ] ?? ''
+            )) ?: null,
+            trim((string) (
+                $result[
+                    'provider_title'
+                ] ?? ''
+            )) ?: null,
+            $targetId,
+        ]);
+
+        if ($statement->rowCount() !== 1) {
+            throw new RuntimeException(
+                'notification_approval_target_conflict'
+            );
+        }
+    }
+
+    public function markTargetFailed(
+        int $targetId,
+        string $errorCode
+    ): void {
+        if ($targetId < 1) {
+            throw new RuntimeException(
+                'notification_approval_target_invalid'
+            );
+        }
+
+        $errorCode = trim($errorCode);
+
+        if ($errorCode === '') {
+            $errorCode =
+                'notification_gateway_provider_rejected';
+        }
+
+        $statement = $this->connection()->prepare("
+            UPDATE notification_approval_targets
+            SET
+                status_code = 'failed',
+                error_code = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+              AND status_code IN (
+                  'pending',
+                  'failed'
+              )
+        ");
+
+        $statement->execute([
+            mb_substr(
+                $errorCode,
+                0,
+                190,
+                'UTF-8'
+            ),
+            $targetId,
+        ]);
+
+        if ($statement->rowCount() !== 1) {
+            throw new RuntimeException(
+                'notification_approval_target_conflict'
+            );
+        }
+    }
+
+    public function lockDispatchRun(
+        int $runId,
+        int $requestId
+    ): ?array {
+        $statement = $this->connection()->prepare("
+            SELECT *
+            FROM notification_approval_dispatch_runs
+            WHERE id = ?
+              AND request_id = ?
+            LIMIT 1
+            FOR UPDATE
+        ");
+
+        $statement->execute([
+            $runId,
+            $requestId,
+        ]);
+
+        $row = $statement->fetch(
+            PDO::FETCH_ASSOC
+        );
+
+        return is_array($row)
+            ? $row
+            : null;
+    }
+
+    public function finishDispatch(
+        array $request,
+        array $run,
+        int $actorUserId,
+        string $toStatus,
+        int $sentCount,
+        int $failedCount,
+        int $skippedCount,
+        array $result,
+        ?string $lastError
+    ): array {
+        $requestId = (int) (
+            $request['id'] ?? 0
+        );
+
+        $runId = (int) (
+            $run['id'] ?? 0
+        );
+
+        if (
+            $requestId < 1
+            || $runId < 1
+            || $actorUserId < 1
+        ) {
+            throw new RuntimeException(
+                'notification_approval_dispatch_invalid'
+            );
+        }
+
+        if (!in_array(
+            $toStatus,
+            [
+                'dispatched',
+                'partially_dispatched',
+                'failed',
+            ],
+            true
+        )) {
+            throw new RuntimeException(
+                'notification_approval_status_invalid'
+            );
+        }
+
+        $runUpdate = $this->connection()->prepare("
+            UPDATE notification_approval_dispatch_runs
+            SET
+                status_code = ?,
+                sent_count = ?,
+                failed_count = ?,
+                skipped_count = ?,
+                result_json = ?,
+                completed_at = CURRENT_TIMESTAMP,
+                last_error = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+              AND request_id = ?
+              AND status_code = 'dispatching'
+        ");
+
+        $runUpdate->execute([
+            $toStatus,
+            max(0, $sentCount),
+            max(0, $failedCount),
+            max(0, $skippedCount),
+            json_encode(
+                $result,
+                JSON_UNESCAPED_UNICODE
+                | JSON_UNESCAPED_SLASHES
+            ),
+            $lastError,
+            $runId,
+            $requestId,
+        ]);
+
+        if ($runUpdate->rowCount() !== 1) {
+            throw new RuntimeException(
+                'notification_approval_dispatch_run_conflict'
+            );
+        }
+
+        if ($toStatus === 'dispatched') {
+            $requestUpdate =
+                $this->connection()->prepare("
+                    UPDATE notification_approval_requests
+                    SET
+                        status_code = 'dispatched',
+                        dispatched_at =
+                            CURRENT_TIMESTAMP,
+                        failed_at = NULL,
+                        last_error = NULL,
+                        updated_at =
+                            CURRENT_TIMESTAMP
+                    WHERE id = ?
+                      AND status_code =
+                          'dispatching'
+                ");
+
+            $requestUpdate->execute([
+                $requestId,
+            ]);
+        } elseif ($toStatus === 'failed') {
+            $requestUpdate =
+                $this->connection()->prepare("
+                    UPDATE notification_approval_requests
+                    SET
+                        status_code = 'failed',
+                        failed_at =
+                            CURRENT_TIMESTAMP,
+                        last_error = ?,
+                        updated_at =
+                            CURRENT_TIMESTAMP
+                    WHERE id = ?
+                      AND status_code =
+                          'dispatching'
+                ");
+
+            $requestUpdate->execute([
+                $lastError,
+                $requestId,
+            ]);
+        } else {
+            $requestUpdate =
+                $this->connection()->prepare("
+                    UPDATE notification_approval_requests
+                    SET
+                        status_code =
+                            'partially_dispatched',
+                        failed_at = NULL,
+                        last_error = ?,
+                        updated_at =
+                            CURRENT_TIMESTAMP
+                    WHERE id = ?
+                      AND status_code =
+                          'dispatching'
+                ");
+
+            $requestUpdate->execute([
+                $lastError,
+                $requestId,
+            ]);
+        }
+
+        if ($requestUpdate->rowCount() !== 1) {
+            throw new RuntimeException(
+                'notification_approval_dispatch_finalize_conflict'
+            );
+        }
+
+        $this->insertEvent(
+            $requestId,
+            $actorUserId,
+            'dispatch_finished',
+            'dispatching',
+            $toStatus,
+            $lastError,
+            [
+                'dispatch_run_id' =>
+                    $runId,
+                'dispatch_run_reference' =>
+                    (string) (
+                        $run[
+                            'public_reference'
+                        ] ?? ''
+                    ),
+                'sent_count' =>
+                    max(0, $sentCount),
+                'failed_count' =>
+                    max(0, $failedCount),
+                'skipped_count' =>
+                    max(0, $skippedCount),
+            ]
+        );
+
+        return [
+            'request_id' =>
+                $requestId,
+            'public_reference' =>
+                (string) (
+                    $request[
+                        'public_reference'
+                    ] ?? ''
+                ),
+            'run_id' =>
+                $runId,
+            'run_reference' =>
+                (string) (
+                    $run[
+                        'public_reference'
+                    ] ?? ''
+                ),
+            'status_code' =>
+                $toStatus,
+            'sent_count' =>
+                max(0, $sentCount),
+            'failed_count' =>
+                max(0, $failedCount),
+            'skipped_count' =>
+                max(0, $skippedCount),
+        ];
     }
 
     private function insertEvent(

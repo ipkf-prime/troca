@@ -25,6 +25,9 @@ $preferences = $page['preferences'] ?? [];
 $notificationSendCenter = is_array(
     $page['notification_send_center'] ?? null
 ) ? $page['notification_send_center'] : [];
+$notificationApprovalManagement = is_array(
+    $page['notification_approval_management'] ?? null
+) ? $page['notification_approval_management'] : [];
 $baleConnectionManagement = is_array(
     $page['bale_connection_management'] ?? null
 ) ? $page['bale_connection_management'] : [];
@@ -62,6 +65,17 @@ $statusMessages = [
     'provider_defaults_save_failed' => ['error', 'ذخیره پیش‌فرض سرویس‌دهنده‌ها انجام نشد.'],
     'notification_send_completed' => ['success', 'عملیات ارسال اعلان انجام شد. نتیجه هر مقصد در همین صفحه نمایش داده می‌شود.'],
     'notification_send_approval_submitted' => ['success', 'درخواست ارسال اعلان برای بررسی و تأیید ثبت شد.'],
+    'notification_approval_approved_dispatched' => ['success', 'درخواست تأیید شد و اعلان با موفقیت ارسال شد.'],
+    'notification_approval_approved_partial' => ['success', 'درخواست تأیید شد؛ بخشی از مقصدها ارسال شدند و بخشی ناموفق بودند.'],
+    'notification_approval_approved_failed' => ['error', 'درخواست تأیید شد، اما ارسال اعلان ناموفق بود.'],
+    'notification_approval_approved' => ['success', 'درخواست اعلان تأیید شد.'],
+    'notification_approval_rejected' => ['success', 'درخواست ارسال اعلان رد شد.'],
+    'notification_approval_reject_reason_required' => ['error', 'برای رد درخواست، ثبت دلیل الزامی است.'],
+    'notification_approval_decide_forbidden' => ['error', 'دسترسی تصمیم‌گیری برای این درخواست فعال نیست.'],
+    'notification_approval_approver_ineligible' => ['error', 'شما تأییدکننده مجاز این مرحله نیستید.'],
+    'notification_approval_request_not_found' => ['error', 'درخواست تأیید اعلان پیدا نشد.'],
+    'notification_approval_transition_invalid' => ['error', 'وضعیت فعلی درخواست اجازه این عملیات را نمی‌دهد.'],
+    'notification_approval_operation_failed' => ['error', 'عملیات تأیید اعلان انجام نشد.'],
     'notification_send_forbidden' => ['error', 'دسترسی ارسال اعلان برای این نقش فعال نیست.'],
     'notification_send_channel_required' => ['error', 'حداقل یک کانال ارسال را انتخاب کنید.'],
     'notification_send_confirmation_required' => ['error', 'تأیید نهایی ارسال الزامی است.'],
@@ -200,6 +214,10 @@ require BASE_PATH
     <?php elseif (str_starts_with($status, 'provider_secret_required_')): ?>
         <div class="admin-alert admin-alert--danger">
             اطلاعات محرمانه الزامی سرویس‌دهنده وارد نشده است.
+        </div>
+    <?php elseif (str_starts_with($status, 'notification_approval_')): ?>
+        <div class="admin-alert admin-alert--danger">
+            عملیات کارتابل تأیید اعلان انجام نشد.
         </div>
     <?php endif; ?>
 
@@ -2894,6 +2912,381 @@ require BASE_PATH
                     refreshSelection();
                 })();
                 </script>
+            </section>
+
+        <?php elseif ($section === 'approvals'): ?>
+            <?php
+            $approvalItems = is_array(
+                $notificationApprovalManagement[
+                    'items'
+                ] ?? null
+            ) ? $notificationApprovalManagement[
+                'items'
+            ] : [];
+
+            $approvalCanDecide = !empty(
+                $notificationApprovalManagement[
+                    'can_decide'
+                ]
+            );
+
+            $approvalCsrf =
+                (new \IPKF\Security\Csrf())->token();
+
+            $approvalChannelLabels = [
+                'email' => 'ایمیل',
+                'sms' => 'پیام کوتاه',
+                'messenger' => 'پیام‌رسان بله',
+            ];
+            ?>
+
+            <section class="provider-management-card">
+                <header class="provider-management-card__head">
+                    <div>
+                        <h3>کارتابل تأیید اعلان‌ها</h3>
+                        <p class="communication-muted">
+                            درخواست‌های در انتظار را بررسی کنید.
+                            فقط درخواست تأییدشده وارد فرایند ارسال می‌شود.
+                        </p>
+                    </div>
+
+                    <span class="communication-badge">
+                        <?= admin_h(
+                            \App\Support\AdminFormat::digits(
+                                count($approvalItems)
+                            )
+                        ) ?>
+                        درخواست در انتظار
+                    </span>
+                </header>
+
+                <?php if ($approvalItems === []): ?>
+                    <div class="provider-empty-state">
+                        <strong>
+                            درخواست در انتظار تأییدی وجود ندارد.
+                        </strong>
+                        <p>
+                            درخواست‌های جدید کاربران پس از ثبت،
+                            در این کارتابل نمایش داده می‌شوند.
+                        </p>
+                    </div>
+                <?php else: ?>
+                    <div class="communication-table-wrap">
+                        <table class="communication-table">
+                            <thead>
+                                <tr>
+                                    <th>درخواست‌دهنده</th>
+                                    <th>محتوا</th>
+                                    <th>مقصدها و کانال‌ها</th>
+                                    <th>تعداد</th>
+                                    <th>زمان ثبت</th>
+                                    <th>عملیات</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                            <?php foreach (
+                                $approvalItems
+                                as $approvalItem
+                            ): ?>
+                                <?php
+                                $approvalReference = (string) (
+                                    $approvalItem[
+                                        'public_reference'
+                                    ] ?? ''
+                                );
+
+                                $approvalTargets = is_array(
+                                    $approvalItem[
+                                        'targets'
+                                    ] ?? null
+                                ) ? $approvalItem[
+                                    'targets'
+                                ] : [];
+
+                                $approvalChannels = is_array(
+                                    $approvalItem[
+                                        'channels'
+                                    ] ?? null
+                                ) ? $approvalItem[
+                                    'channels'
+                                ] : [];
+
+                                $approvalSubject = trim(
+                                    (string) (
+                                        $approvalItem[
+                                            'subject'
+                                        ] ?? ''
+                                    )
+                                );
+
+                                $approvalBody = trim(
+                                    (string) (
+                                        $approvalItem[
+                                            'body'
+                                        ] ?? ''
+                                    )
+                                );
+
+                                $approvalReason = trim(
+                                    (string) (
+                                        $approvalItem[
+                                            'request_reason'
+                                        ] ?? ''
+                                    )
+                                );
+                                ?>
+
+                                <tr>
+                                    <td>
+                                        <strong>
+                                            <?= admin_h(
+                                                $approvalItem[
+                                                    'requester_title'
+                                                ] ?? 'کاربر'
+                                            ) ?>
+                                        </strong>
+
+                                        <small dir="ltr">
+                                            <?= admin_h(
+                                                $approvalReference
+                                            ) ?>
+                                        </small>
+                                    </td>
+
+                                    <td>
+                                        <?php if (
+                                            $approvalSubject !== ''
+                                        ): ?>
+                                            <strong>
+                                                <?= admin_h(
+                                                    $approvalSubject
+                                                ) ?>
+                                            </strong>
+                                        <?php else: ?>
+                                            <strong>
+                                                بدون موضوع
+                                            </strong>
+                                        <?php endif; ?>
+
+                                        <details>
+                                            <summary>
+                                                مشاهده متن اعلان
+                                            </summary>
+
+                                            <p>
+                                                <?= nl2br(
+                                                    admin_h(
+                                                        $approvalBody
+                                                    )
+                                                ) ?>
+                                            </p>
+                                        </details>
+
+                                        <?php if (
+                                            $approvalReason !== ''
+                                        ): ?>
+                                            <small>
+                                                دلیل درخواست:
+                                                <?= admin_h(
+                                                    $approvalReason
+                                                ) ?>
+                                            </small>
+                                        <?php endif; ?>
+                                    </td>
+
+                                    <td>
+                                        <?php if (
+                                            $approvalTargets !== []
+                                        ): ?>
+                                            <ul>
+                                            <?php foreach (
+                                                $approvalTargets
+                                                as $target
+                                            ): ?>
+                                                <?php
+                                                $targetChannel =
+                                                    (string) (
+                                                        $target[
+                                                            'channel_code'
+                                                        ] ?? ''
+                                                    );
+                                                ?>
+                                                <li>
+                                                    <strong>
+                                                        <?= admin_h(
+                                                            $target[
+                                                                'recipient_title'
+                                                            ] ?? 'گیرنده'
+                                                        ) ?>
+                                                    </strong>
+                                                    —
+                                                    <?= admin_h(
+                                                        $approvalChannelLabels[
+                                                            $targetChannel
+                                                        ] ?? $targetChannel
+                                                    ) ?>
+                                                    —
+                                                    <span dir="ltr">
+                                                        <?= admin_h(
+                                                            $target[
+                                                                'destination_masked'
+                                                            ] ?? '—'
+                                                        ) ?>
+                                                    </span>
+                                                </li>
+                                            <?php endforeach; ?>
+                                            </ul>
+                                        <?php else: ?>
+                                            <?php foreach (
+                                                $approvalChannels
+                                                as $channel
+                                            ): ?>
+                                                <span class="communication-badge">
+                                                    <?= admin_h(
+                                                        $approvalChannelLabels[
+                                                            $channel
+                                                        ] ?? $channel
+                                                    ) ?>
+                                                </span>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </td>
+
+                                    <td>
+                                        <div>
+                                            گیرنده:
+                                            <strong>
+                                                <?= admin_h(
+                                                    \App\Support\AdminFormat::digits(
+                                                        (int) (
+                                                            $approvalItem[
+                                                                'target_count'
+                                                            ] ?? 0
+                                                        )
+                                                    )
+                                                ) ?>
+                                            </strong>
+                                        </div>
+
+                                        <div>
+                                            پیوست:
+                                            <strong>
+                                                <?= admin_h(
+                                                    \App\Support\AdminFormat::digits(
+                                                        (int) (
+                                                            $approvalItem[
+                                                                'media_count'
+                                                            ] ?? 0
+                                                        )
+                                                    )
+                                                ) ?>
+                                            </strong>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <?= admin_h(
+                                            \App\Support\AdminFormat::digits(
+                                                (string) (
+                                                    $approvalItem[
+                                                        'submitted_at'
+                                                    ] ?? '—'
+                                                )
+                                            )
+                                        ) ?>
+
+                                        <div>
+                                            <span class="communication-status communication-status--active">
+                                                <?= admin_h(
+                                                    $approvalItem[
+                                                        'status_label'
+                                                    ] ?? 'در انتظار تأیید'
+                                                ) ?>
+                                            </span>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <?php if (
+                                            $approvalCanDecide
+                                        ): ?>
+                                            <form
+                                                method="post"
+                                                action="<?= admin_h(
+                                                    '/admin/communications/settings/approvals/'
+                                                    . rawurlencode(
+                                                        $approvalReference
+                                                    )
+                                                    . '/approve'
+                                                ) ?>"
+                                            >
+                                                <input
+                                                    type="hidden"
+                                                    name="_token"
+                                                    value="<?= admin_h(
+                                                        $approvalCsrf
+                                                    ) ?>"
+                                                >
+
+                                                <button
+                                                    class="admin-button admin-button--compact"
+                                                    type="submit"
+                                                >
+                                                    تأیید و ارسال
+                                                </button>
+                                            </form>
+
+                                            <form
+                                                method="post"
+                                                action="<?= admin_h(
+                                                    '/admin/communications/settings/approvals/'
+                                                    . rawurlencode(
+                                                        $approvalReference
+                                                    )
+                                                    . '/reject'
+                                                ) ?>"
+                                            >
+                                                <input
+                                                    type="hidden"
+                                                    name="_token"
+                                                    value="<?= admin_h(
+                                                        $approvalCsrf
+                                                    ) ?>"
+                                                >
+
+                                                <label>
+                                                    <span>
+                                                        دلیل رد
+                                                    </span>
+                                                    <input
+                                                        type="text"
+                                                        name="reason"
+                                                        maxlength="2000"
+                                                        required
+                                                        placeholder="دلیل رد درخواست"
+                                                    >
+                                                </label>
+
+                                                <button
+                                                    class="admin-button admin-button--soft admin-button--compact"
+                                                    type="submit"
+                                                >
+                                                    رد درخواست
+                                                </button>
+                                            </form>
+                                        <?php else: ?>
+                                            <span class="communication-muted">
+                                                فقط مشاهده
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
             </section>
 
         <?php elseif ($section === 'send'): ?>

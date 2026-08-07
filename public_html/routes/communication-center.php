@@ -550,6 +550,198 @@ $router->get(
 );
 
 $router->post(
+    '/admin/communications/settings/approvals/{reference}/approve',
+    function (
+        $request,
+        $response
+    ) use ($adminGuard, $communicationAccess) {
+        $context = $adminGuard(
+            $response,
+            '/admin/communications/settings'
+        );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $reference = trim(
+            (string) $request->route('reference')
+        );
+
+        $path =
+            '/admin/communications/settings/'
+            . 'approvals/'
+            . rawurlencode($reference)
+            . '/approve';
+
+        if (!$communicationAccess(
+            $context,
+            'POST',
+            $path
+        )) {
+            return $response->redirect(
+                '/admin/dashboard?error=forbidden'
+            );
+        }
+
+        if (!(new \IPKF\Security\Csrf())->check(
+            (string) $request->input('_token', '')
+        )) {
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=approvals'
+                . '&status=invalid_csrf'
+            );
+        }
+
+        try {
+            $result = (
+                new \App\Services\
+                    NotificationApprovalManagementService()
+            )->approve(
+                (int) $context['user_id'],
+                $reference,
+                (string) $request->input(
+                    'reason',
+                    ''
+                )
+            );
+
+            $workflowStatus = (string) (
+                $result['status_code']
+                ?? ''
+            );
+
+            $status = match ($workflowStatus) {
+                'dispatched' =>
+                    'notification_approval_approved_dispatched',
+
+                'partially_dispatched' =>
+                    'notification_approval_approved_partial',
+
+                'failed' =>
+                    'notification_approval_approved_failed',
+
+                default =>
+                    'notification_approval_approved',
+            };
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=approvals'
+                . '&status='
+                . rawurlencode($status)
+            );
+        } catch (\Throwable $exception) {
+            $status = trim(
+                $exception->getMessage()
+            );
+
+            if (!str_starts_with(
+                $status,
+                'notification_approval_'
+            )) {
+                $status =
+                    'notification_approval_operation_failed';
+            }
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=approvals'
+                . '&status='
+                . rawurlencode($status)
+            );
+        }
+    }
+);
+
+$router->post(
+    '/admin/communications/settings/approvals/{reference}/reject',
+    function (
+        $request,
+        $response
+    ) use ($adminGuard, $communicationAccess) {
+        $context = $adminGuard(
+            $response,
+            '/admin/communications/settings'
+        );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $reference = trim(
+            (string) $request->route('reference')
+        );
+
+        $path =
+            '/admin/communications/settings/'
+            . 'approvals/'
+            . rawurlencode($reference)
+            . '/reject';
+
+        if (!$communicationAccess(
+            $context,
+            'POST',
+            $path
+        )) {
+            return $response->redirect(
+                '/admin/dashboard?error=forbidden'
+            );
+        }
+
+        if (!(new \IPKF\Security\Csrf())->check(
+            (string) $request->input('_token', '')
+        )) {
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=approvals'
+                . '&status=invalid_csrf'
+            );
+        }
+
+        try {
+            (
+                new \App\Services\
+                    NotificationApprovalManagementService()
+            )->reject(
+                (int) $context['user_id'],
+                $reference,
+                (string) $request->input(
+                    'reason',
+                    ''
+                )
+            );
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=approvals'
+                . '&status=notification_approval_rejected'
+            );
+        } catch (\Throwable $exception) {
+            $status = trim(
+                $exception->getMessage()
+            );
+
+            if (!str_starts_with(
+                $status,
+                'notification_approval_'
+            )) {
+                $status =
+                    'notification_approval_operation_failed';
+            }
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=approvals'
+                . '&status='
+                . rawurlencode($status)
+            );
+        }
+    }
+);
+
+$router->post(
     '/admin/communications/settings/send',
     function (
         $request,

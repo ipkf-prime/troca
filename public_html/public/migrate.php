@@ -142,6 +142,7 @@ try {
         new \IPKF\Database\Migrations\FinalizeAccessControlCatalogMetadata(),
         new \IPKF\Database\Migrations\CompleteAccessControlCatalogDescriptions(),
         new \IPKF\Database\Migrations\CreateNotificationApprovalWorkflowFoundation(),
+        new \IPKF\Database\Migrations\EnableNotificationApprovalManagement(),
     ]);
 
     $manager->migrate();

@@ -27,6 +27,10 @@ class CommunicationSettingsService extends BaseService
             'title' => 'اتصال کاربران به بله',
             'permission' => 'notifications.send.manage',
         ],
+        'approvals' => [
+            'title' => 'تأیید اعلان‌ها',
+            'permission' => 'notifications.approvals.view',
+        ],
         'send' => [
             'title' => 'ارسال اعلان',
             'permission' => 'notifications.send.view',
@@ -48,7 +52,8 @@ class CommunicationSettingsService extends BaseService
         private ?NotificationProviderDefaultService $providerDefaults = null,
         private ?NotificationDeliveryReportService $deliveryReports = null,
         private ?NotificationSendCenterService $sendCenter = null,
-        private ?NotificationBaleConnectionManagementService $baleConnections = null
+        private ?NotificationBaleConnectionManagementService $baleConnections = null,
+        private ?NotificationApprovalManagementService $approvalManagement = null
     ) {
         $this->repository ??= new CommunicationSettingsRepository();
         $this->authorization ??= new AuthorizationService();
@@ -58,6 +63,8 @@ class CommunicationSettingsService extends BaseService
         $this->sendCenter ??= new NotificationSendCenterService();
         $this->baleConnections ??=
             new NotificationBaleConnectionManagementService();
+        $this->approvalManagement ??=
+            new NotificationApprovalManagementService();
     }
 
     public function allowedSections(int $userId): array
@@ -107,6 +114,7 @@ class CommunicationSettingsService extends BaseService
         $deliveryReport = [];
         $notificationSendCenter = [];
         $baleConnectionManagement = [];
+        $notificationApprovalManagement = [];
 
         if (
             $section === 'providers'
@@ -132,6 +140,23 @@ class CommunicationSettingsService extends BaseService
         ) {
             $baleConnectionManagement =
                 $this->baleConnections->page($userId);
+        }
+
+        if (
+            $section === 'approvals'
+            && isset($sections['approvals'])
+        ) {
+            $notificationApprovalManagement = [
+                'items' =>
+                    $this->approvalManagement
+                        ->queue($userId),
+                'can_decide' =>
+                    $this->authorization
+                        ->hasPermission(
+                            $userId,
+                            'notifications.approvals.decide'
+                        ),
+            ];
         }
 
         if (
@@ -182,6 +207,8 @@ class CommunicationSettingsService extends BaseService
                 : [],
             'notification_send_center' =>
                 $notificationSendCenter,
+            'notification_approval_management' =>
+                $notificationApprovalManagement,
             'bale_connection_management' =>
                 $baleConnectionManagement,
             'delivery_report' => $deliveryReport,
