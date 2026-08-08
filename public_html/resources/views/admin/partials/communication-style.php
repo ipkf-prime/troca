@@ -4311,13 +4311,15 @@ body.provider-test-dialog-open {
     border-radius: 14px;
     box-shadow:
         0 24px 70px rgba(15, 23, 42, .24);
-    inset-block: 4vh;
     inset-inline: max(2vw, 18px);
-    margin: auto;
+    margin: 0 auto;
+    max-height: 88vh;
     max-width: 1180px;
     overflow: auto;
     padding: 1rem;
     position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 .notification-approval-target-dialog__head {
@@ -4457,8 +4459,8 @@ body.notification-approval-target-dialog-open {
 @media (max-width: 620px) {
     .notification-approval-target-dialog__panel {
         border-radius: 10px;
-        inset-block: 2vh;
         inset-inline: 8px;
+        max-height: 94vh;
         padding: .75rem;
     }
 
