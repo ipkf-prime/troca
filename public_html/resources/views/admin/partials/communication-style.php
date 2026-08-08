@@ -4267,4 +4267,224 @@ body.provider-test-dialog-open {
     }
 }
 
+
+
+/* notification-approval-target-dialog-ui-v062 */
+.notification-approval-target-summary {
+    align-items: flex-start;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+}
+
+.notification-approval-target-summary__badge {
+    white-space: nowrap;
+}
+
+.notification-approval-target-open {
+    margin-inline-start: .15rem;
+}
+
+.notification-approval-target-dialog[hidden] {
+    display: none !important;
+}
+
+.notification-approval-target-dialog {
+    inset: 0;
+    position: fixed;
+    z-index: 1200;
+}
+
+.notification-approval-target-dialog__backdrop {
+    background: rgba(15, 23, 42, .52);
+    border: 0;
+    cursor: default;
+    inset: 0;
+    padding: 0;
+    position: absolute;
+    width: 100%;
+}
+
+.notification-approval-target-dialog__panel {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 14px;
+    box-shadow:
+        0 24px 70px rgba(15, 23, 42, .24);
+    inset-block: 4vh;
+    inset-inline: max(2vw, 18px);
+    margin: auto;
+    max-width: 1180px;
+    overflow: auto;
+    padding: 1rem;
+    position: absolute;
+}
+
+.notification-approval-target-dialog__head {
+    align-items: flex-start;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    margin-bottom: .8rem;
+}
+
+.notification-approval-target-dialog__head h3 {
+    margin: 0 0 .25rem;
+}
+
+.notification-approval-target-dialog__head strong,
+.notification-approval-target-dialog__head small {
+    display: block;
+}
+
+.notification-approval-target-dialog__head small {
+    color: var(--admin-text-muted);
+    margin-top: .2rem;
+}
+
+.notification-approval-target-dialog__summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    margin-bottom: .8rem;
+}
+
+.notification-approval-target-dialog__filters {
+    align-items: end;
+    display: grid;
+    gap: .5rem;
+    grid-template-columns:
+        minmax(220px, 2fr)
+        minmax(130px, 1fr)
+        minmax(130px, 1fr)
+        minmax(90px, .65fr)
+        auto;
+    margin-bottom: .8rem;
+}
+
+.notification-approval-target-dialog__filters label {
+    display: grid;
+    gap: .25rem;
+    min-width: 0;
+}
+
+.notification-approval-target-dialog__filters
+label > span {
+    color: var(--admin-text-muted);
+    font-size: .76rem;
+    font-weight: 750;
+}
+
+.notification-approval-target-dialog__filters input,
+.notification-approval-target-dialog__filters select {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    color: inherit;
+    font: inherit;
+    min-height: 36px;
+    min-width: 0;
+    padding: .38rem .5rem;
+    width: 100%;
+}
+
+.notification-approval-target-dialog__filter-actions {
+    display: flex;
+    gap: .35rem;
+}
+
+.notification-approval-target-dialog__state {
+    color: var(--admin-text-muted);
+    padding: 1.2rem .25rem;
+    text-align: center;
+}
+
+.notification-approval-target-dialog__table {
+    min-width: 800px;
+}
+
+.notification-approval-target-dialog__table td,
+.notification-approval-target-dialog__table th {
+    vertical-align: middle;
+}
+
+.notification-approval-target-dialog__footer {
+    align-items: center;
+    display: flex;
+    gap: .8rem;
+    justify-content: space-between;
+    margin-top: .75rem;
+}
+
+.notification-approval-target-dialog__footer
+.communication-pagination {
+    display: flex;
+    gap: .35rem;
+}
+
+.notification-approval-target-dialog__footer
+.communication-pagination button {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    padding: .35rem .7rem;
+}
+
+.notification-approval-target-dialog__footer
+.communication-pagination button:disabled {
+    cursor: not-allowed;
+    opacity: .45;
+}
+
+body.notification-approval-target-dialog-open {
+    overflow: hidden;
+}
+
+@media (max-width: 900px) {
+    .notification-approval-target-dialog__filters {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .notification-approval-target-dialog__filter-actions {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 620px) {
+    .notification-approval-target-dialog__panel {
+        border-radius: 10px;
+        inset-block: 2vh;
+        inset-inline: 8px;
+        padding: .75rem;
+    }
+
+    .notification-approval-target-dialog__head {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .notification-approval-target-dialog__filters {
+        grid-template-columns: 1fr;
+    }
+
+    .notification-approval-target-dialog__filter-actions {
+        grid-column: auto;
+    }
+
+    .notification-approval-target-dialog__filter-actions
+        .admin-button {
+        flex: 1 1 0;
+        justify-content: center;
+    }
+
+    .notification-approval-target-dialog__footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}
+
 </style>
