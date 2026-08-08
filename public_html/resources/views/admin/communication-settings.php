@@ -3211,70 +3211,102 @@ require BASE_PATH
                                         <?php if (
                                             $approvalCanDecide
                                         ): ?>
-                                            <form
-                                                method="post"
-                                                action="<?= admin_h(
-                                                    '/admin/communications/settings/approvals/'
-                                                    . rawurlencode(
-                                                        $approvalReference
-                                                    )
-                                                    . '/approve'
-                                                ) ?>"
+                                            <div
+                                                class="notification-approval-actions"
                                             >
-                                                <input
-                                                    type="hidden"
-                                                    name="_token"
-                                                    value="<?= admin_h(
-                                                        $approvalCsrf
+                                                <form
+                                                    method="post"
+                                                    action="<?= admin_h(
+                                                        '/admin/communications/settings/approvals/'
+                                                        . rawurlencode(
+                                                            $approvalReference
+                                                        )
+                                                        . '/approve'
                                                     ) ?>"
                                                 >
-
-                                                <button
-                                                    class="admin-button admin-button--compact"
-                                                    type="submit"
-                                                >
-                                                    تأیید و ارسال
-                                                </button>
-                                            </form>
-
-                                            <form
-                                                method="post"
-                                                action="<?= admin_h(
-                                                    '/admin/communications/settings/approvals/'
-                                                    . rawurlencode(
-                                                        $approvalReference
-                                                    )
-                                                    . '/reject'
-                                                ) ?>"
-                                            >
-                                                <input
-                                                    type="hidden"
-                                                    name="_token"
-                                                    value="<?= admin_h(
-                                                        $approvalCsrf
-                                                    ) ?>"
-                                                >
-
-                                                <label>
-                                                    <span>
-                                                        دلیل رد
-                                                    </span>
                                                     <input
-                                                        type="text"
-                                                        name="reason"
-                                                        maxlength="2000"
-                                                        required
-                                                        placeholder="دلیل رد درخواست"
+                                                        type="hidden"
+                                                        name="_token"
+                                                        value="<?= admin_h(
+                                                            $approvalCsrf
+                                                        ) ?>"
                                                     >
-                                                </label>
 
-                                                <button
-                                                    class="admin-button admin-button--soft admin-button--compact"
-                                                    type="submit"
+                                                    <button
+                                                        class="admin-button admin-button--compact"
+                                                        type="submit"
+                                                    >
+                                                        تأیید و ارسال
+                                                    </button>
+                                                </form>
+
+                                                <form
+                                                    class="notification-approval-reject-form"
+                                                    method="post"
+                                                    action="<?= admin_h(
+                                                        '/admin/communications/settings/approvals/'
+                                                        . rawurlencode(
+                                                            $approvalReference
+                                                        )
+                                                        . '/reject'
+                                                    ) ?>"
+                                                    data-approval-reject-form
                                                 >
-                                                    رد درخواست
-                                                </button>
-                                            </form>
+                                                    <input
+                                                        type="hidden"
+                                                        name="_token"
+                                                        value="<?= admin_h(
+                                                            $approvalCsrf
+                                                        ) ?>"
+                                                    >
+
+                                                    <button
+                                                        class="admin-button admin-button--compact notification-approval-danger"
+                                                        type="button"
+                                                        data-approval-reject-toggle
+                                                    >
+                                                        رد درخواست
+                                                    </button>
+
+                                                    <div
+                                                        class="notification-approval-reject-reason"
+                                                        data-approval-reject-reason
+                                                        hidden
+                                                    >
+                                                        <label>
+                                                            <span>
+                                                                علت رد درخواست
+                                                            </span>
+                                                            <input
+                                                                type="text"
+                                                                name="reason"
+                                                                maxlength="2000"
+                                                                placeholder="علت رد درخواست را وارد کنید"
+                                                                data-approval-reject-input
+                                                            >
+                                                        </label>
+
+                                                        <div
+                                                            class="notification-approval-reject-actions"
+                                                        >
+                                                            <button
+                                                                class="admin-button admin-button--compact notification-approval-danger"
+                                                                type="submit"
+                                                            >
+                                                                ثبت رد
+                                                            </button>
+
+                                                            <button
+                                                                class="admin-button admin-button--soft admin-button--compact"
+                                                                type="button"
+                                                                data-approval-reject-cancel
+                                                            >
+                                                                انصراف
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            </div>
                                         <?php else: ?>
                                             <span class="communication-muted">
                                                 فقط مشاهده
@@ -3288,6 +3320,66 @@ require BASE_PATH
                     </div>
                 <?php endif; ?>
             </section>
+
+            <script>
+            (() => {
+                document.querySelectorAll(
+                    '[data-approval-reject-form]'
+                ).forEach((form) => {
+                    const toggle = form.querySelector(
+                        '[data-approval-reject-toggle]'
+                    );
+                    const panel = form.querySelector(
+                        '[data-approval-reject-reason]'
+                    );
+                    const input = form.querySelector(
+                        '[data-approval-reject-input]'
+                    );
+                    const cancel = form.querySelector(
+                        '[data-approval-reject-cancel]'
+                    );
+
+                    if (!toggle || !panel || !input) {
+                        return;
+                    }
+
+                    toggle.addEventListener(
+                        'click',
+                        () => {
+                            panel.hidden = false;
+                            toggle.hidden = true;
+                            input.required = true;
+                            input.focus();
+                        }
+                    );
+
+                    cancel?.addEventListener(
+                        'click',
+                        () => {
+                            input.required = false;
+                            input.value = '';
+                            panel.hidden = true;
+                            toggle.hidden = false;
+                            toggle.focus();
+                        }
+                    );
+
+                    form.addEventListener(
+                        'submit',
+                        (event) => {
+                            if (
+                                input.value.trim() === ''
+                            ) {
+                                event.preventDefault();
+                                input.required = true;
+                                input.focus();
+                                input.reportValidity();
+                            }
+                        }
+                    );
+                });
+            })();
+            </script>
 
         <?php elseif ($section === 'send'): ?>
             <?php
@@ -3337,6 +3429,38 @@ require BASE_PATH
             $sendResultItems = is_array(
                 $sendResult['items'] ?? null
             ) ? $sendResult['items'] : [];
+
+            $sendAccessPolicyCode = (string) (
+                $notificationSendCenter[
+                    'access_policy_code'
+                ] ?? ''
+            );
+
+            $sendApprovalRequired =
+                $sendAccessPolicyCode ===
+                    'approval_required';
+
+            $sendPendingApproval =
+                (string) (
+                    $sendResult[
+                        'workflow_status'
+                    ] ?? ''
+                ) === 'pending_approval';
+
+            $sendSummaryLabels =
+                $sendPendingApproval
+                    ? [
+                        'total' => 'کل مقصدها',
+                        'sent' => 'ارسال‌شده',
+                        'failed' => 'ناموفق',
+                        'skipped' => 'ردشده',
+                    ]
+                    : [
+                        'total' => 'کل تحویل',
+                        'sent' => 'ارسال‌شده',
+                        'failed' => 'ناموفق',
+                        'skipped' => 'ردشده',
+                    ];
             ?>
 
             <section
@@ -3373,7 +3497,11 @@ require BASE_PATH
                     <section class="notification-send-result">
                         <header>
                             <div>
-                                <h3>نتیجه آخرین ارسال</h3>
+                                <h3>
+                                    <?= $sendPendingApproval
+                                        ? 'نتیجه آخرین درخواست ارسال'
+                                        : 'نتیجه آخرین ارسال' ?>
+                                </h3>
                                 <small dir="ltr">
                                     <?= admin_h(
                                         $sendResult[
@@ -3391,12 +3519,10 @@ require BASE_PATH
                         </header>
 
                         <div class="notification-send-result__summary">
-                            <?php foreach ([
-                                'total' => 'کل تحویل',
-                                'sent' => 'ارسال‌شده',
-                                'failed' => 'ناموفق',
-                                'skipped' => 'ردشده',
-                            ] as $key => $label): ?>
+                            <?php foreach (
+                                $sendSummaryLabels
+                                as $key => $label
+                            ): ?>
                                 <article>
                                     <span><?= admin_h(
                                         $label
@@ -3471,6 +3597,7 @@ require BASE_PATH
                                                 >
                                                     <?= admin_h(
                                                         [
+                                                            'pending' => 'در انتظار تأیید',
                                                             'sent' => 'ارسال‌شده',
                                                             'failed' => 'ناموفق',
                                                             'skipped' => 'ردشده',
@@ -3924,14 +4051,44 @@ require BASE_PATH
                                 </label>
                             </div>
                         </section>
+
+                        <?php if ($sendApprovalRequired): ?>
+                            <section
+                                class="notification-send-request-reason"
+                            >
+                                <label>
+                                    <span>
+                                        <strong>
+                                            توضیح / دلیل درخواست ارسال
+                                        </strong>
+                                        <small>
+                                            اختیاری؛ این توضیح برای
+                                            تأییدکننده نمایش داده می‌شود.
+                                        </small>
+                                    </span>
+
+                                    <textarea
+                                        name="request_reason"
+                                        maxlength="1000"
+                                        placeholder="در صورت نیاز، دلیل یا توضیح درخواست ارسال را بنویسید..."
+                                    ></textarea>
+                                </label>
+                            </section>
+                        <?php endif; ?>
                     </fieldset>
 
                     <section class="notification-send-review">
                         <div>
-                            <span>برآورد ارسال فوری</span>
+                            <span>
+                                <?= $sendApprovalRequired
+                                    ? 'برآورد مقصدهای درخواست'
+                                    : 'برآورد ارسال فوری' ?>
+                            </span>
                             <strong>
                                 <span data-send-estimated-count>۰</span>
-                                تحویل
+                                <?= $sendApprovalRequired
+                                    ? 'مقصد'
+                                    : 'تحویل' ?>
                             </strong>
                             <small>
                                 فقط کاربران دارای مقصد معتبر در
@@ -3947,8 +4104,14 @@ require BASE_PATH
                                 required
                             >
                             <span>
-                                مقصدها و متن را بررسی کردم و ارسال
-                                واقعی را تأیید می‌کنم.
+                                <?php if ($sendApprovalRequired): ?>
+                                    مقصدها و متن را بررسی کردم و
+                                    ثبت درخواست ارسال برای تأیید
+                                    را تأیید می‌کنم.
+                                <?php else: ?>
+                                    مقصدها و متن را بررسی کردم و
+                                    ارسال واقعی را تأیید می‌کنم.
+                                <?php endif; ?>
                             </span>
                         </label>
                     </section>
@@ -3959,7 +4122,9 @@ require BASE_PATH
                             type="submit"
                             data-send-submit
                         >
-                            ارسال واقعی اعلان
+                            <?= $sendApprovalRequired
+                                ? 'ثبت درخواست برای تأیید'
+                                : 'ارسال واقعی اعلان' ?>
                         </button>
                         <a
                             class="admin-button admin-button--soft"

@@ -3910,4 +3910,136 @@ body.provider-test-dialog-open {
     > .notification-send-review[hidden] {
     display: none !important;
 }
+
+/* notification-approval-ui-v062 */
+.notification-approval-actions {
+    align-items: flex-start;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .45rem;
+}
+
+.notification-approval-actions form {
+    margin: 0;
+}
+
+.notification-approval-reject-form {
+    align-items: flex-start;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .45rem;
+}
+
+.notification-approval-danger {
+    background: #b42318;
+    border-color: #b42318;
+    color: #fff;
+}
+
+.notification-approval-danger:hover {
+    background: #912018;
+    border-color: #912018;
+    color: #fff;
+}
+
+.notification-approval-reject-reason {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    display: grid;
+    flex-basis: 100%;
+    gap: .45rem;
+    min-width: min(300px, 72vw);
+    padding: .55rem;
+}
+
+.notification-approval-reject-reason[hidden] {
+    display: none;
+}
+
+.notification-approval-reject-reason label {
+    display: grid;
+    gap: .3rem;
+}
+
+.notification-approval-reject-reason input {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    color: inherit;
+    font: inherit;
+    min-height: 38px;
+    padding: .45rem .55rem;
+    width: 100%;
+}
+
+.notification-approval-reject-reason input:focus {
+    border-color: #b42318;
+    box-shadow: 0 0 0 3px rgba(180, 35, 24, .12);
+    outline: 0;
+}
+
+.notification-approval-reject-actions {
+    display: flex;
+    gap: .4rem;
+}
+
+.notification-send-request-reason {
+    background: var(--admin-surface-muted);
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    margin-top: .75rem;
+    padding: .7rem;
+}
+
+.notification-send-request-reason label {
+    display: grid;
+    gap: .4rem;
+}
+
+.notification-send-request-reason label > span {
+    display: grid;
+    gap: .15rem;
+}
+
+.notification-send-request-reason label > span small {
+    color: var(--admin-text-muted);
+    font-weight: 400;
+}
+
+.notification-send-request-reason textarea {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 9px;
+    color: inherit;
+    font: inherit;
+    min-height: 76px;
+    padding: .55rem .65rem;
+    resize: vertical;
+    width: 100%;
+}
+
+.notification-send-request-reason textarea:focus {
+    border-color: var(--admin-primary);
+    box-shadow: 0 0 0 3px var(--admin-primary-soft);
+    outline: 0;
+}
+
+@media (max-width: 760px) {
+    .notification-approval-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .notification-approval-actions > form,
+    .notification-approval-actions .admin-button {
+        width: 100%;
+    }
+
+    .notification-approval-reject-reason {
+        min-width: 0;
+        width: 100%;
+    }
+}
+
 </style>
