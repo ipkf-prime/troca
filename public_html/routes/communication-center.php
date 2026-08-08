@@ -498,6 +498,104 @@ $router->get(
             )
         );
 
+        $targetsReference = trim(
+            (string) $request->input(
+                'targets_reference',
+                ''
+            )
+        );
+
+        if (
+            $section === 'approvals'
+            && $targetsReference !== ''
+        ) {
+            try {
+                $targetsPage = (
+                    new \App\Services\NotificationApprovalManagementService()
+                )->targetPage(
+                    (int) $context['user_id'],
+                    $targetsReference,
+                    [
+                        'q' =>
+                            $request->input(
+                                'targets_q',
+                                ''
+                            ),
+
+                        'channel' =>
+                            $request->input(
+                                'targets_channel',
+                                ''
+                            ),
+
+                        'status' =>
+                            $request->input(
+                                'targets_status',
+                                ''
+                            ),
+
+                        'page' =>
+                            $request->input(
+                                'targets_page',
+                                1
+                            ),
+
+                        'per_page' =>
+                            $request->input(
+                                'targets_per_page',
+                                20
+                            ),
+                    ]
+                );
+
+                return $response->json([
+                    'status' => 'ok',
+                    'data' => $targetsPage,
+                ]);
+            } catch (
+                \InvalidArgumentException $exception
+            ) {
+                return $response
+                    ->status(422)
+                    ->json([
+                        'status' => 'error',
+                        'code' =>
+                            $exception->getMessage(),
+                    ]);
+            } catch (
+                \RuntimeException $exception
+            ) {
+                $code = trim(
+                    $exception->getMessage()
+                );
+
+                $httpStatus = match ($code) {
+                    'notification_approval_view_forbidden'
+                        => 403,
+
+                    'notification_approval_request_not_found'
+                        => 404,
+
+                    default => 422,
+                };
+
+                return $response
+                    ->status($httpStatus)
+                    ->json([
+                        'status' => 'error',
+                        'code' => $code,
+                    ]);
+            } catch (\Throwable) {
+                return $response
+                    ->status(500)
+                    ->json([
+                        'status' => 'error',
+                        'code' =>
+                            'notification_approval_targets_failed',
+                    ]);
+            }
+        }
+
         $settings =
             new \App\Services\CommunicationSettingsService();
         $page = $settings->page(

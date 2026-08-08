@@ -54,8 +54,36 @@ class NotificationApprovalManagementService extends BaseService
             $limit
         );
 
+        $requestIds = array_values(
+            array_filter(
+                array_map(
+                    static fn (
+                        array $row
+                    ): int =>
+                        (int) (
+                            $row['id'] ?? 0
+                        ),
+                    $rows
+                ),
+                static fn (
+                    int $requestId
+                ): bool =>
+                    $requestId > 0
+            )
+        );
+
+        $targetSummaries =
+            $this->repository
+                ->targetSummaries(
+                    $requestIds
+                );
+
         return array_map(
-            function (array $row): array {
+            function (
+                array $row
+            ) use (
+                $targetSummaries
+            ): array {
                 $status = (string) (
                     $row['status_code']
                     ?? ''
@@ -64,13 +92,6 @@ class NotificationApprovalManagementService extends BaseService
                 $requestId = (int) (
                     $row['id'] ?? 0
                 );
-
-                $targets =
-                    $requestId > 0
-                        ? $this->safeTargets(
-                            $requestId
-                        )
-                        : [];
 
                 return $row + [
                     'status_label' =>
@@ -85,8 +106,12 @@ class NotificationApprovalManagementService extends BaseService
                             ] ?? null
                         ),
 
-                    'targets' =>
-                        $targets,
+                    'target_summary' =>
+                        $targetSummaries[
+                            $requestId
+                        ]
+                        ?? $this
+                            ->emptyTargetSummary(),
                 ];
             },
             $rows
@@ -114,6 +139,30 @@ class NotificationApprovalManagementService extends BaseService
         $items = is_array(
             $page['items'] ?? null
         ) ? $page['items'] : [];
+
+        $requestIds = array_values(
+            array_filter(
+                array_map(
+                    static fn (
+                        array $item
+                    ): int =>
+                        (int) (
+                            $item['id'] ?? 0
+                        ),
+                    $items
+                ),
+                static fn (
+                    int $requestId
+                ): bool =>
+                    $requestId > 0
+            )
+        );
+
+        $targetSummaries =
+            $this->repository
+                ->targetSummaries(
+                    $requestIds
+                );
 
         foreach ($items as &$item) {
             $requestId = (int) (
@@ -163,12 +212,11 @@ class NotificationApprovalManagementService extends BaseService
                     ] ?? null
                 );
 
-            $item['targets'] =
-                $requestId > 0
-                    ? $this->safeTargets(
-                        $requestId
-                    )
-                    : [];
+            $item['target_summary'] =
+                $targetSummaries[
+                    $requestId
+                ]
+                ?? $this->emptyTargetSummary();
 
             unset(
                 $item['channels_json']
@@ -181,6 +229,161 @@ class NotificationApprovalManagementService extends BaseService
         $page['summary'] =
             $this->repository
                 ->approvalSummary();
+
+        return $page;
+    }
+
+    public function targetPage(
+        int $actorUserId,
+        string $publicReference,
+        array $input = []
+    ): array {
+        $this->assertPermission(
+            $actorUserId,
+            self::VIEW_PERMISSION,
+            'notification_approval_view_forbidden'
+        );
+
+        $publicReference = trim(
+            $publicReference
+        );
+
+        if (
+            $publicReference === ''
+            || strlen($publicReference) > 40
+            || preg_match(
+                '/^nar_[a-f0-9]{24}$/',
+                $publicReference
+            ) !== 1
+        ) {
+            throw new InvalidArgumentException(
+                'notification_approval_reference_invalid'
+            );
+        }
+
+        $request =
+            $this->repository
+                ->findByReference(
+                    $publicReference
+                );
+
+        if (!is_array($request)) {
+            throw new RuntimeException(
+                'notification_approval_request_not_found'
+            );
+        }
+
+        $requestId = (int) (
+            $request['id'] ?? 0
+        );
+
+        if ($requestId < 1) {
+            throw new RuntimeException(
+                'notification_approval_request_not_found'
+            );
+        }
+
+        $filters =
+            $this->targetFilters(
+                $input
+            );
+
+        $page =
+            $this->repository
+                ->targetPage(
+                    $requestId,
+                    $filters
+                );
+
+        $items = is_array(
+            $page['items'] ?? null
+        ) ? $page['items'] : [];
+
+        foreach ($items as &$item) {
+            $channelCode = trim(
+                (string) (
+                    $item[
+                        'channel_code'
+                    ] ?? ''
+                )
+            );
+
+            $statusCode = trim(
+                (string) (
+                    $item[
+                        'status_code'
+                    ] ?? ''
+                )
+            );
+
+            $item['channel_label'] =
+                $this->targetChannelLabel(
+                    $channelCode
+                );
+
+            $item['status_label'] =
+                $this->targetStatusLabel(
+                    $statusCode
+                );
+
+            $item['provider_title'] =
+                trim(
+                    (string) (
+                        $item[
+                            'provider_title_snapshot'
+                        ] ?? ''
+                    )
+                );
+
+            unset(
+                $item[
+                    'provider_title_snapshot'
+                ]
+            );
+        }
+        unset($item);
+
+        $summaryMap =
+            $this->repository
+                ->targetSummaries([
+                    $requestId,
+                ]);
+
+        $page['items'] = $items;
+
+        $page['request'] = [
+            'public_reference' =>
+                $publicReference,
+
+            'status_code' =>
+                (string) (
+                    $request[
+                        'status_code'
+                    ] ?? ''
+                ),
+
+            'status_label' =>
+                $this->stateMachine->label(
+                    (string) (
+                        $request[
+                            'status_code'
+                        ] ?? ''
+                    )
+                ),
+
+            'subject' =>
+                (string) (
+                    $request[
+                        'subject'
+                    ] ?? ''
+                ),
+        ];
+
+        $page['filters'] = $filters;
+
+        $page['summary'] =
+            $summaryMap[$requestId]
+            ?? $this->emptyTargetSummary();
 
         return $page;
     }
@@ -475,6 +678,136 @@ class NotificationApprovalManagementService extends BaseService
                 $errorCode
             );
         }
+    }
+
+    private function targetFilters(
+        array $input
+    ): array {
+        $query = trim(
+            (string) (
+                $input['q'] ?? ''
+            )
+        );
+
+        if (
+            mb_strlen(
+                $query,
+                'UTF-8'
+            ) > 190
+        ) {
+            $query = mb_substr(
+                $query,
+                0,
+                190,
+                'UTF-8'
+            );
+        }
+
+        $channel = strtolower(
+            trim(
+                (string) (
+                    $input['channel'] ?? ''
+                )
+            )
+        );
+
+        if (!in_array(
+            $channel,
+            [
+                '',
+                'email',
+                'sms',
+                'messenger',
+            ],
+            true
+        )) {
+            $channel = '';
+        }
+
+        $status = strtolower(
+            trim(
+                (string) (
+                    $input['status'] ?? ''
+                )
+            )
+        );
+
+        if (!in_array(
+            $status,
+            [
+                '',
+                'pending',
+                'sent',
+                'failed',
+            ],
+            true
+        )) {
+            $status = '';
+        }
+
+        $perPage = (int) (
+            $input['per_page'] ?? 20
+        );
+
+        if (!in_array(
+            $perPage,
+            [20, 50, 100],
+            true
+        )) {
+            $perPage = 20;
+        }
+
+        return [
+            'q' => $query,
+            'channel' => $channel,
+            'status' => $status,
+            'page' => max(
+                1,
+                (int) (
+                    $input['page'] ?? 1
+                )
+            ),
+            'per_page' => $perPage,
+        ];
+    }
+
+    private function targetChannelLabel(
+        string $channel
+    ): string {
+        return match ($channel) {
+            'email' => 'ایمیل',
+            'sms' => 'پیام کوتاه',
+            'messenger' => 'پیام‌رسان بله',
+
+            default =>
+                $channel !== ''
+                    ? $channel
+                    : '—',
+        };
+    }
+
+    private function targetStatusLabel(
+        string $status
+    ): string {
+        return match ($status) {
+            'pending' => 'در انتظار',
+            'sent' => 'ارسال‌شده',
+            'failed' => 'ناموفق',
+
+            default =>
+                $status !== ''
+                    ? $status
+                    : '—',
+        };
+    }
+
+    private function emptyTargetSummary(): array
+    {
+        return [
+            'total' => 0,
+            'channels' => [],
+            'statuses' => [],
+        ];
     }
 
     private function historyFilters(

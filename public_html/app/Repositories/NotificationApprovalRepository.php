@@ -686,6 +686,274 @@ class NotificationApprovalRepository extends BaseRepository
         ) ?: [];
     }
 
+    public function targetSummaries(
+        array $requestIds
+    ): array {
+        $requestIds = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        'intval',
+                        $requestIds
+                    ),
+                    static fn (
+                        int $requestId
+                    ): bool =>
+                        $requestId > 0
+                )
+            )
+        );
+
+        if ($requestIds === []) {
+            return [];
+        }
+
+        $idSql = implode(
+            ',',
+            $requestIds
+        );
+
+        $rows = $this->connection()->query("
+            SELECT
+                request_id,
+                channel_code,
+                status_code,
+                COUNT(*) AS total
+            FROM notification_approval_targets
+            WHERE request_id IN ({$idSql})
+            GROUP BY
+                request_id,
+                channel_code,
+                status_code
+            ORDER BY
+                request_id,
+                channel_code,
+                status_code
+        ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $summaries = [];
+
+        foreach ($requestIds as $requestId) {
+            $summaries[$requestId] = [
+                'total' => 0,
+                'channels' => [],
+                'statuses' => [],
+            ];
+        }
+
+        foreach ($rows as $row) {
+            $requestId = (int) (
+                $row['request_id'] ?? 0
+            );
+
+            if (
+                $requestId < 1
+                || !isset($summaries[$requestId])
+            ) {
+                continue;
+            }
+
+            $channel = trim(
+                (string) (
+                    $row['channel_code'] ?? ''
+                )
+            );
+
+            $status = trim(
+                (string) (
+                    $row['status_code'] ?? ''
+                )
+            );
+
+            $count = max(
+                0,
+                (int) (
+                    $row['total'] ?? 0
+                )
+            );
+
+            $summaries[$requestId]['total'] +=
+                $count;
+
+            if ($channel !== '') {
+                $summaries[
+                    $requestId
+                ]['channels'][$channel] =
+                    (
+                        $summaries[
+                            $requestId
+                        ]['channels'][$channel]
+                        ?? 0
+                    )
+                    + $count;
+            }
+
+            if ($status !== '') {
+                $summaries[
+                    $requestId
+                ]['statuses'][$status] =
+                    (
+                        $summaries[
+                            $requestId
+                        ]['statuses'][$status]
+                        ?? 0
+                    )
+                    + $count;
+            }
+        }
+
+        return $summaries;
+    }
+
+    public function targetPage(
+        int $requestId,
+        array $filters
+    ): array {
+        $query = trim(
+            (string) ($filters['q'] ?? '')
+        );
+
+        $channel = trim(
+            (string) (
+                $filters['channel'] ?? ''
+            )
+        );
+
+        $status = trim(
+            (string) (
+                $filters['status'] ?? ''
+            )
+        );
+
+        $page = max(
+            1,
+            (int) (
+                $filters['page'] ?? 1
+            )
+        );
+
+        $perPage = max(
+            1,
+            min(
+                100,
+                (int) (
+                    $filters['per_page'] ?? 20
+                )
+            )
+        );
+
+        $where = [
+            'request_id = ?',
+        ];
+
+        $params = [
+            $requestId,
+        ];
+
+        if ($query !== '') {
+            $like = '%' . $query . '%';
+
+            $where[] = "(
+                recipient_title LIKE ?
+                OR destination_masked LIKE ?
+                OR COALESCE(
+                    provider_title_snapshot,
+                    ''
+                ) LIKE ?
+                OR CONVERT(
+                    public_reference
+                    USING utf8mb4
+                ) COLLATE utf8mb4_unicode_ci
+                    LIKE ?
+            )";
+
+            for ($i = 0; $i < 4; $i++) {
+                $params[] = $like;
+            }
+        }
+
+        if ($channel !== '') {
+            $where[] = 'channel_code = ?';
+            $params[] = $channel;
+        }
+
+        if ($status !== '') {
+            $where[] = 'status_code = ?';
+            $params[] = $status;
+        }
+
+        $whereSql = implode(
+            "\n AND ",
+            $where
+        );
+
+        $countStatement =
+            $this->connection()->prepare("
+                SELECT COUNT(*)
+                FROM notification_approval_targets
+                WHERE {$whereSql}
+            ");
+
+        $countStatement->execute(
+            $params
+        );
+
+        $total =
+            (int) $countStatement
+                ->fetchColumn();
+
+        $pages = max(
+            1,
+            (int) ceil(
+                $total / $perPage
+            )
+        );
+
+        if ($page > $pages) {
+            $page = $pages;
+        }
+
+        $offset =
+            ($page - 1) * $perPage;
+
+        /*
+         * Safe projection only.
+         * destination_snapshot must never leave here.
+         */
+        $statement =
+            $this->connection()->prepare("
+                SELECT
+                    public_reference,
+                    recipient_title,
+                    channel_code,
+                    destination_masked,
+                    status_code,
+                    provider_title_snapshot
+                FROM notification_approval_targets
+                WHERE {$whereSql}
+                ORDER BY
+                    sort_order,
+                    id
+                LIMIT {$perPage}
+                OFFSET {$offset}
+            ");
+
+        $statement->execute(
+            $params
+        );
+
+        return [
+            'items' =>
+                $statement->fetchAll(
+                    PDO::FETCH_ASSOC
+                ) ?: [],
+            'total' => $total,
+            'page' => $page,
+            'pages' => $pages,
+            'per_page' => $perPage,
+        ];
+    }
+
     public function mediaAssets(
         int $requestId
     ): array {
