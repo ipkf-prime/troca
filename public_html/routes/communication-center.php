@@ -826,6 +826,11 @@ $router->post(
                             'body',
                             ''
                         ),
+                    'request_reason' =>
+                        $request->input(
+                            'request_reason',
+                            ''
+                        ),
                     'confirm_dispatch' =>
                         $request->input(
                             'confirm_dispatch',
