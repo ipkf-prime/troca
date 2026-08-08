@@ -2930,6 +2930,123 @@ require BASE_PATH
                 ]
             );
 
+            $approvalHistory = is_array(
+                $notificationApprovalManagement[
+                    'history'
+                ] ?? null
+            ) ? $notificationApprovalManagement[
+                'history'
+            ] : [];
+
+            $approvalHistoryItems = is_array(
+                $approvalHistory[
+                    'items'
+                ] ?? null
+            ) ? $approvalHistory[
+                'items'
+            ] : [];
+
+            $approvalHistoryFilters = is_array(
+                $approvalHistory[
+                    'filters'
+                ] ?? null
+            ) ? $approvalHistory[
+                'filters'
+            ] : [];
+
+            $approvalSummary = is_array(
+                $approvalHistory[
+                    'summary'
+                ] ?? null
+            ) ? $approvalHistory[
+                'summary'
+            ] : [];
+
+            $approvalHistoryTotal = (int) (
+                $approvalHistory[
+                    'total'
+                ] ?? 0
+            );
+
+            $approvalHistoryPage = max(
+                1,
+                (int) (
+                    $approvalHistory[
+                        'page'
+                    ] ?? 1
+                )
+            );
+
+            $approvalHistoryPages = max(
+                1,
+                (int) (
+                    $approvalHistory[
+                        'pages'
+                    ] ?? 1
+                )
+            );
+
+            $approvalHistoryPerPage = (int) (
+                $approvalHistory[
+                    'per_page'
+                ] ?? 20
+            );
+
+            $approvalHistoryUrl =
+                static function (
+                    int $wantedPage
+                ) use (
+                    $approvalHistoryFilters,
+                    $approvalHistoryPerPage
+                ): string {
+                    $params = [
+                        'section' => 'approvals',
+                        'q' => (string) (
+                            $approvalHistoryFilters[
+                                'q'
+                            ] ?? ''
+                        ),
+                        'report_status' => (string) (
+                            $approvalHistoryFilters[
+                                'decision'
+                            ] ?? ''
+                        ),
+                        'from' => (string) (
+                            $approvalHistoryFilters[
+                                'from_input'
+                            ] ?? ''
+                        ),
+                        'to' => (string) (
+                            $approvalHistoryFilters[
+                                'to_input'
+                            ] ?? ''
+                        ),
+                        'per_page' =>
+                            $approvalHistoryPerPage,
+                        'page' =>
+                            max(1, $wantedPage),
+                    ];
+
+                    $params = array_filter(
+                        $params,
+                        static fn (
+                            mixed $value
+                        ): bool =>
+                            $value !== ''
+                            && $value !== null
+                    );
+
+                    return
+                        '/admin/communications/settings?'
+                        . http_build_query(
+                            $params,
+                            '',
+                            '&',
+                            PHP_QUERY_RFC3986
+                        )
+                        . '#approval-history';
+                };
+
             $approvalCsrf =
                 (new \IPKF\Security\Csrf())->token();
 
@@ -2940,7 +3057,69 @@ require BASE_PATH
             ];
             ?>
 
-            <section class="provider-management-card">
+            <section
+                class="notification-approval-summary"
+                aria-label="خلاصه وضعیت تأیید اعلان‌ها"
+            >
+                <a
+                    class="notification-approval-summary-card notification-approval-summary-card--pending"
+                    href="#approval-pending"
+                >
+                    <span>در انتظار تأیید</span>
+                    <strong>
+                        <?= admin_h(
+                            \App\Support\AdminFormat::digits(
+                                (int) (
+                                    $approvalSummary[
+                                        'pending'
+                                    ] ?? 0
+                                )
+                            )
+                        ) ?>
+                    </strong>
+                </a>
+
+                <a
+                    class="notification-approval-summary-card notification-approval-summary-card--approved"
+                    href="/admin/communications/settings?section=approvals&report_status=approve#approval-history"
+                >
+                    <span>تأییدشده</span>
+                    <strong>
+                        <?= admin_h(
+                            \App\Support\AdminFormat::digits(
+                                (int) (
+                                    $approvalSummary[
+                                        'approved'
+                                    ] ?? 0
+                                )
+                            )
+                        ) ?>
+                    </strong>
+                </a>
+
+                <a
+                    class="notification-approval-summary-card notification-approval-summary-card--rejected"
+                    href="/admin/communications/settings?section=approvals&report_status=reject#approval-history"
+                >
+                    <span>ردشده</span>
+                    <strong>
+                        <?= admin_h(
+                            \App\Support\AdminFormat::digits(
+                                (int) (
+                                    $approvalSummary[
+                                        'rejected'
+                                    ] ?? 0
+                                )
+                            )
+                        ) ?>
+                    </strong>
+                </a>
+            </section>
+
+            <section
+                class="provider-management-card"
+                id="approval-pending"
+            >
                 <header class="provider-management-card__head">
                     <div>
                         <h3>کارتابل تأیید اعلان‌ها</h3>
@@ -3318,6 +3497,596 @@ require BASE_PATH
                             </tbody>
                         </table>
                     </div>
+                <?php endif; ?>
+            </section>
+
+            <section
+                class="provider-management-card notification-approval-history"
+                id="approval-history"
+            >
+                <header class="provider-management-card__head">
+                    <div>
+                        <h3>سوابق تصمیم‌ها</h3>
+                        <p class="communication-muted">
+                            سابقه تأیید و رد درخواست‌ها،
+                            تصمیم‌گیرنده و نتیجه نهایی ارسال.
+                        </p>
+                    </div>
+
+                    <span class="communication-badge">
+                        <?= admin_h(
+                            \App\Support\AdminFormat::digits(
+                                $approvalHistoryTotal
+                            )
+                        ) ?>
+                        سابقه
+                    </span>
+                </header>
+
+                <form
+                    class="notification-approval-history-filters"
+                    method="get"
+                    action="/admin/communications/settings"
+                >
+                    <input
+                        type="hidden"
+                        name="section"
+                        value="approvals"
+                    >
+
+                    <label
+                        class="notification-approval-history-search"
+                    >
+                        <span>جست‌وجو</span>
+                        <input
+                            type="search"
+                            name="q"
+                            value="<?= admin_h(
+                                $approvalHistoryFilters[
+                                    'q'
+                                ] ?? ''
+                            ) ?>"
+                            placeholder="درخواست‌دهنده، تصمیم‌گیرنده، شناسه، موضوع یا علت"
+                            autocomplete="off"
+                        >
+                    </label>
+
+                    <label>
+                        <span>نتیجه تصمیم</span>
+                        <select name="report_status">
+                            <option value="">
+                                همه تصمیم‌ها
+                            </option>
+                            <option
+                                value="approve"
+                                <?= (
+                                    (
+                                        $approvalHistoryFilters[
+                                            'decision'
+                                        ] ?? ''
+                                    ) === 'approve'
+                                ) ? 'selected' : '' ?>
+                            >
+                                تأیید
+                            </option>
+                            <option
+                                value="reject"
+                                <?= (
+                                    (
+                                        $approvalHistoryFilters[
+                                            'decision'
+                                        ] ?? ''
+                                    ) === 'reject'
+                                ) ? 'selected' : '' ?>
+                            >
+                                رد
+                            </option>
+                        </select>
+                    </label>
+
+                    <label>
+                        <span>از تاریخ</span>
+                        <input
+                            type="text"
+                            name="from"
+                            value="<?= admin_h(
+                                $approvalHistoryFilters[
+                                    'from_input'
+                                ] ?? ''
+                            ) ?>"
+                            placeholder="۱۴۰۵/۰۵/۰۱"
+                            autocomplete="off"
+                        >
+                    </label>
+
+                    <label>
+                        <span>تا تاریخ</span>
+                        <input
+                            type="text"
+                            name="to"
+                            value="<?= admin_h(
+                                $approvalHistoryFilters[
+                                    'to_input'
+                                ] ?? ''
+                            ) ?>"
+                            placeholder="۱۴۰۵/۰۵/۳۱"
+                            autocomplete="off"
+                        >
+                    </label>
+
+                    <label>
+                        <span>تعداد</span>
+                        <select name="per_page">
+                            <?php foreach (
+                                [20, 50, 100]
+                                as $pageSize
+                            ): ?>
+                                <option
+                                    value="<?= admin_h(
+                                        $pageSize
+                                    ) ?>"
+                                    <?= (
+                                        $approvalHistoryPerPage
+                                        === $pageSize
+                                    ) ? 'selected' : '' ?>
+                                >
+                                    <?= admin_h(
+                                        \App\Support\AdminFormat::digits(
+                                            $pageSize
+                                        )
+                                    ) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+
+                    <div
+                        class="notification-approval-history-filter-actions"
+                    >
+                        <button
+                            class="admin-button admin-button--compact"
+                            type="submit"
+                        >
+                            اعمال فیلتر
+                        </button>
+
+                        <a
+                            class="admin-button admin-button--soft admin-button--compact"
+                            href="/admin/communications/settings?section=approvals#approval-history"
+                        >
+                            پاک‌کردن
+                        </a>
+                    </div>
+                </form>
+
+                <?php if (
+                    $approvalHistoryItems === []
+                ): ?>
+                    <div class="provider-empty-state">
+                        <strong>
+                            سابقه‌ای مطابق فیلترها پیدا نشد.
+                        </strong>
+                        <p>
+                            با حذف فیلترها همه تأییدها و ردها
+                            نمایش داده می‌شوند.
+                        </p>
+                    </div>
+                <?php else: ?>
+                    <div class="communication-table-wrap">
+                        <table
+                            class="communication-table notification-approval-history-table"
+                        >
+                            <thead>
+                                <tr>
+                                    <th>تصمیم</th>
+                                    <th>درخواست‌دهنده</th>
+                                    <th>تصمیم‌گیرنده</th>
+                                    <th>محتوا و دلایل</th>
+                                    <th>گیرندگان</th>
+                                    <th>زمان‌ها</th>
+                                    <th>نتیجه ارسال</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                            <?php foreach (
+                                $approvalHistoryItems
+                                as $historyItem
+                            ): ?>
+                                <?php
+                                $historyDecisionCode =
+                                    (string) (
+                                        $historyItem[
+                                            'decision_code'
+                                        ] ?? ''
+                                    );
+
+                                $historyRequestReason = trim(
+                                    (string) (
+                                        $historyItem[
+                                            'request_reason'
+                                        ] ?? ''
+                                    )
+                                );
+
+                                $historyDecisionReason = trim(
+                                    (string) (
+                                        $historyItem[
+                                            'decision_reason'
+                                        ] ?? ''
+                                    )
+                                );
+
+                                $historySubject = trim(
+                                    (string) (
+                                        $historyItem[
+                                            'subject'
+                                        ] ?? ''
+                                    )
+                                );
+
+                                $historyBody = trim(
+                                    (string) (
+                                        $historyItem[
+                                            'body'
+                                        ] ?? ''
+                                    )
+                                );
+
+                                $historyTargets = is_array(
+                                    $historyItem[
+                                        'targets'
+                                    ] ?? null
+                                ) ? $historyItem[
+                                    'targets'
+                                ] : [];
+
+                                $historyDispatchStatus =
+                                    (string) (
+                                        $historyItem[
+                                            'dispatch_status_code'
+                                        ] ?? ''
+                                    );
+                                ?>
+
+                                <tr>
+                                    <td>
+                                        <span
+                                            class="notification-approval-history-badge notification-approval-history-badge--<?= admin_h(
+                                                $historyDecisionCode
+                                            ) ?>"
+                                        >
+                                            <?= admin_h(
+                                                $historyItem[
+                                                    'decision_label'
+                                                ] ?? '—'
+                                            ) ?>
+                                        </span>
+
+                                        <small dir="ltr">
+                                            <?= admin_h(
+                                                $historyItem[
+                                                    'public_reference'
+                                                ] ?? ''
+                                            ) ?>
+                                        </small>
+                                    </td>
+
+                                    <td>
+                                        <strong>
+                                            <?= admin_h(
+                                                $historyItem[
+                                                    'requester_title'
+                                                ] ?? 'کاربر'
+                                            ) ?>
+                                        </strong>
+                                    </td>
+
+                                    <td>
+                                        <strong>
+                                            <?= admin_h(
+                                                $historyItem[
+                                                    'actor_title'
+                                                ] ?? 'کاربر'
+                                            ) ?>
+                                        </strong>
+                                    </td>
+
+                                    <td>
+                                        <strong>
+                                            <?= admin_h(
+                                                $historySubject !== ''
+                                                    ? $historySubject
+                                                    : 'بدون موضوع'
+                                            ) ?>
+                                        </strong>
+
+                                        <?php if (
+                                            $historyBody !== ''
+                                        ): ?>
+                                            <details>
+                                                <summary>
+                                                    مشاهده متن اعلان
+                                                </summary>
+                                                <p>
+                                                    <?= nl2br(
+                                                        admin_h(
+                                                            $historyBody
+                                                        )
+                                                    ) ?>
+                                                </p>
+                                            </details>
+                                        <?php endif; ?>
+
+                                        <?php if (
+                                            $historyRequestReason
+                                            !== ''
+                                        ): ?>
+                                            <small
+                                                class="notification-approval-history-note"
+                                            >
+                                                <b>
+                                                    توضیح درخواست:
+                                                </b>
+                                                <?= admin_h(
+                                                    $historyRequestReason
+                                                ) ?>
+                                            </small>
+                                        <?php endif; ?>
+
+                                        <?php if (
+                                            $historyDecisionReason
+                                            !== ''
+                                        ): ?>
+                                            <small
+                                                class="notification-approval-history-note notification-approval-history-note--reject"
+                                            >
+                                                <b>
+                                                    علت رد:
+                                                </b>
+                                                <?= admin_h(
+                                                    $historyDecisionReason
+                                                ) ?>
+                                            </small>
+                                        <?php endif; ?>
+                                    </td>
+
+                                    <td>
+                                        <?php if (
+                                            $historyTargets === []
+                                        ): ?>
+                                            <span
+                                                class="communication-muted"
+                                            >
+                                                —
+                                            </span>
+                                        <?php else: ?>
+                                            <ul
+                                                class="notification-approval-history-targets"
+                                            >
+                                            <?php foreach (
+                                                $historyTargets
+                                                as $historyTarget
+                                            ): ?>
+                                                <?php
+                                                $historyChannel =
+                                                    (string) (
+                                                        $historyTarget[
+                                                            'channel_code'
+                                                        ] ?? ''
+                                                    );
+                                                ?>
+                                                <li>
+                                                    <strong>
+                                                        <?= admin_h(
+                                                            $historyTarget[
+                                                                'recipient_title'
+                                                            ] ?? 'گیرنده'
+                                                        ) ?>
+                                                    </strong>
+                                                    <span>
+                                                        <?= admin_h(
+                                                            $approvalChannelLabels[
+                                                                $historyChannel
+                                                            ] ?? $historyChannel
+                                                        ) ?>
+                                                    </span>
+                                                    <span dir="ltr">
+                                                        <?= admin_h(
+                                                            $historyTarget[
+                                                                'destination_masked'
+                                                            ] ?? '—'
+                                                        ) ?>
+                                                    </span>
+                                                </li>
+                                            <?php endforeach; ?>
+                                            </ul>
+                                        <?php endif; ?>
+
+                                        <small>
+                                            گیرنده:
+                                            <?= admin_h(
+                                                \App\Support\AdminFormat::digits(
+                                                    (int) (
+                                                        $historyItem[
+                                                            'target_count'
+                                                        ] ?? 0
+                                                    )
+                                                )
+                                            ) ?>
+                                            · پیوست:
+                                            <?= admin_h(
+                                                \App\Support\AdminFormat::digits(
+                                                    (int) (
+                                                        $historyItem[
+                                                            'media_count'
+                                                        ] ?? 0
+                                                    )
+                                                )
+                                            ) ?>
+                                        </small>
+                                    </td>
+
+                                    <td>
+                                        <div>
+                                            <small>
+                                                ثبت درخواست
+                                            </small>
+                                            <strong>
+                                                <?= admin_h(
+                                                    \App\Support\AdminFormat::jalaliDateTime(
+                                                        $historyItem[
+                                                            'submitted_at'
+                                                        ] ?? null
+                                                    ) ?: '—'
+                                                ) ?>
+                                            </strong>
+                                        </div>
+
+                                        <div>
+                                            <small>
+                                                تصمیم
+                                            </small>
+                                            <strong>
+                                                <?= admin_h(
+                                                    \App\Support\AdminFormat::jalaliDateTime(
+                                                        $historyItem[
+                                                            'decided_at'
+                                                        ] ?? null
+                                                    ) ?: '—'
+                                                ) ?>
+                                            </strong>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <?php if (
+                                            $historyDecisionCode
+                                            === 'reject'
+                                        ): ?>
+                                            <span
+                                                class="notification-approval-history-dispatch notification-approval-history-dispatch--rejected"
+                                            >
+                                                ارسال نشد
+                                            </span>
+                                            <small>
+                                                درخواست رد شده است.
+                                            </small>
+                                        <?php elseif (
+                                            $historyDispatchStatus
+                                            !== ''
+                                        ): ?>
+                                            <span
+                                                class="notification-approval-history-dispatch notification-approval-history-dispatch--<?= admin_h(
+                                                    $historyDispatchStatus
+                                                ) ?>"
+                                            >
+                                                <?= admin_h(
+                                                    $historyItem[
+                                                        'dispatch_status_label'
+                                                    ] ?? $historyDispatchStatus
+                                                ) ?>
+                                            </span>
+
+                                            <small>
+                                                ارسال‌شده:
+                                                <?= admin_h(
+                                                    \App\Support\AdminFormat::digits(
+                                                        (int) (
+                                                            $historyItem[
+                                                                'dispatch_sent_count'
+                                                            ] ?? 0
+                                                        )
+                                                    )
+                                                ) ?>
+                                                · ناموفق:
+                                                <?= admin_h(
+                                                    \App\Support\AdminFormat::digits(
+                                                        (int) (
+                                                            $historyItem[
+                                                                'dispatch_failed_count'
+                                                            ] ?? 0
+                                                        )
+                                                    )
+                                                ) ?>
+                                            </small>
+                                        <?php else: ?>
+                                            <span
+                                                class="notification-approval-history-dispatch"
+                                            >
+                                                <?= admin_h(
+                                                    $historyItem[
+                                                        'status_label'
+                                                    ] ?? 'تأییدشده'
+                                                ) ?>
+                                            </span>
+                                            <small>
+                                                سابقه ارسال ثبت نشده است.
+                                            </small>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <footer
+                        class="notification-approval-history-footer"
+                    >
+                        <span>
+                            صفحه
+                            <strong>
+                                <?= admin_h(
+                                    \App\Support\AdminFormat::digits(
+                                        $approvalHistoryPage
+                                    )
+                                ) ?>
+                            </strong>
+                            از
+                            <strong>
+                                <?= admin_h(
+                                    \App\Support\AdminFormat::digits(
+                                        $approvalHistoryPages
+                                    )
+                                ) ?>
+                            </strong>
+                        </span>
+
+                        <nav
+                            class="communication-pagination"
+                            aria-label="صفحه‌بندی سوابق تصمیم‌ها"
+                        >
+                            <?php if (
+                                $approvalHistoryPage > 1
+                            ): ?>
+                                <a
+                                    href="<?= admin_h(
+                                        $approvalHistoryUrl(
+                                            $approvalHistoryPage - 1
+                                        )
+                                    ) ?>"
+                                >
+                                    قبلی
+                                </a>
+                            <?php endif; ?>
+
+                            <?php if (
+                                $approvalHistoryPage
+                                < $approvalHistoryPages
+                            ): ?>
+                                <a
+                                    href="<?= admin_h(
+                                        $approvalHistoryUrl(
+                                            $approvalHistoryPage + 1
+                                        )
+                                    ) ?>"
+                                >
+                                    بعدی
+                                </a>
+                            <?php endif; ?>
+                        </nav>
+                    </footer>
                 <?php endif; ?>
             </section>
 

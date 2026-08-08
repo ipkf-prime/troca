@@ -310,6 +310,360 @@ class NotificationApprovalRepository extends BaseRepository
         ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    public function historyPage(
+        array $filters
+    ): array {
+        $query = trim(
+            (string) ($filters['q'] ?? '')
+        );
+
+        $decision = trim(
+            (string) (
+                $filters['decision'] ?? ''
+            )
+        );
+
+        $from = trim(
+            (string) ($filters['from'] ?? '')
+        );
+
+        $to = trim(
+            (string) ($filters['to'] ?? '')
+        );
+
+        $page = max(
+            1,
+            (int) ($filters['page'] ?? 1)
+        );
+
+        $perPage = max(
+            1,
+            min(
+                100,
+                (int) (
+                    $filters['per_page'] ?? 20
+                )
+            )
+        );
+
+        $where = [
+            "d.decision_code IN ('approve', 'reject')",
+        ];
+
+        $params = [];
+
+        if ($query !== '') {
+            $like = '%' . $query . '%';
+
+            $where[] = "(
+                r.public_reference LIKE ?
+                OR COALESCE(
+                    requester_person.full_name,
+                    ''
+                ) LIKE ?
+                OR COALESCE(
+                    requester.username,
+                    ''
+                ) LIKE ?
+                OR COALESCE(
+                    actor_person.full_name,
+                    ''
+                ) LIKE ?
+                OR COALESCE(
+                    actor.username,
+                    ''
+                ) LIKE ?
+                OR COALESCE(
+                    r.subject,
+                    ''
+                ) LIKE ?
+                OR COALESCE(
+                    r.request_reason,
+                    ''
+                ) LIKE ?
+                OR COALESCE(
+                    d.reason,
+                    ''
+                ) LIKE ?
+            )";
+
+            for ($i = 0; $i < 8; $i++) {
+                $params[] = $like;
+            }
+        }
+
+        if (in_array(
+            $decision,
+            ['approve', 'reject'],
+            true
+        )) {
+            $where[] = 'd.decision_code = ?';
+            $params[] = $decision;
+        }
+
+        if ($from !== '') {
+            $where[] = 'DATE(d.decided_at) >= ?';
+            $params[] = $from;
+        }
+
+        if ($to !== '') {
+            $where[] = 'DATE(d.decided_at) <= ?';
+            $params[] = $to;
+        }
+
+        $whereSql = implode(
+            "\n AND ",
+            $where
+        );
+
+        $countStatement =
+            $this->connection()->prepare("
+                SELECT COUNT(*)
+                FROM notification_approval_decisions d
+                INNER JOIN notification_approval_requests r
+                    ON r.id = d.request_id
+                INNER JOIN users requester
+                    ON requester.id =
+                        r.requester_user_id
+                LEFT JOIN persons requester_person
+                    ON requester_person.id =
+                        requester.person_id
+                INNER JOIN users actor
+                    ON actor.id =
+                        d.actor_user_id
+                LEFT JOIN persons actor_person
+                    ON actor_person.id =
+                        actor.person_id
+                WHERE {$whereSql}
+            ");
+
+        $countStatement->execute($params);
+
+        $total =
+            (int) $countStatement->fetchColumn();
+
+        $pages = max(
+            1,
+            (int) ceil(
+                $total / $perPage
+            )
+        );
+
+        if ($page > $pages) {
+            $page = $pages;
+        }
+
+        $offset =
+            ($page - 1) * $perPage;
+
+        $statement =
+            $this->connection()->prepare("
+                SELECT
+                    r.id,
+                    r.public_reference,
+                    r.requester_user_id,
+                    r.status_code,
+                    r.message_type_code,
+                    r.subject,
+                    r.body,
+                    r.channels_json,
+                    r.request_reason,
+                    r.submitted_at,
+                    r.approved_at,
+                    r.rejected_at,
+
+                    COALESCE(
+                        NULLIF(
+                            requester_person.full_name,
+                            ''
+                        ),
+                        NULLIF(
+                            requester.username,
+                            ''
+                        ),
+                        CONCAT(
+                            'کاربر ',
+                            r.requester_user_id
+                        )
+                    ) AS requester_title,
+
+                    d.id AS decision_id,
+                    d.actor_user_id,
+                    d.decision_code,
+                    d.reason AS decision_reason,
+                    d.decided_at,
+
+                    COALESCE(
+                        NULLIF(
+                            actor_person.full_name,
+                            ''
+                        ),
+                        NULLIF(
+                            actor.username,
+                            ''
+                        ),
+                        CONCAT(
+                            'کاربر ',
+                            d.actor_user_id
+                        )
+                    ) AS actor_title,
+
+                    (
+                        SELECT COUNT(*)
+                        FROM notification_approval_targets t
+                        WHERE t.request_id = r.id
+                    ) AS target_count,
+
+                    (
+                        SELECT COUNT(*)
+                        FROM notification_approval_media_links ml
+                        WHERE ml.request_id = r.id
+                    ) AS media_count,
+
+                    (
+                        SELECT dr.public_reference
+                        FROM notification_approval_dispatch_runs dr
+                        WHERE dr.request_id = r.id
+                        ORDER BY
+                            dr.attempt_number DESC,
+                            dr.id DESC
+                        LIMIT 1
+                    ) AS dispatch_run_reference,
+
+                    (
+                        SELECT dr.status_code
+                        FROM notification_approval_dispatch_runs dr
+                        WHERE dr.request_id = r.id
+                        ORDER BY
+                            dr.attempt_number DESC,
+                            dr.id DESC
+                        LIMIT 1
+                    ) AS dispatch_status_code,
+
+                    (
+                        SELECT dr.sent_count
+                        FROM notification_approval_dispatch_runs dr
+                        WHERE dr.request_id = r.id
+                        ORDER BY
+                            dr.attempt_number DESC,
+                            dr.id DESC
+                        LIMIT 1
+                    ) AS dispatch_sent_count,
+
+                    (
+                        SELECT dr.failed_count
+                        FROM notification_approval_dispatch_runs dr
+                        WHERE dr.request_id = r.id
+                        ORDER BY
+                            dr.attempt_number DESC,
+                            dr.id DESC
+                        LIMIT 1
+                    ) AS dispatch_failed_count,
+
+                    (
+                        SELECT dr.skipped_count
+                        FROM notification_approval_dispatch_runs dr
+                        WHERE dr.request_id = r.id
+                        ORDER BY
+                            dr.attempt_number DESC,
+                            dr.id DESC
+                        LIMIT 1
+                    ) AS dispatch_skipped_count,
+
+                    (
+                        SELECT dr.completed_at
+                        FROM notification_approval_dispatch_runs dr
+                        WHERE dr.request_id = r.id
+                        ORDER BY
+                            dr.attempt_number DESC,
+                            dr.id DESC
+                        LIMIT 1
+                    ) AS dispatch_completed_at
+
+                FROM notification_approval_decisions d
+
+                INNER JOIN notification_approval_requests r
+                    ON r.id = d.request_id
+
+                INNER JOIN users requester
+                    ON requester.id =
+                        r.requester_user_id
+
+                LEFT JOIN persons requester_person
+                    ON requester_person.id =
+                        requester.person_id
+
+                INNER JOIN users actor
+                    ON actor.id =
+                        d.actor_user_id
+
+                LEFT JOIN persons actor_person
+                    ON actor_person.id =
+                        actor.person_id
+
+                WHERE {$whereSql}
+
+                ORDER BY
+                    d.decided_at DESC,
+                    d.id DESC
+
+                LIMIT {$perPage}
+                OFFSET {$offset}
+            ");
+
+        $statement->execute($params);
+
+        return [
+            'items' =>
+                $statement->fetchAll(
+                    PDO::FETCH_ASSOC
+                ) ?: [],
+            'total' => $total,
+            'page' => $page,
+            'pages' => $pages,
+            'per_page' => $perPage,
+        ];
+    }
+
+    public function approvalSummary(): array
+    {
+        $row = $this->connection()->query("
+            SELECT
+                (
+                    SELECT COUNT(*)
+                    FROM notification_approval_requests
+                    WHERE status_code = 'pending'
+                ) AS pending_count,
+
+                (
+                    SELECT COUNT(DISTINCT request_id)
+                    FROM notification_approval_decisions
+                    WHERE decision_code = 'approve'
+                ) AS approved_count,
+
+                (
+                    SELECT COUNT(DISTINCT request_id)
+                    FROM notification_approval_decisions
+                    WHERE decision_code = 'reject'
+                ) AS rejected_count
+        ")->fetch(PDO::FETCH_ASSOC);
+
+        return [
+            'pending' =>
+                (int) (
+                    $row['pending_count'] ?? 0
+                ),
+            'approved' =>
+                (int) (
+                    $row['approved_count'] ?? 0
+                ),
+            'rejected' =>
+                (int) (
+                    $row['rejected_count'] ?? 0
+                ),
+        ];
+    }
+
     public function targets(
         int $requestId
     ): array {

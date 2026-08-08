@@ -4042,4 +4042,229 @@ body.provider-test-dialog-open {
     }
 }
 
+
+/* notification-approval-history-ui-v062 */
+.notification-approval-summary {
+    display: grid;
+    gap: .7rem;
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+    margin-bottom: .8rem;
+}
+
+.notification-approval-summary-card {
+    align-items: center;
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    color: inherit;
+    display: flex;
+    justify-content: space-between;
+    padding: .75rem .9rem;
+    text-decoration: none;
+}
+
+.notification-approval-summary-card span {
+    color: var(--admin-text-muted);
+    font-size: .82rem;
+    font-weight: 750;
+}
+
+.notification-approval-summary-card strong {
+    font-size: 1.25rem;
+}
+
+.notification-approval-summary-card--pending {
+    border-inline-start:
+        4px solid #b7791f;
+}
+
+.notification-approval-summary-card--approved {
+    border-inline-start:
+        4px solid var(--admin-primary);
+}
+
+.notification-approval-summary-card--rejected {
+    border-inline-start:
+        4px solid #b42318;
+}
+
+.notification-approval-history {
+    margin-top: .8rem;
+}
+
+.notification-approval-history-filters {
+    align-items: end;
+    display: grid;
+    gap: .5rem;
+    grid-template-columns:
+        minmax(220px, 2fr)
+        minmax(120px, 1fr)
+        minmax(120px, 1fr)
+        minmax(120px, 1fr)
+        minmax(90px, .7fr)
+        auto;
+    margin-bottom: .8rem;
+}
+
+.notification-approval-history-filters label {
+    display: grid;
+    gap: .28rem;
+    min-width: 0;
+}
+
+.notification-approval-history-filters label > span {
+    color: var(--admin-text-muted);
+    font-size: .76rem;
+    font-weight: 750;
+}
+
+.notification-approval-history-filters input,
+.notification-approval-history-filters select {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    color: inherit;
+    font: inherit;
+    min-height: 36px;
+    min-width: 0;
+    padding: .38rem .5rem;
+    width: 100%;
+}
+
+.notification-approval-history-filter-actions {
+    display: flex;
+    gap: .35rem;
+}
+
+.notification-approval-history-table {
+    min-width: 1180px;
+}
+
+.notification-approval-history-table td {
+    vertical-align: top;
+}
+
+.notification-approval-history-table small {
+    color: var(--admin-text-muted);
+    display: block;
+    margin-top: .25rem;
+}
+
+.notification-approval-history-table details {
+    margin-top: .3rem;
+}
+
+.notification-approval-history-table details summary {
+    cursor: pointer;
+    font-size: .78rem;
+    font-weight: 750;
+}
+
+.notification-approval-history-table details p {
+    line-height: 1.8;
+    margin: .35rem 0 0;
+    max-width: 360px;
+    white-space: normal;
+}
+
+.notification-approval-history-badge,
+.notification-approval-history-dispatch {
+    border-radius: 999px;
+    display: inline-flex;
+    font-size: .72rem;
+    font-weight: 800;
+    padding: .24rem .55rem;
+}
+
+.notification-approval-history-badge--approve,
+.notification-approval-history-dispatch--dispatched {
+    background: var(--admin-primary-soft);
+    color: var(--admin-primary);
+}
+
+.notification-approval-history-badge--reject,
+.notification-approval-history-dispatch--rejected,
+.notification-approval-history-dispatch--failed {
+    background: rgba(180, 35, 24, .1);
+    color: #b42318;
+}
+
+.notification-approval-history-dispatch--partially_dispatched {
+    background: rgba(183, 121, 31, .12);
+    color: #8a5a12;
+}
+
+.notification-approval-history-note {
+    background: var(--admin-surface-muted);
+    border-radius: 7px;
+    margin-top: .35rem !important;
+    padding: .35rem .45rem;
+}
+
+.notification-approval-history-note--reject {
+    background: rgba(180, 35, 24, .07);
+    color: #8f1d14 !important;
+}
+
+.notification-approval-history-targets {
+    display: grid;
+    gap: .28rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.notification-approval-history-targets li {
+    display: grid;
+    gap: .08rem;
+}
+
+.notification-approval-history-footer {
+    align-items: center;
+    color: var(--admin-text-muted);
+    display: flex;
+    font-size: .8rem;
+    gap: .8rem;
+    justify-content: space-between;
+    margin-top: .7rem;
+}
+
+@media (max-width: 1100px) {
+    .notification-approval-history-filters {
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+    }
+
+    .notification-approval-history-search {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 760px) {
+    .notification-approval-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .notification-approval-history-filters {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .notification-approval-history-search,
+    .notification-approval-history-filter-actions {
+        grid-column: 1 / -1;
+    }
+
+    .notification-approval-history-filter-actions
+        .admin-button {
+        flex: 1 1 0;
+        justify-content: center;
+    }
+
+    .notification-approval-history-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}
+
 </style>

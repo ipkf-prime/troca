@@ -6,6 +6,8 @@ use App\Repositories\NotificationApprovalRepository;
 use InvalidArgumentException;
 use JsonException;
 use RuntimeException;
+use IPKF\Support\PersianDate;
+use Throwable;
 
 class NotificationApprovalManagementService extends BaseService
 {
@@ -63,57 +65,12 @@ class NotificationApprovalManagementService extends BaseService
                     $row['id'] ?? 0
                 );
 
-                $targets = [];
-
-                if ($requestId > 0) {
-                    $targets = array_map(
-                        static fn (
-                            array $target
-                        ): array => [
-                            'public_reference' =>
-                                (string) (
-                                    $target[
-                                        'public_reference'
-                                    ] ?? ''
-                                ),
-
-                            'recipient_title' =>
-                                (string) (
-                                    $target[
-                                        'recipient_title'
-                                    ] ?? ''
-                                ),
-
-                            'channel_code' =>
-                                (string) (
-                                    $target[
-                                        'channel_code'
-                                    ] ?? ''
-                                ),
-
-                            /*
-                             * Never expose destination_snapshot
-                             * through the manager queue model.
-                             */
-                            'destination_masked' =>
-                                (string) (
-                                    $target[
-                                        'destination_masked'
-                                    ] ?? ''
-                                ),
-
-                            'status_code' =>
-                                (string) (
-                                    $target[
-                                        'status_code'
-                                    ] ?? ''
-                                ),
-                        ],
-                        $this->repository->targets(
+                $targets =
+                    $requestId > 0
+                        ? $this->safeTargets(
                             $requestId
                         )
-                    );
-                }
+                        : [];
 
                 return $row + [
                     'status_label' =>
@@ -134,6 +91,98 @@ class NotificationApprovalManagementService extends BaseService
             },
             $rows
         );
+    }
+
+    public function history(
+        int $actorUserId,
+        array $input = []
+    ): array {
+        $this->assertPermission(
+            $actorUserId,
+            self::VIEW_PERMISSION,
+            'notification_approval_view_forbidden'
+        );
+
+        $filters =
+            $this->historyFilters($input);
+
+        $page =
+            $this->repository->historyPage(
+                $filters
+            );
+
+        $items = is_array(
+            $page['items'] ?? null
+        ) ? $page['items'] : [];
+
+        foreach ($items as &$item) {
+            $requestId = (int) (
+                $item['id'] ?? 0
+            );
+
+            $item['decision_label'] =
+                match (
+                    (string) (
+                        $item[
+                            'decision_code'
+                        ] ?? ''
+                    )
+                ) {
+                    'approve' => 'تأیید',
+                    'reject' => 'رد',
+                    default => '—',
+                };
+
+            $item['status_label'] =
+                $this->stateMachine->label(
+                    (string) (
+                        $item[
+                            'status_code'
+                        ] ?? ''
+                    )
+                );
+
+            $dispatchStatus =
+                (string) (
+                    $item[
+                        'dispatch_status_code'
+                    ] ?? ''
+                );
+
+            $item['dispatch_status_label'] =
+                $dispatchStatus !== ''
+                    ? $this->stateMachine->label(
+                        $dispatchStatus
+                    )
+                    : '';
+
+            $item['channels'] =
+                $this->decodeChannels(
+                    $item[
+                        'channels_json'
+                    ] ?? null
+                );
+
+            $item['targets'] =
+                $requestId > 0
+                    ? $this->safeTargets(
+                        $requestId
+                    )
+                    : [];
+
+            unset(
+                $item['channels_json']
+            );
+        }
+        unset($item);
+
+        $page['items'] = $items;
+        $page['filters'] = $filters;
+        $page['summary'] =
+            $this->repository
+                ->approvalSummary();
+
+        return $page;
     }
 
     public function approve(
@@ -426,6 +475,197 @@ class NotificationApprovalManagementService extends BaseService
                 $errorCode
             );
         }
+    }
+
+    private function historyFilters(
+        array $input
+    ): array {
+        $query = trim(
+            (string) ($input['q'] ?? '')
+        );
+
+        if (
+            mb_strlen(
+                $query,
+                'UTF-8'
+            ) > 190
+        ) {
+            $query = mb_substr(
+                $query,
+                0,
+                190,
+                'UTF-8'
+            );
+        }
+
+        $decision = strtolower(
+            trim(
+                (string) (
+                    $input['status'] ?? ''
+                )
+            )
+        );
+
+        if (!in_array(
+            $decision,
+            ['', 'approve', 'reject'],
+            true
+        )) {
+            $decision = '';
+        }
+
+        [$fromInput, $from] =
+            $this->historyDateFilter(
+                $input['from'] ?? ''
+            );
+
+        [$toInput, $to] =
+            $this->historyDateFilter(
+                $input['to'] ?? ''
+            );
+
+        if (
+            $from !== ''
+            && $to !== ''
+            && strcmp($from, $to) > 0
+        ) {
+            [$from, $to] = [$to, $from];
+            [$fromInput, $toInput] =
+                [$toInput, $fromInput];
+        }
+
+        $perPage =
+            (int) (
+                $input['per_page'] ?? 20
+            );
+
+        if (!in_array(
+            $perPage,
+            [20, 50, 100],
+            true
+        )) {
+            $perPage = 20;
+        }
+
+        return [
+            'q' => $query,
+            'decision' => $decision,
+            'from' => $from,
+            'to' => $to,
+            'from_input' => $fromInput,
+            'to_input' => $toInput,
+            'page' => max(
+                1,
+                (int) (
+                    $input['page'] ?? 1
+                )
+            ),
+            'per_page' => $perPage,
+        ];
+    }
+
+    private function historyDateFilter(
+        mixed $value
+    ): array {
+        $input = trim(
+            (string) $value
+        );
+
+        if ($input === '') {
+            return ['', ''];
+        }
+
+        if (
+            preg_match(
+                '/^\d{4}-\d{2}-\d{2}$/',
+                $input
+            ) === 1
+        ) {
+            return [$input, $input];
+        }
+
+        try {
+            $gregorian = (string) (
+                PersianDate::toGregorianDate(
+                    $input
+                ) ?? ''
+            );
+        } catch (Throwable) {
+            return [$input, ''];
+        }
+
+        if (
+            preg_match(
+                '/^\d{4}-\d{2}-\d{2}$/',
+                $gregorian
+            ) !== 1
+        ) {
+            return [$input, ''];
+        }
+
+        return [
+            $input,
+            $gregorian,
+        ];
+    }
+
+    private function safeTargets(
+        int $requestId
+    ): array {
+        return array_map(
+            static fn (
+                array $target
+            ): array => [
+                'public_reference' =>
+                    (string) (
+                        $target[
+                            'public_reference'
+                        ] ?? ''
+                    ),
+
+                'recipient_title' =>
+                    (string) (
+                        $target[
+                            'recipient_title'
+                        ] ?? ''
+                    ),
+
+                'channel_code' =>
+                    (string) (
+                        $target[
+                            'channel_code'
+                        ] ?? ''
+                    ),
+
+                /*
+                 * Never expose destination_snapshot
+                 * through approval management.
+                 */
+                'destination_masked' =>
+                    (string) (
+                        $target[
+                            'destination_masked'
+                        ] ?? ''
+                    ),
+
+                'status_code' =>
+                    (string) (
+                        $target[
+                            'status_code'
+                        ] ?? ''
+                    ),
+
+                'provider_title' =>
+                    (string) (
+                        $target[
+                            'provider_title_snapshot'
+                        ] ?? ''
+                    ),
+            ],
+            $this->repository->targets(
+                $requestId
+            )
+        );
     }
 
     private function decodeChannels(

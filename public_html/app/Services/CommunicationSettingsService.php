@@ -150,6 +150,12 @@ class CommunicationSettingsService extends BaseService
                 'items' =>
                     $this->approvalManagement
                         ->queue($userId),
+                'history' =>
+                    $this->approvalManagement
+                        ->history(
+                            $userId,
+                            $reportFilters
+                        ),
                 'can_decide' =>
                     $this->authorization
                         ->hasPermission(
