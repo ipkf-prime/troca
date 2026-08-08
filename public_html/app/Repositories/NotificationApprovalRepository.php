@@ -356,7 +356,10 @@ class NotificationApprovalRepository extends BaseRepository
             $like = '%' . $query . '%';
 
             $where[] = "(
-                r.public_reference LIKE ?
+                CONVERT(
+                    r.public_reference
+                    USING utf8mb4
+                ) COLLATE utf8mb4_unicode_ci LIKE ?
                 OR COALESCE(
                     requester_person.full_name,
                     ''
