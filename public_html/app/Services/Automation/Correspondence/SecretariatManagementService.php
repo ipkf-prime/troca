@@ -1531,17 +1531,17 @@ final class SecretariatManagementService
                     ->connection();
 
             if (
-                $strategy === 'dedicated'
-                && $this->sequenceAlreadyUsed(
+                !$this->sequenceUsageAllows(
                     $pdo,
-                    (int) $sequenceId
+                    (int) $sequenceId,
+                    $strategy
                 )
             ) {
                 return [
                     'ok' => false,
                     'errors' => [
                         'number_sequence_id' =>
-                            'Sequence انتخاب‌شده قبلاً به یک دفتر اختصاصی یا دفتر دیگر متصل شده است. برای استفاده چنددفتره راهبرد مشترک را انتخاب کنید.',
+                            'راهبرد استفاده از Sequence با دفترهای فعال موجود سازگار نیست. Sequence اختصاصی قابل اشتراک نیست و Sequence مشترک فقط میان دفترهای مشترک قابل استفاده است.',
                     ],
                 ];
             }
@@ -1709,8 +1709,23 @@ final class SecretariatManagementService
                         d.id
 
                 WHERE d.root_organization_id = ?
+                  AND d.status = 'active'
+                  AND dso.status = 'active'
+
                   AND dso.organization_id
                         IN ({$in})
+
+                  AND (
+                        dso.valid_from IS NULL
+                        OR dso.valid_from
+                            <= UTC_TIMESTAMP()
+                  )
+
+                  AND (
+                        dso.valid_until IS NULL
+                        OR dso.valid_until
+                            >= UTC_TIMESTAMP()
+                  )
 
                 ORDER BY
                     d.title_fa,
@@ -1732,6 +1747,11 @@ final class SecretariatManagementService
             $statement->fetchAll(
                 PDO::FETCH_ASSOC
             ) ?: [];
+
+        $allowedOrganizationIds =
+            $this->allowedOrganizationIds(
+                $actor
+            );
 
         foreach ($rows as &$row) {
 
@@ -1760,7 +1780,8 @@ final class SecretariatManagementService
                 'served_organization_ids'
             ] =
                 $this->servedOrganizationIds(
-                    (int) $row['id']
+                    (int) $row['id'],
+                    $allowedOrganizationIds
                 );
 
             $row[
@@ -1929,9 +1950,24 @@ final class SecretariatManagementService
                         d.id
 
                 WHERE s.root_organization_id = ?
+                  AND s.status = 'active'
+                  AND d.status = 'active'
+                  AND dso.status = 'active'
 
                   AND dso.organization_id
                         IN ({$in})
+
+                  AND (
+                        dso.valid_from IS NULL
+                        OR dso.valid_from
+                            <= UTC_TIMESTAMP()
+                  )
+
+                  AND (
+                        dso.valid_until IS NULL
+                        OR dso.valid_until
+                            >= UTC_TIMESTAMP()
+                  )
 
                   AND (
                         s.organization_id IS NULL
@@ -2269,8 +2305,21 @@ final class SecretariatManagementService
                       AND d.root_organization_id = ?
                       AND d.status = 'active'
                       AND dso.status = 'active'
+
                       AND dso.organization_id
                             IN ({$in})
+
+                      AND (
+                            dso.valid_from IS NULL
+                            OR dso.valid_from
+                                <= UTC_TIMESTAMP()
+                      )
+
+                      AND (
+                            dso.valid_until IS NULL
+                            OR dso.valid_until
+                                >= UTC_TIMESTAMP()
+                      )
 
                     LIMIT 1
                 ");
@@ -2401,6 +2450,18 @@ final class SecretariatManagementService
                             IN ({$in})
 
                       AND (
+                            dso.valid_from IS NULL
+                            OR dso.valid_from
+                                <= UTC_TIMESTAMP()
+                      )
+
+                      AND (
+                            dso.valid_until IS NULL
+                            OR dso.valid_until
+                                >= UTC_TIMESTAMP()
+                      )
+
+                      AND (
                             s.organization_id IS NULL
                             OR s.organization_id
                                 IN ({$in})
@@ -2507,6 +2568,18 @@ final class SecretariatManagementService
                       AND organization_id = ?
                       AND status = 'active'
 
+                      AND (
+                            valid_from IS NULL
+                            OR valid_from
+                                <= UTC_TIMESTAMP()
+                      )
+
+                      AND (
+                            valid_until IS NULL
+                            OR valid_until
+                                >= UTC_TIMESTAMP()
+                      )
+
                     LIMIT 1
                 ");
 
@@ -2523,8 +2596,18 @@ final class SecretariatManagementService
     }
 
     private function servedOrganizationIds(
-        int $deskId
+        int $deskId,
+        array $allowedOrganizationIds
     ): array {
+        [$in, $params] =
+            $this->inClause(
+                $allowedOrganizationIds
+            );
+
+        if ($in === '') {
+            return [];
+        }
+
         $statement =
             $this->runtime
                 ->connection()
@@ -2535,16 +2618,37 @@ final class SecretariatManagementService
                         secretariat_desk_organizations
 
                     WHERE secretariat_desk_id = ?
+
+                      AND organization_id
+                            IN ({$in})
+
                       AND status = 'active'
+
+                      AND (
+                            valid_from IS NULL
+                            OR valid_from
+                                <= UTC_TIMESTAMP()
+                      )
+
+                      AND (
+                            valid_until IS NULL
+                            OR valid_until
+                                >= UTC_TIMESTAMP()
+                      )
 
                     ORDER BY
                         is_primary DESC,
                         organization_id
                 ");
 
-        $statement->execute([
-            $deskId,
-        ]);
+        $statement->execute(
+            array_merge(
+                [
+                    $deskId,
+                ],
+                $params
+            )
+        );
 
         return array_map(
             'intval',
@@ -2809,13 +2913,15 @@ final class SecretariatManagementService
                 ->fetchColumn() > 0;
     }
 
-    private function sequenceAlreadyUsed(
+    private function sequenceUsageAllows(
         PDO $pdo,
-        int $sequenceId
+        int $sequenceId,
+        string $strategy
     ): bool {
         $statement =
             $pdo->prepare("
-                SELECT COUNT(*)
+                SELECT
+                    numbering_strategy_code
 
                 FROM registry_books
 
@@ -2827,9 +2933,51 @@ final class SecretariatManagementService
             $sequenceId,
         ]);
 
-        return
-            (int) $statement
-                ->fetchColumn() > 0;
+        $existingStrategies =
+            array_values(
+                array_filter(
+                    array_map(
+                        static fn (
+                            mixed $value
+                        ): string =>
+                            strtolower(
+                                trim(
+                                    (string) $value
+                                )
+                            ),
+
+                        $statement->fetchAll(
+                            PDO::FETCH_COLUMN
+                        ) ?: []
+                    ),
+
+                    static fn (
+                        string $value
+                    ): bool =>
+                        $value !== ''
+                )
+            );
+
+        if ($existingStrategies === []) {
+            return true;
+        }
+
+        if ($strategy === 'dedicated') {
+            return false;
+        }
+
+        foreach (
+            $existingStrategies
+            as $existingStrategy
+        ) {
+            if (
+                $existingStrategy !== 'shared'
+            ) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function dateInput(
@@ -2848,11 +2996,33 @@ final class SecretariatManagementService
 
         if (
             preg_match(
-                '/^\d{4}-\d{2}-\d{2}$/',
-                $value
+                '/^(\d{4})-(\d{2})-(\d{2})$/',
+                $value,
+                $matches
             ) === 1
         ) {
-            return $value;
+            $year =
+                (int) $matches[1];
+
+            $month =
+                (int) $matches[2];
+
+            $day =
+                (int) $matches[3];
+
+            return
+                checkdate(
+                    $month,
+                    $day,
+                    $year
+                )
+                    ? sprintf(
+                        '%04d-%02d-%02d',
+                        $year,
+                        $month,
+                        $day
+                    )
+                    : null;
         }
 
         try {
