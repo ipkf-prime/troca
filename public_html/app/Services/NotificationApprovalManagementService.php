@@ -17,6 +17,9 @@ class NotificationApprovalManagementService extends BaseService
     private const DECIDE_PERMISSION =
         'notifications.approvals.decide';
 
+    private const MANAGE_PERMISSION =
+        'notifications.approvals.manage';
+
     public function __construct(
         private ?NotificationApprovalRepository $repository = null,
         private ?NotificationApprovalStateMachine $stateMachine = null,
@@ -472,6 +475,88 @@ class NotificationApprovalManagementService extends BaseService
         );
 
         return $decision;
+    }
+
+    public function retry(
+        int $actorUserId,
+        string $publicReference
+    ): array {
+        $this->assertPermission(
+            $actorUserId,
+            self::MANAGE_PERMISSION,
+            'notification_approval_retry_forbidden'
+        );
+
+        $publicReference = trim(
+            $publicReference
+        );
+
+        if (
+            $publicReference === ''
+            || strlen($publicReference) > 40
+            || preg_match(
+                '/^nar_[a-f0-9]{24}$/',
+                $publicReference
+            ) !== 1
+        ) {
+            throw new InvalidArgumentException(
+                'notification_approval_reference_invalid'
+            );
+        }
+
+        $request =
+            $this->repository
+                ->findByReference(
+                    $publicReference
+                );
+
+        if (!is_array($request)) {
+            throw new RuntimeException(
+                'notification_approval_request_not_found'
+            );
+        }
+
+        $status = (string) (
+            $request['status_code']
+            ?? ''
+        );
+
+        if (!in_array(
+            $status,
+            [
+                NotificationApprovalStateMachine::FAILED,
+                NotificationApprovalStateMachine::PARTIALLY_DISPATCHED,
+            ],
+            true
+        )) {
+            throw new RuntimeException(
+                'notification_approval_retry_not_available'
+            );
+        }
+
+        $dispatch =
+            $this->dispatch->dispatch(
+                $actorUserId,
+                $publicReference
+            );
+
+        return [
+            'public_reference' =>
+                $publicReference,
+
+            'retry_from_status' =>
+                $status,
+
+            'status_code' =>
+                (string) (
+                    $dispatch[
+                        'status_code'
+                    ] ?? ''
+                ),
+
+            'dispatch' =>
+                $dispatch,
+        ];
     }
 
     private function decide(

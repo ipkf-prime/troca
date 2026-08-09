@@ -70,6 +70,11 @@ $statusMessages = [
     'notification_approval_approved_failed' => ['error', 'درخواست تأیید شد، اما ارسال اعلان ناموفق بود.'],
     'notification_approval_approved' => ['success', 'درخواست اعلان تأیید شد.'],
     'notification_approval_rejected' => ['success', 'درخواست ارسال اعلان رد شد.'],
+    'notification_approval_retry_dispatched' => ['success', 'تلاش مجدد انجام شد و مقصدهای باقیمانده با موفقیت ارسال شدند.'],
+    'notification_approval_retry_partial' => ['success', 'تلاش مجدد انجام شد؛ بخشی از مقصدهای باقیمانده همچنان ناموفق هستند.'],
+    'notification_approval_retry_failed' => ['error', 'تلاش مجدد انجام شد، اما ارسال مقصدهای باقیمانده ناموفق بود.'],
+    'notification_approval_retry_forbidden' => ['error', 'دسترسی تلاش مجدد برای ارسال اعلان فعال نیست.'],
+    'notification_approval_retry_not_available' => ['error', 'وضعیت فعلی درخواست امکان تلاش مجدد را ندارد.'],
     'notification_approval_reject_reason_required' => ['error', 'برای رد درخواست، ثبت دلیل الزامی است.'],
     'notification_approval_decide_forbidden' => ['error', 'دسترسی تصمیم‌گیری برای این درخواست فعال نیست.'],
     'notification_approval_approver_ineligible' => ['error', 'شما تأییدکننده مجاز این مرحله نیستید.'],
@@ -2930,6 +2935,12 @@ require BASE_PATH
                 ]
             );
 
+            $approvalCanManage = !empty(
+                $notificationApprovalManagement[
+                    'can_manage'
+                ]
+            );
+
             $approvalHistory = is_array(
                 $notificationApprovalManagement[
                     'history'
@@ -3782,6 +3793,13 @@ require BASE_PATH
                                             'dispatch_status_code'
                                         ] ?? ''
                                     );
+
+                                $historyRequestStatus =
+                                    (string) (
+                                        $historyItem[
+                                            'status_code'
+                                        ] ?? ''
+                                    );
                                 ?>
 
                                 <tr>
@@ -4060,6 +4078,52 @@ require BASE_PATH
                                             <small>
                                                 سابقه ارسال ثبت نشده است.
                                             </small>
+                                        <?php endif; ?>
+
+                                        <?php if (
+                                            $approvalCanManage
+                                            && $historyDecisionCode
+                                                === 'approve'
+                                            && in_array(
+                                                $historyRequestStatus,
+                                                [
+                                                    'failed',
+                                                    'partially_dispatched',
+                                                ],
+                                                true
+                                            )
+                                        ): ?>
+                                            <form
+                                                class="notification-approval-retry-form"
+                                                method="post"
+                                                action="<?= admin_h(
+                                                    '/admin/communications/settings/approvals/'
+                                                    . rawurlencode(
+                                                        (string) (
+                                                            $historyItem[
+                                                                'public_reference'
+                                                            ] ?? ''
+                                                        )
+                                                    )
+                                                    . '/retry'
+                                                ) ?>"
+                                                onsubmit="return window.confirm('ارسال فقط برای مقصدهای ناموفق یا باقی‌مانده دوباره تلاش شود؟');"
+                                            >
+                                                <input
+                                                    type="hidden"
+                                                    name="_token"
+                                                    value="<?= admin_h(
+                                                        $approvalCsrf
+                                                    ) ?>"
+                                                >
+
+                                                <button
+                                                    class="admin-button admin-button--soft admin-button--compact"
+                                                    type="submit"
+                                                >
+                                                    تلاش مجدد ارسال
+                                                </button>
+                                            </form>
                                         <?php endif; ?>
                                     </td>
                                 </tr>

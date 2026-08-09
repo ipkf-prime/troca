@@ -857,6 +857,112 @@ $router->post(
 );
 
 $router->post(
+    '/admin/communications/settings/approvals/{reference}/retry',
+    function (
+        $request,
+        $response
+    ) use ($adminGuard, $communicationAccess) {
+        $context = $adminGuard(
+            $response,
+            '/admin/communications/settings'
+        );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $reference = trim(
+            (string) $request->route('reference')
+        );
+
+        $path =
+            '/admin/communications/settings/'
+            . 'approvals/'
+            . rawurlencode($reference)
+            . '/retry';
+
+        if (!$communicationAccess(
+            $context,
+            'POST',
+            $path
+        )) {
+            return $response->redirect(
+                '/admin/dashboard?error=forbidden'
+            );
+        }
+
+        if (!(new \IPKF\Security\Csrf())->check(
+            (string) $request->input('_token', '')
+        )) {
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=approvals'
+                . '&status=invalid_csrf'
+                . '#approval-history'
+            );
+        }
+
+        try {
+            $result = (
+                new \App\Services\NotificationApprovalManagementService()
+            )->retry(
+                (int) $context['user_id'],
+                $reference
+            );
+
+            $workflowStatus = (string) (
+                $result['status_code']
+                ?? ''
+            );
+
+            $status = match ($workflowStatus) {
+                'dispatched' =>
+                    'notification_approval_retry_dispatched',
+
+                'partially_dispatched' =>
+                    'notification_approval_retry_partial',
+
+                'failed' =>
+                    'notification_approval_retry_failed',
+
+                default =>
+                    'notification_approval_operation_failed',
+            };
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=approvals'
+                . '&status='
+                . rawurlencode($status)
+                . '#approval-history'
+            );
+        } catch (\Throwable $exception) {
+            $code = trim(
+                $exception->getMessage()
+            );
+
+            $status = match ($code) {
+                'notification_approval_retry_forbidden',
+                'notification_approval_retry_not_available',
+                'notification_approval_request_not_found'
+                    => $code,
+
+                default =>
+                    'notification_approval_operation_failed',
+            };
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=approvals'
+                . '&status='
+                . rawurlencode($status)
+                . '#approval-history'
+            );
+        }
+    }
+);
+
+$router->post(
     '/admin/communications/settings/send',
     function (
         $request,

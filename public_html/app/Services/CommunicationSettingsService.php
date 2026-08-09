@@ -162,6 +162,13 @@ class CommunicationSettingsService extends BaseService
                             $userId,
                             'notifications.approvals.decide'
                         ),
+
+                'can_manage' =>
+                    $this->authorization
+                        ->hasPermission(
+                            $userId,
+                            'notifications.approvals.manage'
+                        ),
             ];
         }
 
