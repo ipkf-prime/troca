@@ -117,6 +117,7 @@ try {
         new \IPKF\Database\Migrations\HardenMinistryCanonicalGeographyApply(),
         new \IPKF\Database\Migrations\CreateAutomationCorrespondenceFoundationTables(),
         new \IPKF\Database\Migrations\CreateCorrespondenceDocumentTemplateTables(),
+        new \IPKF\Database\Migrations\CreateEnterpriseAutomationSecretariatFoundation(),
         new \IPKF\Database\Migrations\CreatePlatformCommercialFoundationTables(),
         new \IPKF\Database\Migrations\CreateApplicationMigrationHistoryTable(),
         new \IPKF\Database\Migrations\CreateApplicationModuleRegistryTable(),
