@@ -166,6 +166,16 @@ ob_start();
     color: #be123c;
 }
 
+.notification-card--approval {
+    border-inline-start: 4px solid #b7791f;
+}
+
+.notification-badge--approval {
+    background: #fff7e6;
+    border-color: #e5b45a;
+    color: #8a5a00;
+}
+
 .notification-empty {
     color: var(--admin-text-muted);
     padding: 1.5rem;
@@ -276,9 +286,18 @@ ob_start();
     <?php else: ?>
         <div class="notification-list">
             <?php foreach ($items as $item): ?>
+                <?php
+                $isApprovalRequest =
+                    (string) (
+                        $item['event_type'] ?? ''
+                    ) ===
+                    'notifications.approval.pending';
+                ?>
                 <article class="notification-card<?= empty(
                     $item['is_read']
-                ) ? ' is-unread' : '' ?>">
+                ) ? ' is-unread' : '' ?><?= $isApprovalRequest
+                    ? ' notification-card--approval'
+                    : '' ?>">
                     <header class="notification-card__head">
                         <strong>
                             <?= admin_h($item['title']) ?>
@@ -308,14 +327,24 @@ ob_start();
                                     }
                                 ) ?>
                             </span>
-                            <span class="notification-badge">
+                            <span class="notification-badge<?= $isApprovalRequest
+                                ? ' notification-badge--approval'
+                                : '' ?>">
                                 <?= admin_h(
-                                    match ($item['category_code']) {
-                                        'messages' => 'پیام داخلی',
-                                        'work' => 'مدیریت کار',
-                                        'system' => 'سامانه',
-                                        default => 'عمومی',
-                                    }
+                                    $isApprovalRequest
+                                        ? 'نیازمند تأیید'
+                                        : match (
+                                            $item['category_code']
+                                        ) {
+                                            'messages' =>
+                                                'پیام داخلی',
+                                            'work' =>
+                                                'مدیریت کار',
+                                            'system' =>
+                                                'سامانه',
+                                            default =>
+                                                'عمومی',
+                                        }
                                 ) ?>
                             </span>
                             <?php if (!empty($item['is_read'])): ?>
@@ -335,7 +364,9 @@ ob_start();
                                         $item['action_url']
                                     ) ?>"
                                 >
-                                    مشاهده
+                                    <?= $isApprovalRequest
+                                        ? 'بررسی درخواست'
+                                        : 'مشاهده' ?>
                                 </a>
                             <?php endif; ?>
 

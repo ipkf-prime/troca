@@ -575,12 +575,15 @@ class NotificationRepository extends BaseRepository
                 notifications.action_url,
                 notifications.priority_code,
                 notifications.category_code,
+                notification_events.event_type,
                 notifications.created_at,
                 recipients.seen_at,
                 recipients.read_at
             FROM notification_recipients AS recipients
             INNER JOIN notifications
               ON notifications.id = recipients.notification_id
+            LEFT JOIN notification_events
+              ON notification_events.id = notifications.event_id
             WHERE (
                 recipients.user_id = :user_id
                 OR recipients.user_reference = :user_reference

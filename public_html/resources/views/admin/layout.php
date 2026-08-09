@@ -332,6 +332,25 @@ $accountNav = $themeUserId !== null
             display: none;
         }
 
+        .admin-topbar-notification--approval {
+            gap: .35rem;
+            padding-inline: .65rem;
+        }
+
+        .admin-topbar-notification--approval
+            > span:not(.admin-icon):not(.admin-bell-icon) {
+            display: inline;
+            font-size: .7rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .admin-topbar-notification--approval.has-badge {
+            background: #fff7e6;
+            border-color: #d79a2b;
+            color: #8a5a00;
+        }
+
         .admin-topbar-notification .admin-icon,
         .admin-topbar-notification .admin-bell-icon {
             height: 1.15rem;
@@ -763,6 +782,11 @@ $accountNav = $themeUserId !== null
                                 admin-topbar-notification<?=
                                     ($topbarItem['badge'] ?? '') !== ''
                                         ? ' has-badge'
+                                        : ''
+                                ?><?=
+                                    ($topbarItem['key'] ?? '') ===
+                                        'notification-approval-topbar'
+                                        ? ' admin-topbar-notification--approval'
                                         : ''
                                 ?>"
                             href="<?= admin_h(
