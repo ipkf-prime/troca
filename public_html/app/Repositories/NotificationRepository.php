@@ -388,6 +388,7 @@ class NotificationRepository extends BaseRepository
                     $isInApp = $channel === 'in_app';
                     $delivery = $db->prepare("
                         INSERT INTO notification_deliveries (
+                            public_reference,
                             recipient_id,
                             channel_code,
                             status_code,
@@ -400,7 +401,7 @@ class NotificationRepository extends BaseRepository
                             updated_at
                         )
                         VALUES (
-                            ?, ?, ?,
+                            ?, ?, ?, ?,
                             CURRENT_TIMESTAMP,
                             ?,
                             8,
@@ -416,6 +417,7 @@ class NotificationRepository extends BaseRepository
                         ? gmdate('Y-m-d H:i:s')
                         : null;
                     $delivery->execute([
+                        'ndl_' . bin2hex(random_bytes(12)),
                         $recipientId,
                         $channel,
                         $isInApp ? 'delivered' : 'pending',
