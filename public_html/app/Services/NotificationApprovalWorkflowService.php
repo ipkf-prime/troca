@@ -18,7 +18,8 @@ class NotificationApprovalWorkflowService extends BaseService
     public function __construct(
         private ?NotificationApprovalRepository $repository = null,
         private ?NotificationApprovalStateMachine $stateMachine = null,
-        private ?AuthorizationService $authorization = null
+        private ?AuthorizationService $authorization = null,
+        private ?NotificationApprovalAlertService $alerts = null
     ) {
         $this->repository ??=
             new NotificationApprovalRepository();
@@ -28,6 +29,9 @@ class NotificationApprovalWorkflowService extends BaseService
 
         $this->authorization ??=
             new AuthorizationService();
+
+        $this->alerts ??=
+            new NotificationApprovalAlertService();
     }
 
     public function submit(
@@ -465,6 +469,15 @@ class NotificationApprovalWorkflowService extends BaseService
                             ]),
                     ]
                 );
+
+        $this->alerts->notifyPending(
+            $requesterUserId,
+            $request,
+            [
+                'subject' => $subject,
+                'channels' => $channels,
+            ]
+        );
 
         return array_merge(
             $request,

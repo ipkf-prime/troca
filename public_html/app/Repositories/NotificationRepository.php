@@ -241,6 +241,52 @@ class NotificationRepository extends BaseRepository
         $db->beginTransaction();
 
         try {
+            /*
+             * notification_approval_pending_event_guard
+             *
+             * Approval alerts remain actionable only while the
+             * source approval request is still pending.
+             * Locking the request row closes the race between
+             * materialization and a manager decision.
+             */
+            if (
+                (string) ($event['event_type'] ?? '')
+                    === 'notifications.approval.pending'
+            ) {
+                $sourceReference = trim(
+                    (string) (
+                        $event['source_entity_reference']
+                        ?? ''
+                    )
+                );
+
+                $approval = $db->prepare("
+                    SELECT status_code
+                    FROM notification_approval_requests
+                    WHERE public_reference = ?
+                    LIMIT 1
+                    FOR UPDATE
+                ");
+
+                $approval->execute([
+                    $sourceReference,
+                ]);
+
+                $approvalStatus =
+                    $approval->fetchColumn();
+
+                if ($approvalStatus !== 'pending') {
+                    $db->commit();
+
+                    return [
+                        'notification_id' => 0,
+                        'notification_reference' => '',
+                        'recipient_count' => 0,
+                        'skipped' => true,
+                    ];
+                }
+            }
+
             $existing = $db->prepare("
                 SELECT id, public_reference
                 FROM notifications

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Repositories\NotificationApprovalRepository;
 use Throwable;
 
 class NavigationBadgeResolverService extends BaseService
@@ -14,6 +15,12 @@ class NavigationBadgeResolverService extends BaseService
                     (new InternalMessageService())->unreadCount($userId),
                 'notifications_unread_count' =>
                     (new NotificationInboxService())->unreadCount($userId),
+                'notification_approval_pending_count' =>
+                    (int) (
+                        (new NotificationApprovalRepository())
+                            ->approvalSummary()['pending']
+                        ?? 0
+                    ),
                 'communications_unread_total' =>
                     (new InternalMessageService())->unreadCount($userId)
                     + (new NotificationInboxService())->unreadCount($userId),

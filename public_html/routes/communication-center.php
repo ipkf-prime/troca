@@ -498,6 +498,25 @@ $router->get(
             )
         );
 
+        $approvalReference = trim(
+            (string) $request->input(
+                'approval_reference',
+                ''
+            )
+        );
+
+        if (
+            $section === 'approvals'
+            && $approvalReference !== ''
+        ) {
+            (
+                new \App\Services\NotificationApprovalAlertService()
+            )->markViewed(
+                (int) $context['user_id'],
+                $approvalReference
+            );
+        }
+
         $targetsReference = trim(
             (string) $request->input(
                 'targets_reference',

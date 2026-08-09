@@ -76,6 +76,21 @@ class NotificationOutboxProcessorService extends BaseService
                         $this->channels($payload)
                     );
 
+                if (!empty($result['skipped'])) {
+                    /*
+                     * notification_approval_stale_event_skipped
+                     *
+                     * The approval request was already resolved.
+                     * Complete the outbox without materializing
+                     * an obsolete user notification.
+                     */
+                    $this->notifications->completeOutbox(
+                        (int) $outbox['id']
+                    );
+                    $processed++;
+                    continue;
+                }
+
                 if (($result['recipient_count'] ?? 0) < 1) {
                     throw new RuntimeException(
                         'notification_recipient_missing'

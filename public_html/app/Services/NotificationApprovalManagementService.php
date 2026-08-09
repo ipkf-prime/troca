@@ -21,7 +21,8 @@ class NotificationApprovalManagementService extends BaseService
         private ?NotificationApprovalRepository $repository = null,
         private ?NotificationApprovalStateMachine $stateMachine = null,
         private ?AuthorizationService $authorization = null,
-        private ?NotificationApprovalDispatchService $dispatch = null
+        private ?NotificationApprovalDispatchService $dispatch = null,
+        private ?NotificationApprovalAlertService $alerts = null
     ) {
         $this->repository ??=
             new NotificationApprovalRepository();
@@ -38,6 +39,9 @@ class NotificationApprovalManagementService extends BaseService
                 $this->stateMachine,
                 $this->authorization
             );
+
+        $this->alerts ??=
+            new NotificationApprovalAlertService();
     }
 
     public function queue(
@@ -406,6 +410,10 @@ class NotificationApprovalManagementService extends BaseService
             $reason
         );
 
+        $this->alerts->resolve(
+            $publicReference
+        );
+
         $dispatch = $this->dispatch->dispatch(
             $actorUserId,
             $publicReference
@@ -451,13 +459,19 @@ class NotificationApprovalManagementService extends BaseService
             );
         }
 
-        return $this->decide(
+        $decision = $this->decide(
             $actorUserId,
             $publicReference,
             'reject',
             NotificationApprovalStateMachine::REJECTED,
             $reason
         );
+
+        $this->alerts->resolve(
+            $publicReference
+        );
+
+        return $decision;
     }
 
     private function decide(
