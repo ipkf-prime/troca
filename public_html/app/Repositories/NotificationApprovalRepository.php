@@ -494,6 +494,7 @@ class NotificationApprovalRepository extends BaseRepository
                     d.actor_user_id,
                     d.decision_code,
                     d.reason AS decision_reason,
+                    d.actor_snapshot_json,
                     d.decided_at,
 
                     COALESCE(
@@ -1069,6 +1070,189 @@ class NotificationApprovalRepository extends BaseRepository
         return is_array($row)
             ? $row
             : null;
+    }
+
+    public function actorAssignmentSnapshot(
+        int $actorUserId,
+        int $assignmentId
+    ): ?array {
+        if (
+            $actorUserId < 1
+            || $assignmentId < 1
+        ) {
+            return null;
+        }
+
+        $statement =
+            $this->connection()->prepare("
+                SELECT
+                    ura.id AS assignment_id,
+                    ura.user_id,
+                    ura.role_id,
+
+                    r.code AS role_code,
+                    r.title AS role_title,
+
+                    ura.scope_type,
+                    ura.scope_id,
+                    ura.organization_id,
+                    ura.include_children,
+                    ura.province_id,
+                    ura.city_id,
+                    ura.county_id,
+                    ura.district_id,
+                    ura.village_id,
+                    ura.company_id,
+                    ura.center_id,
+                    ura.warehouse_id,
+                    ura.fiscal_year_id,
+
+                    ura.starts_at,
+                    ura.ends_at,
+                    ura.is_active
+
+                FROM user_role_assignments ura
+
+                INNER JOIN roles r
+                    ON r.id = ura.role_id
+
+                WHERE ura.id = ?
+                  AND ura.user_id = ?
+
+                LIMIT 1
+            ");
+
+        $statement->execute([
+            $assignmentId,
+            $actorUserId,
+        ]);
+
+        $row = $statement->fetch(
+            PDO::FETCH_ASSOC
+        );
+
+        if (!is_array($row)) {
+            return null;
+        }
+
+        return [
+            'assignment_id' =>
+                (int) (
+                    $row[
+                        'assignment_id'
+                    ] ?? 0
+                ),
+
+            'user_id' =>
+                (int) (
+                    $row[
+                        'user_id'
+                    ] ?? 0
+                ),
+
+            'role_id' =>
+                (int) (
+                    $row[
+                        'role_id'
+                    ] ?? 0
+                ),
+
+            'role_code' =>
+                (string) (
+                    $row[
+                        'role_code'
+                    ] ?? ''
+                ),
+
+            'role_title' =>
+                (string) (
+                    $row[
+                        'role_title'
+                    ] ?? ''
+                ),
+
+            'scope_type' =>
+                (string) (
+                    $row[
+                        'scope_type'
+                    ] ?? ''
+                ),
+
+            'scope_id' =>
+                $row['scope_id'] !== null
+                    ? (int) $row['scope_id']
+                    : null,
+
+            'organization_id' =>
+                $row['organization_id'] !== null
+                    ? (int) $row['organization_id']
+                    : null,
+
+            'include_children' =>
+                (bool) (
+                    $row[
+                        'include_children'
+                    ] ?? false
+                ),
+
+            'province_id' =>
+                $row['province_id'] !== null
+                    ? (int) $row['province_id']
+                    : null,
+
+            'city_id' =>
+                $row['city_id'] !== null
+                    ? (int) $row['city_id']
+                    : null,
+
+            'county_id' =>
+                $row['county_id'] !== null
+                    ? (int) $row['county_id']
+                    : null,
+
+            'district_id' =>
+                $row['district_id'] !== null
+                    ? (int) $row['district_id']
+                    : null,
+
+            'village_id' =>
+                $row['village_id'] !== null
+                    ? (int) $row['village_id']
+                    : null,
+
+            'company_id' =>
+                $row['company_id'] !== null
+                    ? (int) $row['company_id']
+                    : null,
+
+            'center_id' =>
+                $row['center_id'] !== null
+                    ? (int) $row['center_id']
+                    : null,
+
+            'warehouse_id' =>
+                $row['warehouse_id'] !== null
+                    ? (int) $row['warehouse_id']
+                    : null,
+
+            'fiscal_year_id' =>
+                $row['fiscal_year_id'] !== null
+                    ? (int) $row['fiscal_year_id']
+                    : null,
+
+            'starts_at' =>
+                $row['starts_at'],
+
+            'ends_at' =>
+                $row['ends_at'],
+
+            'is_active' =>
+                (bool) (
+                    $row[
+                        'is_active'
+                    ] ?? false
+                ),
+        ];
     }
 
     public function recordDecision(

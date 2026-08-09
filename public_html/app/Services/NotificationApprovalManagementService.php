@@ -7,6 +7,7 @@ use InvalidArgumentException;
 use JsonException;
 use RuntimeException;
 use IPKF\Support\PersianDate;
+use IPKF\Support\Session;
 use Throwable;
 
 class NotificationApprovalManagementService extends BaseService
@@ -225,8 +226,64 @@ class NotificationApprovalManagementService extends BaseService
                 ]
                 ?? $this->emptyTargetSummary();
 
+            $actorAudit =
+                $this->decodeActorSnapshot(
+                    $item[
+                        'actor_snapshot_json'
+                    ] ?? null
+                );
+
+            $item['actor_assignment_id'] =
+                (int) (
+                    $actorAudit[
+                        'assignment_id'
+                    ] ?? 0
+                );
+
+            $item['actor_role_code'] =
+                trim(
+                    (string) (
+                        $actorAudit[
+                            'role'
+                        ]['code']
+                        ?? ''
+                    )
+                );
+
+            $item['actor_role_title'] =
+                trim(
+                    (string) (
+                        $actorAudit[
+                            'role'
+                        ]['title']
+                        ?? ''
+                    )
+                );
+
+            $actorScope = is_array(
+                $actorAudit['scope']
+                ?? null
+            )
+                ? $actorAudit['scope']
+                : [];
+
+            $item['actor_scope_type'] =
+                trim(
+                    (string) (
+                        $actorScope[
+                            'type'
+                        ] ?? ''
+                    )
+                );
+
+            $item['actor_scope_label'] =
+                $this->actorScopeLabel(
+                    $actorScope
+                );
+
             unset(
-                $item['channels_json']
+                $item['channels_json'],
+                $item['actor_snapshot_json']
             );
         }
         unset($item);
@@ -604,11 +661,26 @@ class NotificationApprovalManagementService extends BaseService
             );
         }
 
+        $activeAssignmentId =
+            (int) (
+                Session::get(
+                    'active_role_assignment_id'
+                )
+                ?? 0
+            );
+
+        if ($activeAssignmentId < 1) {
+            throw new RuntimeException(
+                'notification_approval_actor_assignment_invalid'
+            );
+        }
+
         return $this->repository->transaction(
             function (
                 NotificationApprovalRepository $repository
             ) use (
                 $actorUserId,
+                $activeAssignmentId,
                 $publicReference,
                 $decisionCode,
                 $toStatus,
@@ -677,6 +749,31 @@ class NotificationApprovalManagementService extends BaseService
                     );
                 }
 
+                $assignment =
+                    $repository
+                        ->actorAssignmentSnapshot(
+                            $actorUserId,
+                            $activeAssignmentId
+                        );
+
+                if (
+                    !is_array($assignment)
+                    || (
+                        $assignment[
+                            'assignment_id'
+                        ] ?? 0
+                    ) !== $activeAssignmentId
+                    || (
+                        $assignment[
+                            'user_id'
+                        ] ?? 0
+                    ) !== $actorUserId
+                ) {
+                    throw new RuntimeException(
+                        'notification_approval_actor_assignment_invalid'
+                    );
+                }
+
                 return $repository->recordDecision(
                     $request,
                     $step,
@@ -688,8 +785,126 @@ class NotificationApprovalManagementService extends BaseService
                     [
                         'user_id' =>
                             $actorUserId,
+
+                        'assignment_id' =>
+                            $activeAssignmentId,
+
+                        'role' => [
+                            'id' =>
+                                (int) (
+                                    $assignment[
+                                        'role_id'
+                                    ] ?? 0
+                                ),
+
+                            'code' =>
+                                (string) (
+                                    $assignment[
+                                        'role_code'
+                                    ] ?? ''
+                                ),
+
+                            'title' =>
+                                (string) (
+                                    $assignment[
+                                        'role_title'
+                                    ] ?? ''
+                                ),
+                        ],
+
+                        'scope' => [
+                            'type' =>
+                                (string) (
+                                    $assignment[
+                                        'scope_type'
+                                    ] ?? ''
+                                ),
+
+                            'id' =>
+                                $assignment[
+                                    'scope_id'
+                                ] ?? null,
+
+                            'organization_id' =>
+                                $assignment[
+                                    'organization_id'
+                                ] ?? null,
+
+                            'include_children' =>
+                                !empty(
+                                    $assignment[
+                                        'include_children'
+                                    ]
+                                ),
+
+                            'province_id' =>
+                                $assignment[
+                                    'province_id'
+                                ] ?? null,
+
+                            'city_id' =>
+                                $assignment[
+                                    'city_id'
+                                ] ?? null,
+
+                            'county_id' =>
+                                $assignment[
+                                    'county_id'
+                                ] ?? null,
+
+                            'district_id' =>
+                                $assignment[
+                                    'district_id'
+                                ] ?? null,
+
+                            'village_id' =>
+                                $assignment[
+                                    'village_id'
+                                ] ?? null,
+
+                            'company_id' =>
+                                $assignment[
+                                    'company_id'
+                                ] ?? null,
+
+                            'center_id' =>
+                                $assignment[
+                                    'center_id'
+                                ] ?? null,
+
+                            'warehouse_id' =>
+                                $assignment[
+                                    'warehouse_id'
+                                ] ?? null,
+
+                            'fiscal_year_id' =>
+                                $assignment[
+                                    'fiscal_year_id'
+                                ] ?? null,
+                        ],
+
+                        'assignment_state' => [
+                            'is_active' =>
+                                !empty(
+                                    $assignment[
+                                        'is_active'
+                                    ]
+                                ),
+
+                            'starts_at' =>
+                                $assignment[
+                                    'starts_at'
+                                ] ?? null,
+
+                            'ends_at' =>
+                                $assignment[
+                                    'ends_at'
+                                ] ?? null,
+                        ],
+
                         'permission_code' =>
                             $permissionCode,
+
                         'decision_code' =>
                             $decisionCode,
                     ],
@@ -1098,6 +1313,80 @@ class NotificationApprovalManagementService extends BaseService
                 $requestId
             )
         );
+    }
+
+    private function decodeActorSnapshot(
+        mixed $value
+    ): array {
+        if (!is_string($value)) {
+            return [];
+        }
+
+        $value = trim($value);
+
+        if ($value === '') {
+            return [];
+        }
+
+        try {
+            $snapshot = json_decode(
+                $value,
+                true,
+                512,
+                JSON_THROW_ON_ERROR
+            );
+        } catch (JsonException) {
+            return [];
+        }
+
+        return is_array($snapshot)
+            ? $snapshot
+            : [];
+    }
+
+    private function actorScopeLabel(
+        array $scope
+    ): string {
+        $type = strtolower(trim(
+            (string) (
+                $scope['type'] ?? ''
+            )
+        ));
+
+        return match ($type) {
+            'global' =>
+                'سراسری',
+
+            'organization' =>
+                'سازمان',
+
+            'province' =>
+                'استان',
+
+            'county' =>
+                'شهرستان',
+
+            'city' =>
+                'شهر',
+
+            'district' =>
+                'بخش',
+
+            'village' =>
+                'روستا',
+
+            'company' =>
+                'شرکت',
+
+            'center' =>
+                'مرکز',
+
+            'warehouse' =>
+                'انبار',
+
+            default =>
+                $type,
+        };
     }
 
     private function decodeChannels(

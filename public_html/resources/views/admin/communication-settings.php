@@ -3843,6 +3843,65 @@ require BASE_PATH
                                                 ] ?? 'کاربر'
                                             ) ?>
                                         </strong>
+
+                                        <?php if (
+                                            trim(
+                                                (string) (
+                                                    $historyItem[
+                                                        'actor_role_title'
+                                                    ] ?? ''
+                                                )
+                                            ) !== ''
+                                        ): ?>
+                                            <small>
+                                                نقش هنگام تصمیم:
+                                                <?= admin_h(
+                                                    $historyItem[
+                                                        'actor_role_title'
+                                                    ]
+                                                ) ?>
+                                            </small>
+                                        <?php endif; ?>
+
+                                        <?php if (
+                                            (int) (
+                                                $historyItem[
+                                                    'actor_assignment_id'
+                                                ] ?? 0
+                                            ) > 0
+                                        ): ?>
+                                            <small>
+                                                تخصیص نقش:
+                                                <?= admin_h(
+                                                    \App\Support\AdminFormat::digits(
+                                                        (int) (
+                                                            $historyItem[
+                                                                'actor_assignment_id'
+                                                            ]
+                                                        )
+                                                    )
+                                                ) ?>
+                                            </small>
+                                        <?php endif; ?>
+
+                                        <?php if (
+                                            trim(
+                                                (string) (
+                                                    $historyItem[
+                                                        'actor_scope_label'
+                                                    ] ?? ''
+                                                )
+                                            ) !== ''
+                                        ): ?>
+                                            <small>
+                                                دامنه:
+                                                <?= admin_h(
+                                                    $historyItem[
+                                                        'actor_scope_label'
+                                                    ]
+                                                ) ?>
+                                            </small>
+                                        <?php endif; ?>
                                     </td>
 
                                     <td>
