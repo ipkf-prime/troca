@@ -332,35 +332,27 @@ $accountNav = $themeUserId !== null
             display: none;
         }
 
-        .admin-topbar-notification--labeled {
-            gap: .35rem;
-            padding-inline: .65rem;
-        }
-
-        .admin-topbar-notification--labeled
-            > span:not(.admin-icon):not(.admin-bell-icon) {
-            display: inline;
-            font-size: .7rem;
-            font-weight: 800;
-            white-space: nowrap;
-        }
-
-        .admin-topbar-notification--approval.has-badge {
-            background: #fff7e6;
-            border-color: #d79a2b;
-            color: #8a5a00;
-        }
-
         .admin-topbar-notification .admin-icon,
         .admin-topbar-notification .admin-bell-icon {
             height: 1.15rem;
             width: 1.15rem;
         }
 
+        .admin-topbar-notification:not(.has-badge) {
+            background: var(--admin-surface);
+            color: var(--admin-text-muted);
+        }
+
         .admin-topbar-notification.has-badge {
             background: var(--admin-primary-soft);
             border-color: var(--admin-primary);
             color: var(--admin-primary);
+        }
+
+        .admin-topbar-notification--approval.has-badge {
+            background: #fff7e6;
+            border-color: #d79a2b;
+            color: #8a5a00;
         }
 
         .admin-topbar-notification b {
@@ -782,21 +774,6 @@ $accountNav = $themeUserId !== null
                                 admin-topbar-notification<?=
                                     ($topbarItem['badge'] ?? '') !== ''
                                         ? ' has-badge'
-                                        : ''
-                                ?><?=
-                                    in_array(
-                                        (string) (
-                                            $topbarItem['key']
-                                            ?? ''
-                                        ),
-                                        [
-                                            'messages-unread-alert',
-                                            'notifications-unread-alert',
-                                            'notification-approval-topbar',
-                                        ],
-                                        true
-                                    )
-                                        ? ' admin-topbar-notification--labeled'
                                         : ''
                                 ?><?=
                                     ($topbarItem['key'] ?? '') ===
