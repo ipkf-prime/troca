@@ -4269,6 +4269,59 @@ body.provider-test-dialog-open {
 
 
 
+
+/* notification-approval-message-toggle-ui-v062 */
+.notification-approval-message-toggle {
+    align-items: center;
+    background: var(--admin-surface-muted);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    color: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    font-size: .78rem;
+    font-weight: 750;
+    gap: .3rem;
+    line-height: 1.4;
+    list-style: none;
+    padding: .3rem .55rem;
+    transition:
+        border-color .15s ease,
+        background-color .15s ease;
+    width: max-content;
+}
+
+.notification-approval-message-toggle::-webkit-details-marker {
+    display: none;
+}
+
+.notification-approval-message-toggle::before {
+    content: "◀";
+    font-size: .68rem;
+    line-height: 1;
+    transition: transform .15s ease;
+}
+
+details[open] > .notification-approval-message-toggle::before {
+    transform: rotate(-90deg);
+}
+
+.notification-approval-message-toggle:hover {
+    border-color: var(--admin-primary);
+}
+
+.notification-approval-message-toggle:focus-visible {
+    border-color: var(--admin-primary);
+    box-shadow:
+        0 0 0 3px
+        color-mix(
+            in srgb,
+            var(--admin-primary) 14%,
+            transparent
+        );
+    outline: 0;
+}
+
 /* notification-approval-target-dialog-ui-v062 */
 .notification-approval-target-summary {
     align-items: flex-start;

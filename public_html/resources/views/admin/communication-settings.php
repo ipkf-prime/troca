@@ -3267,9 +3267,7 @@ require BASE_PATH
                                         <?php endif; ?>
 
                                         <details>
-                                            <summary>
-                                                مشاهده متن اعلان
-                                            </summary>
+                                            <summary class="notification-approval-message-toggle">مشاهده متن اعلان</summary>
 
                                             <p>
                                                 <?= nl2br(
@@ -3367,17 +3365,6 @@ require BASE_PATH
                                     </td>
 
                                     <td>
-                                        <div>
-                                            گیرنده:
-                                            <strong>
-                                                <?= admin_h(
-                                                    \App\Support\AdminFormat::digits(
-                                                        $approvalTargetCount
-                                                    )
-                                                ) ?>
-                                            </strong>
-                                        </div>
-
                                         <div>
                                             پیوست:
                                             <strong>
@@ -3853,9 +3840,7 @@ require BASE_PATH
                                             $historyBody !== ''
                                         ): ?>
                                             <details>
-                                                <summary>
-                                                    مشاهده متن اعلان
-                                                </summary>
+                                                <summary class="notification-approval-message-toggle">مشاهده متن اعلان</summary>
                                                 <p>
                                                     <?= nl2br(
                                                         admin_h(
@@ -3966,13 +3951,7 @@ require BASE_PATH
                                         </div>
 
                                         <small>
-                                            گیرنده:
-                                            <?= admin_h(
-                                                \App\Support\AdminFormat::digits(
-                                                    $historyTargetCount
-                                                )
-                                            ) ?>
-                                            · پیوست:
+                                            پیوست:
                                             <?= admin_h(
                                                 \App\Support\AdminFormat::digits(
                                                     (int) (
