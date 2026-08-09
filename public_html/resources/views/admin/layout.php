@@ -332,12 +332,12 @@ $accountNav = $themeUserId !== null
             display: none;
         }
 
-        .admin-topbar-notification--approval {
+        .admin-topbar-notification--labeled {
             gap: .35rem;
             padding-inline: .65rem;
         }
 
-        .admin-topbar-notification--approval
+        .admin-topbar-notification--labeled
             > span:not(.admin-icon):not(.admin-bell-icon) {
             display: inline;
             font-size: .7rem;
@@ -782,6 +782,21 @@ $accountNav = $themeUserId !== null
                                 admin-topbar-notification<?=
                                     ($topbarItem['badge'] ?? '') !== ''
                                         ? ' has-badge'
+                                        : ''
+                                ?><?=
+                                    in_array(
+                                        (string) (
+                                            $topbarItem['key']
+                                            ?? ''
+                                        ),
+                                        [
+                                            'messages-unread-alert',
+                                            'notifications-unread-alert',
+                                            'notification-approval-topbar',
+                                        ],
+                                        true
+                                    )
+                                        ? ' admin-topbar-notification--labeled'
                                         : ''
                                 ?><?=
                                     ($topbarItem['key'] ?? '') ===

@@ -145,6 +145,7 @@ try {
         new \IPKF\Database\Migrations\EnableNotificationApprovalManagement(),
         new \IPKF\Database\Migrations\EnableNotificationApprovalAlerts(),
         new \IPKF\Database\Migrations\ExposeNotificationApprovalTopbar(),
+        new \IPKF\Database\Migrations\SplitCommunicationTopbarIndicators(),
     ]);
 
     $manager->migrate();
