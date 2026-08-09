@@ -2704,6 +2704,279 @@ $router->post('/admin/work/projects/{public_reference}/members/{member_id}/remov
     );
 });
 
+
+$secretariatManagementRender = function (
+    $response,
+    array $context,
+    array $errors = [],
+    string $activeSection = 'desk',
+    array $formInput = [],
+    string $status = '',
+    int $httpStatus = 200
+) use ($adminRender) {
+    $page =
+        (new \App\Services\Automation\Correspondence\SecretariatManagementService())
+            ->page(
+                (int) $context['user_id']
+            );
+
+    return $adminRender(
+        $response,
+        'automation-secretariat-management',
+        [
+            'title' => 'مدیریت دبیرخانه و دفاتر ثبت',
+            'context' => $context,
+            'page' => $page,
+            'errors' => $errors,
+            'activeSection' => $activeSection,
+            'formInput' => $formInput,
+            'status' => $status,
+        ],
+        $httpStatus
+    );
+};
+
+$secretariatManagementCreate = function (
+    $request,
+    $response,
+    array $context,
+    string $method,
+    string $section,
+    string $successStatus
+) use (
+    $secretariatManagementRender,
+    $automationUnavailable
+) {
+    if (!(new \IPKF\Security\Csrf())->check(
+        (string) $request->input('_token', '')
+    )) {
+        return $response->redirect(
+            '/admin/automation/secretariat?section='
+            . rawurlencode($section)
+            . '&status=invalid_csrf'
+        );
+    }
+
+    try {
+        $service =
+            new \App\Services\Automation\Correspondence\SecretariatManagementService();
+
+        $result =
+            $service->{$method}(
+                $request->all(),
+                (int) $context['user_id']
+            );
+
+        if (($result['ok'] ?? false) === true) {
+            return $response->redirect(
+                '/admin/automation/secretariat?section='
+                . rawurlencode($section)
+                . '&status='
+                . rawurlencode($successStatus)
+            );
+        }
+
+        return $secretariatManagementRender(
+            $response,
+            $context,
+            is_array($result['errors'] ?? null)
+                ? $result['errors']
+                : ['invalid' => 'اطلاعات واردشده معتبر نیست.'],
+            $section,
+            $request->all(),
+            '',
+            422
+        );
+
+    } catch (\Throwable) {
+        return $automationUnavailable(
+            $response,
+            $context
+        );
+    }
+};
+
+$router->get(
+    '/admin/automation/secretariat',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $secretariatManagementRender,
+        $automationUnavailable
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/secretariat'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        try {
+            $section =
+                (string) $request->input(
+                    'section',
+                    'desk'
+                );
+
+            if (!in_array(
+                $section,
+                [
+                    'desk',
+                    'period',
+                    'sequence',
+                    'book',
+                ],
+                true
+            )) {
+                $section = 'desk';
+            }
+
+            return $secretariatManagementRender(
+                $response,
+                $context,
+                [],
+                $section,
+                [],
+                (string) $request->input(
+                    'status',
+                    ''
+                )
+            );
+
+        } catch (\Throwable) {
+            return $automationUnavailable(
+                $response,
+                $context
+            );
+        }
+    }
+);
+
+$router->post(
+    '/admin/automation/secretariat/desks',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $secretariatManagementCreate
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/secretariat/desks'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        return $secretariatManagementCreate(
+            $request,
+            $response,
+            $context,
+            'createDesk',
+            'desk',
+            'desk_saved'
+        );
+    }
+);
+
+$router->post(
+    '/admin/automation/secretariat/periods',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $secretariatManagementCreate
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/secretariat/periods'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        return $secretariatManagementCreate(
+            $request,
+            $response,
+            $context,
+            'createPeriod',
+            'period',
+            'period_saved'
+        );
+    }
+);
+
+$router->post(
+    '/admin/automation/secretariat/sequences',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $secretariatManagementCreate
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/secretariat/sequences'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        return $secretariatManagementCreate(
+            $request,
+            $response,
+            $context,
+            'createSequence',
+            'sequence',
+            'sequence_saved'
+        );
+    }
+);
+
+$router->post(
+    '/admin/automation/secretariat/books',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $secretariatManagementCreate
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/secretariat/books'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        return $secretariatManagementCreate(
+            $request,
+            $response,
+            $context,
+            'createBook',
+            'book',
+            'book_saved'
+        );
+    }
+);
+
 $router->get('/admin/automation/correspondences', function ($request, $response) use ($adminRender, $adminGuard, $automationUnavailable) {
     $context = $adminGuard($response, '/admin/automation/correspondences');
 

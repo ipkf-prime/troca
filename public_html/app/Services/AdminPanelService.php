@@ -92,6 +92,7 @@ class AdminPanelService extends BaseService
             ['key' => 'automation-correspondences', 'title' => $this->fa('&#x0645;&#x06A9;&#x0627;&#x062A;&#x0628;&#x0627;&#x062A;'), 'url' => '/admin/automation/correspondences', 'icon' => 'file-lines', 'permission' => 'automation.correspondence.view', 'active_paths' => ['/admin/automation/correspondences']],
             ['key' => 'automation-create', 'title' => $this->fa('&#x0627;&#x06CC;&#x062C;&#x0627;&#x062F; &#x067E;&#x06CC;&#x0634;&#x200C;&#x0646;&#x0648;&#x06CC;&#x0633;'), 'url' => '/admin/automation/correspondences/create', 'icon' => 'circle-check', 'permission' => 'automation.correspondence.create', 'active_paths' => ['/admin/automation/correspondences/create']],
             ['key' => 'automation-templates', 'title' => $this->fa('&#x0642;&#x0627;&#x0644;&#x0628;&#x200C;&#x0647;&#x0627;&#x06CC; &#x0645;&#x06A9;&#x0627;&#x062A;&#x0628;&#x0647;'), 'url' => '/admin/automation/templates', 'icon' => 'palette', 'permission' => 'automation.correspondence.view', 'active_paths' => ['/admin/automation/templates']],
+            ['key' => 'automation-secretariat', 'title' => 'دبیرخانه و دفاتر ثبت', 'url' => '/admin/automation/secretariat', 'icon' => 'organization', 'permission' => 'automation.registry.manage', 'active_paths' => ['/admin/automation/secretariat', '/admin/automation/secretariat/*']],
         ];
 
         return array_values(array_filter($items, fn (array $item): bool => $this->navigation->can($userId, (string) $item['permission'])));
