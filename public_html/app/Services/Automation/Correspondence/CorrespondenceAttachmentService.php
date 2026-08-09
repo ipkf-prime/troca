@@ -13,15 +13,22 @@ class CorrespondenceAttachmentService
 
     public function __construct(
         private ?CorrespondenceRepository $correspondences = null,
-        private ?CorrespondenceAttachmentRepository $attachments = null
+        private ?CorrespondenceAttachmentRepository $attachments = null,
+        private ?EnterpriseAutomationContextService $enterpriseContext = null
     ) {
         $this->correspondences ??= new CorrespondenceRepository();
         $this->attachments ??= new CorrespondenceAttachmentRepository();
+        $this->enterpriseContext ??= new EnterpriseAutomationContextService();
     }
 
     public function upload(string $correspondenceReference, array $upload, string $role, ?string $title, int $userId): array
     {
-        $correspondence = $this->correspondences->findByPublicReference($correspondenceReference);
+        $actor = $this->enterpriseContext->forUser($userId);
+
+        $correspondence = $this->correspondences->findByPublicReferenceScoped(
+            $correspondenceReference,
+            $actor['repository_scope']
+        );
         if ($correspondence === null || ($correspondence['status_code'] ?? '') !== 'draft' || ($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) return ['ok' => false, 'error' => 'invalid_upload'];
         $tmp = (string) ($upload['tmp_name'] ?? '');
         $size = (int) ($upload['size'] ?? 0);
@@ -51,7 +58,13 @@ class CorrespondenceAttachmentService
                 'mime_type' => $mime,
                 'size_bytes' => $size,
                 'sha256_checksum' => hash_file('sha256', $path),
-            ], $role, $this->text($title, 255), $userId, Clock::databaseTimestamp());
+            ],
+            $role,
+            $this->text($title, 255),
+            $userId,
+            Clock::databaseTimestamp(),
+            $actor
+        );
         } catch (\Throwable $exception) {
             @unlink($path);
             throw $exception;

@@ -20,7 +20,8 @@ class CorrespondenceQueryService
         private ?CoreReferenceOptions $coreReferences = null,
         private ?CorrespondenceViewModelBuilder $viewModels = null,
         private ?CorrespondenceRelationRepository $relations = null,
-        private ?CorrespondenceAttachmentRepository $attachments = null
+        private ?CorrespondenceAttachmentRepository $attachments = null,
+        private ?EnterpriseAutomationContextService $enterpriseContext = null
     ) {
         $runtime = new AutomationOperationalRuntime();
         $this->correspondences ??= new CorrespondenceRepository($runtime);
@@ -33,93 +34,354 @@ class CorrespondenceQueryService
         $this->viewModels ??= new CorrespondenceViewModelBuilder($this->lookups);
         $this->relations ??= new CorrespondenceRelationRepository($runtime);
         $this->attachments ??= new CorrespondenceAttachmentRepository($runtime);
+        $this->enterpriseContext ??= new EnterpriseAutomationContextService();
     }
 
-    public function dashboard(): array
-    {
+    public function dashboard(
+        int $userId
+    ): array {
         try {
-            return ['ok' => true, 'counts' => $this->correspondences->dashboardCounts()];
-        } catch (Throwable) {
-            return ['ok' => false, 'counts' => []];
-        }
-    }
-
-    public function index(array $params): array
-    {
-        $filters = $this->filters($params);
-        $page = $this->page($params['page'] ?? 1);
-
-        try {
-            $result = $this->correspondences->paginate($filters, $page, self::PER_PAGE);
-            $total = (int) ($result['total'] ?? 0);
+            $actor =
+                $this->enterpriseContext
+                    ->forUser(
+                        $userId
+                    );
 
             return [
                 'ok' => true,
-                'filters' => $filters,
-                'items' => array_map(fn (array $row): array => $this->viewModels->listItem($row), $result['items'] ?? []),
-                'pagination' => $this->pagination($total, $page),
-                'options' => $this->lookups->formOptions(),
+
+                'counts' =>
+                    $this->correspondences
+                        ->dashboardCounts(
+                            $actor[
+                                'repository_scope'
+                            ]
+                        ),
+
+                'enterprise_context' =>
+                    $actor,
             ];
+
         } catch (Throwable) {
             return [
                 'ok' => false,
-                'filters' => $filters,
-                'items' => [],
-                'pagination' => $this->pagination(0, $page),
-                'options' => $this->lookups->formOptions(),
+                'counts' => [],
             ];
         }
     }
 
-    public function form(?string $publicReference = null): array
-    {
+    public function index(
+        array $params,
+        int $userId
+    ): array {
+        $filters =
+            $this->filters(
+                $params
+            );
+
+        $page =
+            $this->page(
+                $params['page'] ?? 1
+            );
+
+        try {
+            $actor =
+                $this->enterpriseContext
+                    ->forUser(
+                        $userId
+                    );
+
+            $result =
+                $this->correspondences
+                    ->paginate(
+                        $filters,
+                        $page,
+                        self::PER_PAGE,
+                        $actor[
+                            'repository_scope'
+                        ]
+                    );
+
+            $total =
+                (int) (
+                    $result['total']
+                    ?? 0
+                );
+
+            return [
+                'ok' => true,
+
+                'filters' =>
+                    $filters,
+
+                'items' =>
+                    array_map(
+                        fn (
+                            array $row
+                        ): array =>
+                            $this->viewModels
+                                ->listItem(
+                                    $row
+                                ),
+
+                        $result[
+                            'items'
+                        ] ?? []
+                    ),
+
+                'pagination' =>
+                    $this->pagination(
+                        $total,
+                        $page
+                    ),
+
+                'options' =>
+                    $this->lookups
+                        ->formOptions(),
+
+                'enterprise_context' =>
+                    $actor,
+            ];
+
+        } catch (Throwable) {
+            return [
+                'ok' => false,
+
+                'filters' =>
+                    $filters,
+
+                'items' => [],
+
+                'pagination' =>
+                    $this->pagination(
+                        0,
+                        $page
+                    ),
+
+                'options' =>
+                    $this->lookups
+                        ->formOptions(),
+            ];
+        }
+    }
+
+    public function form(
+        ?string $publicReference = null,
+        ?int $userId = null
+    ): array {
+        if (
+            $userId === null
+            || $userId < 1
+        ) {
+            throw new RuntimeException(
+                'automation_user_context_required'
+            );
+        }
+
+        $actor =
+            $this->enterpriseContext
+                ->forUser(
+                    $userId
+                );
+
         $correspondence = null;
         $versions = [];
         $parties = [];
         $relations = [];
 
-        if ($publicReference !== null) {
-            $correspondence = $this->correspondences->findByPublicReference($publicReference);
+        if (
+            $publicReference !== null
+        ) {
+            $correspondence =
+                $this->correspondences
+                    ->findByPublicReferenceScoped(
+                        $publicReference,
+                        $actor[
+                            'repository_scope'
+                        ]
+                    );
 
-            if ($correspondence !== null) {
-                $versions = $this->versions->listFor((int) $correspondence['id']);
-                $parties = $this->parties->listFor((int) $correspondence['id']);
-                $relations = $this->relations->listFor((int) $correspondence['id']);
+            if (
+                $correspondence !== null
+            ) {
+                $id =
+                    (int) $correspondence[
+                        'id'
+                    ];
+
+                $versions =
+                    $this->versions
+                        ->listFor(
+                            $id
+                        );
+
+                $parties =
+                    $this->parties
+                        ->listFor(
+                            $id
+                        );
+
+                $relations =
+                    $this->relations
+                        ->listFor(
+                            $id,
+                            $actor[
+                                'repository_scope'
+                            ]
+                        );
             }
         }
 
         return [
-            'ok' => $publicReference === null || $correspondence !== null,
-            'form' => $this->viewModels->formData($correspondence, $versions, $this->formParties($parties), $relations),
-            'options' => $this->lookups->formOptions() + [
-                'document_templates' => $this->documentTemplates->options(),
-                'related_correspondences' => $this->relations->options($correspondence !== null ? (int) $correspondence['id'] : null),
-            ],
-            'references' => $this->coreReferences->options(),
-            'editable' => $correspondence === null || ($correspondence['status_code'] ?? '') === 'draft',
+            'ok' =>
+                $publicReference === null
+                || $correspondence !== null,
+
+            'form' =>
+                $this->viewModels
+                    ->formData(
+                        $correspondence,
+                        $versions,
+                        $this->formParties(
+                            $parties
+                        ),
+                        $relations
+                    ),
+
+            'options' =>
+                $this->lookups
+                    ->formOptions()
+                + [
+                    'document_templates' =>
+                        $this->documentTemplates
+                            ->options(),
+
+                    'related_correspondences' =>
+                        $this->relations
+                            ->options(
+                                $correspondence
+                                    !== null
+                                        ? (int) $correspondence[
+                                            'id'
+                                        ]
+                                        : null,
+
+                                $actor[
+                                    'repository_scope'
+                                ]
+                            ),
+                ],
+
+            'references' =>
+                $this->coreReferences
+                    ->options(
+                        $actor[
+                            'repository_scope'
+                        ]
+                    ),
+
+            'editable' =>
+                $correspondence === null
+                || (
+                    $correspondence[
+                        'status_code'
+                    ] ?? ''
+                ) === 'draft',
+
+            'enterprise_context' =>
+                $actor,
         ];
     }
 
-    public function detail(string $publicReference, string $tab): ?array
-    {
-        $tab = in_array($tab, ['summary', 'content', 'parties', 'relations', 'attachments', 'versions', 'history'], true) ? $tab : 'summary';
-        $correspondence = $this->correspondences->findByPublicReference($publicReference);
+    public function detail(
+        string $publicReference,
+        string $tab,
+        int $userId
+    ): ?array {
+        $tab =
+            in_array(
+                $tab,
+                [
+                    'summary',
+                    'content',
+                    'parties',
+                    'relations',
+                    'attachments',
+                    'versions',
+                    'history',
+                ],
+                true
+            )
+                ? $tab
+                : 'summary';
 
-        if ($correspondence === null) {
+        $actor =
+            $this->enterpriseContext
+                ->forUser(
+                    $userId
+                );
+
+        $correspondence =
+            $this->correspondences
+                ->findByPublicReferenceScoped(
+                    $publicReference,
+                    $actor[
+                        'repository_scope'
+                    ]
+                );
+
+        if (
+            $correspondence === null
+        ) {
             return null;
         }
 
-        $id = (int) $correspondence['id'];
+        $id =
+            (int) $correspondence[
+                'id'
+            ];
 
-        return $this->viewModels->detail(
-            $correspondence,
-            $this->versions->listFor($id),
-            $this->parties->listFor($id),
-            $this->events->listFor($id),
-            $tab,
-            $this->relations->listFor($id),
-            $this->attachments->listFor($id)
-        );
+        $detail =
+            $this->viewModels
+                ->detail(
+                    $correspondence,
+
+                    $this->versions
+                        ->listFor(
+                            $id
+                        ),
+
+                    $this->parties
+                        ->listFor(
+                            $id
+                        ),
+
+                    $this->events
+                        ->listFor(
+                            $id
+                        ),
+
+                    $tab,
+
+                    $this->relations
+                        ->listFor(
+                            $id,
+                            $actor[
+                                'repository_scope'
+                            ]
+                        ),
+
+                    $this->attachments
+                        ->listFor(
+                            $id
+                        )
+                );
+
+        $detail[
+            'enterprise_context'
+        ] = $actor;
+
+        return $detail;
     }
 
     public function templates(): array

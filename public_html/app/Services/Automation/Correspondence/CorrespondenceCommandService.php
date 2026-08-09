@@ -20,7 +20,8 @@ class CorrespondenceCommandService
         private ?AutomationLookupRepository $lookups = null,
         private ?CorrespondenceDocumentTemplateRepository $documentTemplates = null,
         private ?CoreReferenceOptions $coreReferences = null,
-        private ?CorrespondenceRelationRepository $relations = null
+        private ?CorrespondenceRelationRepository $relations = null,
+        private ?EnterpriseAutomationContextService $enterpriseContext = null
     ) {
         $this->runtime ??= new AutomationOperationalRuntime();
         $this->correspondences ??= new CorrespondenceRepository($this->runtime);
@@ -31,11 +32,35 @@ class CorrespondenceCommandService
         $this->documentTemplates ??= new CorrespondenceDocumentTemplateRepository($this->runtime);
         $this->coreReferences ??= new CoreReferenceOptions();
         $this->relations ??= new CorrespondenceRelationRepository($this->runtime);
+        $this->enterpriseContext ??= new EnterpriseAutomationContextService();
     }
 
     public function createDraft(array $input, int $userId, array $context): array
     {
-        $normalized = $this->normalize($input, $context, true);
+        try {
+            $actor =
+                $this->enterpriseContext
+                    ->forUser(
+                        $userId
+                    );
+
+        } catch (Throwable) {
+            return [
+                'ok' => false,
+
+                'errors' => [
+                    'organizational_context_required',
+                ],
+            ];
+        }
+
+        $normalized =
+            $this->normalize(
+                $input,
+                $context,
+                true,
+                $actor
+            );
 
         if ($normalized['errors'] !== []) {
             return ['ok' => false, 'errors' => $normalized['errors']];
@@ -49,10 +74,46 @@ class CorrespondenceCommandService
             $pdo->beginTransaction();
 
             $correspondenceId = $this->correspondences->insert([
-                'public_reference' => $publicReference,
-                'organization_id' => $normalized['organization_id'],
-                'org_unit_id' => null,
-                'direction_code' => $normalized['direction_code'],
+                'public_reference' =>
+                    $publicReference,
+
+                'root_organization_id' =>
+                    $actor[
+                        'root_organization_id'
+                    ],
+
+                'root_organization_public_reference' =>
+                    $actor[
+                        'root_organization_reference'
+                    ],
+
+                'organization_id' =>
+                    $actor[
+                        'organization_id'
+                    ],
+
+                'organization_public_reference' =>
+                    $actor[
+                        'organization_reference'
+                    ],
+
+                'org_unit_id' =>
+                    $actor[
+                        'org_unit_id'
+                    ],
+
+                'org_unit_public_reference' =>
+                    $actor[
+                        'org_unit_reference'
+                    ],
+
+                'secretariat_desk_id' =>
+                    null,
+
+                'direction_code' =>
+                    $normalized[
+                        'direction_code'
+                    ],
                 'status_code' => 'draft',
                 'subject' => $normalized['subject'],
                 'summary' => $normalized['summary'],
@@ -64,8 +125,21 @@ class CorrespondenceCommandService
                 'external_date' => $normalized['external_date'],
                 'received_at' => $normalized['received_at'],
                 'dispatched_at' => $normalized['dispatched_at'],
-                'created_by_user_id' => $userId,
-                'updated_by_user_id' => $userId,
+                'created_by_user_id' =>
+                    $userId,
+
+                'creating_appointment_reference' =>
+                    $actor[
+                        'appointment_reference'
+                    ],
+
+                'organizational_context_snapshot_json' =>
+                    $actor[
+                        'snapshot_json'
+                    ],
+
+                'updated_by_user_id' =>
+                    $userId,
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
@@ -82,7 +156,16 @@ class CorrespondenceCommandService
 
             $this->parties->insertMany($correspondenceId, $normalized['parties'], $now);
             $this->relations->replaceForDraft($correspondenceId, $normalized['relations'], $userId, $now);
-            $this->events->append($correspondenceId, 'created', $userId, null, 'draft', ['version' => 1], $now);
+            $this->events->append(
+                $correspondenceId,
+                'created',
+                $userId,
+                null,
+                'draft',
+                ['version' => 1],
+                $now,
+                $actor
+            );
             $this->correspondences->updateCurrentVersion($correspondenceId, $versionId, 1, $userId, $now);
 
             $pdo->commit();
@@ -99,7 +182,30 @@ class CorrespondenceCommandService
 
     public function updateDraft(string $publicReference, array $input, int $userId, array $context): array
     {
-        $normalized = $this->normalize($input, $context, false);
+        try {
+            $actor =
+                $this->enterpriseContext
+                    ->forUser(
+                        $userId
+                    );
+
+        } catch (Throwable) {
+            return [
+                'ok' => false,
+
+                'errors' => [
+                    'organizational_context_required',
+                ],
+            ];
+        }
+
+        $normalized =
+            $this->normalize(
+                $input,
+                $context,
+                false,
+                $actor
+            );
         $expectedLock = filter_var($input['lock_version'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0]]);
 
         if ($expectedLock === false || $expectedLock === null) {
@@ -119,7 +225,31 @@ class CorrespondenceCommandService
 
             if ($current === null || ($current['status_code'] ?? '') !== 'draft') {
                 $pdo->rollBack();
-                return ['ok' => false, 'errors' => ['not_editable']];
+
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'not_editable',
+                    ],
+                ];
+            }
+
+            try {
+                $this->enterpriseContext
+                    ->assertCorrespondenceAccess(
+                        $current,
+                        $actor
+                    );
+
+            } catch (RuntimeException) {
+                $pdo->rollBack();
+
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'forbidden_scope',
+                    ],
+                ];
             }
 
             if ((int) ($current['lock_version'] ?? -1) !== (int) $expectedLock) {
@@ -162,7 +292,19 @@ class CorrespondenceCommandService
             $this->correspondences->updateCurrentVersion((int) $current['id'], $versionId, $versionNumber, $userId, $now, false);
             $this->parties->replaceForDraft((int) $current['id'], $normalized['parties'], $now);
             $this->relations->replaceForDraft((int) $current['id'], $normalized['relations'], $userId, $now);
-            $this->events->append((int) $current['id'], 'revised', $userId, 'draft', 'draft', ['version' => $versionNumber], $now);
+            $this->events->append(
+                (int) $current['id'],
+                'revised',
+                $userId,
+                'draft',
+                'draft',
+                [
+                    'version' =>
+                        $versionNumber,
+                ],
+                $now,
+                $actor
+            );
 
             $pdo->commit();
 
@@ -176,7 +318,12 @@ class CorrespondenceCommandService
         }
     }
 
-    private function normalize(array $input, array $context, bool $creating): array
+    private function normalize(
+        array $input,
+        array $context,
+        bool $creating,
+        array $actor
+    ): array
     {
         $errors = [];
         $subject = $this->trim($input['subject'] ?? '', 500);
@@ -212,15 +359,49 @@ class CorrespondenceCommandService
             }
         }
 
-        $organizationId = $this->coreReferences->organizationIdForContext($context);
-        if ($organizationId === null) {
-            $errors[] = 'organization_required';
+        $organizationId =
+            (int) (
+                $actor[
+                    'organization_id'
+                ] ?? 0
+            );
+
+        if ($organizationId < 1) {
+            $errors[] =
+                'organization_required';
         }
 
-        $externalDate = $this->dateInput($input, 'external_date', 'external_date_fa', $errors);
-        $parties = $this->normalizeParties($input, $errors);
-        $this->validatePartiesForDirection($parties, $direction, $errors);
-        $relations = $this->normalizeRelations($input, $errors);
+        $externalDate =
+            $this->dateInput(
+                $input,
+                'external_date',
+                'external_date_fa',
+                $errors
+            );
+
+        $parties =
+            $this->normalizeParties(
+                $input,
+                $errors,
+                $actor[
+                    'repository_scope'
+                ]
+            );
+
+        $this->validatePartiesForDirection(
+            $parties,
+            $direction,
+            $errors
+        );
+
+        $relations =
+            $this->normalizeRelations(
+                $input,
+                $errors,
+                $actor[
+                    'repository_scope'
+                ]
+            );
 
         if ($parties === []) {
             $errors[] = 'party_required';
@@ -249,7 +430,11 @@ class CorrespondenceCommandService
         ];
     }
 
-    private function normalizeRelations(array $input, array &$errors): array
+    private function normalizeRelations(
+        array $input,
+        array &$errors,
+        array $scope
+    ): array
     {
         $types = $this->arrayInput($input['relation_type_code'] ?? []);
         $references = $this->arrayInput($input['related_correspondence_reference'] ?? []);
@@ -262,7 +447,14 @@ class CorrespondenceCommandService
             $type = $this->code($types[$i] ?? '');
             $reference = trim((string) ($references[$i] ?? ''));
             if ($type === '' && $reference === '') continue;
-            $targetId = $reference !== '' ? $this->relations->targetId($reference) : null;
+            $targetId =
+                $reference !== ''
+                    ? $this->relations
+                        ->targetId(
+                            $reference,
+                            $scope
+                        )
+                    : null;
             if (!in_array($type, $allowed, true) || $targetId === null || ($selfReference !== '' && hash_equals($selfReference, $reference))) {
                 $errors[] = 'invalid_relation';
                 continue;
@@ -272,7 +464,11 @@ class CorrespondenceCommandService
         return $relations;
     }
 
-    private function normalizeParties(array $input, array &$errors): array
+    private function normalizeParties(
+        array $input,
+        array &$errors,
+        array $scope
+    ): array
     {
         $roles = $this->arrayInput($input['party_role_code'] ?? []);
         $kinds = $this->arrayInput($input['party_kind'] ?? []);
@@ -319,12 +515,26 @@ class CorrespondenceCommandService
 
             $reference = $this->coreReferences->decode((string) ($tokens[$i] ?? ''));
 
-            if ($reference === null) {
-                $errors[] = 'invalid_core_reference';
+            if (
+                $reference === null
+                || !$this->coreReferences
+                    ->referenceAllowed(
+                        $reference,
+                        $scope
+                    )
+            ) {
+                $errors[] =
+                    'invalid_core_reference';
+
                 continue;
             }
 
-            $kind = (string) ($reference['kind'] ?? '');
+            $kind =
+                (string) (
+                    $reference[
+                        'kind'
+                    ] ?? ''
+                );
 
             $personId = null;
             $organizationId = null;

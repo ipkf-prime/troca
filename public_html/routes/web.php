@@ -2114,7 +2114,7 @@ $router->get('/admin/automation', function ($request, $response) use ($adminRend
     }
 
     try {
-        $dashboard = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->dashboard();
+        $dashboard = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->dashboard((int) $context['user_id']);
     } catch (\Throwable) {
         return $automationUnavailable($response, $context);
     }
@@ -2712,7 +2712,7 @@ $router->get('/admin/automation/correspondences', function ($request, $response)
     }
 
     try {
-        $list = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->index($request->all());
+        $list = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->index($request->all(), (int) $context['user_id']);
     } catch (\Throwable) {
         return $automationUnavailable($response, $context);
     }
@@ -2743,7 +2743,7 @@ $router->get('/admin/automation/correspondences/create', function ($request, $re
     }
 
     try {
-        $form = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->form();
+        $form = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->form(null, (int) $context['user_id']);
     } catch (\Throwable) {
         return $automationUnavailable($response, $context);
     }
@@ -2780,7 +2780,7 @@ $router->post('/admin/automation/correspondences', function ($request, $response
             return $response->redirect('/admin/automation/correspondences/' . rawurlencode((string) $result['public_reference']));
         }
 
-        $form = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->form();
+        $form = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->form(null, (int) $context['user_id']);
         return $adminRender($response, 'automation-correspondence-form', [
             'title' => 'ایجاد پیش نویس مکاتبه',
             'context' => $context,
@@ -2804,7 +2804,7 @@ $router->get('/admin/automation/correspondences/{public_reference}/edit', functi
     }
 
     try {
-        $form = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->form((string) $request->route('public_reference'));
+        $form = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->form((string) $request->route('public_reference'), (int) $context['user_id']);
     } catch (\Throwable) {
         return $automationUnavailable($response, $context);
     }
@@ -2841,7 +2841,7 @@ $router->post('/admin/automation/correspondences/{public_reference}/versions', f
             return $response->redirect('/admin/automation/correspondences/' . rawurlencode($publicReference));
         }
 
-        $form = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->form($publicReference);
+        $form = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->form($publicReference, (int) $context['user_id']);
         return $adminRender($response, 'automation-correspondence-form', [
             'title' => 'ویرایش پیش نویس مکاتبه',
             'context' => $context,
@@ -2879,7 +2879,19 @@ $router->post('/admin/automation/correspondences/{public_reference}/edit/attachm
 $router->get('/admin/automation/correspondences/{public_reference}/attachments/{file_reference}', function ($request, $response) use ($adminGuard) {
     $context = $adminGuard($response, '/admin/automation/correspondences/{public_reference}/attachments/{file_reference}');
     if (!is_array($context)) return $context;
-    $file = (new \App\Services\Automation\Correspondence\CorrespondenceAttachmentRepository())->findForCorrespondence((string) $request->route('public_reference'), (string) $request->route('file_reference'));
+    try {
+        $actor = (new \App\Services\Automation\Correspondence\EnterpriseAutomationContextService())
+            ->forUser((int) $context['user_id']);
+
+        $file = (new \App\Services\Automation\Correspondence\CorrespondenceAttachmentRepository())
+            ->findForCorrespondence(
+                (string) $request->route('public_reference'),
+                (string) $request->route('file_reference'),
+                $actor['repository_scope']
+            );
+    } catch (\Throwable) {
+        $file = null;
+    }
     $configuredRoot = trim((string) \IPKF\Support\Env::get('PRIVATE_FILE_STORAGE_PATH', ''));
     $root = realpath(rtrim($configuredRoot !== '' ? $configuredRoot : dirname(BASE_PATH) . '/storage/private/automation', '/\\'));
     $path = $file !== null ? realpath((string) $file['storage_key']) : false;
@@ -2902,7 +2914,7 @@ $router->get('/admin/automation/correspondences/{public_reference}', function ($
     }
 
     try {
-        $detail = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->detail((string) $request->route('public_reference'), (string) $request->input('tab', 'summary'));
+        $detail = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->detail((string) $request->route('public_reference'), (string) $request->input('tab', 'summary'), (int) $context['user_id']);
     } catch (\Throwable) {
         return $automationUnavailable($response, $context);
     }
