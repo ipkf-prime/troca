@@ -2,11 +2,13 @@
 
 namespace IPKF\Database\Migrations;
 
+use IPKF\Database\Database;
+
 class EnableNotificationApprovalAlerts extends Migration
 {
     public function up(): void
     {
-        if (!$this->tableExists(
+        if (!Database::tableExists(
             'admin_navigation_items'
         )) {
             return;
