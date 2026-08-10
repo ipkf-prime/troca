@@ -115,6 +115,30 @@ class ExposeAutomationSecretariatNavigation extends Migration
     {
     }
 
+    private function tableExists(
+        string $table
+    ): bool {
+        $statement =
+            $this->db->prepare("
+                SELECT COUNT(*)
+
+                FROM information_schema.tables
+
+                WHERE table_schema =
+                        DATABASE()
+
+                  AND table_name = ?
+            ");
+
+        $statement->execute([
+            $table,
+        ]);
+
+        return
+            (int) $statement
+                ->fetchColumn() > 0;
+    }
+
     private function permissionsJson(
         array $permissions
     ): string {
