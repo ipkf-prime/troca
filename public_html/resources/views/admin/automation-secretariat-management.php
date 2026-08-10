@@ -749,11 +749,31 @@ ob_start();
                         <tbody>
                             <?php foreach ($periods as $period): ?>
                                 <tr>
-                                    <td><?= admin_h($period['title'] ?? '') ?></td>
-                                    <td class="automation-secretariat-code"><?= admin_h($period['code'] ?? '') ?></td>
-                                    <td><?= admin_h($period['organization_title'] ?? '') ?></td>
-                                    <td><?= admin_h($period['starts_on_fa'] ?? '') ?></td>
-                                    <td><?= admin_h($period['ends_on_fa'] ?? '') ?></td>
+                                    <td><?= admin_h(
+                                        $digits(
+                                            $period['title'] ?? ''
+                                        )
+                                    ) ?></td>
+                                    <td><?= admin_h(
+                                        $digits(
+                                            $period['code'] ?? ''
+                                        )
+                                    ) ?></td>
+                                    <td><?= admin_h(
+                                        $digits(
+                                            $period['organization_title'] ?? ''
+                                        )
+                                    ) ?></td>
+                                    <td><?= admin_h(
+                                        $digits(
+                                            $period['starts_on_fa'] ?? ''
+                                        )
+                                    ) ?></td>
+                                    <td><?= admin_h(
+                                        $digits(
+                                            $period['ends_on_fa'] ?? ''
+                                        )
+                                    ) ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
