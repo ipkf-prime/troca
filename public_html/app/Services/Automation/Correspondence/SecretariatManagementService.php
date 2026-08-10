@@ -914,7 +914,7 @@ final class SecretariatManagementService
                 )
             ) {
                 $errors['scope'] =
-                    'دامنه Sequence معتبر نیست.';
+                    'دامنه منبع شماره معتبر نیست.';
             }
 
             $organizationId = null;
@@ -930,7 +930,7 @@ final class SecretariatManagementService
                     ]
                 ) {
                     $errors['scope'] =
-                        'Sequence مشترک بین‌سازمانی فقط از جایگاه سازمان ریشه قابل تعریف است.';
+                        'منبع شماره مشترک بین‌سازمانی فقط از جایگاه سازمان ریشه قابل تعریف است.';
                 }
 
                 if (
@@ -942,7 +942,7 @@ final class SecretariatManagementService
                     ) !== 1
                 ) {
                     $errors['scope'] =
-                        'Sequence مشترک فقط برای دبیرخانه مشترک مجاز است.';
+                        'منبع شماره مشترک فقط برای دبیرخانه مشترک مجاز است.';
                 }
 
                 if (
@@ -954,7 +954,7 @@ final class SecretariatManagementService
                     $errors[
                         'registry_period_id'
                     ] =
-                        'Sequence مشترک باید از دوره ثبت مشترک هلدینگ استفاده کند.';
+                        'منبع شماره مشترک باید از دوره ثبت مشترک هلدینگ استفاده کند.';
                 }
 
             } else {
@@ -975,7 +975,7 @@ final class SecretariatManagementService
                     $errors[
                         'organization_id'
                     ] =
-                        'سازمان Sequence معتبر نیست.';
+                        'سازمان منبع شماره معتبر نیست.';
                 }
 
                 if (
@@ -1004,7 +1004,7 @@ final class SecretariatManagementService
                     $errors[
                         'registry_period_id'
                     ] =
-                        'دوره ثبت سازمانی با سازمان Sequence یکسان نیست.';
+                        'دوره ثبت سازمانی با سازمان منبع شماره یکسان نیست.';
                 }
             }
 
@@ -1056,12 +1056,12 @@ final class SecretariatManagementService
 
             if ($code === '') {
                 $errors['code'] =
-                    'کد Sequence الزامی است.';
+                    'کد منبع شماره الزامی است.';
             }
 
             if ($title === '') {
                 $errors['title'] =
-                    'عنوان Sequence الزامی است.';
+                    'عنوان منبع شماره الزامی است.';
             }
 
             if (
@@ -1089,7 +1089,7 @@ final class SecretariatManagementService
                 $errors[
                     'number_padding'
                 ] =
-                    'تعداد ارقام Sequence باید بین ۱ تا ۲۰ باشد.';
+                    'تعداد ارقام منبع شماره باید بین ۱ تا ۲۰ باشد.';
             }
 
             if ($nextNumber === null) {
@@ -1142,7 +1142,7 @@ final class SecretariatManagementService
                     'ok' => false,
                     'errors' => [
                         'code' =>
-                            'این کد Sequence در دامنه انتخاب‌شده قبلاً استفاده شده است.',
+                            'این کد منبع شماره در دامنه انتخاب‌شده قبلاً استفاده شده است.',
                     ],
                 ];
             }
@@ -1227,7 +1227,7 @@ final class SecretariatManagementService
                 'ok' => false,
                 'errors' => [
                     'runtime' =>
-                        'ثبت Sequence شماره انجام نشد.',
+                        'ثبت منبع شماره انجام نشد.',
                 ],
             ];
         }
@@ -1359,7 +1359,7 @@ final class SecretariatManagementService
                 $errors[
                     'number_sequence_id'
                 ] =
-                    'Sequence شماره انتخاب‌شده معتبر نیست.';
+                    'منبع شماره انتخاب‌شده معتبر نیست.';
             }
 
             if (
@@ -1372,7 +1372,7 @@ final class SecretariatManagementService
                 $errors[
                     'number_sequence_id'
                 ] =
-                    'Sequence انتخاب‌شده متعلق به این دبیرخانه نیست.';
+                    'منبع شماره انتخاب‌شده متعلق به این دبیرخانه نیست.';
             }
 
             if (
@@ -1385,7 +1385,7 @@ final class SecretariatManagementService
                 $errors[
                     'number_sequence_id'
                 ] =
-                    'Sequence انتخاب‌شده متعلق به دوره ثبت دیگری است.';
+                    'منبع شماره انتخاب‌شده متعلق به دوره ثبت دیگری است.';
             }
 
             if (
@@ -1403,7 +1403,7 @@ final class SecretariatManagementService
                     $errors[
                         'number_sequence_id'
                     ] =
-                        'Sequence سازمانی متعلق به سازمان دیگری است.';
+                        'منبع شماره سازمانی متعلق به سازمان دیگری است.';
                 }
 
                 if (
@@ -1422,7 +1422,7 @@ final class SecretariatManagementService
                     $errors[
                         'number_sequence_id'
                     ] =
-                        'استفاده از Sequence مشترک برای این دبیرخانه مجاز نیست.';
+                        'استفاده از منبع شماره مشترک برای این دبیرخانه مجاز نیست.';
                 }
             }
 
