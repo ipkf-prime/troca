@@ -445,6 +445,14 @@ class CommunicationCenterSeeder extends Seeder
                 'palette', 'indigo',
                 ['automation.correspondence.view'], null,
                 ['/admin/automation/templates'], 40],
+            ['automation', 'automation-secretariat', 'link',
+                'دبیرخانه و دفاتر ثبت',
+                'مدیریت دبیرخانه، دوره ثبت، منابع شماره و دفاتر ثبت',
+                '/admin/automation/secretariat', 'automation',
+                'organization', 'indigo',
+                ['automation.registry.manage'], null,
+                ['/admin/automation/secretariat',
+                    '/admin/automation/secretariat/*'], 50],
         ];
 
         foreach ($roots as $item) {

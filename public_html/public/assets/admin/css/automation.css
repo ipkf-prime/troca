@@ -219,3 +219,7 @@ body.automation-shell {
         display: block;
     }
 }
+
+.automation-secretariat-step .admin-form-actions {
+    justify-content: flex-start;
+}

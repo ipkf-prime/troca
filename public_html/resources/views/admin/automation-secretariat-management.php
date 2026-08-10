@@ -62,7 +62,7 @@ $statusMessages = [
         'دوره ثبت با موفقیت ایجاد شد.',
 
     'sequence_saved' =>
-        'Sequence شماره با موفقیت ایجاد شد.',
+        'منبع شماره با موفقیت ایجاد شد.',
 
     'book_saved' =>
         'دفتر ثبت با موفقیت ایجاد شد.',
@@ -235,7 +235,7 @@ ob_start();
         <div>
             <h2>راه‌اندازی دبیرخانه</h2>
             <p class="admin-muted">
-                ترتیب پیشنهادی: دبیرخانه ← دوره ثبت ← Sequence شماره ← دفتر ثبت.
+                ترتیب پیشنهادی: دبیرخانه ← دوره ثبت ← منبع شماره ← دفتر ثبت.
             </p>
         </div>
     </div>
@@ -765,7 +765,7 @@ ob_start();
         <div class="automation-secretariat-step__body">
             <div class="automation-secretariat-step__head">
                 <div>
-                    <h3>Sequence شماره</h3>
+                    <h3>منبع شماره</h3>
                     <p class="admin-muted">
                         منبع ترتیبی شماره‌ها؛ شماره واقعی هنگام ثبت رسمی
                         به‌صورت تراکنشی از این منبع رزرو خواهد شد.
@@ -886,7 +886,7 @@ ob_start();
                     </label>
 
                     <label>
-                        <span>کد Sequence</span>
+                        <span>کد منبع شماره</span>
                         <input
                             class="automation-secretariat-code"
                             name="code"
@@ -988,7 +988,7 @@ ob_start();
                         class="admin-button"
                         type="submit"
                         <?= $desks === [] || $periods === [] ? 'disabled' : '' ?>
-                    >ثبت Sequence</button>
+                    >ثبت منبع شماره</button>
                 </div>
             </form>
 
@@ -1057,7 +1057,7 @@ ob_start();
                 || $sequences === []
             ): ?>
                 <div class="admin-alert automation-secretariat-prerequisite">
-                    ابتدا دبیرخانه، دوره ثبت و Sequence شماره را تکمیل کنید.
+                    ابتدا دبیرخانه، دوره ثبت و منبع شماره را تکمیل کنید.
                 </div>
             <?php endif; ?>
 

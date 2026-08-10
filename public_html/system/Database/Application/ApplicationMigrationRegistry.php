@@ -45,6 +45,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\RepairPersonAddressReferenceDataAndGeography::class,
                     \IPKF\Database\Migrations\CreateNotificationCoreFoundationTables::class,
                     \IPKF\Database\Migrations\CreateCommunicationCenterFoundationTables::class,
+                    \IPKF\Database\Migrations\ExposeAutomationSecretariatNavigation::class,
                     \IPKF\Database\Migrations\CreateSecureMessageExtensionTables::class,
                     \IPKF\Database\Migrations\ExtendNotificationProviderManagement::class,
                     \IPKF\Database\Migrations\EnableNotificationProviderManagementCrud::class,
