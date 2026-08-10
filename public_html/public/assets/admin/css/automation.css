@@ -113,6 +113,16 @@ body.automation-shell {
     overflow: hidden;
 }
 
+/*
+ * Open secretariat steps can contain the shared
+ * Persian date picker. The calendar is positioned
+ * absolutely and must be allowed to extend beyond
+ * the step body instead of being clipped.
+ */
+.automation-secretariat-step[open] {
+    overflow: visible;
+}
+
 .automation-secretariat-step > summary {
     display: flex;
     align-items: center;
