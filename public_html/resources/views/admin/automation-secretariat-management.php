@@ -269,10 +269,60 @@ ob_start();
         </div>
     </div>
 
+    <nav
+        class="automation-secretariat-tabs"
+        aria-label="بخش‌های مدیریت دبیرخانه"
+    >
+        <?php foreach ([
+            [
+                'desk',
+                'دبیرخانه',
+                count($desks),
+            ],
+            [
+                'period',
+                'دوره ثبت',
+                count($periods),
+            ],
+            [
+                'sequence',
+                'منبع شماره',
+                count($sequences),
+            ],
+            [
+                'book',
+                'دفتر ثبت',
+                count($books),
+            ],
+        ] as [$sectionCode, $sectionLabel, $sectionCount]): ?>
+            <a
+                class="automation-secretariat-tab<?= $activeSection === $sectionCode ? ' is-active' : '' ?>"
+                href="/admin/automation/secretariat?section=<?= admin_h(
+                    $sectionCode
+                ) ?>"
+                <?= $activeSection === $sectionCode
+                    ? 'aria-current="page"'
+                    : '' ?>
+            >
+                <span>
+                    <?= admin_h($sectionLabel) ?>
+                </span>
+
+                <strong>
+                    <?= admin_h(
+                        $digits(
+                            $sectionCount
+                        )
+                    ) ?>
+                </strong>
+            </a>
+        <?php endforeach; ?>
+    </nav>
+
     <!-- STEP 1 -->
     <details
         class="automation-secretariat-step"
-        <?= $activeSection === 'desk' ? 'open' : '' ?>
+        <?= $activeSection === 'desk' ? 'open' : 'hidden' ?>
     >
         <summary>
             مرحله ۱ ـ تعریف دبیرخانه
@@ -564,7 +614,7 @@ ob_start();
     <!-- STEP 2 -->
     <details
         class="automation-secretariat-step"
-        <?= $activeSection === 'period' ? 'open' : '' ?>
+        <?= $activeSection === 'period' ? 'open' : 'hidden' ?>
     >
         <summary>
             مرحله ۲ ـ تعریف دوره ثبت
@@ -815,7 +865,7 @@ ob_start();
     <!-- STEP 3 -->
     <details
         class="automation-secretariat-step"
-        <?= $activeSection === 'sequence' ? 'open' : '' ?>
+        <?= $activeSection === 'sequence' ? 'open' : 'hidden' ?>
     >
         <summary>
             مرحله ۳ ـ تعریف منبع شماره
@@ -1188,7 +1238,7 @@ ob_start();
     <!-- STEP 4 -->
     <details
         class="automation-secretariat-step"
-        <?= $activeSection === 'book' ? 'open' : '' ?>
+        <?= $activeSection === 'book' ? 'open' : 'hidden' ?>
     >
         <summary>
             مرحله ۴ ـ تعریف دفتر ثبت

@@ -88,6 +88,56 @@ body.automation-shell {
     font-size: 14px !important;
 }
 /* Secretariat / registry configuration */
+.automation-secretariat-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0 0 18px;
+}
+
+.automation-secretariat-tab {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 52px;
+    padding: 10px 14px;
+    border: 1px solid rgba(8, 127, 115, .16);
+    border-radius: 12px;
+    background: #fff;
+    color: #31534e;
+    text-decoration: none;
+    transition:
+        border-color .15s ease,
+        background-color .15s ease,
+        color .15s ease;
+}
+
+.automation-secretariat-tab:hover,
+.automation-secretariat-tab:focus-visible {
+    border-color: rgba(8, 127, 115, .34);
+    background: rgba(8, 127, 115, .045);
+    color: var(--admin-primary-dark);
+}
+
+.automation-secretariat-tab.is-active {
+    border-color: rgba(8, 127, 115, .40);
+    background: var(--admin-primary-soft);
+    color: var(--admin-primary-dark);
+}
+
+.automation-secretariat-tab strong {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(8, 127, 115, .10);
+    font-size: .9rem;
+}
+
 .automation-secretariat-summary {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -210,7 +260,8 @@ body.automation-shell {
 }
 
 @media (max-width: 900px) {
-    .automation-secretariat-summary {
+    .automation-secretariat-summary,
+    .automation-secretariat-tabs {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
@@ -221,6 +272,7 @@ body.automation-shell {
 
 @media (max-width: 600px) {
     .automation-secretariat-summary,
+    .automation-secretariat-tabs,
     .automation-secretariat-org-list {
         grid-template-columns: 1fr;
     }
@@ -232,4 +284,8 @@ body.automation-shell {
 
 .automation-secretariat-step .admin-form-actions {
     justify-content: flex-start;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 22px;
 }
