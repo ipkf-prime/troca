@@ -2836,16 +2836,49 @@ $router->get(
                 $section = 'desk';
             }
 
+            $status =
+                (string) $request->input(
+                    'status',
+                    ''
+                );
+
+            $formInput = [];
+
+            if ($section === 'sequence') {
+                $editReference =
+                    trim(
+                        (string) $request->input(
+                            'edit_sequence',
+                            ''
+                        )
+                    );
+
+                if ($editReference !== '') {
+                    $editForm =
+                        (
+                            new \App\Services\Automation\Correspondence\SecretariatManagementService()
+                        )->sequenceEditForm(
+                            $editReference,
+                            (int) $context['user_id']
+                        );
+
+                    if (is_array($editForm)) {
+                        $formInput =
+                            $editForm;
+                    } else {
+                        $status =
+                            'sequence_not_found';
+                    }
+                }
+            }
+
             return $secretariatManagementRender(
                 $response,
                 $context,
                 [],
                 $section,
-                [],
-                (string) $request->input(
-                    'status',
-                    ''
-                )
+                $formInput,
+                $status
             );
 
         } catch (\Throwable) {
@@ -2944,6 +2977,115 @@ $router->post(
             'sequence',
             'sequence_saved'
         );
+    }
+);
+
+$router->post(
+    '/admin/automation/secretariat/sequences/{reference}',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $secretariatManagementRender,
+        $automationUnavailable
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/secretariat/sequences'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $reference =
+            trim(
+                (string) $request->route(
+                    'reference'
+                )
+            );
+
+        if (!(new \IPKF\Security\Csrf())->check(
+            (string) $request->input(
+                '_token',
+                ''
+            )
+        )) {
+            return $response->redirect(
+                '/admin/automation/secretariat'
+                . '?section=sequence'
+                . '&edit_sequence='
+                . rawurlencode($reference)
+                . '&status=invalid_csrf'
+            );
+        }
+
+        try {
+            $service =
+                new \App\Services\Automation\Correspondence\SecretariatManagementService();
+
+            $result =
+                $service->updateSequence(
+                    $reference,
+                    $request->all(),
+                    (int) $context['user_id']
+                );
+
+            if (
+                ($result['ok'] ?? false)
+                === true
+            ) {
+                return $response->redirect(
+                    '/admin/automation/secretariat'
+                    . '?section=sequence'
+                    . '&status=sequence_updated'
+                );
+            }
+
+            $defaults =
+                $service->sequenceEditForm(
+                    $reference,
+                    (int) $context['user_id']
+                );
+
+            $formInput =
+                array_merge(
+                    is_array($defaults)
+                        ? $defaults
+                        : [],
+                    $request->all(),
+                    [
+                        'edit_sequence_reference' =>
+                            $reference,
+                    ]
+                );
+
+            return $secretariatManagementRender(
+                $response,
+                $context,
+                is_array(
+                    $result['errors']
+                    ?? null
+                )
+                    ? $result['errors']
+                    : [
+                        'invalid' =>
+                            'اطلاعات واردشده معتبر نیست.',
+                    ],
+                'sequence',
+                $formInput,
+                '',
+                422
+            );
+
+        } catch (\Throwable) {
+            return $automationUnavailable(
+                $response,
+                $context
+            );
+        }
     }
 );
 

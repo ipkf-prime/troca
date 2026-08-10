@@ -1233,6 +1233,458 @@ final class SecretariatManagementService
         }
     }
 
+    public function sequenceEditForm(
+        string $publicReference,
+        int $userId
+    ): ?array {
+        try {
+            $actor =
+                $this->enterpriseContext
+                    ->forUser(
+                        $userId
+                    );
+
+            $sequence =
+                $this->sequenceForActorByReference(
+                    $publicReference,
+                    $actor
+                );
+
+            if ($sequence === null) {
+                return null;
+            }
+
+            $usage =
+                $this->sequenceUsage(
+                    (int) $sequence['id']
+                );
+
+            $locked =
+                $usage['books'] > 0
+                || $usage['reservations'] > 0;
+
+            return [
+                'edit_sequence_reference' =>
+                    (string) $sequence[
+                        'public_reference'
+                    ],
+
+                'secretariat_desk_id' =>
+                    (int) $sequence[
+                        'secretariat_desk_id'
+                    ],
+
+                'registry_period_id' =>
+                    (int) $sequence[
+                        'registry_period_id'
+                    ],
+
+                'scope' =>
+                    $sequence[
+                        'organization_id'
+                    ] === null
+                        ? 'shared'
+                        : 'organization',
+
+                'organization_id' =>
+                    $sequence[
+                        'organization_id'
+                    ] !== null
+                        ? (int) $sequence[
+                            'organization_id'
+                        ]
+                        : '',
+
+                'code' =>
+                    (string) (
+                        $sequence['code']
+                        ?? ''
+                    ),
+
+                'title' =>
+                    (string) (
+                        $sequence['title']
+                        ?? ''
+                    ),
+
+                'prefix' =>
+                    (string) (
+                        $sequence['prefix']
+                        ?? ''
+                    ),
+
+                'suffix' =>
+                    (string) (
+                        $sequence['suffix']
+                        ?? ''
+                    ),
+
+                'format_pattern' =>
+                    (string) (
+                        $sequence[
+                            'format_pattern'
+                        ]
+                        ?? '{prefix}{sequence}{suffix}'
+                    ),
+
+                'number_padding' =>
+                    (int) (
+                        $sequence[
+                            'number_padding'
+                        ]
+                        ?? 5
+                    ),
+
+                'next_sequence_number' =>
+                    (int) (
+                        $sequence[
+                            'next_sequence_number'
+                        ]
+                        ?? 1
+                    ),
+
+                'sequence_locked' =>
+                    $locked ? '1' : '0',
+
+                'sequence_book_count' =>
+                    $usage['books'],
+
+                'sequence_reservation_count' =>
+                    $usage['reservations'],
+            ];
+
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    public function updateSequence(
+        string $publicReference,
+        array $input,
+        int $userId
+    ): array {
+        try {
+            $publicReference =
+                trim(
+                    $publicReference
+                );
+
+            if ($publicReference === '') {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'sequence' =>
+                            'منبع شماره موردنظر پیدا نشد.',
+                    ],
+                ];
+            }
+
+            $actor =
+                $this->enterpriseContext
+                    ->forUser(
+                        $userId
+                    );
+
+            $current =
+                $this->sequenceForActorByReference(
+                    $publicReference,
+                    $actor
+                );
+
+            if ($current === null) {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'sequence' =>
+                            'منبع شماره موردنظر در دامنه مجاز شما قرار ندارد.',
+                    ],
+                ];
+            }
+
+            $usage =
+                $this->sequenceUsage(
+                    (int) $current['id']
+                );
+
+            $locked =
+                $usage['books'] > 0
+                || $usage['reservations'] > 0;
+
+            $code =
+                $this->code(
+                    $input['code']
+                    ?? $current['code']
+                    ?? ''
+                );
+
+            $title =
+                $this->text(
+                    $input['title']
+                    ?? $current['title']
+                    ?? '',
+                    255
+                );
+
+            $prefix =
+                $this->nullableText(
+                    $input['prefix']
+                    ?? $current['prefix']
+                    ?? '',
+                    50
+                );
+
+            $suffix =
+                $this->nullableText(
+                    $input['suffix']
+                    ?? $current['suffix']
+                    ?? '',
+                    50
+                );
+
+            $formatPattern =
+                $this->text(
+                    $input[
+                        'format_pattern'
+                    ]
+                    ?? $current[
+                        'format_pattern'
+                    ]
+                    ?? '{prefix}{sequence}{suffix}',
+                    255
+                );
+
+            $padding =
+                $this->positiveInt(
+                    $input[
+                        'number_padding'
+                    ]
+                    ?? $current[
+                        'number_padding'
+                    ]
+                    ?? 5
+                );
+
+            $nextNumber =
+                $this->positiveInt(
+                    $input[
+                        'next_sequence_number'
+                    ]
+                    ?? $current[
+                        'next_sequence_number'
+                    ]
+                    ?? 1
+                );
+
+            $errors = [];
+
+            if ($code === '') {
+                $errors['code'] =
+                    'کد منبع شماره الزامی است.';
+            }
+
+            if ($title === '') {
+                $errors['title'] =
+                    'عنوان منبع شماره الزامی است.';
+            }
+
+            if (
+                $formatPattern === ''
+                || !str_contains(
+                    $formatPattern,
+                    '{sequence}'
+                )
+                || preg_match(
+                    '/\{(?!prefix\}|sequence\}|suffix\})[^}]+\}/',
+                    $formatPattern
+                ) === 1
+            ) {
+                $errors[
+                    'format_pattern'
+                ] =
+                    'الگوی شماره باید شامل {sequence} باشد و فقط از {prefix}، {sequence} و {suffix} استفاده کند.';
+            }
+
+            if (
+                $padding === null
+                || $padding < 1
+                || $padding > 20
+            ) {
+                $errors[
+                    'number_padding'
+                ] =
+                    'تعداد ارقام منبع شماره باید بین ۱ تا ۲۰ باشد.';
+            }
+
+            if ($nextNumber === null) {
+                $errors[
+                    'next_sequence_number'
+                ] =
+                    'شماره بعدی باید بزرگ‌تر از صفر باشد.';
+            }
+
+            $currentPrefix =
+                $current['prefix'] !== null
+                    ? (string) $current[
+                        'prefix'
+                    ]
+                    : null;
+
+            $currentSuffix =
+                $current['suffix'] !== null
+                    ? (string) $current[
+                        'suffix'
+                    ]
+                    : null;
+
+            $sensitiveChanged =
+                $code !==
+                    (string) $current['code']
+                || $prefix !== $currentPrefix
+                || $suffix !== $currentSuffix
+                || $formatPattern !==
+                    (string) $current[
+                        'format_pattern'
+                    ]
+                || (
+                    $padding !== null
+                    && $padding !==
+                        (int) $current[
+                            'number_padding'
+                        ]
+                )
+                || (
+                    $nextNumber !== null
+                    && $nextNumber !==
+                        (int) $current[
+                            'next_sequence_number'
+                        ]
+                );
+
+            if (
+                $locked
+                && $sensitiveChanged
+            ) {
+                $errors['locked'] =
+                    'این منبع شماره قبلاً استفاده شده است؛ مشخصات شماره‌گذاری آن قفل شده و فقط عنوان قابل ویرایش است.';
+            }
+
+            if ($errors !== []) {
+                return [
+                    'ok' => false,
+                    'errors' => $errors,
+                ];
+            }
+
+            $pdo =
+                $this->runtime
+                    ->connection();
+
+            if (
+                !$locked
+                && $code !==
+                    (string) $current['code']
+                && $this->sequenceCodeExistsExcluding(
+                    $pdo,
+                    (int) $current[
+                        'root_organization_id'
+                    ],
+                    $current[
+                        'organization_id'
+                    ] !== null
+                        ? (int) $current[
+                            'organization_id'
+                        ]
+                        : null,
+                    (int) $current[
+                        'secretariat_desk_id'
+                    ],
+                    (int) $current[
+                        'registry_period_id'
+                    ],
+                    $code,
+                    (int) $current['id']
+                )
+            ) {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'code' =>
+                            'این کد منبع شماره در دامنه انتخاب‌شده قبلاً استفاده شده است.',
+                    ],
+                ];
+            }
+
+            $now =
+                Clock::databaseTimestamp();
+
+            if ($locked) {
+                $statement =
+                    $pdo->prepare("
+                        UPDATE registry_number_sequences
+                        SET
+                            title = ?,
+                            updated_at = ?
+                        WHERE id = ?
+                          AND public_reference = ?
+                    ");
+
+                $statement->execute([
+                    $title,
+                    $now,
+                    (int) $current['id'],
+                    $publicReference,
+                ]);
+
+            } else {
+                $statement =
+                    $pdo->prepare("
+                        UPDATE registry_number_sequences
+                        SET
+                            code = ?,
+                            title = ?,
+                            prefix = ?,
+                            suffix = ?,
+                            format_pattern = ?,
+                            number_padding = ?,
+                            next_sequence_number = ?,
+                            updated_at = ?
+                        WHERE id = ?
+                          AND public_reference = ?
+                    ");
+
+                $statement->execute([
+                    $code,
+                    $title,
+                    $prefix,
+                    $suffix,
+                    $formatPattern,
+                    (int) $padding,
+                    (int) $nextNumber,
+                    $now,
+                    (int) $current['id'],
+                    $publicReference,
+                ]);
+            }
+
+            return [
+                'ok' => true,
+                'public_reference' =>
+                    $publicReference,
+                'locked' =>
+                    $locked,
+            ];
+
+        } catch (Throwable) {
+            return [
+                'ok' => false,
+                'errors' => [
+                    'runtime' =>
+                        'ویرایش منبع شماره انجام نشد.',
+                ],
+            ];
+        }
+    }
+
     public function createBook(
         array $input,
         int $userId
@@ -2490,6 +2942,186 @@ final class SecretariatManagementService
             );
 
         return $row ?: null;
+    }
+
+    private function sequenceForActorByReference(
+        string $publicReference,
+        array $actor
+    ): ?array {
+        $publicReference =
+            trim(
+                $publicReference
+            );
+
+        if ($publicReference === '') {
+            return null;
+        }
+
+        $ids =
+            $this->allowedOrganizationIds(
+                $actor
+            );
+
+        if ($ids === []) {
+            return null;
+        }
+
+        [$in, $params] =
+            $this->inClause(
+                $ids
+            );
+
+        $statement =
+            $this->runtime
+                ->connection()
+                ->prepare("
+                    SELECT DISTINCT s.*
+
+                    FROM registry_number_sequences s
+
+                    INNER JOIN secretariat_desks d
+                        ON d.id =
+                            s.secretariat_desk_id
+
+                    INNER JOIN
+                        secretariat_desk_organizations dso
+                        ON dso.secretariat_desk_id =
+                            d.id
+
+                    WHERE s.public_reference = ?
+                      AND s.root_organization_id = ?
+                      AND s.status = 'active'
+                      AND d.status = 'active'
+                      AND dso.status = 'active'
+
+                      AND dso.organization_id
+                            IN ({$in})
+
+                      AND (
+                            dso.valid_from IS NULL
+                            OR dso.valid_from
+                                <= UTC_TIMESTAMP()
+                      )
+
+                      AND (
+                            dso.valid_until IS NULL
+                            OR dso.valid_until
+                                >= UTC_TIMESTAMP()
+                      )
+
+                      AND (
+                            s.organization_id IS NULL
+                            OR s.organization_id
+                                IN ({$in})
+                      )
+
+                    LIMIT 1
+                ");
+
+        $statement->execute(
+            array_merge(
+                [
+                    $publicReference,
+
+                    (int) $actor[
+                        'root_organization_id'
+                    ],
+                ],
+                $params,
+                $params
+            )
+        );
+
+        $row =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        return $row ?: null;
+    }
+
+    private function sequenceUsage(
+        int $sequenceId
+    ): array {
+        $statement =
+            $this->runtime
+                ->connection()
+                ->prepare("
+                    SELECT
+                        (
+                            SELECT COUNT(*)
+                            FROM registry_books
+                            WHERE number_sequence_id = ?
+                        ) AS books,
+
+                        (
+                            SELECT COUNT(*)
+                            FROM registry_number_reservations
+                            WHERE number_sequence_id = ?
+                        ) AS reservations
+                ");
+
+        $statement->execute([
+            $sequenceId,
+            $sequenceId,
+        ]);
+
+        $row =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            ) ?: [];
+
+        return [
+            'books' =>
+                (int) (
+                    $row['books']
+                    ?? 0
+                ),
+
+            'reservations' =>
+                (int) (
+                    $row['reservations']
+                    ?? 0
+                ),
+        ];
+    }
+
+    private function sequenceCodeExistsExcluding(
+        PDO $pdo,
+        int $rootId,
+        ?int $organizationId,
+        int $deskId,
+        int $periodId,
+        string $code,
+        int $excludeSequenceId
+    ): bool {
+        $statement =
+            $pdo->prepare("
+                SELECT COUNT(*)
+
+                FROM registry_number_sequences
+
+                WHERE root_organization_id = ?
+                  AND organization_scope_key =
+                        COALESCE(?, 0)
+                  AND secretariat_desk_id = ?
+                  AND registry_period_id = ?
+                  AND code = ?
+                  AND id <> ?
+            ");
+
+        $statement->execute([
+            $rootId,
+            $organizationId,
+            $deskId,
+            $periodId,
+            $code,
+            $excludeSequenceId,
+        ]);
+
+        return
+            (int) $statement
+                ->fetchColumn() > 0;
     }
 
     private function deskServesOrganization(

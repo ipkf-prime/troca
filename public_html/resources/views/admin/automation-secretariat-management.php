@@ -64,6 +64,12 @@ $statusMessages = [
     'sequence_saved' =>
         'منبع شماره با موفقیت ایجاد شد.',
 
+    'sequence_updated' =>
+        'منبع شماره با موفقیت ویرایش شد.',
+
+    'sequence_not_found' =>
+        'منبع شماره موردنظر در دامنه مجاز شما پیدا نشد.',
+
     'book_saved' =>
         'دفتر ثبت با موفقیت ایجاد شد.',
 
@@ -114,6 +120,29 @@ $checked =
             ? ' checked'
             : '';
     };
+
+$editingSequenceReference =
+    trim(
+        (string) (
+            $formInput[
+                'edit_sequence_reference'
+            ]
+            ?? ''
+        )
+    );
+
+$isSequenceEdit =
+    $activeSection === 'sequence'
+    && $editingSequenceReference !== '';
+
+$sequenceLocked =
+    $isSequenceEdit
+    && (string) (
+        $formInput[
+            'sequence_locked'
+        ]
+        ?? '0'
+    ) === '1';
 
 $servedInput =
     $formInput[
@@ -809,9 +838,32 @@ ob_start();
                 </div>
             <?php endif; ?>
 
+            <?php if ($isSequenceEdit): ?>
+                <div class="admin-alert">
+                    <?php if ($sequenceLocked): ?>
+                        این منبع شماره قبلاً استفاده شده است؛
+                        مشخصات شماره‌گذاری آن قفل هستند و فقط عنوان
+                        قابل ویرایش است.
+                    <?php else: ?>
+                        در حال ویرایش منبع شماره هستید.
+                        چون هنوز دفتر ثبت یا شماره رسمی به آن وابسته نیست،
+                        مشخصات شماره‌گذاری قابل اصلاح است.
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
             <form
                 method="post"
-                action="/admin/automation/secretariat/sequences"
+                action="<?= admin_h(
+                    $isSequenceEdit
+                        ? (
+                            '/admin/automation/secretariat/sequences/'
+                            . rawurlencode(
+                                $editingSequenceReference
+                            )
+                        )
+                        : '/admin/automation/secretariat/sequences'
+                ) ?>"
             >
                 <input
                     type="hidden"
@@ -825,6 +877,7 @@ ob_start();
                         <select
                             name="secretariat_desk_id"
                             required
+                            <?= $isSequenceEdit ? 'disabled' : '' ?>
                         >
                             <?php foreach ($desks as $desk): ?>
                                 <option
@@ -845,6 +898,7 @@ ob_start();
                         <select
                             name="registry_period_id"
                             required
+                            <?= $isSequenceEdit ? 'disabled' : '' ?>
                         >
                             <?php foreach ($periods as $period): ?>
                                 <option
@@ -855,9 +909,11 @@ ob_start();
                                     ) ?>
                                 >
                                     <?= admin_h(
-                                        ($period['title'] ?? '')
-                                        . ' ـ '
-                                        . ($period['organization_title'] ?? '')
+                                        $digits(
+                                            ($period['title'] ?? '')
+                                            . ' ـ '
+                                            . ($period['organization_title'] ?? '')
+                                        )
                                     ) ?>
                                 </option>
                             <?php endforeach; ?>
@@ -871,6 +927,7 @@ ob_start();
                             data-scope-controller
                             data-scope-target="#sequence-organization-field"
                             data-shared-value="shared"
+                            <?= $isSequenceEdit ? 'disabled' : '' ?>
                         >
                             <option
                                 value="organization"
@@ -897,7 +954,10 @@ ob_start();
 
                     <label id="sequence-organization-field">
                         <span>سازمان</span>
-                        <select name="organization_id">
+                        <select
+                            name="organization_id"
+                            <?= $isSequenceEdit ? 'disabled' : '' ?>
+                        >
                             <?php foreach ($organizations as $organization): ?>
                                 <option
                                     value="<?= admin_h($organization['id']) ?>"
@@ -923,6 +983,7 @@ ob_start();
                             maxlength="100"
                             required
                             placeholder="incoming"
+                            <?= $sequenceLocked ? 'disabled' : '' ?>
                             value="<?= admin_h($inputValue('code')) ?>"
                         >
                     </label>
@@ -946,6 +1007,7 @@ ob_start();
                             maxlength="50"
                             dir="ltr"
                             placeholder="IN-"
+                            <?= $sequenceLocked ? 'disabled' : '' ?>
                             value="<?= admin_h($inputValue('prefix')) ?>"
                         >
                     </label>
@@ -957,6 +1019,7 @@ ob_start();
                             name="suffix"
                             maxlength="50"
                             dir="ltr"
+                            <?= $sequenceLocked ? 'disabled' : '' ?>
                             value="<?= admin_h($inputValue('suffix')) ?>"
                         >
                     </label>
@@ -969,6 +1032,7 @@ ob_start();
                             maxlength="255"
                             dir="ltr"
                             required
+                            <?= $sequenceLocked ? 'disabled' : '' ?>
                             value="<?= admin_h(
                                 $inputValue(
                                     'format_pattern',
@@ -988,6 +1052,7 @@ ob_start();
                             name="number_padding"
                             inputmode="numeric"
                             data-persian-number-input
+                            <?= $sequenceLocked ? 'disabled' : '' ?>
                             value="<?= admin_h(
                                 $digits(
                                     $inputValue(
@@ -1006,6 +1071,7 @@ ob_start();
                             name="next_sequence_number"
                             inputmode="numeric"
                             data-persian-number-input
+                            <?= $sequenceLocked ? 'disabled' : '' ?>
                             value="<?= admin_h(
                                 $digits(
                                     $inputValue(
@@ -1024,7 +1090,16 @@ ob_start();
                         class="admin-button"
                         type="submit"
                         <?= $desks === [] || $periods === [] ? 'disabled' : '' ?>
-                    >ثبت منبع شماره</button>
+                    ><?= $isSequenceEdit
+                        ? 'ذخیره ویرایش'
+                        : 'ثبت منبع شماره' ?></button>
+
+                    <?php if ($isSequenceEdit): ?>
+                        <a
+                            class="admin-button"
+                            href="/admin/automation/secretariat?section=sequence"
+                        >انصراف از ویرایش</a>
+                    <?php endif; ?>
                 </div>
             </form>
 
@@ -1047,17 +1122,60 @@ ob_start();
                                 <th>دوره</th>
                                 <th>دامنه</th>
                                 <th>شماره بعدی</th>
+                                <th>عملیات</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($sequences as $sequence): ?>
                                 <tr>
-                                    <td><?= admin_h($sequence['title'] ?? '') ?></td>
-                                    <td class="automation-secretariat-code"><?= admin_h($sequence['code'] ?? '') ?></td>
-                                    <td><?= admin_h($sequence['desk_title'] ?? '') ?></td>
-                                    <td><?= admin_h($sequence['period_title'] ?? '') ?></td>
-                                    <td><?= admin_h($sequence['organization_title'] ?? '') ?></td>
-                                    <td><?= admin_h($digits($sequence['next_sequence_number'] ?? 1)) ?></td>
+                                    <td><?= admin_h(
+                                        $digits(
+                                            $sequence['title'] ?? ''
+                                        )
+                                    ) ?></td>
+
+                                    <td class="automation-secretariat-code"><?= admin_h(
+                                        $sequence['code'] ?? ''
+                                    ) ?></td>
+
+                                    <td><?= admin_h(
+                                        $digits(
+                                            $sequence['desk_title'] ?? ''
+                                        )
+                                    ) ?></td>
+
+                                    <td><?= admin_h(
+                                        $digits(
+                                            $sequence['period_title'] ?? ''
+                                        )
+                                    ) ?></td>
+
+                                    <td><?= admin_h(
+                                        $digits(
+                                            $sequence['organization_title'] ?? ''
+                                        )
+                                    ) ?></td>
+
+                                    <td><?= admin_h(
+                                        $digits(
+                                            $sequence[
+                                                'next_sequence_number'
+                                            ] ?? 1
+                                        )
+                                    ) ?></td>
+
+                                    <td>
+                                        <a
+                                            href="/admin/automation/secretariat?section=sequence&amp;edit_sequence=<?= rawurlencode(
+                                                (string) (
+                                                    $sequence[
+                                                        'public_reference'
+                                                    ]
+                                                    ?? ''
+                                                )
+                                            ) ?>"
+                                        >ویرایش</a>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
