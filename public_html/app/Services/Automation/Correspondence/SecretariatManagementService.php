@@ -1993,7 +1993,7 @@ final class SecretariatManagementService
                     'ok' => false,
                     'errors' => [
                         'number_sequence_id' =>
-                            'راهبرد استفاده از Sequence با دفترهای فعال موجود سازگار نیست. Sequence اختصاصی قابل اشتراک نیست و Sequence مشترک فقط میان دفترهای مشترک قابل استفاده است.',
+                            'راهبرد استفاده از منبع شماره با دفترهای فعال موجود سازگار نیست. منبع شماره اختصاصی قابل اشتراک نیست و منبع شماره مشترک فقط میان دفترهای مشترک قابل استفاده است.',
                     ],
                 ];
             }
@@ -2027,9 +2027,15 @@ final class SecretariatManagementService
             $now =
                 Clock::databaseTimestamp();
 
+            $publicReference =
+                $this->publicReference(
+                    'RBOOK'
+                );
+
             $statement =
                 $pdo->prepare("
                     INSERT INTO registry_books (
+                        public_reference,
                         root_organization_id,
                         organization_id,
                         organization_public_reference,
@@ -2054,6 +2060,7 @@ final class SecretariatManagementService
                         ?,
                         ?,
                         ?,
+                        ?,
                         NULL,
                         NULL,
                         ?,
@@ -2074,6 +2081,8 @@ final class SecretariatManagementService
                 ");
 
             $statement->execute([
+                $publicReference,
+
                 (int) $actor[
                     'root_organization_id'
                 ],
@@ -2116,6 +2125,8 @@ final class SecretariatManagementService
 
             return [
                 'ok' => true,
+                'public_reference' =>
+                    $publicReference,
             ];
 
         } catch (Throwable) {
@@ -2123,7 +2134,7 @@ final class SecretariatManagementService
                 'ok' => false,
                 'errors' => [
                     'runtime' =>
-                        'ثبت دفتر شماره انجام نشد.',
+                        'ثبت دفتر ثبت انجام نشد.',
                 ],
             ];
         }
