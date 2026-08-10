@@ -617,7 +617,6 @@ ob_start();
                     <label>
                         <span>کد دوره</span>
                         <input
-                            class="automation-secretariat-code"
                             name="code"
                             maxlength="100"
                             required
@@ -638,8 +637,13 @@ ob_start();
                             name="title"
                             maxlength="255"
                             required
+                            data-persian-number-input
                             placeholder="سال ۱۴۰۵"
-                            value="<?= admin_h($inputValue('title')) ?>"
+                            value="<?= admin_h(
+                                $digits(
+                                    $inputValue('title')
+                                )
+                            ) ?>"
                         >
                     </label>
 

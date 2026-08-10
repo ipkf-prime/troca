@@ -3042,8 +3042,10 @@ final class SecretariatManagementService
         $value =
             strtolower(
                 trim(
-                    (string) (
-                        $value ?? ''
+                    PersianDate::normalizeDigits(
+                        (string) (
+                            $value ?? ''
+                        )
                     )
                 )
             );
