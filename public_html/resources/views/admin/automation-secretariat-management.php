@@ -621,8 +621,14 @@ ob_start();
                             name="code"
                             maxlength="100"
                             required
-                            placeholder="1405"
-                            value="<?= admin_h($inputValue('code')) ?>"
+                            inputmode="numeric"
+                            data-persian-number-input
+                            placeholder="۱۴۰۵"
+                            value="<?= admin_h(
+                                $digits(
+                                    $inputValue('code')
+                                )
+                            ) ?>"
                         >
                     </label>
 
@@ -957,10 +963,13 @@ ob_start();
                         <input
                             name="number_padding"
                             inputmode="numeric"
+                            data-persian-number-input
                             value="<?= admin_h(
-                                $inputValue(
-                                    'number_padding',
-                                    '5'
+                                $digits(
+                                    $inputValue(
+                                        'number_padding',
+                                        '5'
+                                    )
                                 )
                             ) ?>"
                             required
@@ -972,10 +981,13 @@ ob_start();
                         <input
                             name="next_sequence_number"
                             inputmode="numeric"
+                            data-persian-number-input
                             value="<?= admin_h(
-                                $inputValue(
-                                    'next_sequence_number',
-                                    '1'
+                                $digits(
+                                    $inputValue(
+                                        'next_sequence_number',
+                                        '1'
+                                    )
                                 )
                             ) ?>"
                             required

@@ -135,6 +135,159 @@ document.addEventListener("DOMContentLoaded", () => {
         .replace(/[٠-٩]/g, (digit) => "٠١٢٣٤٥٦٧٨٩".indexOf(digit));
 
     const toPersianDigits = (value) => String(value ?? "").replace(/\d/g, (digit) => "۰۱۲۳۴۵۶۷۸۹"[Number(digit)]);
+
+    /*
+     * Shared Persian admin validation contract.
+     *
+     * Browser-native validation messages depend on
+     * browser / operating-system language and therefore
+     * must not be exposed directly to Persian users.
+     */
+    const adminValidationMessage = (field) => {
+        const validity = field.validity;
+
+        if (validity.valueMissing) {
+            return "تکمیل این فیلد الزامی است.";
+        }
+
+        if (validity.typeMismatch) {
+            return "مقدار واردشده با نوع این فیلد سازگار نیست.";
+        }
+
+        if (validity.patternMismatch) {
+            return "قالب مقدار واردشده صحیح نیست.";
+        }
+
+        if (validity.tooShort) {
+            return "مقدار واردشده کوتاه‌تر از حد مجاز است.";
+        }
+
+        if (validity.tooLong) {
+            return "مقدار واردشده بلندتر از حد مجاز است.";
+        }
+
+        if (validity.rangeUnderflow) {
+            return "مقدار واردشده از حداقل مجاز کمتر است.";
+        }
+
+        if (validity.rangeOverflow) {
+            return "مقدار واردشده از حداکثر مجاز بیشتر است.";
+        }
+
+        if (validity.stepMismatch) {
+            return "مقدار واردشده با گام مجاز این فیلد سازگار نیست.";
+        }
+
+        if (validity.badInput) {
+            return "مقدار واردشده معتبر نیست.";
+        }
+
+        return "مقدار واردشده معتبر نیست.";
+    };
+
+    const isAdminFormField = (field) =>
+        field instanceof HTMLInputElement
+        || field instanceof HTMLSelectElement
+        || field instanceof HTMLTextAreaElement;
+
+    document.addEventListener(
+        "invalid",
+        (event) => {
+            const field = event.target;
+
+            if (!isAdminFormField(field)) {
+                return;
+            }
+
+            /*
+             * Preserve application-specific custom
+             * messages such as Persian date validation.
+             */
+            if (
+                field.validity.customError
+                && field.dataset.adminNativeValidation !== "1"
+            ) {
+                return;
+            }
+
+            field.setCustomValidity("");
+
+            if (!field.validity.valid) {
+                field.setCustomValidity(
+                    adminValidationMessage(field)
+                );
+
+                field.dataset.adminNativeValidation = "1";
+            }
+        },
+        true
+    );
+
+    const clearGeneratedValidation = (event) => {
+        const field = event.target;
+
+        if (
+            !isAdminFormField(field)
+            || field.dataset.adminNativeValidation !== "1"
+        ) {
+            return;
+        }
+
+        field.setCustomValidity("");
+        delete field.dataset.adminNativeValidation;
+    };
+
+    document.addEventListener(
+        "input",
+        clearGeneratedValidation,
+        true
+    );
+
+    document.addEventListener(
+        "change",
+        clearGeneratedValidation,
+        true
+    );
+
+    /*
+     * Visible numeric inputs explicitly participating
+     * in the Persian-number contract.
+     * Stored/technical normalization remains server-side.
+     */
+    const localizePersianNumberInput = (field) => {
+        if (
+            !(field instanceof HTMLInputElement)
+            || !field.matches("[data-persian-number-input]")
+        ) {
+            return;
+        }
+
+        field.value = String(field.value ?? "")
+            .replace(
+                /[0-9]/g,
+                (digit) =>
+                    "۰۱۲۳۴۵۶۷۸۹"[Number(digit)]
+            )
+            .replace(
+                /[٠-٩]/g,
+                (digit) =>
+                    "۰۱۲۳۴۵۶۷۸۹"[
+                        "٠١٢٣٤٥٦٧٨٩".indexOf(digit)
+                    ]
+            );
+    };
+
+    document.querySelectorAll(
+        "[data-persian-number-input]"
+    ).forEach(localizePersianNumberInput);
+
+    document.addEventListener(
+        "input",
+        (event) => {
+            localizePersianNumberInput(event.target);
+        },
+        true
+    );
     const dateDiv = (a, b) => Math.trunc(a / b);
     const dateMod = (a, b) => a - dateDiv(a, b) * b;
 
