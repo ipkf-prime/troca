@@ -231,38 +231,70 @@ $accountNav = $themeUserId !== null
             min-width: 0;
         }
 
-        .admin-nav__group-toggle {
+        .admin-nav__group-row {
             align-items: center;
-            appearance: none;
-            background: transparent;
-            border: 0;
             border-radius: 10px;
             color: var(--admin-sidebar-text-muted);
-            cursor: pointer;
             display: flex;
-            font: inherit;
-            gap: 11px;
-            min-height: 44px;
-            padding: 10px 11px;
-            text-align: right;
-            width: 100%;
+            min-width: 0;
         }
 
-        .admin-nav__group-toggle:hover {
+        .admin-nav__group-row:hover {
             background: rgba(255, 255, 255, .12);
             color: var(--admin-sidebar-text);
         }
 
-        .admin-nav__group-toggle.is-active {
+        .admin-nav__group-row.is-active {
             background: var(--admin-sidebar-active-bg);
             color: var(--admin-sidebar-active-text);
             font-weight: var(--admin-font-weight-bold);
         }
 
-        .admin-nav__group-toggle.is-active
+        .admin-nav__group-row.is-active
             .admin-nav__icon {
             background: rgba(255, 255, 255, .22);
             border-color: rgba(255, 255, 255, .24);
+        }
+
+        .admin-nav__group-link {
+            align-items: center;
+            color: inherit;
+            display: flex;
+            flex: 1 1 auto;
+            gap: 11px;
+            min-height: 44px;
+            min-width: 0;
+            padding: 10px 11px;
+            text-decoration: none;
+        }
+
+        .admin-nav__group-link:focus-visible {
+            border-radius: 10px;
+            outline: 2px solid currentColor;
+            outline-offset: -2px;
+        }
+
+        .admin-nav__group-toggle {
+            align-items: center;
+            appearance: none;
+            background: transparent;
+            border: 0;
+            border-radius: 8px;
+            color: inherit;
+            cursor: pointer;
+            display: inline-flex;
+            flex: 0 0 34px;
+            height: 34px;
+            justify-content: center;
+            margin-inline-end: 5px;
+            padding: 0;
+            width: 34px;
+        }
+
+        .admin-nav__group-toggle:hover,
+        .admin-nav__group-toggle:focus-visible {
+            background: rgba(255, 255, 255, .14);
+            outline: none;
         }
 
         .admin-nav__group-title {
@@ -550,10 +582,12 @@ $accountNav = $themeUserId !== null
                         ? $item['children']
                         : [];
 
-                    $groupActive = admin_nav_is_active(
+                    $itemActive = admin_nav_is_active(
                         $item,
                         $currentPath
                     );
+
+                    $groupActive = $itemActive;
 
                     foreach ($children as $child) {
                         if (admin_nav_is_active(
@@ -571,56 +605,77 @@ $accountNav = $themeUserId !== null
                             class="admin-nav__group"
                             data-admin-nav-group
                         >
-                            <button
-                                class="admin-nav__group-toggle<?=
+                            <div
+                                class="admin-nav__group-row<?=
                                     $groupActive
                                         ? ' is-active'
                                         : ''
                                 ?>"
-                                type="button"
-                                aria-expanded="<?=
-                                    $groupActive
-                                        ? 'true'
-                                        : 'false'
-                                ?>"
-                                data-admin-nav-group-toggle
                             >
-                                <span class="admin-nav__icon">
+                                <a
+                                    class="admin-nav__group-link"
+                                    href="<?= admin_h($href) ?>"
                                     <?=
-                                        \App\Support\AdminIcon::html(
-                                            (string) (
-                                                $item['icon']
-                                                ?? 'dashboard'
-                                            )
-                                        )
+                                        $itemActive
+                                            ? 'aria-current="page"'
+                                            : ''
                                     ?>
-                                </span>
-
-                                <span
-                                    class="admin-nav__group-title"
                                 >
-                                    <?= admin_h(
-                                        $item['title'] ?? ''
-                                    ) ?>
-                                </span>
+                                    <span class="admin-nav__icon">
+                                        <?=
+                                            \App\Support\AdminIcon::html(
+                                                (string) (
+                                                    $item['icon']
+                                                    ?? 'dashboard'
+                                                )
+                                            )
+                                        ?>
+                                    </span>
 
-                                <?php if (
-                                    ($item['badge'] ?? '') !== ''
-                                ): ?>
-                                    <small
-                                        class="admin-nav__badge"
+                                    <span
+                                        class="admin-nav__group-title"
                                     >
                                         <?= admin_h(
-                                            $item['badge']
+                                            $item['title'] ?? ''
                                         ) ?>
-                                    </small>
-                                <?php endif; ?>
+                                    </span>
 
-                                <span
-                                    class="admin-nav__group-chevron"
-                                    aria-hidden="true"
-                                ></span>
-                            </button>
+                                    <?php if (
+                                        ($item['badge'] ?? '') !== ''
+                                    ): ?>
+                                        <small
+                                            class="admin-nav__badge"
+                                        >
+                                            <?= admin_h(
+                                                $item['badge']
+                                            ) ?>
+                                        </small>
+                                    <?php endif; ?>
+                                </a>
+
+                                <button
+                                    class="admin-nav__group-toggle"
+                                    type="button"
+                                    aria-expanded="<?=
+                                        $groupActive
+                                            ? 'true'
+                                            : 'false'
+                                    ?>"
+                                    aria-label="<?= admin_h(
+                                        'باز و بسته کردن زیرمنوی '
+                                        . (
+                                            $item['title']
+                                            ?? ''
+                                        )
+                                    ) ?>"
+                                    data-admin-nav-group-toggle
+                                >
+                                    <span
+                                        class="admin-nav__group-chevron"
+                                        aria-hidden="true"
+                                    ></span>
+                                </button>
+                            </div>
 
                             <div
                                 class="admin-nav__children"
