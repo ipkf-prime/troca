@@ -1798,6 +1798,88 @@ $router->post('/admin/access-control/roles', function (
     }
 });
 
+$router->post(
+    '/admin/access-control/users/default-role',
+    function (
+        $request,
+        $response
+    ) use ($adminGuard) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/access'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        if (
+            !(new \IPKF\Security\Csrf())
+                ->check(
+                    (string) $request
+                        ->input(
+                            '_token',
+                            ''
+                        )
+                )
+        ) {
+            return $response->redirect(
+                '/admin/access-control'
+                . '?tab=users'
+                . '&status=invalid_csrf'
+            );
+        }
+
+        $userId =
+            max(
+                0,
+                (int) $request->input(
+                    'user_id',
+                    0
+                )
+            );
+
+        try {
+            (new \App\Services\AccessControlService())
+                ->saveDefaultRole(
+                    (int) $context[
+                        'user_id'
+                    ],
+                    $request->all(),
+                    (string) (
+                        $_SERVER[
+                            'REMOTE_ADDR'
+                        ]
+                        ?? ''
+                    )
+                );
+
+            return $response->redirect(
+                '/admin/access-control'
+                . '?tab=users'
+                . '&user_id='
+                . $userId
+                . '&status=default_role_saved'
+            );
+
+        } catch (\Throwable $exception) {
+            return $response->redirect(
+                '/admin/access-control'
+                . '?tab=users'
+                . '&user_id='
+                . $userId
+                . '&status='
+                . rawurlencode(
+                    $exception
+                        ->getMessage()
+                )
+            );
+        }
+    }
+);
+
+
 $router->post('/admin/access-control/users', function (
     $request,
     $response

@@ -28,6 +28,30 @@ class AccessService extends BaseService
         return $assignment;
     }
 
+    public function selectPreferred(
+        int $userId
+    ): ?array {
+        $assignment =
+            $this->roles
+                ->defaultAssignmentForUser(
+                    $userId
+                )
+            ?? $this->roles
+                ->lowestAssignmentForUser(
+                    $userId
+                );
+
+        if ($assignment !== null) {
+            Session::put(
+                'active_role_assignment_id',
+                (int) $assignment['id']
+            );
+        }
+
+        return $assignment;
+    }
+
+
     public function activeAssignment(int $userId): ?array
     {
         $id = Session::get('active_role_assignment_id');
@@ -40,7 +64,7 @@ class AccessService extends BaseService
             }
         }
 
-        return $this->selectLowest($userId);
+        return $this->selectPreferred($userId);
     }
 
     public function switchTo(int $userId, int $assignmentId): ?array

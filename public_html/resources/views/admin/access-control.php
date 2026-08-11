@@ -38,6 +38,26 @@ $assignments = is_array($page['assignments'] ?? null)
     ? $page['assignments']
     : [];
 $assignmentId = (int) ($page['assignment_id'] ?? 0);
+
+$defaultAssignmentId = 0;
+
+foreach ($assignments as $assignment) {
+    if (
+        (int) (
+            $assignment['is_default']
+            ?? 0
+        ) === 1
+    ) {
+        $defaultAssignmentId =
+            (int) (
+                $assignment['id']
+                ?? 0
+            );
+
+        break;
+    }
+}
+
 $overrides = is_array($page['overrides'] ?? null)
     ? $page['overrides']
     : [];
@@ -137,6 +157,9 @@ $auditChangeTitles = [
     'user_policy_updated' => 'تغییر سیاست دسترسی کاربر',
     'user_permission_overrides_updated' =>
         'تغییر استثناهای دسترسی کاربر',
+
+    'default_role_assignment_updated' =>
+        'تغییر نقش پیش‌فرض کاربر',
 ];
 
 $auditChangeLabel = static fn ($value): string =>
@@ -148,6 +171,15 @@ $notices = [
         ['ok', 'مجوزهای نقش ذخیره شد.'],
     'user_policy_saved' =>
         ['ok', 'سیاست دسترسی کاربر ذخیره شد.'],
+
+    'default_role_saved' =>
+        ['ok', 'نقش پیش‌فرض کاربر ذخیره شد.'],
+
+    'access_default_assignment_invalid' =>
+        ['error', 'نقش پیش‌فرض انتخاب‌شده معتبر یا فعال نیست.'],
+
+    'access_default_role_not_supported' =>
+        ['error', 'زیرساخت نقش پیش‌فرض هنوز فعال نشده است.'],
     'invalid_csrf' =>
         ['error', 'نشست فرم معتبر نیست.'],
     'access_reason_required' =>
@@ -890,6 +922,84 @@ ob_start();
                         </label>
                     </form>
                 </header>
+
+                <section class="acl-default-role">
+                    <div>
+                        <span>نقش پیش‌فرض</span>
+                        <strong>نقش فعال پس از ورود</strong>
+                        <small>
+                            اگر نقش پیش‌فرض فعال باشد، کاربر پس از ورود
+                            مستقیماً با همان نقش وارد می‌شود. در صورت
+                            غیرفعال یا منقضی شدن آن، سامانه به انتخاب
+                            خودکار برمی‌گردد.
+                        </small>
+                    </div>
+
+                    <form
+                        method="post"
+                        action="/admin/access-control/users/default-role"
+                    >
+                        <input
+                            type="hidden"
+                            name="_token"
+                            value="<?= admin_h($csrf) ?>"
+                        >
+
+                        <input
+                            type="hidden"
+                            name="user_id"
+                            value="<?= (int) $selectedUser['id'] ?>"
+                        >
+
+                        <label>
+                            <span>نقش پیش‌فرض</span>
+
+                            <select
+                                name="default_role_assignment_id"
+                            >
+                                <option
+                                    value="0"
+                                    <?= $defaultAssignmentId === 0
+                                        ? 'selected'
+                                        : '' ?>
+                                >
+                                    انتخاب خودکار
+                                </option>
+
+                                <?php foreach (
+                                    $assignments
+                                    as $assignment
+                                ): ?>
+                                    <option
+                                        value="<?= (int) $assignment['id'] ?>"
+                                        <?= (int) $assignment['id']
+                                            === $defaultAssignmentId
+                                                ? 'selected'
+                                                : '' ?>
+                                    >
+                                        <?= admin_h(
+                                            $assignment['role_title']
+                                            . ' — '
+                                            . $scopeLabel(
+                                                $assignment['scope_type']
+                                            )
+                                        ) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+
+                        <button
+                            class="admin-button admin-button--compact"
+                            type="submit"
+                            <?= $assignments === []
+                                ? 'disabled'
+                                : '' ?>
+                        >
+                            ذخیره نقش پیش‌فرض
+                        </button>
+                    </form>
+                </section>
 
                 <form
                     method="post"
@@ -1928,6 +2038,55 @@ ob_start();
 .acl-assignment {
     flex: 0 1 460px;
     min-width: 260px;
+}
+
+.acl-default-role {
+    align-items: end;
+    background: var(--admin-primary-soft);
+    border: 1px solid var(--admin-border);
+    border-radius: 11px;
+    display: grid;
+    gap: .75rem;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 460px);
+    padding: .65rem;
+}
+
+.acl-default-role > div {
+    display: grid;
+    gap: .06rem;
+}
+
+.acl-default-role > div > span {
+    color: var(--admin-primary);
+    font-size: .65rem;
+    font-weight: 800;
+}
+
+.acl-default-role > div > strong {
+    font-size: .76rem;
+}
+
+.acl-default-role > div > small {
+    color: var(--admin-text-muted);
+    font-size: .62rem;
+    line-height: 1.7;
+}
+
+.acl-default-role > form {
+    align-items: end;
+    display: grid;
+    gap: .45rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.acl-default-role label {
+    display: grid;
+    gap: .2rem;
+}
+
+.acl-default-role label > span {
+    font-size: .64rem;
+    font-weight: 800;
 }
 
 .acl-user-policy {

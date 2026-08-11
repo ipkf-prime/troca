@@ -223,6 +223,7 @@ class AccessControlRepository extends BaseRepository
         $statement = $this->connection()->prepare("
             SELECT
                 user_role_assignments.id,
+                user_role_assignments.is_default,
                 roles.id AS role_id,
                 roles.code AS role_code,
                 roles.title AS role_title,
@@ -239,6 +240,196 @@ class AccessControlRepository extends BaseRepository
 
         return $statement->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
+
+    public function saveDefaultRoleAssignment(
+        int $userId,
+        int $assignmentId,
+        int $actorUserId,
+        string $ip
+    ): void {
+        if (
+            !Database::columnExists(
+                'user_role_assignments',
+                'is_default'
+            )
+        ) {
+            throw new RuntimeException(
+                'access_default_role_not_supported'
+            );
+        }
+
+        if ($this->user($userId) === null) {
+            throw new RuntimeException(
+                'access_user_not_found'
+            );
+        }
+
+        $db =
+            $this->connection();
+
+        $db->beginTransaction();
+
+        try {
+            $lock =
+                $db->prepare("
+                    SELECT
+                        user_role_assignments.id,
+                        user_role_assignments.is_default
+
+                    FROM user_role_assignments
+
+                    WHERE user_role_assignments.user_id = ?
+
+                    FOR UPDATE
+                ");
+
+            $lock->execute([
+                $userId,
+            ]);
+
+            $currentRows =
+                $lock->fetchAll(
+                    PDO::FETCH_ASSOC
+                ) ?: [];
+
+            $oldAssignmentId = 0;
+
+            foreach ($currentRows as $row) {
+                if (
+                    (int) (
+                        $row['is_default']
+                        ?? 0
+                    ) === 1
+                ) {
+                    $oldAssignmentId =
+                        (int) $row['id'];
+
+                    break;
+                }
+            }
+
+            if ($assignmentId > 0) {
+                $target =
+                    $db->prepare("
+                        SELECT
+                            user_role_assignments.id
+
+                        FROM user_role_assignments
+
+                        INNER JOIN roles
+                            ON roles.id =
+                                user_role_assignments.role_id
+
+                        WHERE
+                            user_role_assignments.id = ?
+                            AND user_role_assignments.user_id = ?
+                            AND user_role_assignments.is_active = 1
+                            AND roles.is_active = 1
+
+                            AND (
+                                user_role_assignments.starts_at
+                                    IS NULL
+                                OR user_role_assignments.starts_at
+                                    <= CURRENT_TIMESTAMP
+                            )
+
+                            AND (
+                                user_role_assignments.ends_at
+                                    IS NULL
+                                OR user_role_assignments.ends_at
+                                    >= CURRENT_TIMESTAMP
+                            )
+
+                        LIMIT 1
+                    ");
+
+                $target->execute([
+                    $assignmentId,
+                    $userId,
+                ]);
+
+                if (
+                    $target->fetchColumn()
+                    === false
+                ) {
+                    throw new RuntimeException(
+                        'access_default_assignment_invalid'
+                    );
+                }
+            }
+
+            $clear =
+                $db->prepare("
+                    UPDATE user_role_assignments
+
+                    SET
+                        is_default = 0,
+                        updated_at =
+                            CURRENT_TIMESTAMP
+
+                    WHERE user_id = ?
+                      AND is_default <> 0
+                ");
+
+            $clear->execute([
+                $userId,
+            ]);
+
+            if ($assignmentId > 0) {
+                $set =
+                    $db->prepare("
+                        UPDATE user_role_assignments
+
+                        SET
+                            is_default = 1,
+                            updated_at =
+                                CURRENT_TIMESTAMP
+
+                        WHERE id = ?
+                          AND user_id = ?
+                    ");
+
+                $set->execute([
+                    $assignmentId,
+                    $userId,
+                ]);
+
+                if ($set->rowCount() !== 1) {
+                    throw new RuntimeException(
+                        'access_default_assignment_invalid'
+                    );
+                }
+            }
+
+            $this->log(
+                $actorUserId,
+                'user',
+                $userId,
+                $assignmentId,
+                'default_role_assignment_updated',
+                [
+                    'assignment_id' =>
+                        $oldAssignmentId,
+                ],
+                [
+                    'assignment_id' =>
+                        $assignmentId,
+                ],
+                'تغییر نقش پیش‌فرض کاربر',
+                $ip
+            );
+
+            $db->commit();
+
+        } catch (Throwable $exception) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+
+            throw $exception;
+        }
+    }
+
 
     public function overrideMap(int $userId, int $assignmentId): array
     {

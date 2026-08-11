@@ -24,6 +24,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateIdentityAccessFoundationTables::class,
                     \IPKF\Database\Migrations\CreateAdminPanelShellTables::class,
                     \IPKF\Database\Migrations\AddScopedAdminThemeSettings::class,
+                    \IPKF\Database\Migrations\AddDefaultRoleAssignmentSelection::class,
                     \IPKF\Database\Migrations\CreateAdminUsersOrganizationTables::class,
                     \IPKF\Database\Migrations\CreateExtendedPersonDataTables::class,
                     \IPKF\Database\Migrations\CreateDynamicOrganizationCoreTables::class,

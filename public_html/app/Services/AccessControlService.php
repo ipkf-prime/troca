@@ -139,6 +139,61 @@ class AccessControlService extends BaseService
         ];
     }
 
+    public function saveDefaultRole(
+        int $actorUserId,
+        array $input,
+        string $ip
+    ): array {
+        $this->authorize(
+            $actorUserId,
+            [
+                'access.manage',
+                'access.users.manage',
+            ]
+        );
+
+        $userId =
+            max(
+                0,
+                (int) (
+                    $input['user_id']
+                    ?? 0
+                )
+            );
+
+        $assignmentId =
+            max(
+                0,
+                (int) (
+                    $input[
+                        'default_role_assignment_id'
+                    ]
+                    ?? 0
+                )
+            );
+
+        if ($userId < 1) {
+            throw new RuntimeException(
+                'access_user_not_found'
+            );
+        }
+
+        $this->repository
+            ->saveDefaultRoleAssignment(
+                $userId,
+                $assignmentId,
+                $actorUserId,
+                $ip
+            );
+
+        return [
+            'user_id' => $userId,
+            'assignment_id' =>
+                $assignmentId,
+        ];
+    }
+
+
     private function authorize(int $userId, array $permissions): void
     {
         foreach ($permissions as $permission) {

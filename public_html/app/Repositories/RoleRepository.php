@@ -82,6 +82,73 @@ class RoleRepository extends BaseRepository
         return $assignment ?: null;
     }
 
+    public function defaultAssignmentForUser(
+        int $userId
+    ): ?array {
+        if (
+            !Database::columnExists(
+                'user_role_assignments',
+                'is_default'
+            )
+        ) {
+            return null;
+        }
+
+        $priority =
+            $this->priorityExpression();
+
+        $statement =
+            $this->connection()
+                ->prepare("
+                    SELECT
+                        user_role_assignments.*,
+                        roles.code AS role_code,
+                        roles.title AS role_title,
+                        {$priority} AS priority
+
+                    FROM user_role_assignments
+
+                    INNER JOIN roles
+                        ON roles.id =
+                            user_role_assignments.role_id
+
+                    WHERE
+                        user_role_assignments.user_id = ?
+
+                        AND user_role_assignments.is_default = 1
+                        AND user_role_assignments.is_active = 1
+                        AND roles.is_active = 1
+
+                        AND (
+                            user_role_assignments.starts_at
+                                IS NULL
+                            OR user_role_assignments.starts_at
+                                <= CURRENT_TIMESTAMP
+                        )
+
+                        AND (
+                            user_role_assignments.ends_at
+                                IS NULL
+                            OR user_role_assignments.ends_at
+                                >= CURRENT_TIMESTAMP
+                        )
+
+                    LIMIT 1
+                ");
+
+        $statement->execute([
+            $userId,
+        ]);
+
+        $assignment =
+            $statement->fetch();
+
+        return
+            $assignment
+                ?: null;
+    }
+
+
     public function lowestAssignmentForUser(int $userId): ?array
     {
         $assignments = $this->assignmentsForUser($userId);

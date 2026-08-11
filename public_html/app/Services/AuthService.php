@@ -71,7 +71,7 @@ class AuthService extends BaseService
 
         $access = new AccessService();
         $access->ensureDefaultAssignment($userId);
-        $activeAssignment = $access->selectLowest(
+        $activeAssignment = $access->selectPreferred(
             $userId
         );
 

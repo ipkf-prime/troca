@@ -103,6 +103,7 @@ try {
         new \IPKF\Database\Migrations\CreateIdentityAccessFoundationTables(),
         new \IPKF\Database\Migrations\CreateAdminPanelShellTables(),
         new \IPKF\Database\Migrations\AddScopedAdminThemeSettings(),
+        new \IPKF\Database\Migrations\AddDefaultRoleAssignmentSelection(),
         new \IPKF\Database\Migrations\CreateAdminUsersOrganizationTables(),
         new \IPKF\Database\Migrations\CreateExtendedPersonDataTables(),
         new \IPKF\Database\Migrations\CreateDynamicOrganizationCoreTables(),
