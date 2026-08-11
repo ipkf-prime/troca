@@ -4863,12 +4863,6 @@ final class SecretariatManagementService
                         +
                         (
                             SELECT COUNT(*)
-                            FROM registry_number_reservations
-                            WHERE registry_period_id = ?
-                        )
-                        +
-                        (
-                            SELECT COUNT(*)
                             FROM correspondence_registrations
                             WHERE registry_period_id = ?
                         )
@@ -4876,7 +4870,6 @@ final class SecretariatManagementService
                 ");
 
         $statement->execute([
-            $periodId,
             $periodId,
             $periodId,
             $periodId,
