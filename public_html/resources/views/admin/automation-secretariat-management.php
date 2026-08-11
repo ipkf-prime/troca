@@ -21,6 +21,8 @@ $status = (string) ($status ?? '');
 $organizations = $page['organizations'] ?? [];
 $orgUnits = $page['org_units'] ?? [];
 $desks = $page['desks'] ?? [];
+$appointments = $page['appointments'] ?? [];
+$memberships = $page['memberships'] ?? [];
 $periods = $page['periods'] ?? [];
 $sequences = $page['sequences'] ?? [];
 $books = $page['books'] ?? [];
@@ -45,6 +47,20 @@ $actorOrganizationId =
 $csrf =
     (new \IPKF\Security\Csrf())
         ->token();
+
+$activeMembershipCount =
+    count(
+        array_filter(
+            $memberships,
+            static fn (
+                array $row
+            ): bool =>
+                (string) (
+                    $row['status']
+                    ?? ''
+                ) === 'active'
+        )
+    );
 
 $digits =
     static fn (
@@ -90,6 +106,12 @@ $statusMessages = [
 
     'book_not_found' =>
         'دفتر ثبت موردنظر در دامنه مجاز شما پیدا نشد.',
+
+    'member_saved' =>
+        'عضویت دبیرخانه با موفقیت ثبت شد.',
+
+    'member_deactivated' =>
+        'عضویت دبیرخانه با موفقیت غیرفعال شد.',
 
     'invalid_csrf' =>
         'اعتبار فرم منقضی شده است. فرم را دوباره ارسال کنید.',
@@ -424,8 +446,8 @@ ob_start();
     <div>
         <h2>مدیریت دبیرخانه و دفاتر ثبت</h2>
         <p>
-            تعریف دبیرخانه، دوره ثبت، منبع شماره و دفترهای وارده،
-            صادره و داخلی در دامنه سازمانی فعال
+            تعریف دبیرخانه، دوره ثبت، منبع شماره، دفترهای ثبت
+            و اعضای عملیاتی دبیرخانه در دامنه سازمانی فعال
         </p>
     </div>
 
@@ -472,7 +494,7 @@ ob_start();
         <div>
             <h2>راه‌اندازی دبیرخانه</h2>
             <p class="admin-muted">
-                ترتیب پیشنهادی: دبیرخانه ← دوره ثبت ← منبع شماره ← دفتر ثبت.
+                ترتیب پیشنهادی: دبیرخانه ← دوره ثبت ← منبع شماره ← دفتر ثبت ← اعضای دبیرخانه.
             </p>
         </div>
     </div>
@@ -501,6 +523,11 @@ ob_start();
                 'book',
                 'دفتر ثبت',
                 count($books),
+            ],
+            [
+                'member',
+                'اعضای دبیرخانه',
+                $activeMembershipCount,
             ],
         ] as [$sectionCode, $sectionLabel, $sectionCount]): ?>
             <a
@@ -2020,6 +2047,361 @@ ob_start();
                                                     $bookReference
                                                 ) ?>"
                                             >ویرایش</a>
+                                        <?php else: ?>
+                                            —
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+    </details>
+
+    <!-- STEP 5 -->
+    <details
+        class="automation-secretariat-step"
+        <?= $activeSection === 'member' ? 'open' : 'hidden' ?>
+    >
+        <summary>
+            مرحله ۵ ـ اعضای دبیرخانه
+        </summary>
+
+        <div class="automation-secretariat-step__body">
+            <div class="automation-secretariat-step__head">
+                <div>
+                    <h3>اعضای عملیاتی دبیرخانه</h3>
+                    <p class="admin-muted">
+                        عضویت بر مبنای انتصاب سازمانی فعال ثبت می‌شود؛
+                        تغییر کاربر یا جایگاه، عضویت دبیرخانه را به حساب
+                        کاربری مستقل تبدیل نمی‌کند.
+                    </p>
+                </div>
+            </div>
+
+            <?php if ($desks === []): ?>
+                <div class="admin-alert automation-secretariat-prerequisite">
+                    ابتدا حداقل یک دبیرخانه تعریف کنید.
+                </div>
+            <?php elseif ($appointments === []): ?>
+                <div class="admin-alert automation-secretariat-prerequisite">
+                    هیچ انتصاب سازمانی فعال در دامنه مجاز پیدا نشد.
+                </div>
+            <?php endif; ?>
+
+            <form
+                method="post"
+                action="/admin/automation/secretariat/memberships"
+            >
+                <input
+                    type="hidden"
+                    name="_token"
+                    value="<?= admin_h($csrf) ?>"
+                >
+
+                <div class="admin-form-grid">
+                    <label>
+                        <span>دبیرخانه</span>
+
+                        <select
+                            name="secretariat_desk_reference"
+                            required
+                        >
+                            <?php foreach ($desks as $desk): ?>
+                                <option
+                                    value="<?= admin_h(
+                                        $desk[
+                                            'public_reference'
+                                        ] ?? ''
+                                    ) ?>"
+                                    <?= $selected(
+                                        $inputValue(
+                                            'secretariat_desk_reference'
+                                        ),
+                                        $desk[
+                                            'public_reference'
+                                        ] ?? ''
+                                    ) ?>
+                                >
+                                    <?= admin_h(
+                                        $desk[
+                                            'title_fa'
+                                        ] ?? ''
+                                    ) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+
+                    <label>
+                        <span>انتصاب سازمانی</span>
+
+                        <select
+                            name="appointment_reference"
+                            required
+                        >
+                            <?php foreach (
+                                $appointments
+                                as $appointment
+                            ): ?>
+                                <option
+                                    value="<?= admin_h(
+                                        $appointment[
+                                            'appointment_reference'
+                                        ] ?? ''
+                                    ) ?>"
+                                    <?= $selected(
+                                        $inputValue(
+                                            'appointment_reference'
+                                        ),
+                                        $appointment[
+                                            'appointment_reference'
+                                        ] ?? ''
+                                    ) ?>
+                                >
+                                    <?= admin_h(
+                                        (
+                                            $appointment[
+                                                'person_name'
+                                            ] ?? ''
+                                        )
+                                        . ' ـ '
+                                        . (
+                                            $appointment[
+                                                'position_title'
+                                            ] ?? ''
+                                        )
+                                        . ' ـ '
+                                        . (
+                                            $appointment[
+                                                'organization_title'
+                                            ] ?? ''
+                                        )
+                                    ) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+
+                    <label>
+                        <span>نقش عملیاتی</span>
+
+                        <select
+                            name="membership_role_code"
+                            required
+                        >
+                            <option
+                                value="operator"
+                                <?= $selected(
+                                    $inputValue(
+                                        'membership_role_code',
+                                        'operator'
+                                    ),
+                                    'operator'
+                                ) ?>
+                            >اپراتور دبیرخانه</option>
+
+                            <option
+                                value="supervisor"
+                                <?= $selected(
+                                    $inputValue(
+                                        'membership_role_code'
+                                    ),
+                                    'supervisor'
+                                ) ?>
+                            >سرپرست دبیرخانه</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div class="automation-secretariat-flags">
+                    <label>
+                        <input
+                            type="checkbox"
+                            name="is_primary"
+                            value="1"
+                            <?= $checked(
+                                'is_primary',
+                                false
+                            ) ?>
+                        >
+                        دبیرخانه اصلی این انتصاب
+                    </label>
+                </div>
+
+                <p class="admin-muted">
+                    «دبیرخانه اصلی» فقط اولویت عملیاتی این انتصاب را
+                    مشخص می‌کند و به‌تنهایی مجوز ثبت مکاتبه ایجاد نمی‌کند.
+                </p>
+
+                <div class="admin-form-actions">
+                    <button
+                        class="admin-button"
+                        type="submit"
+                        <?= (
+                            $desks === []
+                            || $appointments === []
+                        ) ? 'disabled' : '' ?>
+                    >ثبت عضویت</button>
+                </div>
+            </form>
+
+            <h4 class="automation-secretariat-table-title">
+                عضویت‌های دبیرخانه
+            </h4>
+
+            <?php if ($memberships === []): ?>
+                <div class="admin-empty-state">
+                    هنوز هیچ انتصابی عضو دبیرخانه نشده است.
+                </div>
+            <?php else: ?>
+                <div class="admin-users-table-wrap">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>شخص</th>
+                                <th>سمت</th>
+                                <th>سازمان</th>
+                                <th>دبیرخانه</th>
+                                <th>نقش</th>
+                                <th>اصلی</th>
+                                <th>وضعیت</th>
+                                <th>عملیات</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            <?php foreach (
+                                $memberships
+                                as $membership
+                            ): ?>
+                                <?php
+                                $membershipRoleLabels = [
+                                    'operator' =>
+                                        'اپراتور',
+                                    'supervisor' =>
+                                        'سرپرست',
+                                ];
+
+                                $membershipStatus =
+                                    (string) (
+                                        $membership[
+                                            'status'
+                                        ]
+                                        ?? ''
+                                    );
+
+                                $membershipActive =
+                                    $membershipStatus
+                                    === 'active';
+                                ?>
+
+                                <tr>
+                                    <td>
+                                        <?= admin_h(
+                                            (
+                                                $membership[
+                                                    'person_name'
+                                                ] ?? ''
+                                            ) !== ''
+                                                ? $membership[
+                                                    'person_name'
+                                                ]
+                                                : $membership[
+                                                    'appointment_reference'
+                                                ]
+                                        ) ?>
+                                    </td>
+
+                                    <td>
+                                        <?= admin_h(
+                                            $membership[
+                                                'position_title'
+                                            ] ?? '—'
+                                        ) ?>
+                                    </td>
+
+                                    <td>
+                                        <?= admin_h(
+                                            $membership[
+                                                'organization_title'
+                                            ] ?? '—'
+                                        ) ?>
+                                    </td>
+
+                                    <td>
+                                        <?= admin_h(
+                                            $membership[
+                                                'desk_title'
+                                            ] ?? ''
+                                        ) ?>
+                                    </td>
+
+                                    <td>
+                                        <?= admin_h(
+                                            $membershipRoleLabels[
+                                                (string) (
+                                                    $membership[
+                                                        'membership_role_code'
+                                                    ]
+                                                    ?? ''
+                                                )
+                                            ]
+                                            ?? '—'
+                                        ) ?>
+                                    </td>
+
+                                    <td>
+                                        <?= (
+                                            (int) (
+                                                $membership[
+                                                    'is_primary'
+                                                ]
+                                                ?? 0
+                                            ) === 1
+                                        )
+                                            ? 'بله'
+                                            : 'خیر' ?>
+                                    </td>
+
+                                    <td>
+                                        <?= $membershipActive
+                                            ? 'فعال'
+                                            : 'غیرفعال' ?>
+                                    </td>
+
+                                    <td>
+                                        <?php if ($membershipActive): ?>
+                                            <form
+                                                class="automation-secretariat-inline-form"
+                                                method="post"
+                                                action="/admin/automation/secretariat/memberships/deactivate"
+                                            >
+                                                <input
+                                                    type="hidden"
+                                                    name="_token"
+                                                    value="<?= admin_h(
+                                                        $csrf
+                                                    ) ?>"
+                                                >
+
+                                                <input
+                                                    type="hidden"
+                                                    name="membership_id"
+                                                    value="<?= admin_h(
+                                                        $membership[
+                                                            'id'
+                                                        ] ?? ''
+                                                    ) ?>"
+                                                >
+
+                                                <button
+                                                    class="automation-secretariat-action-button"
+                                                    type="submit"
+                                                >غیرفعال‌سازی</button>
+                                            </form>
                                         <?php else: ?>
                                             —
                                         <?php endif; ?>

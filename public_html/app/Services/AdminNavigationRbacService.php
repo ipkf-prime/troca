@@ -31,6 +31,8 @@ class AdminNavigationRbacService extends BaseService
             '/admin/automation/secretariat/periods' => 'automation.registry.manage',
             '/admin/automation/secretariat/sequences' => 'automation.registry.manage',
             '/admin/automation/secretariat/books' => 'automation.registry.manage',
+            '/admin/automation/secretariat/memberships' => 'automation.registry.manage',
+            '/admin/automation/secretariat/memberships/deactivate' => 'automation.registry.manage',
             '/admin/work' => 'work.project.view',
             '/admin/work/projects' => 'work.project.view',
             '/admin/work/projects/create' => 'work.project.manage',

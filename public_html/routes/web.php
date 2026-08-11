@@ -2958,6 +2958,7 @@ $router->get(
                     'period',
                     'sequence',
                     'book',
+                    'member',
                 ],
                 true
             )) {
@@ -3420,6 +3421,117 @@ $router->post(
             'edit_book_reference',
             'edit_book'
         );
+    }
+);
+
+$router->post(
+    '/admin/automation/secretariat/memberships',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $secretariatManagementCreate
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/secretariat/memberships'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        return $secretariatManagementCreate(
+            $request,
+            $response,
+            $context,
+            'saveDeskMembership',
+            'member',
+            'member_saved'
+        );
+    }
+);
+
+$router->post(
+    '/admin/automation/secretariat/memberships/deactivate',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $secretariatManagementRender,
+        $automationUnavailable
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/secretariat/memberships/deactivate'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        if (!(new \IPKF\Security\Csrf())->check(
+            (string) $request->input(
+                '_token',
+                ''
+            )
+        )) {
+            return $response->redirect(
+                '/admin/automation/secretariat'
+                . '?section=member'
+                . '&status=invalid_csrf'
+            );
+        }
+
+        try {
+            $service =
+                new \App\Services\Automation\Correspondence\SecretariatManagementService();
+
+            $result =
+                $service->deactivateDeskMembership(
+                    $request->all(),
+                    (int) $context['user_id']
+                );
+
+            if (
+                ($result['ok'] ?? false)
+                === true
+            ) {
+                return $response->redirect(
+                    '/admin/automation/secretariat'
+                    . '?section=member'
+                    . '&status=member_deactivated'
+                );
+            }
+
+            return $secretariatManagementRender(
+                $response,
+                $context,
+                is_array(
+                    $result['errors']
+                    ?? null
+                )
+                    ? $result['errors']
+                    : [
+                        'invalid' =>
+                            'عضویت دبیرخانه معتبر نیست.',
+                    ],
+                'member',
+                [],
+                '',
+                422
+            );
+
+        } catch (\Throwable) {
+            return $automationUnavailable(
+                $response,
+                $context
+            );
+        }
     }
 );
 

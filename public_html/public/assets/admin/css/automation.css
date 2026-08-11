@@ -318,3 +318,13 @@ body.automation-shell {
     gap: 10px;
     margin-top: 22px;
 }
+
+.automation-secretariat-inline-form {
+    display: inline-flex;
+    margin: 0;
+}
+
+button.automation-secretariat-action-button {
+    font-family: inherit;
+    cursor: pointer;
+}

@@ -91,6 +91,31 @@ final class SecretariatManagementService
             ] = $desk;
         }
 
+        $appointments =
+            $this->appointmentOptions(
+                $actor
+            );
+
+        $appointmentMap = [];
+
+        foreach (
+            $appointments
+            as $appointment
+        ) {
+            $appointmentMap[
+                (string) $appointment[
+                    'appointment_reference'
+                ]
+            ] = $appointment;
+        }
+
+        $memberships =
+            $this->deskMemberships(
+                $actor,
+                $deskMap,
+                $appointmentMap
+            );
+
         $periods =
             $this->periods(
                 $actor,
@@ -145,6 +170,12 @@ final class SecretariatManagementService
             'desks' =>
                 $desks,
 
+            'appointments' =>
+                $appointments,
+
+            'memberships' =>
+                $memberships,
+
             'periods' =>
                 $periods,
 
@@ -163,6 +194,478 @@ final class SecretariatManagementService
                 ],
         ];
     }
+
+    public function saveDeskMembership(
+        array $input,
+        int $userId
+    ): array {
+        try {
+            $actor =
+                $this->enterpriseContext
+                    ->forUser(
+                        $userId
+                    );
+
+            $errors = [];
+
+            $deskReference =
+                trim(
+                    (string) (
+                        $input[
+                            'secretariat_desk_reference'
+                        ]
+                        ?? ''
+                    )
+                );
+
+            $appointmentReference =
+                trim(
+                    (string) (
+                        $input[
+                            'appointment_reference'
+                        ]
+                        ?? ''
+                    )
+                );
+
+            $membershipRole =
+                $this->code(
+                    $input[
+                        'membership_role_code'
+                    ] ?? 'operator'
+                );
+
+            $isPrimary =
+                $this->booleanInput(
+                    $input[
+                        'is_primary'
+                    ] ?? null
+                );
+
+            if ($deskReference === '') {
+                $errors[
+                    'secretariat_desk_reference'
+                ] =
+                    'انتخاب دبیرخانه الزامی است.';
+            }
+
+            if ($appointmentReference === '') {
+                $errors[
+                    'appointment_reference'
+                ] =
+                    'انتخاب انتصاب سازمانی الزامی است.';
+            }
+
+            if (
+                !in_array(
+                    $membershipRole,
+                    [
+                        'operator',
+                        'supervisor',
+                    ],
+                    true
+                )
+            ) {
+                $errors[
+                    'membership_role_code'
+                ] =
+                    'نقش عملیاتی دبیرخانه معتبر نیست.';
+            }
+
+            $desk =
+                $deskReference !== ''
+                    ? $this->deskForActorByReference(
+                        $deskReference,
+                        $actor
+                    )
+                    : null;
+
+            if ($desk === null) {
+                $errors[
+                    'secretariat_desk_reference'
+                ] =
+                    'دبیرخانه انتخاب‌شده در دامنه مجاز شما قرار ندارد.';
+            }
+
+            $appointment =
+                $appointmentReference !== ''
+                    ? $this->appointmentForActorByReference(
+                        $appointmentReference,
+                        $actor
+                    )
+                    : null;
+
+            if ($appointment === null) {
+                $errors[
+                    'appointment_reference'
+                ] =
+                    'انتصاب انتخاب‌شده فعال یا در دامنه سازمانی مجاز نیست.';
+            }
+
+            if (
+                $desk !== null
+                && $appointment !== null
+            ) {
+                $servedOrganizationIds =
+                    $this->deskServedOrganizationIds(
+                        (int) $desk['id'],
+                        $actor
+                    );
+
+                $appointmentOrganizationId =
+                    (int) $appointment[
+                        'organization_id'
+                    ];
+
+                if (
+                    !in_array(
+                        $appointmentOrganizationId,
+                        $servedOrganizationIds,
+                        true
+                    )
+                ) {
+                    $errors[
+                        'appointment_reference'
+                    ] =
+                        'سازمان این انتصاب تحت خدمت دبیرخانه انتخاب‌شده نیست.';
+                }
+            }
+
+            if ($errors !== []) {
+                return [
+                    'ok' => false,
+                    'errors' => $errors,
+                ];
+            }
+
+            $pdo =
+                $this->runtime
+                    ->connection();
+
+            $now =
+                Clock::databaseTimestamp();
+
+            try {
+                $pdo->beginTransaction();
+
+                if ($isPrimary) {
+                    $clearPrimary =
+                        $pdo->prepare("
+                            UPDATE
+                                secretariat_desk_appointments a
+
+                            INNER JOIN
+                                secretariat_desks d
+                                ON d.id =
+                                    a.secretariat_desk_id
+
+                            SET
+                                a.is_primary = 0,
+                                a.updated_at = ?
+
+                            WHERE
+                                d.root_organization_id = ?
+                                AND a.appointment_id = ?
+                                AND a.status = 'active'
+                        ");
+
+                    $clearPrimary->execute([
+                        $now,
+                        (int) $actor[
+                            'root_organization_id'
+                        ],
+                        (int) $appointment[
+                            'appointment_id'
+                        ],
+                    ]);
+                }
+
+                $statement =
+                    $pdo->prepare("
+                        INSERT INTO
+                            secretariat_desk_appointments (
+                                secretariat_desk_id,
+                                root_organization_id,
+                                organization_id,
+
+                                appointment_id,
+                                appointment_reference,
+
+                                membership_role_code,
+                                is_primary,
+                                status,
+
+                                valid_from,
+                                valid_until,
+
+                                created_at,
+                                updated_at
+                            )
+                        VALUES (
+                            ?,
+                            ?,
+                            ?,
+
+                            ?,
+                            ?,
+
+                            ?,
+                            ?,
+                            'active',
+
+                            ?,
+                            NULL,
+
+                            ?,
+                            ?
+                        )
+
+                        ON DUPLICATE KEY UPDATE
+                            root_organization_id =
+                                VALUES(
+                                    root_organization_id
+                                ),
+
+                            organization_id =
+                                VALUES(
+                                    organization_id
+                                ),
+
+                            appointment_reference =
+                                VALUES(
+                                    appointment_reference
+                                ),
+
+                            membership_role_code =
+                                VALUES(
+                                    membership_role_code
+                                ),
+
+                            is_primary =
+                                VALUES(
+                                    is_primary
+                                ),
+
+                            status = 'active',
+
+                            valid_from =
+                                VALUES(
+                                    valid_from
+                                ),
+
+                            valid_until = NULL,
+
+                            updated_at =
+                                VALUES(
+                                    updated_at
+                                )
+                    ");
+
+                $statement->execute([
+                    (int) $desk['id'],
+
+                    (int) $actor[
+                        'root_organization_id'
+                    ],
+
+                    (int) $appointment[
+                        'organization_id'
+                    ],
+
+                    (int) $appointment[
+                        'appointment_id'
+                    ],
+
+                    (string) $appointment[
+                        'appointment_reference'
+                    ],
+
+                    $membershipRole,
+
+                    $isPrimary
+                        ? 1
+                        : 0,
+
+                    $now,
+                    $now,
+                    $now,
+                ]);
+
+                $pdo->commit();
+
+                return [
+                    'ok' => true,
+                ];
+
+            } catch (Throwable) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'runtime' =>
+                            'ثبت عضویت دبیرخانه انجام نشد.',
+                    ],
+                ];
+            }
+
+        } catch (Throwable) {
+            return [
+                'ok' => false,
+                'errors' => [
+                    'organizational_context' =>
+                        'جایگاه سازمانی فعال برای مدیریت دبیرخانه در دسترس نیست.',
+                ],
+            ];
+        }
+    }
+
+
+    public function deactivateDeskMembership(
+        array $input,
+        int $userId
+    ): array {
+        try {
+            $actor =
+                $this->enterpriseContext
+                    ->forUser(
+                        $userId
+                    );
+
+            $membershipId =
+                $this->positiveInt(
+                    $input[
+                        'membership_id'
+                    ] ?? null
+                );
+
+            if ($membershipId === null) {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'membership_id' =>
+                            'عضویت دبیرخانه معتبر نیست.',
+                    ],
+                ];
+            }
+
+            $pdo =
+                $this->runtime
+                    ->connection();
+
+            $statement =
+                $pdo->prepare("
+                    SELECT
+                        a.*,
+                        d.public_reference
+                            AS desk_public_reference
+
+                    FROM
+                        secretariat_desk_appointments a
+
+                    INNER JOIN
+                        secretariat_desks d
+                        ON d.id =
+                            a.secretariat_desk_id
+
+                    WHERE a.id = ?
+                      AND d.root_organization_id = ?
+
+                    LIMIT 1
+                ");
+
+            $statement->execute([
+                $membershipId,
+                (int) $actor[
+                    'root_organization_id'
+                ],
+            ]);
+
+            $membership =
+                $statement->fetch(
+                    PDO::FETCH_ASSOC
+                );
+
+            if (!is_array($membership)) {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'membership' =>
+                            'عضویت دبیرخانه پیدا نشد.',
+                    ],
+                ];
+            }
+
+            $desk =
+                $this->deskForActorByReference(
+                    (string) $membership[
+                        'desk_public_reference'
+                    ],
+                    $actor
+                );
+
+            if ($desk === null) {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'membership' =>
+                            'این عضویت خارج از دامنه مدیریتی شما است.',
+                    ],
+                ];
+            }
+
+            if (
+                (string) (
+                    $membership['status']
+                    ?? ''
+                ) !== 'active'
+            ) {
+                return [
+                    'ok' => true,
+                ];
+            }
+
+            $now =
+                Clock::databaseTimestamp();
+
+            $update =
+                $pdo->prepare("
+                    UPDATE
+                        secretariat_desk_appointments
+
+                    SET
+                        status = 'inactive',
+                        is_primary = 0,
+                        valid_until = ?,
+                        updated_at = ?
+
+                    WHERE id = ?
+                      AND status = 'active'
+                ");
+
+            $update->execute([
+                $now,
+                $now,
+                $membershipId,
+            ]);
+
+            return [
+                'ok' => true,
+            ];
+
+        } catch (Throwable) {
+            return [
+                'ok' => false,
+                'errors' => [
+                    'runtime' =>
+                        'غیرفعال‌سازی عضویت دبیرخانه انجام نشد.',
+                ],
+            ];
+        }
+    }
+
 
     public function createDesk(
         array $input,
@@ -4283,6 +4786,316 @@ final class SecretariatManagementService
             ) ?: []
         );
     }
+
+    private function appointmentOptions(
+        array $actor
+    ): array {
+        $organizationIds =
+            array_values(
+                array_unique(
+                    array_filter(
+                        array_map(
+                            'intval',
+                            $actor[
+                                'accessible_organization_ids'
+                            ] ?? []
+                        ),
+                        static fn (
+                            int $id
+                        ): bool =>
+                            $id > 0
+                    )
+                )
+            );
+
+        if ($organizationIds === []) {
+            return [];
+        }
+
+        $marks =
+            implode(
+                ',',
+                array_fill(
+                    0,
+                    count(
+                        $organizationIds
+                    ),
+                    '?'
+                )
+            );
+
+        $statement =
+            $this->core->prepare("
+                SELECT
+                    u.id AS user_id,
+
+                    p.id AS person_id,
+
+                    COALESCE(
+                        NULLIF(
+                            p.display_name_fa,
+                            ''
+                        ),
+                        p.full_name
+                    ) AS person_name,
+
+                    a.id AS appointment_id,
+
+                    a.public_reference
+                        AS appointment_reference,
+
+                    a.organization_id,
+
+                    o.public_reference
+                        AS organization_reference,
+
+                    COALESCE(
+                        NULLIF(
+                            o.title_fa,
+                            ''
+                        ),
+                        o.title
+                    ) AS organization_title,
+
+                    COALESCE(
+                        NULLIF(
+                            op.title_fa,
+                            ''
+                        ),
+                        NULLIF(
+                            op.title_override,
+                            ''
+                        ),
+                        pos.title
+                    ) AS position_title,
+
+                    a.appointment_kind
+
+                FROM users u
+
+                INNER JOIN persons p
+                    ON p.id =
+                        u.person_id
+
+                INNER JOIN
+                    organization_appointments a
+                    ON a.person_id =
+                        p.id
+
+                INNER JOIN
+                    organization_positions op
+                    ON op.id =
+                        a.organization_position_id
+
+                INNER JOIN positions pos
+                    ON pos.id =
+                        op.position_id
+
+                INNER JOIN organizations o
+                    ON o.id =
+                        a.organization_id
+
+                WHERE
+                    a.organization_id
+                        IN ({$marks})
+
+                    AND u.status = 'active'
+                    AND p.status = 'active'
+
+                    AND a.status = 'active'
+                    AND a.revoked_at IS NULL
+
+                    AND (
+                        a.valid_from IS NULL
+                        OR a.valid_from
+                            <= CURRENT_DATE
+                    )
+
+                    AND (
+                        a.valid_to IS NULL
+                        OR a.valid_to
+                            >= CURRENT_DATE
+                    )
+
+                    AND op.status = 'active'
+                    AND o.is_active = 1
+
+                ORDER BY
+                    person_name,
+                    organization_title,
+                    position_title,
+                    a.id
+            ");
+
+        $statement->execute(
+            $organizationIds
+        );
+
+        return
+            $statement->fetchAll(
+                PDO::FETCH_ASSOC
+            ) ?: [];
+    }
+
+
+    private function appointmentForActorByReference(
+        string $reference,
+        array $actor
+    ): ?array {
+        $reference =
+            trim(
+                $reference
+            );
+
+        if ($reference === '') {
+            return null;
+        }
+
+        foreach (
+            $this->appointmentOptions(
+                $actor
+            )
+            as $appointment
+        ) {
+            if (
+                hash_equals(
+                    (string) $appointment[
+                        'appointment_reference'
+                    ],
+                    $reference
+                )
+            ) {
+                return $appointment;
+            }
+        }
+
+        return null;
+    }
+
+
+    private function deskMemberships(
+        array $actor,
+        array $deskMap,
+        array $appointmentMap
+    ): array {
+        $deskIds =
+            array_values(
+                array_unique(
+                    array_filter(
+                        array_map(
+                            'intval',
+                            array_keys(
+                                $deskMap
+                            )
+                        ),
+                        static fn (
+                            int $id
+                        ): bool =>
+                            $id > 0
+                    )
+                )
+            );
+
+        if ($deskIds === []) {
+            return [];
+        }
+
+        $marks =
+            implode(
+                ',',
+                array_fill(
+                    0,
+                    count(
+                        $deskIds
+                    ),
+                    '?'
+                )
+            );
+
+        $statement =
+            $this->runtime
+                ->connection()
+                ->prepare("
+                    SELECT
+                        a.*
+
+                    FROM
+                        secretariat_desk_appointments a
+
+                    WHERE
+                        a.root_organization_id = ?
+
+                        AND a.secretariat_desk_id
+                            IN ({$marks})
+
+                    ORDER BY
+                        CASE
+                            WHEN a.status = 'active'
+                                THEN 0
+                            ELSE 1
+                        END,
+
+                        a.is_primary DESC,
+                        a.id DESC
+                ");
+
+        $statement->execute(
+            array_merge(
+                [
+                    (int) $actor[
+                        'root_organization_id'
+                    ],
+                ],
+                $deskIds
+            )
+        );
+
+        $rows =
+            $statement->fetchAll(
+                PDO::FETCH_ASSOC
+            ) ?: [];
+
+        foreach ($rows as &$row) {
+            $desk =
+                $deskMap[
+                    (int) $row[
+                        'secretariat_desk_id'
+                    ]
+                ] ?? [];
+
+            $appointment =
+                $appointmentMap[
+                    (string) $row[
+                        'appointment_reference'
+                    ]
+                ] ?? [];
+
+            $row['desk_title'] =
+                $desk[
+                    'title_fa'
+                ] ?? '';
+
+            $row['person_name'] =
+                $appointment[
+                    'person_name'
+                ] ?? '';
+
+            $row['position_title'] =
+                $appointment[
+                    'position_title'
+                ] ?? '';
+
+            $row['organization_title'] =
+                $appointment[
+                    'organization_title'
+                ] ?? '';
+        }
+
+        unset($row);
+
+        return $rows;
+    }
+
 
     private function deskHasOperationalUsage(
         int $deskId
