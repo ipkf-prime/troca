@@ -58,8 +58,20 @@ $statusMessages = [
     'desk_saved' =>
         'دبیرخانه با موفقیت ثبت شد.',
 
+    'desk_updated' =>
+        'دبیرخانه با موفقیت ویرایش شد.',
+
+    'desk_not_found' =>
+        'دبیرخانه موردنظر در دامنه مجاز شما پیدا نشد.',
+
     'period_saved' =>
         'دوره ثبت با موفقیت ایجاد شد.',
+
+    'period_updated' =>
+        'دوره ثبت با موفقیت ویرایش شد.',
+
+    'period_not_found' =>
+        'دوره ثبت موردنظر در دامنه مجاز شما پیدا نشد.',
 
     'sequence_saved' =>
         'منبع شماره با موفقیت ایجاد شد.',
@@ -72,6 +84,12 @@ $statusMessages = [
 
     'book_saved' =>
         'دفتر ثبت با موفقیت ایجاد شد.',
+
+    'book_updated' =>
+        'دفتر ثبت با موفقیت ویرایش شد.',
+
+    'book_not_found' =>
+        'دفتر ثبت موردنظر در دامنه مجاز شما پیدا نشد.',
 
     'invalid_csrf' =>
         'اعتبار فرم منقضی شده است. فرم را دوباره ارسال کنید.',
@@ -113,13 +131,86 @@ $checked =
                 : '';
         }
 
-        return array_key_exists(
-            $name,
-            $formInput
+        if (
+            !array_key_exists(
+                $name,
+                $formInput
+            )
+        ) {
+            return '';
+        }
+
+        $value =
+            strtolower(
+                trim(
+                    (string) (
+                        $formInput[$name]
+                        ?? ''
+                    )
+                )
+            );
+
+        return in_array(
+            $value,
+            [
+                '1',
+                'true',
+                'on',
+                'yes',
+            ],
+            true
         )
             ? ' checked'
             : '';
     };
+
+$editingDeskReference =
+    trim(
+        (string) (
+            $formInput[
+                'edit_desk_reference'
+            ]
+            ?? ''
+        )
+    );
+
+$isDeskEdit =
+    $activeSection === 'desk'
+    && $editingDeskReference !== '';
+
+$deskLocked =
+    $isDeskEdit
+    && (string) (
+        $formInput[
+            'desk_locked'
+        ]
+        ?? '0'
+    ) === '1';
+
+
+$editingPeriodReference =
+    trim(
+        (string) (
+            $formInput[
+                'edit_period_reference'
+            ]
+            ?? ''
+        )
+    );
+
+$isPeriodEdit =
+    $activeSection === 'period'
+    && $editingPeriodReference !== '';
+
+$periodLocked =
+    $isPeriodEdit
+    && (string) (
+        $formInput[
+            'period_locked'
+        ]
+        ?? '0'
+    ) === '1';
+
 
 $editingSequenceReference =
     trim(
@@ -143,6 +234,31 @@ $sequenceLocked =
         ]
         ?? '0'
     ) === '1';
+
+
+$editingBookReference =
+    trim(
+        (string) (
+            $formInput[
+                'edit_book_reference'
+            ]
+            ?? ''
+        )
+    );
+
+$isBookEdit =
+    $activeSection === 'book'
+    && $editingBookReference !== '';
+
+$bookLocked =
+    $isBookEdit
+    && (string) (
+        $formInput[
+            'book_locked'
+        ]
+        ?? '0'
+    ) === '1';
+
 
 $servedInput =
     $formInput[
@@ -339,9 +455,32 @@ ob_start();
                 </div>
             </div>
 
+            <?php if ($isDeskEdit): ?>
+                <div class="admin-alert">
+                    <?php if ($deskLocked): ?>
+                        این دبیرخانه دارای وابستگی عملیاتی است؛
+                        ساختار آن قفل شده و فقط عنوان فارسی و انگلیسی
+                        قابل ویرایش است.
+                    <?php else: ?>
+                        در حال ویرایش دبیرخانه هستید.
+                        چون هنوز وابستگی عملیاتی ندارد، ساختار آن نیز
+                        قابل اصلاح است.
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
             <form
                 method="post"
-                action="/admin/automation/secretariat/desks"
+                action="<?= admin_h(
+                    $isDeskEdit
+                        ? (
+                            '/admin/automation/secretariat/desks/'
+                            . rawurlencode(
+                                $editingDeskReference
+                            )
+                        )
+                        : '/admin/automation/secretariat/desks'
+                ) ?>"
             >
                 <input
                     type="hidden"
@@ -359,6 +498,7 @@ ob_start();
                             dir="ltr"
                             required
                             placeholder="central"
+                            <?= $deskLocked ? 'disabled' : '' ?>
                             value="<?= admin_h($inputValue('code')) ?>"
                         >
                     </label>
@@ -390,6 +530,7 @@ ob_start();
                         <select
                             name="desk_kind_code"
                             data-desk-kind
+                            <?= $deskLocked ? 'disabled' : '' ?>
                         >
                             <option
                                 value="organization"
@@ -422,6 +563,7 @@ ob_start();
                             name="managing_organization_id"
                             required
                             data-managing-organization
+                            <?= $deskLocked ? 'disabled' : '' ?>
                         >
                             <?php foreach ($organizations as $organization): ?>
                                 <?php
@@ -452,6 +594,7 @@ ob_start();
                         <select
                             name="org_unit_id"
                             data-org-unit-select
+                            <?= $deskLocked ? 'disabled' : '' ?>
                         >
                             <option value="">بدون واحد مشخص</option>
 
@@ -477,6 +620,7 @@ ob_start();
                             type="checkbox"
                             name="supports_incoming"
                             value="1"
+                            <?= $deskLocked ? 'disabled' : '' ?>
                             <?= $checked(
                                 'supports_incoming',
                                 true
@@ -490,6 +634,7 @@ ob_start();
                             type="checkbox"
                             name="supports_outgoing"
                             value="1"
+                            <?= $deskLocked ? 'disabled' : '' ?>
                             <?= $checked(
                                 'supports_outgoing',
                                 true
@@ -503,6 +648,7 @@ ob_start();
                             type="checkbox"
                             name="supports_internal"
                             value="1"
+                            <?= $deskLocked ? 'disabled' : '' ?>
                             <?= $checked(
                                 'supports_internal',
                                 true
@@ -545,6 +691,7 @@ ob_start();
                                         type="checkbox"
                                         name="served_organization_ids[]"
                                         value="<?= admin_h($organizationId) ?>"
+                                        <?= $deskLocked ? 'disabled' : '' ?>
                                         <?= $isServed ? ' checked' : '' ?>
                                     >
                                     <?= admin_h($organization['title'] ?? '') ?>
@@ -558,7 +705,16 @@ ob_start();
                     <button
                         class="admin-button"
                         type="submit"
-                    >ثبت دبیرخانه</button>
+                    ><?= $isDeskEdit
+                        ? 'ذخیره ویرایش'
+                        : 'ثبت دبیرخانه' ?></button>
+
+                    <?php if ($isDeskEdit): ?>
+                        <a
+                            class="admin-button"
+                            href="/admin/automation/secretariat?section=desk"
+                        >انصراف از ویرایش</a>
+                    <?php endif; ?>
                 </div>
             </form>
 
@@ -580,10 +736,33 @@ ob_start();
                                 <th>نوع</th>
                                 <th>سازمان متولی</th>
                                 <th>سازمان‌های تحت خدمت</th>
+                                <th>عملیات</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($desks as $desk): ?>
+                                <?php
+                                $deskReference =
+                                    trim(
+                                        (string) (
+                                            $desk[
+                                                'public_reference'
+                                            ]
+                                            ?? ''
+                                        )
+                                    );
+
+                                $deskCanEdit =
+                                    $deskReference !== ''
+                                    && (
+                                        (
+                                            $desk[
+                                                'desk_kind_code'
+                                            ] ?? ''
+                                        ) !== 'shared'
+                                        || $canManageRoot
+                                    );
+                                ?>
                                 <tr>
                                     <td><?= admin_h($desk['title_fa'] ?? '') ?></td>
                                     <td class="automation-secretariat-code"><?= admin_h($desk['code'] ?? '') ?></td>
@@ -601,6 +780,18 @@ ob_start();
                                                 ?? []
                                             )
                                         ) ?>
+                                    </td>
+
+                                    <td>
+                                        <?php if ($deskCanEdit): ?>
+                                            <a
+                                                href="/admin/automation/secretariat?section=desk&amp;edit_desk=<?= rawurlencode(
+                                                    $deskReference
+                                                ) ?>"
+                                            >ویرایش</a>
+                                        <?php else: ?>
+                                            —
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -631,9 +822,31 @@ ob_start();
                 </div>
             </div>
 
+            <?php if ($isPeriodEdit): ?>
+                <div class="admin-alert">
+                    <?php if ($periodLocked): ?>
+                        این دوره ثبت دارای وابستگی عملیاتی است؛
+                        ساختار آن قفل شده و فقط عنوان قابل ویرایش است.
+                    <?php else: ?>
+                        در حال ویرایش دوره ثبت هستید.
+                        چون هنوز وابستگی عملیاتی ندارد، دامنه، کد و
+                        تاریخ‌های دوره نیز قابل اصلاح هستند.
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
             <form
                 method="post"
-                action="/admin/automation/secretariat/periods"
+                action="<?= admin_h(
+                    $isPeriodEdit
+                        ? (
+                            '/admin/automation/secretariat/periods/'
+                            . rawurlencode(
+                                $editingPeriodReference
+                            )
+                        )
+                        : '/admin/automation/secretariat/periods'
+                ) ?>"
             >
                 <input
                     type="hidden"
@@ -649,6 +862,7 @@ ob_start();
                             data-scope-controller
                             data-scope-target="#period-organization-field"
                             data-shared-value="root"
+                            <?= $periodLocked ? 'disabled' : '' ?>
                         >
                             <option
                                 value="organization"
@@ -675,7 +889,10 @@ ob_start();
 
                     <label id="period-organization-field">
                         <span>سازمان</span>
-                        <select name="organization_id">
+                        <select
+                            name="organization_id"
+                            <?= $periodLocked ? 'disabled' : '' ?>
+                        >
                             <?php foreach ($organizations as $organization): ?>
                                 <option
                                     value="<?= admin_h($organization['id']) ?>"
@@ -702,6 +919,7 @@ ob_start();
                             inputmode="numeric"
                             data-persian-number-input
                             placeholder="۱۴۰۵"
+                            <?= $periodLocked ? 'disabled' : '' ?>
                             value="<?= admin_h(
                                 $digits(
                                     $inputValue('code')
@@ -736,6 +954,7 @@ ob_start();
                                 type="text"
                                 name="starts_on_fa"
                                 data-persian-date-input
+                                <?= $periodLocked ? 'disabled' : '' ?>
                                 inputmode="numeric"
                                 autocomplete="off"
                                 placeholder="۱۴۰۵/۰۱/۰۱"
@@ -747,6 +966,7 @@ ob_start();
                                 type="hidden"
                                 name="starts_on"
                                 data-persian-date-output
+                                <?= $periodLocked ? 'disabled' : '' ?>
                                 value="<?= admin_h($inputValue('starts_on')) ?>"
                             >
 
@@ -754,6 +974,7 @@ ob_start();
                                 type="button"
                                 class="admin-persian-date__toggle"
                                 data-persian-date-toggle
+                                <?= $periodLocked ? 'disabled' : '' ?>
                                 aria-label="انتخاب تاریخ شروع"
                             >
                                 <?= \App\Support\AdminIcon::html('calendar') ?>
@@ -771,6 +992,7 @@ ob_start();
                                 type="text"
                                 name="ends_on_fa"
                                 data-persian-date-input
+                                <?= $periodLocked ? 'disabled' : '' ?>
                                 inputmode="numeric"
                                 autocomplete="off"
                                 placeholder="۱۴۰۵/۱۲/۲۹"
@@ -782,6 +1004,7 @@ ob_start();
                                 type="hidden"
                                 name="ends_on"
                                 data-persian-date-output
+                                <?= $periodLocked ? 'disabled' : '' ?>
                                 value="<?= admin_h($inputValue('ends_on')) ?>"
                             >
 
@@ -789,6 +1012,7 @@ ob_start();
                                 type="button"
                                 class="admin-persian-date__toggle"
                                 data-persian-date-toggle
+                                <?= $periodLocked ? 'disabled' : '' ?>
                                 aria-label="انتخاب تاریخ پایان"
                             >
                                 <?= \App\Support\AdminIcon::html('calendar') ?>
@@ -801,7 +1025,16 @@ ob_start();
                     <button
                         class="admin-button"
                         type="submit"
-                    >ثبت دوره</button>
+                    ><?= $isPeriodEdit
+                        ? 'ذخیره ویرایش'
+                        : 'ثبت دوره' ?></button>
+
+                    <?php if ($isPeriodEdit): ?>
+                        <a
+                            class="admin-button"
+                            href="/admin/automation/secretariat?section=period"
+                        >انصراف از ویرایش</a>
+                    <?php endif; ?>
                 </div>
             </form>
 
@@ -823,10 +1056,31 @@ ob_start();
                                 <th>دامنه</th>
                                 <th>شروع</th>
                                 <th>پایان</th>
+                                <th>عملیات</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($periods as $period): ?>
+                                <?php
+                                $periodReference =
+                                    trim(
+                                        (string) (
+                                            $period[
+                                                'public_reference'
+                                            ]
+                                            ?? ''
+                                        )
+                                    );
+
+                                $periodCanEdit =
+                                    $periodReference !== ''
+                                    && (
+                                        $period[
+                                            'organization_id'
+                                        ] !== null
+                                        || $canManageRoot
+                                    );
+                                ?>
                                 <tr>
                                     <td><?= admin_h(
                                         $digits(
@@ -853,6 +1107,18 @@ ob_start();
                                             $period['ends_on_fa'] ?? ''
                                         )
                                     ) ?></td>
+
+                                    <td>
+                                        <?php if ($periodCanEdit): ?>
+                                            <a
+                                                href="/admin/automation/secretariat?section=period&amp;edit_period=<?= rawurlencode(
+                                                    $periodReference
+                                                ) ?>"
+                                            >ویرایش</a>
+                                        <?php else: ?>
+                                            —
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -1215,16 +1481,36 @@ ob_start();
                                     ) ?></td>
 
                                     <td>
-                                        <a
-                                            href="/admin/automation/secretariat?section=sequence&amp;edit_sequence=<?= rawurlencode(
+                                        <?php
+                                        $sequenceReference =
+                                            trim(
                                                 (string) (
                                                     $sequence[
                                                         'public_reference'
                                                     ]
                                                     ?? ''
                                                 )
-                                            ) ?>"
-                                        >ویرایش</a>
+                                            );
+
+                                        $sequenceCanEdit =
+                                            $sequenceReference !== ''
+                                            && (
+                                                $sequence[
+                                                    'organization_id'
+                                                ] !== null
+                                                || $canManageRoot
+                                            );
+                                        ?>
+
+                                        <?php if ($sequenceCanEdit): ?>
+                                            <a
+                                                href="/admin/automation/secretariat?section=sequence&amp;edit_sequence=<?= rawurlencode(
+                                                    $sequenceReference
+                                                ) ?>"
+                                            >ویرایش</a>
+                                        <?php else: ?>
+                                            —
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -1265,9 +1551,31 @@ ob_start();
                 </div>
             <?php endif; ?>
 
+            <?php if ($isBookEdit): ?>
+                <div class="admin-alert">
+                    <?php if ($bookLocked): ?>
+                        این دفتر ثبت قبلاً استفاده شده است؛
+                        ساختار آن قفل شده و فقط عنوان قابل ویرایش است.
+                    <?php else: ?>
+                        در حال ویرایش دفتر ثبت هستید.
+                        چون هنوز رزرو شماره یا ثبت رسمی ندارد،
+                        ساختار دفتر نیز قابل اصلاح است.
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
             <form
                 method="post"
-                action="/admin/automation/secretariat/books"
+                action="<?= admin_h(
+                    $isBookEdit
+                        ? (
+                            '/admin/automation/secretariat/books/'
+                            . rawurlencode(
+                                $editingBookReference
+                            )
+                        )
+                        : '/admin/automation/secretariat/books'
+                ) ?>"
             >
                 <input
                     type="hidden"
@@ -1281,6 +1589,7 @@ ob_start();
                         <select
                             name="organization_id"
                             required
+                            <?= $bookLocked ? 'disabled' : '' ?>
                         >
                             <?php foreach ($organizations as $organization): ?>
                                 <option
@@ -1304,6 +1613,7 @@ ob_start();
                         <select
                             name="secretariat_desk_id"
                             required
+                            <?= $bookLocked ? 'disabled' : '' ?>
                         >
                             <?php foreach ($desks as $desk): ?>
                                 <option
@@ -1324,6 +1634,7 @@ ob_start();
                         <select
                             name="registry_period_id"
                             required
+                            <?= $bookLocked ? 'disabled' : '' ?>
                         >
                             <?php foreach ($periods as $period): ?>
                                 <option
@@ -1344,6 +1655,7 @@ ob_start();
                         <select
                             name="number_sequence_id"
                             required
+                            <?= $bookLocked ? 'disabled' : '' ?>
                         >
                             <?php foreach ($sequences as $sequence): ?>
                                 <option
@@ -1365,7 +1677,10 @@ ob_start();
 
                     <label>
                         <span>نوع دفتر</span>
-                        <select name="scope_code">
+                        <select
+                            name="scope_code"
+                            <?= $bookLocked ? 'disabled' : '' ?>
+                        >
                             <?php foreach ([
                                 'incoming' => 'وارده',
                                 'outgoing' => 'صادره',
@@ -1390,7 +1705,10 @@ ob_start();
 
                     <label>
                         <span>راهبرد شماره‌گذاری</span>
-                        <select name="numbering_strategy_code">
+                        <select
+                            name="numbering_strategy_code"
+                            <?= $bookLocked ? 'disabled' : '' ?>
+                        >
                             <option
                                 value="dedicated"
                                 <?= $selected(
@@ -1422,6 +1740,7 @@ ob_start();
                             maxlength="100"
                             required
                             placeholder="incoming-main"
+                            <?= $bookLocked ? 'disabled' : '' ?>
                             value="<?= admin_h($inputValue('code')) ?>"
                         >
                     </label>
@@ -1447,7 +1766,16 @@ ob_start();
                             || $periods === []
                             || $sequences === []
                         ) ? 'disabled' : '' ?>
-                    >ثبت دفتر</button>
+                    ><?= $isBookEdit
+                        ? 'ذخیره ویرایش'
+                        : 'ثبت دفتر' ?></button>
+
+                    <?php if ($isBookEdit): ?>
+                        <a
+                            class="admin-button"
+                            href="/admin/automation/secretariat?section=book"
+                        >انصراف از ویرایش</a>
+                    <?php endif; ?>
                 </div>
             </form>
 
@@ -1472,11 +1800,22 @@ ob_start();
                                 <th>دوره</th>
                                 <th>منبع شماره</th>
                                 <th>راهبرد</th>
+                                <th>عملیات</th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($books as $book): ?>
                                 <?php
+                                $bookReference =
+                                    trim(
+                                        (string) (
+                                            $book[
+                                                'public_reference'
+                                            ]
+                                            ?? ''
+                                        )
+                                    );
+
                                 $scopeLabels = [
                                     'incoming' => 'وارده',
                                     'outgoing' => 'صادره',
@@ -1496,6 +1835,18 @@ ob_start();
                                         <?= ($book['numbering_strategy_code'] ?? '') === 'shared'
                                             ? 'مشترک'
                                             : 'اختصاصی' ?>
+                                    </td>
+
+                                    <td>
+                                        <?php if ($bookReference !== ''): ?>
+                                            <a
+                                                href="/admin/automation/secretariat?section=book&amp;edit_book=<?= rawurlencode(
+                                                    $bookReference
+                                                ) ?>"
+                                            >ویرایش</a>
+                                        <?php else: ?>
+                                            —
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

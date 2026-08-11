@@ -613,6 +613,696 @@ final class SecretariatManagementService
         }
     }
 
+    public function deskEditForm(
+        string $publicReference,
+        int $userId
+    ): ?array {
+        try {
+            $actor =
+                $this->enterpriseContext
+                    ->forUser(
+                        $userId
+                    );
+
+            $desk =
+                $this->deskForActorByReference(
+                    $publicReference,
+                    $actor
+                );
+
+            if ($desk === null) {
+                return null;
+            }
+
+            if (
+                (string) (
+                    $desk[
+                        'desk_kind_code'
+                    ] ?? ''
+                ) === 'shared'
+                && (int) $actor[
+                    'organization_id'
+                ] !==
+                (int) $actor[
+                    'root_organization_id'
+                ]
+            ) {
+                return null;
+            }
+
+            $servedOrganizationIds =
+                $this->deskServedOrganizationIds(
+                    (int) $desk['id'],
+                    $actor
+                );
+
+            $locked =
+                $this->deskHasOperationalUsage(
+                    (int) $desk['id']
+                );
+
+            return [
+                'edit_desk_reference' =>
+                    (string) $desk[
+                        'public_reference'
+                    ],
+
+                'managing_organization_id' =>
+                    (int) $desk[
+                        'managing_organization_id'
+                    ],
+
+                'org_unit_id' =>
+                    $desk['org_unit_id'] !== null
+                        ? (int) $desk[
+                            'org_unit_id'
+                        ]
+                        : '',
+
+                'code' =>
+                    (string) (
+                        $desk['code']
+                        ?? ''
+                    ),
+
+                'title_fa' =>
+                    (string) (
+                        $desk['title_fa']
+                        ?? ''
+                    ),
+
+                'title_en' =>
+                    (string) (
+                        $desk['title_en']
+                        ?? ''
+                    ),
+
+                'desk_kind_code' =>
+                    (string) (
+                        $desk[
+                            'desk_kind_code'
+                        ]
+                        ?? 'organization'
+                    ),
+
+                'supports_incoming' =>
+                    (int) (
+                        $desk[
+                            'supports_incoming'
+                        ]
+                        ?? 0
+                    ) === 1
+                        ? '1'
+                        : '0',
+
+                'supports_outgoing' =>
+                    (int) (
+                        $desk[
+                            'supports_outgoing'
+                        ]
+                        ?? 0
+                    ) === 1
+                        ? '1'
+                        : '0',
+
+                'supports_internal' =>
+                    (int) (
+                        $desk[
+                            'supports_internal'
+                        ]
+                        ?? 0
+                    ) === 1
+                        ? '1'
+                        : '0',
+
+                'served_organization_ids' =>
+                    $servedOrganizationIds,
+
+                'desk_locked' =>
+                    $locked
+                        ? '1'
+                        : '0',
+            ];
+
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    public function updateDesk(
+        string $publicReference,
+        array $input,
+        int $userId
+    ): array {
+        try {
+            $publicReference =
+                trim(
+                    $publicReference
+                );
+
+            if ($publicReference === '') {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'desk' =>
+                            'دبیرخانه موردنظر پیدا نشد.',
+                    ],
+                ];
+            }
+
+            $actor =
+                $this->enterpriseContext
+                    ->forUser(
+                        $userId
+                    );
+
+            $current =
+                $this->deskForActorByReference(
+                    $publicReference,
+                    $actor
+                );
+
+            if ($current === null) {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'desk' =>
+                            'دبیرخانه موردنظر در دامنه مجاز شما قرار ندارد.',
+                    ],
+                ];
+            }
+
+            if (
+                (string) (
+                    $current[
+                        'desk_kind_code'
+                    ] ?? ''
+                ) === 'shared'
+                && (int) $actor[
+                    'organization_id'
+                ] !==
+                (int) $actor[
+                    'root_organization_id'
+                ]
+            ) {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'scope' =>
+                            'ویرایش دبیرخانه مشترک فقط از جایگاه سازمان ریشه/هلدینگ مجاز است.',
+                    ],
+                ];
+            }
+
+            $titleFa =
+                $this->text(
+                    $input['title_fa']
+                    ?? $current['title_fa']
+                    ?? '',
+                    255
+                );
+
+            $titleEn =
+                $this->nullableText(
+                    $input['title_en']
+                    ?? $current['title_en']
+                    ?? '',
+                    255
+                );
+
+            if ($titleFa === '') {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'title_fa' =>
+                            'عنوان فارسی دبیرخانه الزامی است.',
+                    ],
+                ];
+            }
+
+            $locked =
+                $this->deskHasOperationalUsage(
+                    (int) $current['id']
+                );
+
+            $sensitiveKeys = [
+                'code',
+                'managing_organization_id',
+                'org_unit_id',
+                'desk_kind_code',
+                'supports_incoming',
+                'supports_outgoing',
+                'supports_internal',
+                'served_organization_ids',
+            ];
+
+            if ($locked) {
+                foreach ($sensitiveKeys as $key) {
+                    if (array_key_exists(
+                        $key,
+                        $input
+                    )) {
+                        return [
+                            'ok' => false,
+                            'errors' => [
+                                'locked' =>
+                                    'این دبیرخانه دارای وابستگی عملیاتی است؛ ساختار آن قفل شده و فقط عنوان فارسی و انگلیسی قابل ویرایش است.',
+                            ],
+                        ];
+                    }
+                }
+
+                $statement =
+                    $this->runtime
+                        ->connection()
+                        ->prepare("
+                            UPDATE secretariat_desks
+
+                            SET
+                                title_fa = ?,
+                                title_en = ?,
+                                updated_at = ?
+
+                            WHERE id = ?
+                              AND public_reference = ?
+                        ");
+
+                $statement->execute([
+                    $titleFa,
+                    $titleEn,
+                    Clock::databaseTimestamp(),
+                    (int) $current['id'],
+                    $publicReference,
+                ]);
+
+                return [
+                    'ok' => true,
+                    'public_reference' =>
+                        $publicReference,
+                    'locked' => true,
+                ];
+            }
+
+            $errors = [];
+
+            $code =
+                $this->code(
+                    $input['code']
+                    ?? $current['code']
+                    ?? ''
+                );
+
+            if ($code === '') {
+                $errors['code'] =
+                    'کد دبیرخانه الزامی است و فقط باید شامل حروف انگلیسی، عدد، خط تیره یا زیرخط باشد.';
+            }
+
+            $kind =
+                $this->code(
+                    $input[
+                        'desk_kind_code'
+                    ]
+                    ?? $current[
+                        'desk_kind_code'
+                    ]
+                    ?? 'organization'
+                );
+
+            if (
+                !in_array(
+                    $kind,
+                    [
+                        'organization',
+                        'shared',
+                    ],
+                    true
+                )
+            ) {
+                $errors['desk_kind_code'] =
+                    'نوع دبیرخانه معتبر نیست.';
+            }
+
+            $managingOrganizationId =
+                $this->positiveInt(
+                    $input[
+                        'managing_organization_id'
+                    ]
+                    ?? $current[
+                        'managing_organization_id'
+                    ]
+                    ?? null
+                );
+
+            if (
+                $managingOrganizationId === null
+                || !$this->organizationAllowed(
+                    $managingOrganizationId,
+                    $actor
+                )
+            ) {
+                $errors[
+                    'managing_organization_id'
+                ] =
+                    'سازمان متولی دبیرخانه خارج از دامنه مجاز است.';
+            }
+
+            $orgUnitId =
+                $this->positiveInt(
+                    $input[
+                        'org_unit_id'
+                    ]
+                    ?? $current[
+                        'org_unit_id'
+                    ]
+                    ?? null
+                );
+
+            if (
+                $orgUnitId !== null
+                && (
+                    $managingOrganizationId === null
+                    || !$this->orgUnitBelongsTo(
+                        $orgUnitId,
+                        $managingOrganizationId
+                    )
+                )
+            ) {
+                $errors['org_unit_id'] =
+                    'واحد سازمانی انتخاب‌شده متعلق به سازمان متولی نیست.';
+            }
+
+            $supportsIncoming =
+                $this->booleanInput(
+                    $input[
+                        'supports_incoming'
+                    ] ?? null
+                );
+
+            $supportsOutgoing =
+                $this->booleanInput(
+                    $input[
+                        'supports_outgoing'
+                    ] ?? null
+                );
+
+            $supportsInternal =
+                $this->booleanInput(
+                    $input[
+                        'supports_internal'
+                    ] ?? null
+                );
+
+            if (
+                !$supportsIncoming
+                && !$supportsOutgoing
+                && !$supportsInternal
+            ) {
+                $errors['directions'] =
+                    'دبیرخانه باید حداقل یکی از وارده، صادره یا داخلی را پشتیبانی کند.';
+            }
+
+            $servedOrganizationIds =
+                $this->idList(
+                    $input[
+                        'served_organization_ids'
+                    ] ?? []
+                );
+
+            if (
+                $managingOrganizationId !== null
+                && !in_array(
+                    $managingOrganizationId,
+                    $servedOrganizationIds,
+                    true
+                )
+            ) {
+                $servedOrganizationIds[] =
+                    $managingOrganizationId;
+            }
+
+            $servedOrganizationIds =
+                array_values(
+                    array_unique(
+                        $servedOrganizationIds
+                    )
+                );
+
+            sort(
+                $servedOrganizationIds,
+                SORT_NUMERIC
+            );
+
+            if (
+                $kind === 'organization'
+                && $managingOrganizationId !== null
+            ) {
+                $servedOrganizationIds = [
+                    $managingOrganizationId,
+                ];
+            }
+
+            foreach (
+                $servedOrganizationIds
+                as $organizationId
+            ) {
+                if (
+                    !$this->organizationAllowed(
+                        $organizationId,
+                        $actor
+                    )
+                ) {
+                    $errors[
+                        'served_organization_ids'
+                    ] =
+                        'یکی از سازمان‌های تحت خدمت خارج از دامنه مجاز است.';
+
+                    break;
+                }
+            }
+
+            if ($kind === 'shared') {
+                if (
+                    (int) $actor[
+                        'organization_id'
+                    ] !==
+                    (int) $actor[
+                        'root_organization_id'
+                    ]
+                ) {
+                    $errors[
+                        'desk_kind_code'
+                    ] =
+                        'تعریف دبیرخانه مشترک فقط از جایگاه سازمان ریشه/هلدینگ مجاز است.';
+                }
+
+                if (
+                    count(
+                        $servedOrganizationIds
+                    ) < 2
+                ) {
+                    $errors[
+                        'served_organization_ids'
+                    ] =
+                        'دبیرخانه مشترک باید حداقل به دو سازمان خدمت ارائه کند.';
+                }
+            }
+
+            if ($errors !== []) {
+                return [
+                    'ok' => false,
+                    'errors' => $errors,
+                ];
+            }
+
+            $pdo =
+                $this->runtime
+                    ->connection();
+
+            if (
+                $this->deskCodeExistsExcluding(
+                    $pdo,
+                    (int) $actor[
+                        'root_organization_id'
+                    ],
+                    (int) $managingOrganizationId,
+                    $code,
+                    (int) $current['id']
+                )
+            ) {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'code' =>
+                            'این کد دبیرخانه در سازمان متولی قبلاً استفاده شده است.',
+                    ],
+                ];
+            }
+
+            $organizationReferences =
+                $this->organizationReferences(
+                    $servedOrganizationIds
+                );
+
+            $now =
+                Clock::databaseTimestamp();
+
+            $pdo->beginTransaction();
+
+            try {
+                $statement =
+                    $pdo->prepare("
+                        UPDATE secretariat_desks
+
+                        SET
+                            managing_organization_id = ?,
+                            org_unit_id = ?,
+                            code = ?,
+                            title_fa = ?,
+                            title_en = ?,
+                            desk_kind_code = ?,
+                            supports_incoming = ?,
+                            supports_outgoing = ?,
+                            supports_internal = ?,
+                            allow_cross_organization = ?,
+                            updated_at = ?
+
+                        WHERE id = ?
+                          AND public_reference = ?
+                    ");
+
+                $statement->execute([
+                    (int) $managingOrganizationId,
+                    $orgUnitId,
+                    $code,
+                    $titleFa,
+                    $titleEn,
+                    $kind,
+                    $supportsIncoming ? 1 : 0,
+                    $supportsOutgoing ? 1 : 0,
+                    $supportsInternal ? 1 : 0,
+                    $kind === 'shared'
+                        ? 1
+                        : 0,
+                    $now,
+                    (int) $current['id'],
+                    $publicReference,
+                ]);
+
+                $deleteLinks =
+                    $pdo->prepare("
+                        DELETE FROM
+                            secretariat_desk_organizations
+
+                        WHERE secretariat_desk_id = ?
+                    ");
+
+                $deleteLinks->execute([
+                    (int) $current['id'],
+                ]);
+
+                $link =
+                    $pdo->prepare("
+                        INSERT INTO secretariat_desk_organizations (
+                            secretariat_desk_id,
+                            root_organization_id,
+                            organization_id,
+                            organization_public_reference,
+                            relation_code,
+                            is_primary,
+                            can_register_incoming,
+                            can_register_outgoing,
+                            can_register_internal,
+                            status,
+                            valid_from,
+                            valid_until,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            'service',
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            'active',
+                            NULL,
+                            NULL,
+                            ?,
+                            ?
+                        )
+                    ");
+
+                foreach (
+                    $servedOrganizationIds
+                    as $organizationId
+                ) {
+                    $link->execute([
+                        (int) $current['id'],
+
+                        (int) $actor[
+                            'root_organization_id'
+                        ],
+
+                        $organizationId,
+
+                        $organizationReferences[
+                            $organizationId
+                        ] ?? null,
+
+                        $organizationId ===
+                            (int) $managingOrganizationId
+                                ? 1
+                                : 0,
+
+                        $supportsIncoming
+                            ? 1
+                            : 0,
+
+                        $supportsOutgoing
+                            ? 1
+                            : 0,
+
+                        $supportsInternal
+                            ? 1
+                            : 0,
+
+                        $now,
+                        $now,
+                    ]);
+                }
+
+                $pdo->commit();
+
+            } catch (Throwable $exception) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+
+                throw $exception;
+            }
+
+            return [
+                'ok' => true,
+                'public_reference' =>
+                    $publicReference,
+                'locked' => false,
+            ];
+
+        } catch (Throwable) {
+            return [
+                'ok' => false,
+                'errors' => [
+                    'runtime' =>
+                        'ویرایش دبیرخانه انجام نشد.',
+                ],
+            ];
+        }
+    }
+
     public function createPeriod(
         array $input,
         int $userId
@@ -833,7 +1523,453 @@ final class SecretariatManagementService
                 'ok' => false,
                 'errors' => [
                     'runtime' =>
-                        'ثبت دوره شماره‌گذاری انجام نشد.',
+                        'ثبت دوره ثبت انجام نشد.',
+                ],
+            ];
+        }
+    }
+
+    public function periodEditForm(
+        string $publicReference,
+        int $userId
+    ): ?array {
+        try {
+            $actor =
+                $this->enterpriseContext
+                    ->forUser(
+                        $userId
+                    );
+
+            $period =
+                $this->periodForActorByReference(
+                    $publicReference,
+                    $actor
+                );
+
+            if ($period === null) {
+                return null;
+            }
+
+            if (
+                $period[
+                    'organization_id'
+                ] === null
+                && (int) $actor[
+                    'organization_id'
+                ] !==
+                (int) $actor[
+                    'root_organization_id'
+                ]
+            ) {
+                return null;
+            }
+
+            $locked =
+                $this->periodHasOperationalUsage(
+                    (int) $period['id']
+                );
+
+            return [
+                'edit_period_reference' =>
+                    (string) $period[
+                        'public_reference'
+                    ],
+
+                'scope' =>
+                    $period[
+                        'organization_id'
+                    ] === null
+                        ? 'root'
+                        : 'organization',
+
+                'organization_id' =>
+                    $period[
+                        'organization_id'
+                    ] !== null
+                        ? (int) $period[
+                            'organization_id'
+                        ]
+                        : '',
+
+                'code' =>
+                    (string) (
+                        $period['code']
+                        ?? ''
+                    ),
+
+                'title' =>
+                    (string) (
+                        $period['title']
+                        ?? ''
+                    ),
+
+                'starts_on_fa' =>
+                    PersianDate::fromGregorianDate(
+                        $period['starts_on']
+                        ?? null
+                    ),
+
+                'starts_on' =>
+                    (string) (
+                        $period['starts_on']
+                        ?? ''
+                    ),
+
+                'ends_on_fa' =>
+                    PersianDate::fromGregorianDate(
+                        $period['ends_on']
+                        ?? null
+                    ),
+
+                'ends_on' =>
+                    (string) (
+                        $period['ends_on']
+                        ?? ''
+                    ),
+
+                'period_locked' =>
+                    $locked
+                        ? '1'
+                        : '0',
+            ];
+
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    public function updatePeriod(
+        string $publicReference,
+        array $input,
+        int $userId
+    ): array {
+        try {
+            $publicReference =
+                trim(
+                    $publicReference
+                );
+
+            if ($publicReference === '') {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'period' =>
+                            'دوره ثبت موردنظر پیدا نشد.',
+                    ],
+                ];
+            }
+
+            $actor =
+                $this->enterpriseContext
+                    ->forUser(
+                        $userId
+                    );
+
+            $current =
+                $this->periodForActorByReference(
+                    $publicReference,
+                    $actor
+                );
+
+            if ($current === null) {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'period' =>
+                            'دوره ثبت موردنظر در دامنه مجاز شما قرار ندارد.',
+                    ],
+                ];
+            }
+
+            if (
+                $current[
+                    'organization_id'
+                ] === null
+                && (int) $actor[
+                    'organization_id'
+                ] !==
+                (int) $actor[
+                    'root_organization_id'
+                ]
+            ) {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'scope' =>
+                            'ویرایش دوره ثبت مشترک فقط از جایگاه سازمان ریشه/هلدینگ مجاز است.',
+                    ],
+                ];
+            }
+
+            $title =
+                $this->text(
+                    $input['title']
+                    ?? $current['title']
+                    ?? '',
+                    255
+                );
+
+            if ($title === '') {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'title' =>
+                            'عنوان دوره ثبت الزامی است.',
+                    ],
+                ];
+            }
+
+            $locked =
+                $this->periodHasOperationalUsage(
+                    (int) $current['id']
+                );
+
+            $sensitiveKeys = [
+                'scope',
+                'organization_id',
+                'code',
+                'starts_on',
+                'ends_on',
+            ];
+
+            if ($locked) {
+                foreach ($sensitiveKeys as $key) {
+                    if (array_key_exists(
+                        $key,
+                        $input
+                    )) {
+                        return [
+                            'ok' => false,
+                            'errors' => [
+                                'locked' =>
+                                    'این دوره ثبت دارای وابستگی عملیاتی است؛ ساختار آن قفل شده و فقط عنوان قابل ویرایش است.',
+                            ],
+                        ];
+                    }
+                }
+
+                $statement =
+                    $this->runtime
+                        ->connection()
+                        ->prepare("
+                            UPDATE registry_periods
+
+                            SET
+                                title = ?,
+                                updated_at = ?
+
+                            WHERE id = ?
+                              AND public_reference = ?
+                        ");
+
+                $statement->execute([
+                    $title,
+                    Clock::databaseTimestamp(),
+                    (int) $current['id'],
+                    $publicReference,
+                ]);
+
+                return [
+                    'ok' => true,
+                    'public_reference' =>
+                        $publicReference,
+                    'locked' => true,
+                ];
+            }
+
+            $errors = [];
+
+            $scope =
+                $this->code(
+                    $input['scope']
+                    ?? (
+                        $current[
+                            'organization_id'
+                        ] === null
+                            ? 'root'
+                            : 'organization'
+                    )
+                );
+
+            if (
+                !in_array(
+                    $scope,
+                    [
+                        'organization',
+                        'root',
+                    ],
+                    true
+                )
+            ) {
+                $errors['scope'] =
+                    'دامنه دوره ثبت معتبر نیست.';
+            }
+
+            $organizationId = null;
+
+            if ($scope === 'root') {
+                if (
+                    (int) $actor[
+                        'organization_id'
+                    ] !==
+                    (int) $actor[
+                        'root_organization_id'
+                    ]
+                ) {
+                    $errors['scope'] =
+                        'دوره مشترک هلدینگ فقط از جایگاه سازمان ریشه قابل تعریف است.';
+                }
+
+            } else {
+                $organizationId =
+                    $this->positiveInt(
+                        $input[
+                            'organization_id'
+                        ]
+                        ?? $current[
+                            'organization_id'
+                        ]
+                        ?? null
+                    );
+
+                if (
+                    $organizationId === null
+                    || !$this->organizationAllowed(
+                        $organizationId,
+                        $actor
+                    )
+                ) {
+                    $errors[
+                        'organization_id'
+                    ] =
+                        'سازمان دوره ثبت معتبر نیست.';
+                }
+            }
+
+            $code =
+                $this->code(
+                    $input['code']
+                    ?? $current['code']
+                    ?? ''
+                );
+
+            if ($code === '') {
+                $errors['code'] =
+                    'کد دوره ثبت الزامی است.';
+            }
+
+            $startsOn =
+                $this->dateInput(
+                    $input[
+                        'starts_on'
+                    ]
+                    ?? $current[
+                        'starts_on'
+                    ]
+                    ?? null
+                );
+
+            $endsOn =
+                $this->dateInput(
+                    $input[
+                        'ends_on'
+                    ]
+                    ?? $current[
+                        'ends_on'
+                    ]
+                    ?? null
+                );
+
+            if ($startsOn === null) {
+                $errors['starts_on'] =
+                    'تاریخ شروع معتبر نیست.';
+            }
+
+            if ($endsOn === null) {
+                $errors['ends_on'] =
+                    'تاریخ پایان معتبر نیست.';
+            }
+
+            if (
+                $startsOn !== null
+                && $endsOn !== null
+                && $startsOn > $endsOn
+            ) {
+                $errors['ends_on'] =
+                    'تاریخ پایان نمی‌تواند قبل از تاریخ شروع باشد.';
+            }
+
+            if ($errors !== []) {
+                return [
+                    'ok' => false,
+                    'errors' => $errors,
+                ];
+            }
+
+            $pdo =
+                $this->runtime
+                    ->connection();
+
+            if (
+                $this->periodCodeExistsExcluding(
+                    $pdo,
+                    (int) $actor[
+                        'root_organization_id'
+                    ],
+                    $organizationId,
+                    $code,
+                    (int) $current['id']
+                )
+            ) {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'code' =>
+                            'این کد دوره ثبت در دامنه انتخاب‌شده قبلاً استفاده شده است.',
+                    ],
+                ];
+            }
+
+            $statement =
+                $pdo->prepare("
+                    UPDATE registry_periods
+
+                    SET
+                        organization_id = ?,
+                        code = ?,
+                        title = ?,
+                        starts_on = ?,
+                        ends_on = ?,
+                        updated_at = ?
+
+                    WHERE id = ?
+                      AND public_reference = ?
+                ");
+
+            $statement->execute([
+                $organizationId,
+                $code,
+                $title,
+                $startsOn,
+                $endsOn,
+                Clock::databaseTimestamp(),
+                (int) $current['id'],
+                $publicReference,
+            ]);
+
+            return [
+                'ok' => true,
+                'public_reference' =>
+                    $publicReference,
+                'locked' => false,
+            ];
+
+        } catch (Throwable) {
+            return [
+                'ok' => false,
+                'errors' => [
+                    'runtime' =>
+                        'ویرایش دوره ثبت انجام نشد.',
                 ],
             ];
         }
@@ -1254,6 +2390,20 @@ final class SecretariatManagementService
                 return null;
             }
 
+            if (
+                $sequence[
+                    'organization_id'
+                ] === null
+                && (int) $actor[
+                    'organization_id'
+                ] !==
+                (int) $actor[
+                    'root_organization_id'
+                ]
+            ) {
+                return null;
+            }
+
             $usage =
                 $this->sequenceUsage(
                     (int) $sequence['id']
@@ -1397,6 +2547,26 @@ final class SecretariatManagementService
                     'errors' => [
                         'sequence' =>
                             'منبع شماره موردنظر در دامنه مجاز شما قرار ندارد.',
+                    ],
+                ];
+            }
+
+            if (
+                $current[
+                    'organization_id'
+                ] === null
+                && (int) $actor[
+                    'organization_id'
+                ] !==
+                (int) $actor[
+                    'root_organization_id'
+                ]
+            ) {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'scope' =>
+                            'ویرایش منبع شماره مشترک فقط از جایگاه سازمان ریشه/هلدینگ مجاز است.',
                     ],
                 ];
             }
@@ -2140,6 +3310,637 @@ final class SecretariatManagementService
         }
     }
 
+    public function bookEditForm(
+        string $publicReference,
+        int $userId
+    ): ?array {
+        try {
+            $actor =
+                $this->enterpriseContext
+                    ->forUser(
+                        $userId
+                    );
+
+            $book =
+                $this->bookForActorByReference(
+                    $publicReference,
+                    $actor
+                );
+
+            if ($book === null) {
+                return null;
+            }
+
+            $locked =
+                $this->bookHasOperationalUsage(
+                    (int) $book['id']
+                );
+
+            return [
+                'edit_book_reference' =>
+                    (string) $book[
+                        'public_reference'
+                    ],
+
+                'organization_id' =>
+                    (int) $book[
+                        'organization_id'
+                    ],
+
+                'secretariat_desk_id' =>
+                    (int) $book[
+                        'secretariat_desk_id'
+                    ],
+
+                'registry_period_id' =>
+                    (int) $book[
+                        'registry_period_id'
+                    ],
+
+                'number_sequence_id' =>
+                    (int) $book[
+                        'number_sequence_id'
+                    ],
+
+                'numbering_strategy_code' =>
+                    (string) (
+                        $book[
+                            'numbering_strategy_code'
+                        ]
+                        ?? 'dedicated'
+                    ),
+
+                'scope_code' =>
+                    (string) (
+                        $book['scope_code']
+                        ?? ''
+                    ),
+
+                'code' =>
+                    (string) (
+                        $book['code']
+                        ?? ''
+                    ),
+
+                'title' =>
+                    (string) (
+                        $book['title']
+                        ?? ''
+                    ),
+
+                'book_locked' =>
+                    $locked
+                        ? '1'
+                        : '0',
+            ];
+
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    public function updateBook(
+        string $publicReference,
+        array $input,
+        int $userId
+    ): array {
+        try {
+            $publicReference =
+                trim(
+                    $publicReference
+                );
+
+            if ($publicReference === '') {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'book' =>
+                            'دفتر ثبت موردنظر پیدا نشد.',
+                    ],
+                ];
+            }
+
+            $actor =
+                $this->enterpriseContext
+                    ->forUser(
+                        $userId
+                    );
+
+            $current =
+                $this->bookForActorByReference(
+                    $publicReference,
+                    $actor
+                );
+
+            if ($current === null) {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'book' =>
+                            'دفتر ثبت موردنظر در دامنه مجاز شما قرار ندارد.',
+                    ],
+                ];
+            }
+
+            $title =
+                $this->text(
+                    $input['title']
+                    ?? $current['title']
+                    ?? '',
+                    255
+                );
+
+            if ($title === '') {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'title' =>
+                            'عنوان دفتر ثبت الزامی است.',
+                    ],
+                ];
+            }
+
+            $locked =
+                $this->bookHasOperationalUsage(
+                    (int) $current['id']
+                );
+
+            $sensitiveKeys = [
+                'organization_id',
+                'secretariat_desk_id',
+                'registry_period_id',
+                'number_sequence_id',
+                'numbering_strategy_code',
+                'scope_code',
+                'code',
+            ];
+
+            if ($locked) {
+                foreach ($sensitiveKeys as $key) {
+                    if (array_key_exists(
+                        $key,
+                        $input
+                    )) {
+                        return [
+                            'ok' => false,
+                            'errors' => [
+                                'locked' =>
+                                    'این دفتر ثبت قبلاً استفاده شده است؛ ساختار آن قفل شده و فقط عنوان قابل ویرایش است.',
+                            ],
+                        ];
+                    }
+                }
+
+                $statement =
+                    $this->runtime
+                        ->connection()
+                        ->prepare("
+                            UPDATE registry_books
+
+                            SET
+                                title = ?,
+                                updated_at = ?
+
+                            WHERE id = ?
+                              AND public_reference = ?
+                        ");
+
+                $statement->execute([
+                    $title,
+                    Clock::databaseTimestamp(),
+                    (int) $current['id'],
+                    $publicReference,
+                ]);
+
+                return [
+                    'ok' => true,
+                    'public_reference' =>
+                        $publicReference,
+                    'locked' => true,
+                ];
+            }
+
+            $errors = [];
+
+            $organizationId =
+                $this->positiveInt(
+                    $input[
+                        'organization_id'
+                    ]
+                    ?? $current[
+                        'organization_id'
+                    ]
+                    ?? null
+                );
+
+            if (
+                $organizationId === null
+                || !$this->organizationAllowed(
+                    $organizationId,
+                    $actor
+                )
+            ) {
+                $errors[
+                    'organization_id'
+                ] =
+                    'سازمان دفتر ثبت معتبر نیست.';
+            }
+
+            $deskId =
+                $this->positiveInt(
+                    $input[
+                        'secretariat_desk_id'
+                    ]
+                    ?? $current[
+                        'secretariat_desk_id'
+                    ]
+                    ?? null
+                );
+
+            $desk =
+                $deskId !== null
+                    ? $this->deskForActor(
+                        $deskId,
+                        $actor
+                    )
+                    : null;
+
+            if ($desk === null) {
+                $errors[
+                    'secretariat_desk_id'
+                ] =
+                    'دبیرخانه انتخاب‌شده در دامنه مجاز نیست.';
+            }
+
+            if (
+                $desk !== null
+                && $organizationId !== null
+                && !$this->deskServesOrganization(
+                    (int) $desk['id'],
+                    $organizationId
+                )
+            ) {
+                $errors[
+                    'organization_id'
+                ] =
+                    'دبیرخانه انتخاب‌شده به این سازمان خدمت ارائه نمی‌کند.';
+            }
+
+            $periodId =
+                $this->positiveInt(
+                    $input[
+                        'registry_period_id'
+                    ]
+                    ?? $current[
+                        'registry_period_id'
+                    ]
+                    ?? null
+                );
+
+            $period =
+                $periodId !== null
+                    ? $this->periodForActor(
+                        $periodId,
+                        $actor
+                    )
+                    : null;
+
+            if ($period === null) {
+                $errors[
+                    'registry_period_id'
+                ] =
+                    'دوره ثبت انتخاب‌شده معتبر نیست.';
+            }
+
+            if (
+                $period !== null
+                && $organizationId !== null
+                && $period[
+                    'organization_id'
+                ] !== null
+                && (int) $period[
+                    'organization_id'
+                ] !== $organizationId
+            ) {
+                $errors[
+                    'registry_period_id'
+                ] =
+                    'دوره ثبت سازمانی متعلق به سازمان دیگری است.';
+            }
+
+            $sequenceId =
+                $this->positiveInt(
+                    $input[
+                        'number_sequence_id'
+                    ]
+                    ?? $current[
+                        'number_sequence_id'
+                    ]
+                    ?? null
+                );
+
+            $sequence =
+                $sequenceId !== null
+                    ? $this->sequenceForActor(
+                        $sequenceId,
+                        $actor
+                    )
+                    : null;
+
+            if ($sequence === null) {
+                $errors[
+                    'number_sequence_id'
+                ] =
+                    'منبع شماره انتخاب‌شده معتبر نیست.';
+            }
+
+            if (
+                $sequence !== null
+                && $deskId !== null
+                && (int) $sequence[
+                    'secretariat_desk_id'
+                ] !== $deskId
+            ) {
+                $errors[
+                    'number_sequence_id'
+                ] =
+                    'منبع شماره انتخاب‌شده متعلق به این دبیرخانه نیست.';
+            }
+
+            if (
+                $sequence !== null
+                && $periodId !== null
+                && (int) $sequence[
+                    'registry_period_id'
+                ] !== $periodId
+            ) {
+                $errors[
+                    'number_sequence_id'
+                ] =
+                    'منبع شماره انتخاب‌شده متعلق به دوره ثبت دیگری است.';
+            }
+
+            if (
+                $sequence !== null
+                && $organizationId !== null
+            ) {
+                if (
+                    $sequence[
+                        'organization_id'
+                    ] !== null
+                    && (int) $sequence[
+                        'organization_id'
+                    ] !== $organizationId
+                ) {
+                    $errors[
+                        'number_sequence_id'
+                    ] =
+                        'منبع شماره سازمانی متعلق به سازمان دیگری است.';
+                }
+
+                if (
+                    $sequence[
+                        'organization_id'
+                    ] === null
+                    && (
+                        $desk === null
+                        || (int) (
+                            $desk[
+                                'allow_cross_organization'
+                            ] ?? 0
+                        ) !== 1
+                    )
+                ) {
+                    $errors[
+                        'number_sequence_id'
+                    ] =
+                        'استفاده از منبع شماره مشترک برای این دبیرخانه مجاز نیست.';
+                }
+            }
+
+            $scopeCode =
+                $this->code(
+                    $input[
+                        'scope_code'
+                    ]
+                    ?? $current[
+                        'scope_code'
+                    ]
+                    ?? ''
+                );
+
+            if (
+                !in_array(
+                    $scopeCode,
+                    [
+                        'incoming',
+                        'outgoing',
+                        'internal',
+                        'general',
+                    ],
+                    true
+                )
+            ) {
+                $errors[
+                    'scope_code'
+                ] =
+                    'نوع دفتر ثبت معتبر نیست.';
+            }
+
+            if (
+                $desk !== null
+                && $organizationId !== null
+                && in_array(
+                    $scopeCode,
+                    [
+                        'incoming',
+                        'outgoing',
+                        'internal',
+                    ],
+                    true
+                )
+                && !$this->deskCanRegister(
+                    (int) $desk['id'],
+                    $organizationId,
+                    $scopeCode
+                )
+            ) {
+                $errors[
+                    'scope_code'
+                ] =
+                    'این دبیرخانه برای نوع دفتر انتخاب‌شده مجوز ثبت ندارد.';
+            }
+
+            $strategy =
+                $this->code(
+                    $input[
+                        'numbering_strategy_code'
+                    ]
+                    ?? $current[
+                        'numbering_strategy_code'
+                    ]
+                    ?? 'dedicated'
+                );
+
+            if (
+                !in_array(
+                    $strategy,
+                    [
+                        'dedicated',
+                        'shared',
+                    ],
+                    true
+                )
+            ) {
+                $errors[
+                    'numbering_strategy_code'
+                ] =
+                    'راهبرد شماره‌گذاری معتبر نیست.';
+            }
+
+            $code =
+                $this->code(
+                    $input['code']
+                    ?? $current['code']
+                    ?? ''
+                );
+
+            if ($code === '') {
+                $errors['code'] =
+                    'کد دفتر ثبت الزامی است.';
+            }
+
+            if ($errors !== []) {
+                return [
+                    'ok' => false,
+                    'errors' => $errors,
+                ];
+            }
+
+            $pdo =
+                $this->runtime
+                    ->connection();
+
+            if (
+                !$this->sequenceUsageAllowsExcluding(
+                    $pdo,
+                    (int) $sequenceId,
+                    $strategy,
+                    (int) $current['id']
+                )
+            ) {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'number_sequence_id' =>
+                            'راهبرد استفاده از منبع شماره با دفترهای فعال موجود سازگار نیست. منبع شماره اختصاصی قابل اشتراک نیست و منبع شماره مشترک فقط میان دفترهای مشترک قابل استفاده است.',
+                    ],
+                ];
+            }
+
+            if (
+                $this->bookCodeExistsExcluding(
+                    $pdo,
+                    (int) $actor[
+                        'root_organization_id'
+                    ],
+                    (int) $organizationId,
+                    (int) $deskId,
+                    (int) $periodId,
+                    $code,
+                    (int) $current['id']
+                )
+            ) {
+                return [
+                    'ok' => false,
+                    'errors' => [
+                        'code' =>
+                            'این کد دفتر ثبت در دامنه انتخاب‌شده قبلاً استفاده شده است.',
+                    ],
+                ];
+            }
+
+            $organizationReference =
+                $this->organizationReference(
+                    (int) $organizationId
+                );
+
+            $statement =
+                $pdo->prepare("
+                    UPDATE registry_books
+
+                    SET
+                        organization_id = ?,
+                        organization_public_reference = ?,
+                        secretariat_desk_id = ?,
+                        registry_period_id = ?,
+                        number_sequence_id = ?,
+                        numbering_strategy_code = ?,
+                        scope_code = ?,
+                        code = ?,
+                        title = ?,
+                        prefix = ?,
+                        suffix = ?,
+                        next_sequence_number = ?,
+                        number_padding = ?,
+                        updated_at = ?
+
+                    WHERE id = ?
+                      AND public_reference = ?
+                ");
+
+            $statement->execute([
+                (int) $organizationId,
+                $organizationReference,
+                (int) $deskId,
+                (int) $periodId,
+                (int) $sequenceId,
+                $strategy,
+                $scopeCode,
+                $code,
+                $title,
+
+                $sequence['prefix']
+                    ?? null,
+
+                $sequence['suffix']
+                    ?? null,
+
+                (int) (
+                    $sequence[
+                        'next_sequence_number'
+                    ] ?? 1
+                ),
+
+                (int) (
+                    $sequence[
+                        'number_padding'
+                    ] ?? 5
+                ),
+
+                Clock::databaseTimestamp(),
+                (int) $current['id'],
+                $publicReference,
+            ]);
+
+            return [
+                'ok' => true,
+                'public_reference' =>
+                    $publicReference,
+                'locked' => false,
+            ];
+
+        } catch (Throwable) {
+            return [
+                'ok' => false,
+                'errors' => [
+                    'runtime' =>
+                        'ویرایش دفتر ثبت انجام نشد.',
+                ],
+            ];
+        }
+    }
+
     private function desks(
         array $actor,
         array $organizationMap,
@@ -2733,6 +4534,422 @@ final class SecretariatManagementService
             ) ?: [];
     }
 
+    private function deskForActorByReference(
+        string $publicReference,
+        array $actor
+    ): ?array {
+        $publicReference =
+            trim(
+                $publicReference
+            );
+
+        if ($publicReference === '') {
+            return null;
+        }
+
+        $ids =
+            $this->allowedOrganizationIds(
+                $actor
+            );
+
+        if ($ids === []) {
+            return null;
+        }
+
+        [$in, $params] =
+            $this->inClause(
+                $ids
+            );
+
+        $statement =
+            $this->runtime
+                ->connection()
+                ->prepare("
+                    SELECT DISTINCT d.*
+
+                    FROM secretariat_desks d
+
+                    INNER JOIN
+                        secretariat_desk_organizations dso
+                        ON dso.secretariat_desk_id =
+                            d.id
+
+                    WHERE d.public_reference = ?
+                      AND d.root_organization_id = ?
+                      AND d.status = 'active'
+                      AND dso.status = 'active'
+
+                      AND dso.organization_id
+                            IN ({$in})
+
+                      AND (
+                            dso.valid_from IS NULL
+                            OR dso.valid_from
+                                <= UTC_TIMESTAMP()
+                      )
+
+                      AND (
+                            dso.valid_until IS NULL
+                            OR dso.valid_until
+                                >= UTC_TIMESTAMP()
+                      )
+
+                    LIMIT 1
+                ");
+
+        $statement->execute(
+            array_merge(
+                [
+                    $publicReference,
+
+                    (int) $actor[
+                        'root_organization_id'
+                    ],
+                ],
+                $params
+            )
+        );
+
+        $row =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        return $row ?: null;
+    }
+
+    private function periodForActorByReference(
+        string $publicReference,
+        array $actor
+    ): ?array {
+        $publicReference =
+            trim(
+                $publicReference
+            );
+
+        if ($publicReference === '') {
+            return null;
+        }
+
+        $ids =
+            $this->allowedOrganizationIds(
+                $actor
+            );
+
+        if ($ids === []) {
+            return null;
+        }
+
+        [$in, $params] =
+            $this->inClause(
+                $ids
+            );
+
+        $statement =
+            $this->runtime
+                ->connection()
+                ->prepare("
+                    SELECT *
+
+                    FROM registry_periods
+
+                    WHERE public_reference = ?
+                      AND root_organization_id = ?
+                      AND status = 'active'
+
+                      AND (
+                            organization_id IS NULL
+                            OR organization_id
+                                IN ({$in})
+                      )
+
+                    LIMIT 1
+                ");
+
+        $statement->execute(
+            array_merge(
+                [
+                    $publicReference,
+
+                    (int) $actor[
+                        'root_organization_id'
+                    ],
+                ],
+                $params
+            )
+        );
+
+        $row =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        return $row ?: null;
+    }
+
+    private function deskServedOrganizationIds(
+        int $deskId,
+        array $actor
+    ): array {
+        $ids =
+            $this->allowedOrganizationIds(
+                $actor
+            );
+
+        if ($ids === []) {
+            return [];
+        }
+
+        [$in, $params] =
+            $this->inClause(
+                $ids
+            );
+
+        $statement =
+            $this->runtime
+                ->connection()
+                ->prepare("
+                    SELECT organization_id
+
+                    FROM secretariat_desk_organizations
+
+                    WHERE secretariat_desk_id = ?
+                      AND status = 'active'
+                      AND organization_id
+                            IN ({$in})
+
+                      AND (
+                            valid_from IS NULL
+                            OR valid_from
+                                <= UTC_TIMESTAMP()
+                      )
+
+                      AND (
+                            valid_until IS NULL
+                            OR valid_until
+                                >= UTC_TIMESTAMP()
+                      )
+
+                    ORDER BY
+                        is_primary DESC,
+                        organization_id
+                ");
+
+        $statement->execute(
+            array_merge(
+                [
+                    $deskId,
+                ],
+                $params
+            )
+        );
+
+        return array_map(
+            static fn (
+                array $row
+            ): int =>
+                (int) $row[
+                    'organization_id'
+                ],
+
+            $statement->fetchAll(
+                PDO::FETCH_ASSOC
+            ) ?: []
+        );
+    }
+
+    private function deskHasOperationalUsage(
+        int $deskId
+    ): bool {
+        $statement =
+            $this->runtime
+                ->connection()
+                ->prepare("
+                    SELECT (
+                        (
+                            SELECT COUNT(*)
+                            FROM registry_number_sequences
+                            WHERE secretariat_desk_id = ?
+                        )
+                        +
+                        (
+                            SELECT COUNT(*)
+                            FROM registry_books
+                            WHERE secretariat_desk_id = ?
+                        )
+                        +
+                        (
+                            SELECT COUNT(*)
+                            FROM registry_number_reservations
+                            WHERE secretariat_desk_id = ?
+                        )
+                        +
+                        (
+                            SELECT COUNT(*)
+                            FROM correspondence_registrations
+                            WHERE secretariat_desk_id = ?
+                        )
+                        +
+                        (
+                            SELECT COUNT(*)
+                            FROM correspondences
+                            WHERE secretariat_desk_id = ?
+                        )
+                        +
+                        (
+                            SELECT COUNT(*)
+                            FROM secretariat_desk_appointments
+                            WHERE secretariat_desk_id = ?
+                        )
+                        +
+                        (
+                            SELECT COUNT(*)
+                            FROM correspondence_events
+                            WHERE secretariat_desk_id = ?
+                        )
+                        +
+                        (
+                            SELECT COUNT(*)
+                            FROM correspondence_referrals
+                            WHERE source_secretariat_desk_id = ?
+                        )
+                        +
+                        (
+                            SELECT COUNT(*)
+                            FROM correspondence_exchanges
+                            WHERE source_secretariat_desk_id = ?
+                               OR target_secretariat_desk_id = ?
+                        )
+                    ) AS usage_count
+                ");
+
+        $statement->execute([
+            $deskId,
+            $deskId,
+            $deskId,
+            $deskId,
+            $deskId,
+            $deskId,
+            $deskId,
+            $deskId,
+            $deskId,
+            $deskId,
+        ]);
+
+        return
+            (int) $statement
+                ->fetchColumn() > 0;
+    }
+
+    private function periodHasOperationalUsage(
+        int $periodId
+    ): bool {
+        $statement =
+            $this->runtime
+                ->connection()
+                ->prepare("
+                    SELECT (
+                        (
+                            SELECT COUNT(*)
+                            FROM registry_number_sequences
+                            WHERE registry_period_id = ?
+                        )
+                        +
+                        (
+                            SELECT COUNT(*)
+                            FROM registry_books
+                            WHERE registry_period_id = ?
+                        )
+                        +
+                        (
+                            SELECT COUNT(*)
+                            FROM registry_number_reservations
+                            WHERE registry_period_id = ?
+                        )
+                        +
+                        (
+                            SELECT COUNT(*)
+                            FROM correspondence_registrations
+                            WHERE registry_period_id = ?
+                        )
+                    ) AS usage_count
+                ");
+
+        $statement->execute([
+            $periodId,
+            $periodId,
+            $periodId,
+            $periodId,
+        ]);
+
+        return
+            (int) $statement
+                ->fetchColumn() > 0;
+    }
+
+    private function deskCodeExistsExcluding(
+        PDO $pdo,
+        int $rootId,
+        int $managingOrganizationId,
+        string $code,
+        int $excludeDeskId
+    ): bool {
+        $statement =
+            $pdo->prepare("
+                SELECT COUNT(*)
+
+                FROM secretariat_desks
+
+                WHERE root_organization_id = ?
+                  AND managing_organization_id = ?
+                  AND code = ?
+                  AND id <> ?
+            ");
+
+        $statement->execute([
+            $rootId,
+            $managingOrganizationId,
+            $code,
+            $excludeDeskId,
+        ]);
+
+        return
+            (int) $statement
+                ->fetchColumn() > 0;
+    }
+
+    private function periodCodeExistsExcluding(
+        PDO $pdo,
+        int $rootId,
+        ?int $organizationId,
+        string $code,
+        int $excludePeriodId
+    ): bool {
+        $statement =
+            $pdo->prepare("
+                SELECT COUNT(*)
+
+                FROM registry_periods
+
+                WHERE root_organization_id = ?
+                  AND organization_scope_key =
+                        COALESCE(?, 0)
+                  AND code = ?
+                  AND id <> ?
+            ");
+
+        $statement->execute([
+            $rootId,
+            $organizationId,
+            $code,
+            $excludePeriodId,
+        ]);
+
+        return
+            (int) $statement
+                ->fetchColumn() > 0;
+    }
+
     private function deskForActor(
         int $deskId,
         array $actor
@@ -3133,6 +5350,240 @@ final class SecretariatManagementService
         return
             (int) $statement
                 ->fetchColumn() > 0;
+    }
+
+    private function bookForActorByReference(
+        string $publicReference,
+        array $actor
+    ): ?array {
+        $publicReference =
+            trim(
+                $publicReference
+            );
+
+        if ($publicReference === '') {
+            return null;
+        }
+
+        $ids =
+            $this->allowedOrganizationIds(
+                $actor
+            );
+
+        if ($ids === []) {
+            return null;
+        }
+
+        [$in, $params] =
+            $this->inClause(
+                $ids
+            );
+
+        $statement =
+            $this->runtime
+                ->connection()
+                ->prepare("
+                    SELECT DISTINCT b.*
+
+                    FROM registry_books b
+
+                    INNER JOIN secretariat_desks d
+                        ON d.id =
+                            b.secretariat_desk_id
+
+                    INNER JOIN
+                        secretariat_desk_organizations dso
+                        ON dso.secretariat_desk_id =
+                            d.id
+                       AND dso.organization_id =
+                            b.organization_id
+
+                    WHERE b.public_reference = ?
+                      AND b.root_organization_id = ?
+                      AND b.organization_id
+                            IN ({$in})
+
+                      AND b.status = 'active'
+                      AND d.status = 'active'
+                      AND dso.status = 'active'
+
+                      AND (
+                            dso.valid_from IS NULL
+                            OR dso.valid_from
+                                <= UTC_TIMESTAMP()
+                      )
+
+                      AND (
+                            dso.valid_until IS NULL
+                            OR dso.valid_until
+                                >= UTC_TIMESTAMP()
+                      )
+
+                    LIMIT 1
+                ");
+
+        $statement->execute(
+            array_merge(
+                [
+                    $publicReference,
+
+                    (int) $actor[
+                        'root_organization_id'
+                    ],
+                ],
+                $params
+            )
+        );
+
+        $row =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        return $row ?: null;
+    }
+
+    private function bookHasOperationalUsage(
+        int $bookId
+    ): bool {
+        $statement =
+            $this->runtime
+                ->connection()
+                ->prepare("
+                    SELECT (
+                        (
+                            SELECT COUNT(*)
+
+                            FROM registry_number_reservations
+
+                            WHERE registry_book_id = ?
+                        )
+                        +
+                        (
+                            SELECT COUNT(*)
+
+                            FROM correspondence_registrations
+
+                            WHERE registry_book_id = ?
+                        )
+                    ) AS usage_count
+                ");
+
+        $statement->execute([
+            $bookId,
+            $bookId,
+        ]);
+
+        return
+            (int) $statement
+                ->fetchColumn() > 0;
+    }
+
+    private function bookCodeExistsExcluding(
+        PDO $pdo,
+        int $rootId,
+        int $organizationId,
+        int $deskId,
+        int $periodId,
+        string $code,
+        int $excludeBookId
+    ): bool {
+        $statement =
+            $pdo->prepare("
+                SELECT COUNT(*)
+
+                FROM registry_books
+
+                WHERE root_organization_scope_key = ?
+                  AND organization_id = ?
+                  AND secretariat_scope_key = ?
+                  AND registry_period_scope_key = ?
+                  AND code = ?
+                  AND id <> ?
+            ");
+
+        $statement->execute([
+            $rootId,
+            $organizationId,
+            $deskId,
+            $periodId,
+            $code,
+            $excludeBookId,
+        ]);
+
+        return
+            (int) $statement
+                ->fetchColumn() > 0;
+    }
+
+    private function sequenceUsageAllowsExcluding(
+        PDO $pdo,
+        int $sequenceId,
+        string $strategy,
+        int $excludeBookId
+    ): bool {
+        $statement =
+            $pdo->prepare("
+                SELECT
+                    numbering_strategy_code
+
+                FROM registry_books
+
+                WHERE number_sequence_id = ?
+                  AND status = 'active'
+                  AND id <> ?
+            ");
+
+        $statement->execute([
+            $sequenceId,
+            $excludeBookId,
+        ]);
+
+        $existingStrategies =
+            array_values(
+                array_filter(
+                    array_map(
+                        static fn (
+                            mixed $value
+                        ): string =>
+                            strtolower(
+                                trim(
+                                    (string) $value
+                                )
+                            ),
+
+                        $statement->fetchAll(
+                            PDO::FETCH_COLUMN
+                        ) ?: []
+                    ),
+
+                    static fn (
+                        string $value
+                    ): bool =>
+                        $value !== ''
+                )
+            );
+
+        if ($existingStrategies === []) {
+            return true;
+        }
+
+        if ($strategy === 'dedicated') {
+            return false;
+        }
+
+        foreach (
+            $existingStrategies
+            as $existingStrategy
+        ) {
+            if (
+                $existingStrategy !== 'shared'
+            ) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function deskServesOrganization(

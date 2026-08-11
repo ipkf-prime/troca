@@ -2796,6 +2796,108 @@ $secretariatManagementCreate = function (
     }
 };
 
+$secretariatManagementUpdate =
+    function (
+        $request,
+        $response,
+        array $context,
+        string $reference,
+        string $updateMethod,
+        string $editMethod,
+        string $section,
+        string $successStatus,
+        string $editInputKey,
+        string $editQueryKey
+    ) use (
+        $secretariatManagementRender,
+        $automationUnavailable
+    ) {
+        if (!(new \IPKF\Security\Csrf())->check(
+            (string) $request->input(
+                '_token',
+                ''
+            )
+        )) {
+            return $response->redirect(
+                '/admin/automation/secretariat'
+                . '?section='
+                . rawurlencode($section)
+                . '&'
+                . rawurlencode($editQueryKey)
+                . '='
+                . rawurlencode($reference)
+                . '&status=invalid_csrf'
+            );
+        }
+
+        try {
+            $service =
+                new \App\Services\Automation\Correspondence\SecretariatManagementService();
+
+            $result =
+                $service->{$updateMethod}(
+                    $reference,
+                    $request->all(),
+                    (int) $context['user_id']
+                );
+
+            if (
+                ($result['ok'] ?? false)
+                === true
+            ) {
+                return $response->redirect(
+                    '/admin/automation/secretariat'
+                    . '?section='
+                    . rawurlencode($section)
+                    . '&status='
+                    . rawurlencode($successStatus)
+                );
+            }
+
+            $defaults =
+                $service->{$editMethod}(
+                    $reference,
+                    (int) $context['user_id']
+                );
+
+            $formInput =
+                array_merge(
+                    is_array($defaults)
+                        ? $defaults
+                        : [],
+                    $request->all(),
+                    [
+                        $editInputKey =>
+                            $reference,
+                    ]
+                );
+
+            return $secretariatManagementRender(
+                $response,
+                $context,
+                is_array(
+                    $result['errors']
+                    ?? null
+                )
+                    ? $result['errors']
+                    : [
+                        'invalid' =>
+                            'اطلاعات واردشده معتبر نیست.',
+                    ],
+                $section,
+                $formInput,
+                '',
+                422
+            );
+
+        } catch (\Throwable) {
+            return $automationUnavailable(
+                $response,
+                $context
+            );
+        }
+    };
+
 $router->get(
     '/admin/automation/secretariat',
     function (
@@ -2844,20 +2946,71 @@ $router->get(
 
             $formInput = [];
 
-            if ($section === 'sequence') {
+            $editDefinitions = [
+                'desk' => [
+                    'query' =>
+                        'edit_desk',
+                    'method' =>
+                        'deskEditForm',
+                    'not_found' =>
+                        'desk_not_found',
+                ],
+
+                'period' => [
+                    'query' =>
+                        'edit_period',
+                    'method' =>
+                        'periodEditForm',
+                    'not_found' =>
+                        'period_not_found',
+                ],
+
+                'sequence' => [
+                    'query' =>
+                        'edit_sequence',
+                    'method' =>
+                        'sequenceEditForm',
+                    'not_found' =>
+                        'sequence_not_found',
+                ],
+
+                'book' => [
+                    'query' =>
+                        'edit_book',
+                    'method' =>
+                        'bookEditForm',
+                    'not_found' =>
+                        'book_not_found',
+                ],
+            ];
+
+            $editDefinition =
+                $editDefinitions[
+                    $section
+                ] ?? null;
+
+            if (is_array($editDefinition)) {
                 $editReference =
                     trim(
                         (string) $request->input(
-                            'edit_sequence',
+                            (string) $editDefinition[
+                                'query'
+                            ],
                             ''
                         )
                     );
 
                 if ($editReference !== '') {
+                    $service =
+                        new \App\Services\Automation\Correspondence\SecretariatManagementService();
+
+                    $method =
+                        (string) $editDefinition[
+                            'method'
+                        ];
+
                     $editForm =
-                        (
-                            new \App\Services\Automation\Correspondence\SecretariatManagementService()
-                        )->sequenceEditForm(
+                        $service->{$method}(
                             $editReference,
                             (int) $context['user_id']
                         );
@@ -2867,7 +3020,9 @@ $router->get(
                             $editForm;
                     } else {
                         $status =
-                            'sequence_not_found';
+                            (string) $editDefinition[
+                                'not_found'
+                            ];
                     }
                 }
             }
@@ -2921,6 +3076,47 @@ $router->post(
 );
 
 $router->post(
+    '/admin/automation/secretariat/desks/{reference}',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $secretariatManagementUpdate
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/secretariat/desks'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $reference =
+            trim(
+                (string) $request->route(
+                    'reference'
+                )
+            );
+
+        return $secretariatManagementUpdate(
+            $request,
+            $response,
+            $context,
+            $reference,
+            'updateDesk',
+            'deskEditForm',
+            'desk',
+            'desk_updated',
+            'edit_desk_reference',
+            'edit_desk'
+        );
+    }
+);
+
+$router->post(
     '/admin/automation/secretariat/periods',
     function (
         $request,
@@ -2946,6 +3142,47 @@ $router->post(
             'createPeriod',
             'period',
             'period_saved'
+        );
+    }
+);
+
+$router->post(
+    '/admin/automation/secretariat/periods/{reference}',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $secretariatManagementUpdate
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/secretariat/periods'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $reference =
+            trim(
+                (string) $request->route(
+                    'reference'
+                )
+            );
+
+        return $secretariatManagementUpdate(
+            $request,
+            $response,
+            $context,
+            $reference,
+            'updatePeriod',
+            'periodEditForm',
+            'period',
+            'period_updated',
+            'edit_period_reference',
+            'edit_period'
         );
     }
 );
@@ -3115,6 +3352,47 @@ $router->post(
             'createBook',
             'book',
             'book_saved'
+        );
+    }
+);
+
+$router->post(
+    '/admin/automation/secretariat/books/{reference}',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $secretariatManagementUpdate
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/secretariat/books'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $reference =
+            trim(
+                (string) $request->route(
+                    'reference'
+                )
+            );
+
+        return $secretariatManagementUpdate(
+            $request,
+            $response,
+            $context,
+            $reference,
+            'updateBook',
+            'bookEditForm',
+            'book',
+            'book_updated',
+            'edit_book_reference',
+            'edit_book'
         );
     }
 );
