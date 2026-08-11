@@ -2866,333 +2866,30 @@ final class SecretariatManagementService
                         $userId
                     );
 
-            $errors = [];
-
-            $organizationId =
-                $this->positiveInt(
-                    $input[
-                        'organization_id'
-                    ] ?? null
-                );
-
-            if (
-                $organizationId === null
-                || !$this->organizationAllowed(
-                    $organizationId,
+            $configuration =
+                $this->bookConfiguration(
+                    $input,
                     $actor
-                )
-            ) {
-                $errors[
-                    'organization_id'
-                ] =
-                    'سازمان دفتر ثبت معتبر نیست.';
-            }
-
-            $deskId =
-                $this->positiveInt(
-                    $input[
-                        'secretariat_desk_id'
-                    ] ?? null
-                );
-
-            $desk =
-                $deskId !== null
-                    ? $this->deskForActor(
-                        $deskId,
-                        $actor
-                    )
-                    : null;
-
-            if ($desk === null) {
-                $errors[
-                    'secretariat_desk_id'
-                ] =
-                    'دبیرخانه انتخاب‌شده در دامنه مجاز نیست.';
-            }
-
-            if (
-                $desk !== null
-                && $organizationId !== null
-                && !$this->deskServesOrganization(
-                    (int) $desk['id'],
-                    $organizationId
-                )
-            ) {
-                $errors[
-                    'organization_id'
-                ] =
-                    'دبیرخانه انتخاب‌شده به این سازمان خدمت ارائه نمی‌کند.';
-            }
-
-            $periodId =
-                $this->positiveInt(
-                    $input[
-                        'registry_period_id'
-                    ] ?? null
-                );
-
-            $period =
-                $periodId !== null
-                    ? $this->periodForActor(
-                        $periodId,
-                        $actor
-                    )
-                    : null;
-
-            if ($period === null) {
-                $errors[
-                    'registry_period_id'
-                ] =
-                    'دوره ثبت انتخاب‌شده معتبر نیست.';
-            }
-
-            if (
-                $period !== null
-                && $organizationId !== null
-                && $period[
-                    'organization_id'
-                ] !== null
-                && (int) $period[
-                    'organization_id'
-                ] !== $organizationId
-            ) {
-                $errors[
-                    'registry_period_id'
-                ] =
-                    'دوره ثبت سازمانی متعلق به سازمان دیگری است.';
-            }
-
-            $sequenceId =
-                $this->positiveInt(
-                    $input[
-                        'number_sequence_id'
-                    ] ?? null
-                );
-
-            $sequence =
-                $sequenceId !== null
-                    ? $this->sequenceForActor(
-                        $sequenceId,
-                        $actor
-                    )
-                    : null;
-
-            if ($sequence === null) {
-                $errors[
-                    'number_sequence_id'
-                ] =
-                    'منبع شماره انتخاب‌شده معتبر نیست.';
-            }
-
-            if (
-                $sequence !== null
-                && $deskId !== null
-                && (int) $sequence[
-                    'secretariat_desk_id'
-                ] !== $deskId
-            ) {
-                $errors[
-                    'number_sequence_id'
-                ] =
-                    'منبع شماره انتخاب‌شده متعلق به این دبیرخانه نیست.';
-            }
-
-            if (
-                $sequence !== null
-                && $periodId !== null
-                && (int) $sequence[
-                    'registry_period_id'
-                ] !== $periodId
-            ) {
-                $errors[
-                    'number_sequence_id'
-                ] =
-                    'منبع شماره انتخاب‌شده متعلق به دوره ثبت دیگری است.';
-            }
-
-            if (
-                $sequence !== null
-                && $organizationId !== null
-            ) {
-                if (
-                    $sequence[
-                        'organization_id'
-                    ] !== null
-                    && (int) $sequence[
-                        'organization_id'
-                    ] !== $organizationId
-                ) {
-                    $errors[
-                        'number_sequence_id'
-                    ] =
-                        'منبع شماره سازمانی متعلق به سازمان دیگری است.';
-                }
-
-                if (
-                    $sequence[
-                        'organization_id'
-                    ] === null
-                    && (
-                        $desk === null
-                        || (int) (
-                            $desk[
-                                'allow_cross_organization'
-                            ] ?? 0
-                        ) !== 1
-                    )
-                ) {
-                    $errors[
-                        'number_sequence_id'
-                    ] =
-                        'استفاده از منبع شماره مشترک برای این دبیرخانه مجاز نیست.';
-                }
-            }
-
-            $scopeCode =
-                $this->code(
-                    $input[
-                        'scope_code'
-                    ] ?? ''
                 );
 
             if (
-                !in_array(
-                    $scopeCode,
-                    [
-                        'incoming',
-                        'outgoing',
-                        'internal',
-                        'general',
-                    ],
-                    true
-                )
+                ($configuration['ok'] ?? false)
+                !== true
             ) {
-                $errors[
-                    'scope_code'
-                ] =
-                    'نوع دفتر ثبت معتبر نیست.';
-            }
-
-            if (
-                $desk !== null
-                && $organizationId !== null
-                && in_array(
-                    $scopeCode,
-                    [
-                        'incoming',
-                        'outgoing',
-                        'internal',
-                    ],
-                    true
-                )
-                && !$this->deskCanRegister(
-                    (int) $desk['id'],
-                    $organizationId,
-                    $scopeCode
-                )
-            ) {
-                $errors[
-                    'scope_code'
-                ] =
-                    'این دبیرخانه برای نوع دفتر انتخاب‌شده مجوز ثبت ندارد.';
-            }
-
-            $strategy =
-                $this->code(
-                    $input[
-                        'numbering_strategy_code'
-                    ] ?? 'dedicated'
-                );
-
-            if (
-                !in_array(
-                    $strategy,
-                    [
-                        'dedicated',
-                        'shared',
-                    ],
-                    true
-                )
-            ) {
-                $errors[
-                    'numbering_strategy_code'
-                ] =
-                    'راهبرد شماره‌گذاری معتبر نیست.';
-            }
-
-            $code =
-                $this->code(
-                    $input['code'] ?? ''
-                );
-
-            $title =
-                $this->text(
-                    $input['title'] ?? '',
-                    255
-                );
-
-            if ($code === '') {
-                $errors['code'] =
-                    'کد دفتر ثبت الزامی است.';
-            }
-
-            if ($title === '') {
-                $errors['title'] =
-                    'عنوان دفتر ثبت الزامی است.';
-            }
-
-            if ($errors !== []) {
                 return [
                     'ok' => false,
-                    'errors' => $errors,
+                    'errors' =>
+                        $configuration['errors']
+                        ?? [
+                            'invalid' =>
+                                'اطلاعات دفتر ثبت معتبر نیست.',
+                        ],
                 ];
             }
 
             $pdo =
                 $this->runtime
                     ->connection();
-
-            if (
-                !$this->sequenceUsageAllows(
-                    $pdo,
-                    (int) $sequenceId,
-                    $strategy
-                )
-            ) {
-                return [
-                    'ok' => false,
-                    'errors' => [
-                        'number_sequence_id' =>
-                            'راهبرد استفاده از منبع شماره با دفترهای فعال موجود سازگار نیست. منبع شماره اختصاصی قابل اشتراک نیست و منبع شماره مشترک فقط میان دفترهای مشترک قابل استفاده است.',
-                    ],
-                ];
-            }
-
-            if (
-                $this->bookCodeExists(
-                    $pdo,
-                    (int) $actor[
-                        'root_organization_id'
-                    ],
-                    (int) $organizationId,
-                    (int) $deskId,
-                    (int) $periodId,
-                    $code
-                )
-            ) {
-                return [
-                    'ok' => false,
-                    'errors' => [
-                        'code' =>
-                            'این کد دفتر ثبت در دامنه انتخاب‌شده قبلاً استفاده شده است.',
-                    ],
-                ];
-            }
-
-            $organizationReference =
-                $this->organizationReference(
-                    (int) $organizationId
-                );
 
             $now =
                 Clock::databaseTimestamp();
@@ -3202,96 +2899,155 @@ final class SecretariatManagementService
                     'RBOOK'
                 );
 
-            $statement =
-                $pdo->prepare("
-                    INSERT INTO registry_books (
-                        public_reference,
-                        root_organization_id,
-                        organization_id,
-                        organization_public_reference,
-                        fiscal_year_id,
-                        org_unit_id,
-                        secretariat_desk_id,
-                        registry_period_id,
-                        number_sequence_id,
-                        numbering_strategy_code,
-                        scope_code,
-                        code,
-                        title,
-                        prefix,
-                        suffix,
-                        next_sequence_number,
-                        number_padding,
-                        status,
-                        created_at,
-                        updated_at
-                    )
-                    VALUES (
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        NULL,
-                        NULL,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        'active',
-                        ?,
-                        ?
-                    )
-                ");
+            $pdo->beginTransaction();
 
-            $statement->execute([
-                $publicReference,
+            try {
+                $statement =
+                    $pdo->prepare("
+                        INSERT INTO registry_books (
+                            public_reference,
+                            root_organization_id,
+                            organization_id,
+                            organization_public_reference,
+                            fiscal_year_id,
+                            org_unit_id,
+                            secretariat_desk_id,
+                            registry_period_id,
+                            number_sequence_id,
+                            numbering_strategy_code,
+                            scope_code,
+                            code,
+                            title,
+                            prefix,
+                            suffix,
+                            next_sequence_number,
+                            number_padding,
+                            status,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            NULL,
+                            NULL,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            ?,
+                            'active',
+                            ?,
+                            ?
+                        )
+                    ");
 
-                (int) $actor[
-                    'root_organization_id'
-                ],
+                $sequence =
+                    $configuration[
+                        'sequence'
+                    ];
 
-                (int) $organizationId,
+                $statement->execute([
+                    $publicReference,
 
-                $organizationReference,
+                    (int) $actor[
+                        'root_organization_id'
+                    ],
 
-                (int) $deskId,
-                (int) $periodId,
-                (int) $sequenceId,
+                    (int) $configuration[
+                        'organization_id'
+                    ],
 
-                $strategy,
-                $scopeCode,
+                    $configuration[
+                        'organization_reference'
+                    ],
 
-                $code,
-                $title,
+                    (int) $configuration[
+                        'desk_id'
+                    ],
 
-                $sequence['prefix']
-                    ?? null,
+                    (int) $configuration[
+                        'period_id'
+                    ],
 
-                $sequence['suffix']
-                    ?? null,
+                    (int) $configuration[
+                        'sequence_id'
+                    ],
 
-                (int) (
-                    $sequence[
-                        'next_sequence_number'
-                    ] ?? 1
-                ),
+                    (string) $configuration[
+                        'strategy'
+                    ],
 
-                (int) (
-                    $sequence[
-                        'number_padding'
-                    ] ?? 5
-                ),
+                    (string) $configuration[
+                        'legacy_scope_code'
+                    ],
 
-                $now,
-                $now,
-            ]);
+                    (string) $configuration[
+                        'code'
+                    ],
+
+                    (string) $configuration[
+                        'title'
+                    ],
+
+                    $sequence['prefix']
+                        ?? null,
+
+                    $sequence['suffix']
+                        ?? null,
+
+                    (int) (
+                        $sequence[
+                            'next_sequence_number'
+                        ] ?? 1
+                    ),
+
+                    (int) (
+                        $sequence[
+                            'number_padding'
+                        ] ?? 5
+                    ),
+
+                    $now,
+                    $now,
+                ]);
+
+                $bookId =
+                    (int) $pdo
+                        ->lastInsertId();
+
+                if ($bookId < 1) {
+                    throw new \RuntimeException(
+                        'registry_book_insert_id_missing'
+                    );
+                }
+
+                $this->replaceBookDirections(
+                    $pdo,
+                    $bookId,
+                    $configuration[
+                        'direction_codes'
+                    ],
+                    $now
+                );
+
+                $pdo->commit();
+
+            } catch (Throwable $exception) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+
+                throw $exception;
+            }
 
             return [
                 'ok' => true,
@@ -3370,10 +3126,20 @@ final class SecretariatManagementService
                         ?? 'dedicated'
                     ),
 
+                /*
+                 * Compatibility only.
+                 * Runtime direction authority is
+                 * registry_book_directions.
+                 */
                 'scope_code' =>
                     (string) (
                         $book['scope_code']
                         ?? ''
+                    ),
+
+                'direction_codes' =>
+                    $this->bookDirectionCodes(
+                        (int) $book['id']
                     ),
 
                 'code' =>
@@ -3471,16 +3237,19 @@ final class SecretariatManagementService
                 'registry_period_id',
                 'number_sequence_id',
                 'numbering_strategy_code',
+                'direction_codes',
                 'scope_code',
                 'code',
             ];
 
             if ($locked) {
                 foreach ($sensitiveKeys as $key) {
-                    if (array_key_exists(
-                        $key,
-                        $input
-                    )) {
+                    if (
+                        array_key_exists(
+                            $key,
+                            $input
+                        )
+                    ) {
                         return [
                             'ok' => false,
                             'errors' => [
@@ -3520,300 +3289,25 @@ final class SecretariatManagementService
                 ];
             }
 
-            $errors = [];
-
-            $organizationId =
-                $this->positiveInt(
-                    $input[
-                        'organization_id'
-                    ]
-                    ?? $current[
-                        'organization_id'
-                    ]
-                    ?? null
+            $configuration =
+                $this->bookConfiguration(
+                    $input,
+                    $actor,
+                    $current
                 );
 
             if (
-                $organizationId === null
-                || !$this->organizationAllowed(
-                    $organizationId,
-                    $actor
-                )
+                ($configuration['ok'] ?? false)
+                !== true
             ) {
-                $errors[
-                    'organization_id'
-                ] =
-                    'سازمان دفتر ثبت معتبر نیست.';
-            }
-
-            $deskId =
-                $this->positiveInt(
-                    $input[
-                        'secretariat_desk_id'
-                    ]
-                    ?? $current[
-                        'secretariat_desk_id'
-                    ]
-                    ?? null
-                );
-
-            $desk =
-                $deskId !== null
-                    ? $this->deskForActor(
-                        $deskId,
-                        $actor
-                    )
-                    : null;
-
-            if ($desk === null) {
-                $errors[
-                    'secretariat_desk_id'
-                ] =
-                    'دبیرخانه انتخاب‌شده در دامنه مجاز نیست.';
-            }
-
-            if (
-                $desk !== null
-                && $organizationId !== null
-                && !$this->deskServesOrganization(
-                    (int) $desk['id'],
-                    $organizationId
-                )
-            ) {
-                $errors[
-                    'organization_id'
-                ] =
-                    'دبیرخانه انتخاب‌شده به این سازمان خدمت ارائه نمی‌کند.';
-            }
-
-            $periodId =
-                $this->positiveInt(
-                    $input[
-                        'registry_period_id'
-                    ]
-                    ?? $current[
-                        'registry_period_id'
-                    ]
-                    ?? null
-                );
-
-            $period =
-                $periodId !== null
-                    ? $this->periodForActor(
-                        $periodId,
-                        $actor
-                    )
-                    : null;
-
-            if ($period === null) {
-                $errors[
-                    'registry_period_id'
-                ] =
-                    'دوره ثبت انتخاب‌شده معتبر نیست.';
-            }
-
-            if (
-                $period !== null
-                && $organizationId !== null
-                && $period[
-                    'organization_id'
-                ] !== null
-                && (int) $period[
-                    'organization_id'
-                ] !== $organizationId
-            ) {
-                $errors[
-                    'registry_period_id'
-                ] =
-                    'دوره ثبت سازمانی متعلق به سازمان دیگری است.';
-            }
-
-            $sequenceId =
-                $this->positiveInt(
-                    $input[
-                        'number_sequence_id'
-                    ]
-                    ?? $current[
-                        'number_sequence_id'
-                    ]
-                    ?? null
-                );
-
-            $sequence =
-                $sequenceId !== null
-                    ? $this->sequenceForActor(
-                        $sequenceId,
-                        $actor
-                    )
-                    : null;
-
-            if ($sequence === null) {
-                $errors[
-                    'number_sequence_id'
-                ] =
-                    'منبع شماره انتخاب‌شده معتبر نیست.';
-            }
-
-            if (
-                $sequence !== null
-                && $deskId !== null
-                && (int) $sequence[
-                    'secretariat_desk_id'
-                ] !== $deskId
-            ) {
-                $errors[
-                    'number_sequence_id'
-                ] =
-                    'منبع شماره انتخاب‌شده متعلق به این دبیرخانه نیست.';
-            }
-
-            if (
-                $sequence !== null
-                && $periodId !== null
-                && (int) $sequence[
-                    'registry_period_id'
-                ] !== $periodId
-            ) {
-                $errors[
-                    'number_sequence_id'
-                ] =
-                    'منبع شماره انتخاب‌شده متعلق به دوره ثبت دیگری است.';
-            }
-
-            if (
-                $sequence !== null
-                && $organizationId !== null
-            ) {
-                if (
-                    $sequence[
-                        'organization_id'
-                    ] !== null
-                    && (int) $sequence[
-                        'organization_id'
-                    ] !== $organizationId
-                ) {
-                    $errors[
-                        'number_sequence_id'
-                    ] =
-                        'منبع شماره سازمانی متعلق به سازمان دیگری است.';
-                }
-
-                if (
-                    $sequence[
-                        'organization_id'
-                    ] === null
-                    && (
-                        $desk === null
-                        || (int) (
-                            $desk[
-                                'allow_cross_organization'
-                            ] ?? 0
-                        ) !== 1
-                    )
-                ) {
-                    $errors[
-                        'number_sequence_id'
-                    ] =
-                        'استفاده از منبع شماره مشترک برای این دبیرخانه مجاز نیست.';
-                }
-            }
-
-            $scopeCode =
-                $this->code(
-                    $input[
-                        'scope_code'
-                    ]
-                    ?? $current[
-                        'scope_code'
-                    ]
-                    ?? ''
-                );
-
-            if (
-                !in_array(
-                    $scopeCode,
-                    [
-                        'incoming',
-                        'outgoing',
-                        'internal',
-                        'general',
-                    ],
-                    true
-                )
-            ) {
-                $errors[
-                    'scope_code'
-                ] =
-                    'نوع دفتر ثبت معتبر نیست.';
-            }
-
-            if (
-                $desk !== null
-                && $organizationId !== null
-                && in_array(
-                    $scopeCode,
-                    [
-                        'incoming',
-                        'outgoing',
-                        'internal',
-                    ],
-                    true
-                )
-                && !$this->deskCanRegister(
-                    (int) $desk['id'],
-                    $organizationId,
-                    $scopeCode
-                )
-            ) {
-                $errors[
-                    'scope_code'
-                ] =
-                    'این دبیرخانه برای نوع دفتر انتخاب‌شده مجوز ثبت ندارد.';
-            }
-
-            $strategy =
-                $this->code(
-                    $input[
-                        'numbering_strategy_code'
-                    ]
-                    ?? $current[
-                        'numbering_strategy_code'
-                    ]
-                    ?? 'dedicated'
-                );
-
-            if (
-                !in_array(
-                    $strategy,
-                    [
-                        'dedicated',
-                        'shared',
-                    ],
-                    true
-                )
-            ) {
-                $errors[
-                    'numbering_strategy_code'
-                ] =
-                    'راهبرد شماره‌گذاری معتبر نیست.';
-            }
-
-            $code =
-                $this->code(
-                    $input['code']
-                    ?? $current['code']
-                    ?? ''
-                );
-
-            if ($code === '') {
-                $errors['code'] =
-                    'کد دفتر ثبت الزامی است.';
-            }
-
-            if ($errors !== []) {
                 return [
                     'ok' => false,
-                    'errors' => $errors,
+                    'errors' =>
+                        $configuration['errors']
+                        ?? [
+                            'invalid' =>
+                                'اطلاعات دفتر ثبت معتبر نیست.',
+                        ],
                 ];
             }
 
@@ -3821,107 +3315,119 @@ final class SecretariatManagementService
                 $this->runtime
                     ->connection();
 
-            if (
-                !$this->sequenceUsageAllowsExcluding(
-                    $pdo,
-                    (int) $sequenceId,
-                    $strategy,
-                    (int) $current['id']
-                )
-            ) {
-                return [
-                    'ok' => false,
-                    'errors' => [
-                        'number_sequence_id' =>
-                            'راهبرد استفاده از منبع شماره با دفترهای فعال موجود سازگار نیست. منبع شماره اختصاصی قابل اشتراک نیست و منبع شماره مشترک فقط میان دفترهای مشترک قابل استفاده است.',
-                    ],
-                ];
-            }
+            $now =
+                Clock::databaseTimestamp();
 
-            if (
-                $this->bookCodeExistsExcluding(
-                    $pdo,
-                    (int) $actor[
-                        'root_organization_id'
-                    ],
-                    (int) $organizationId,
-                    (int) $deskId,
-                    (int) $periodId,
-                    $code,
-                    (int) $current['id']
-                )
-            ) {
-                return [
-                    'ok' => false,
-                    'errors' => [
-                        'code' =>
-                            'این کد دفتر ثبت در دامنه انتخاب‌شده قبلاً استفاده شده است.',
-                    ],
-                ];
-            }
+            $pdo->beginTransaction();
 
-            $organizationReference =
-                $this->organizationReference(
-                    (int) $organizationId
+            try {
+                $sequence =
+                    $configuration[
+                        'sequence'
+                    ];
+
+                $statement =
+                    $pdo->prepare("
+                        UPDATE registry_books
+
+                        SET
+                            organization_id = ?,
+                            organization_public_reference = ?,
+                            secretariat_desk_id = ?,
+                            registry_period_id = ?,
+                            number_sequence_id = ?,
+                            numbering_strategy_code = ?,
+                            scope_code = ?,
+                            code = ?,
+                            title = ?,
+                            prefix = ?,
+                            suffix = ?,
+                            next_sequence_number = ?,
+                            number_padding = ?,
+                            updated_at = ?
+
+                        WHERE id = ?
+                          AND public_reference = ?
+                    ");
+
+                $statement->execute([
+                    (int) $configuration[
+                        'organization_id'
+                    ],
+
+                    $configuration[
+                        'organization_reference'
+                    ],
+
+                    (int) $configuration[
+                        'desk_id'
+                    ],
+
+                    (int) $configuration[
+                        'period_id'
+                    ],
+
+                    (int) $configuration[
+                        'sequence_id'
+                    ],
+
+                    (string) $configuration[
+                        'strategy'
+                    ],
+
+                    (string) $configuration[
+                        'legacy_scope_code'
+                    ],
+
+                    (string) $configuration[
+                        'code'
+                    ],
+
+                    (string) $configuration[
+                        'title'
+                    ],
+
+                    $sequence['prefix']
+                        ?? null,
+
+                    $sequence['suffix']
+                        ?? null,
+
+                    (int) (
+                        $sequence[
+                            'next_sequence_number'
+                        ] ?? 1
+                    ),
+
+                    (int) (
+                        $sequence[
+                            'number_padding'
+                        ] ?? 5
+                    ),
+
+                    $now,
+                    (int) $current['id'],
+                    $publicReference,
+                ]);
+
+                $this->replaceBookDirections(
+                    $pdo,
+                    (int) $current['id'],
+                    $configuration[
+                        'direction_codes'
+                    ],
+                    $now
                 );
 
-            $statement =
-                $pdo->prepare("
-                    UPDATE registry_books
+                $pdo->commit();
 
-                    SET
-                        organization_id = ?,
-                        organization_public_reference = ?,
-                        secretariat_desk_id = ?,
-                        registry_period_id = ?,
-                        number_sequence_id = ?,
-                        numbering_strategy_code = ?,
-                        scope_code = ?,
-                        code = ?,
-                        title = ?,
-                        prefix = ?,
-                        suffix = ?,
-                        next_sequence_number = ?,
-                        number_padding = ?,
-                        updated_at = ?
+            } catch (Throwable $exception) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
 
-                    WHERE id = ?
-                      AND public_reference = ?
-                ");
-
-            $statement->execute([
-                (int) $organizationId,
-                $organizationReference,
-                (int) $deskId,
-                (int) $periodId,
-                (int) $sequenceId,
-                $strategy,
-                $scopeCode,
-                $code,
-                $title,
-
-                $sequence['prefix']
-                    ?? null,
-
-                $sequence['suffix']
-                    ?? null,
-
-                (int) (
-                    $sequence[
-                        'next_sequence_number'
-                    ] ?? 1
-                ),
-
-                (int) (
-                    $sequence[
-                        'number_padding'
-                    ] ?? 5
-                ),
-
-                Clock::databaseTimestamp(),
-                (int) $current['id'],
-                $publicReference,
-            ]);
+                throw $exception;
+            }
 
             return [
                 'ok' => true,
@@ -4362,7 +3868,27 @@ final class SecretariatManagementService
                 PDO::FETCH_ASSOC
             ) ?: [];
 
+        $directionMap =
+            $this->bookDirectionMap(
+                array_map(
+                    static fn (
+                        array $row
+                    ): int =>
+                        (int) $row['id'],
+                    $rows
+                )
+            );
+
         foreach ($rows as &$row) {
+            $bookId =
+                (int) $row['id'];
+
+            $row[
+                'direction_codes'
+            ] =
+                $directionMap[
+                    $bookId
+                ] ?? [];
 
             $row[
                 'organization_title'
@@ -5343,6 +4869,754 @@ final class SecretariatManagementService
         return
             (int) $statement
                 ->fetchColumn() > 0;
+    }
+
+    private function bookConfiguration(
+        array $input,
+        array $actor,
+        ?array $current = null
+    ): array {
+        $errors = [];
+
+        $organizationId =
+            $this->positiveInt(
+                $input[
+                    'organization_id'
+                ]
+                ?? $current[
+                    'organization_id'
+                ]
+                ?? null
+            );
+
+        if (
+            $organizationId === null
+            || !$this->organizationAllowed(
+                $organizationId,
+                $actor
+            )
+        ) {
+            $errors[
+                'organization_id'
+            ] =
+                'سازمان دفتر ثبت معتبر نیست.';
+        }
+
+        $deskId =
+            $this->positiveInt(
+                $input[
+                    'secretariat_desk_id'
+                ]
+                ?? $current[
+                    'secretariat_desk_id'
+                ]
+                ?? null
+            );
+
+        $desk =
+            $deskId !== null
+                ? $this->deskForActor(
+                    $deskId,
+                    $actor
+                )
+                : null;
+
+        if ($desk === null) {
+            $errors[
+                'secretariat_desk_id'
+            ] =
+                'دبیرخانه انتخاب‌شده در دامنه مجاز نیست.';
+        }
+
+        if (
+            $desk !== null
+            && $organizationId !== null
+            && !$this->deskServesOrganization(
+                (int) $desk['id'],
+                $organizationId
+            )
+        ) {
+            $errors[
+                'organization_id'
+            ] =
+                'دبیرخانه انتخاب‌شده به این سازمان خدمت ارائه نمی‌کند.';
+        }
+
+        $periodId =
+            $this->positiveInt(
+                $input[
+                    'registry_period_id'
+                ]
+                ?? $current[
+                    'registry_period_id'
+                ]
+                ?? null
+            );
+
+        $period =
+            $periodId !== null
+                ? $this->periodForActor(
+                    $periodId,
+                    $actor
+                )
+                : null;
+
+        if ($period === null) {
+            $errors[
+                'registry_period_id'
+            ] =
+                'دوره ثبت انتخاب‌شده معتبر نیست.';
+        }
+
+        if (
+            $period !== null
+            && $organizationId !== null
+            && $period[
+                'organization_id'
+            ] !== null
+            && (int) $period[
+                'organization_id'
+            ] !== $organizationId
+        ) {
+            $errors[
+                'registry_period_id'
+            ] =
+                'دوره ثبت سازمانی متعلق به سازمان دیگری است.';
+        }
+
+        $sequenceId =
+            $this->positiveInt(
+                $input[
+                    'number_sequence_id'
+                ]
+                ?? $current[
+                    'number_sequence_id'
+                ]
+                ?? null
+            );
+
+        $sequence =
+            $sequenceId !== null
+                ? $this->sequenceForActor(
+                    $sequenceId,
+                    $actor
+                )
+                : null;
+
+        if ($sequence === null) {
+            $errors[
+                'number_sequence_id'
+            ] =
+                'منبع شماره انتخاب‌شده معتبر نیست.';
+        }
+
+        if (
+            $sequence !== null
+            && $deskId !== null
+            && (int) $sequence[
+                'secretariat_desk_id'
+            ] !== $deskId
+        ) {
+            $errors[
+                'number_sequence_id'
+            ] =
+                'منبع شماره انتخاب‌شده متعلق به این دبیرخانه نیست.';
+        }
+
+        if (
+            $sequence !== null
+            && $periodId !== null
+            && (int) $sequence[
+                'registry_period_id'
+            ] !== $periodId
+        ) {
+            $errors[
+                'number_sequence_id'
+            ] =
+                'منبع شماره انتخاب‌شده متعلق به دوره ثبت دیگری است.';
+        }
+
+        if (
+            $sequence !== null
+            && $organizationId !== null
+        ) {
+            if (
+                $sequence[
+                    'organization_id'
+                ] !== null
+                && (int) $sequence[
+                    'organization_id'
+                ] !== $organizationId
+            ) {
+                $errors[
+                    'number_sequence_id'
+                ] =
+                    'منبع شماره سازمانی متعلق به سازمان دیگری است.';
+            }
+
+            if (
+                $sequence[
+                    'organization_id'
+                ] === null
+                && (
+                    $desk === null
+                    || (int) (
+                        $desk[
+                            'allow_cross_organization'
+                        ] ?? 0
+                    ) !== 1
+                )
+            ) {
+                $errors[
+                    'number_sequence_id'
+                ] =
+                    'استفاده از منبع شماره مشترک برای این دبیرخانه مجاز نیست.';
+            }
+        }
+
+        /*
+         * New forms submit direction_codes[] and
+         * direction_codes_present=1.
+         *
+         * The scope_code branch is retained only
+         * for compatibility during rolling deploys.
+         */
+        if (
+            array_key_exists(
+                'direction_codes_present',
+                $input
+            )
+        ) {
+            $rawDirections =
+                $input[
+                    'direction_codes'
+                ] ?? [];
+
+        } elseif (
+            array_key_exists(
+                'direction_codes',
+                $input
+            )
+        ) {
+            $rawDirections =
+                $input[
+                    'direction_codes'
+                ];
+
+        } elseif (
+            array_key_exists(
+                'scope_code',
+                $input
+            )
+        ) {
+            $rawDirections =
+                $this->legacyBookDirectionCodes(
+                    (string) $input[
+                        'scope_code'
+                    ]
+                );
+
+        } elseif ($current !== null) {
+            $rawDirections =
+                $this->bookDirectionCodes(
+                    (int) $current['id']
+                );
+
+        } else {
+            $rawDirections = [];
+        }
+
+        $directionCodes =
+            $this->bookDirectionInput(
+                $rawDirections
+            );
+
+        if ($directionCodes === []) {
+            $errors[
+                'direction_codes'
+            ] =
+                'حداقل یکی از انواع وارده، صادره یا داخلی را برای دفتر ثبت انتخاب کنید.';
+        }
+
+        foreach (
+            $directionCodes
+            as $directionCode
+        ) {
+            if (
+                !in_array(
+                    $directionCode,
+                    [
+                        'incoming',
+                        'outgoing',
+                        'internal',
+                    ],
+                    true
+                )
+            ) {
+                $errors[
+                    'direction_codes'
+                ] =
+                    'یکی از انواع انتخاب‌شده برای دفتر ثبت معتبر نیست.';
+
+                break;
+            }
+        }
+
+        if (
+            !isset(
+                $errors[
+                    'direction_codes'
+                ]
+            )
+            && $desk !== null
+            && $organizationId !== null
+        ) {
+            foreach (
+                $directionCodes
+                as $directionCode
+            ) {
+                if (
+                    !$this->deskCanRegister(
+                        (int) $desk['id'],
+                        $organizationId,
+                        $directionCode
+                    )
+                ) {
+                    $errors[
+                        'direction_codes'
+                    ] =
+                        'دبیرخانه برای یکی از انواع انتخاب‌شده مجوز ثبت ندارد.';
+
+                    break;
+                }
+            }
+        }
+
+        $strategy =
+            $this->code(
+                $input[
+                    'numbering_strategy_code'
+                ]
+                ?? $current[
+                    'numbering_strategy_code'
+                ]
+                ?? 'dedicated'
+            );
+
+        if (
+            !in_array(
+                $strategy,
+                [
+                    'dedicated',
+                    'shared',
+                ],
+                true
+            )
+        ) {
+            $errors[
+                'numbering_strategy_code'
+            ] =
+                'راهبرد شماره‌گذاری معتبر نیست.';
+        }
+
+        $code =
+            $this->code(
+                $input['code']
+                ?? $current['code']
+                ?? ''
+            );
+
+        $title =
+            $this->text(
+                $input['title']
+                ?? $current['title']
+                ?? '',
+                255
+            );
+
+        if ($code === '') {
+            $errors['code'] =
+                'کد دفتر ثبت الزامی است.';
+        }
+
+        if ($title === '') {
+            $errors['title'] =
+                'عنوان دفتر ثبت الزامی است.';
+        }
+
+        if ($errors !== []) {
+            return [
+                'ok' => false,
+                'errors' => $errors,
+            ];
+        }
+
+        $pdo =
+            $this->runtime
+                ->connection();
+
+        $sequenceUsageAllowed =
+            $current === null
+                ? $this->sequenceUsageAllows(
+                    $pdo,
+                    (int) $sequenceId,
+                    $strategy
+                )
+                : $this->sequenceUsageAllowsExcluding(
+                    $pdo,
+                    (int) $sequenceId,
+                    $strategy,
+                    (int) $current['id']
+                );
+
+        if (!$sequenceUsageAllowed) {
+            return [
+                'ok' => false,
+                'errors' => [
+                    'number_sequence_id' =>
+                        'راهبرد استفاده از منبع شماره با دفترهای فعال موجود سازگار نیست. منبع شماره اختصاصی قابل اشتراک نیست و منبع شماره مشترک فقط میان دفترهای مشترک قابل استفاده است.',
+                ],
+            ];
+        }
+
+        $codeExists =
+            $current === null
+                ? $this->bookCodeExists(
+                    $pdo,
+                    (int) $actor[
+                        'root_organization_id'
+                    ],
+                    (int) $organizationId,
+                    (int) $deskId,
+                    (int) $periodId,
+                    $code
+                )
+                : $this->bookCodeExistsExcluding(
+                    $pdo,
+                    (int) $actor[
+                        'root_organization_id'
+                    ],
+                    (int) $organizationId,
+                    (int) $deskId,
+                    (int) $periodId,
+                    $code,
+                    (int) $current['id']
+                );
+
+        if ($codeExists) {
+            return [
+                'ok' => false,
+                'errors' => [
+                    'code' =>
+                        'این کد دفتر ثبت در دامنه انتخاب‌شده قبلاً استفاده شده است.',
+                ],
+            ];
+        }
+
+        return [
+            'ok' => true,
+
+            'organization_id' =>
+                (int) $organizationId,
+
+            'organization_reference' =>
+                $this->organizationReference(
+                    (int) $organizationId
+                ),
+
+            'desk_id' =>
+                (int) $deskId,
+
+            'period_id' =>
+                (int) $periodId,
+
+            'sequence_id' =>
+                (int) $sequenceId,
+
+            'sequence' =>
+                $sequence,
+
+            'direction_codes' =>
+                $directionCodes,
+
+            /*
+             * Compatibility projection only.
+             * One direction retains its legacy value.
+             * Any multi-direction book projects to
+             * general, while the relation table remains
+             * authoritative.
+             */
+            'legacy_scope_code' =>
+                $this->legacyBookScopeCode(
+                    $directionCodes
+                ),
+
+            'strategy' =>
+                $strategy,
+
+            'code' =>
+                $code,
+
+            'title' =>
+                $title,
+        ];
+    }
+
+    private function bookDirectionInput(
+        mixed $value
+    ): array {
+        if (!is_array($value)) {
+            $value = [
+                $value,
+            ];
+        }
+
+        $codes = [];
+
+        foreach ($value as $item) {
+            $code =
+                $this->code(
+                    $item
+                );
+
+            if ($code !== '') {
+                $codes[] =
+                    $code;
+            }
+        }
+
+        $codes =
+            array_values(
+                array_unique(
+                    $codes
+                )
+            );
+
+        $order = [
+            'incoming' => 10,
+            'outgoing' => 20,
+            'internal' => 30,
+        ];
+
+        usort(
+            $codes,
+            static fn (
+                string $left,
+                string $right
+            ): int =>
+                ($order[$left] ?? 999)
+                <=>
+                ($order[$right] ?? 999)
+        );
+
+        return $codes;
+    }
+
+    private function legacyBookDirectionCodes(
+        string $scopeCode
+    ): array {
+        $scopeCode =
+            $this->code(
+                $scopeCode
+            );
+
+        if ($scopeCode === 'general') {
+            return [
+                'incoming',
+                'outgoing',
+                'internal',
+            ];
+        }
+
+        if (
+            in_array(
+                $scopeCode,
+                [
+                    'incoming',
+                    'outgoing',
+                    'internal',
+                ],
+                true
+            )
+        ) {
+            return [
+                $scopeCode,
+            ];
+        }
+
+        return [];
+    }
+
+    private function legacyBookScopeCode(
+        array $directionCodes
+    ): string {
+        if (
+            count(
+                $directionCodes
+            ) === 1
+            && in_array(
+                $directionCodes[0],
+                [
+                    'incoming',
+                    'outgoing',
+                    'internal',
+                ],
+                true
+            )
+        ) {
+            return
+                $directionCodes[0];
+        }
+
+        return 'general';
+    }
+
+    private function bookDirectionCodes(
+        int $bookId
+    ): array {
+        $map =
+            $this->bookDirectionMap([
+                $bookId,
+            ]);
+
+        return
+            $map[$bookId]
+            ?? [];
+    }
+
+    private function bookDirectionMap(
+        array $bookIds
+    ): array {
+        $bookIds =
+            array_values(
+                array_unique(
+                    array_filter(
+                        array_map(
+                            'intval',
+                            $bookIds
+                        ),
+                        static fn (
+                            int $id
+                        ): bool =>
+                            $id > 0
+                    )
+                )
+            );
+
+        if ($bookIds === []) {
+            return [];
+        }
+
+        $placeholders =
+            implode(
+                ', ',
+                array_fill(
+                    0,
+                    count($bookIds),
+                    '?'
+                )
+            );
+
+        $statement =
+            $this->runtime
+                ->connection()
+                ->prepare("
+                    SELECT
+                        registry_book_id,
+                        direction_code
+
+                    FROM registry_book_directions
+
+                    WHERE registry_book_id
+                        IN ({$placeholders})
+
+                    ORDER BY
+                        registry_book_id,
+                        FIELD(
+                            direction_code,
+                            'incoming',
+                            'outgoing',
+                            'internal'
+                        )
+                ");
+
+        $statement->execute(
+            $bookIds
+        );
+
+        $map = [];
+
+        foreach (
+            $statement->fetchAll(
+                PDO::FETCH_ASSOC
+            ) ?: []
+            as $row
+        ) {
+            $bookId =
+                (int) $row[
+                    'registry_book_id'
+                ];
+
+            $directionCode =
+                (string) $row[
+                    'direction_code'
+                ];
+
+            $map[$bookId] ??= [];
+
+            $map[$bookId][] =
+                $directionCode;
+        }
+
+        return $map;
+    }
+
+    private function replaceBookDirections(
+        PDO $pdo,
+        int $bookId,
+        array $directionCodes,
+        string $now
+    ): void {
+        $delete =
+            $pdo->prepare("
+                DELETE FROM
+                    registry_book_directions
+
+                WHERE registry_book_id = ?
+            ");
+
+        $delete->execute([
+            $bookId,
+        ]);
+
+        $insert =
+            $pdo->prepare("
+                INSERT INTO
+                    registry_book_directions (
+                        registry_book_id,
+                        direction_code,
+                        created_at,
+                        updated_at
+                    )
+                VALUES (
+                    ?,
+                    ?,
+                    ?,
+                    ?
+                )
+            ");
+
+        foreach (
+            $directionCodes
+            as $directionCode
+        ) {
+            $insert->execute([
+                $bookId,
+                $directionCode,
+                $now,
+                $now,
+            ]);
+        }
     }
 
     private function bookForActorByReference(
