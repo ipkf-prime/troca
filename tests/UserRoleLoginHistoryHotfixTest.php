@@ -68,8 +68,10 @@ $expect(
 
 $expect(
     str_contains($auth, 'LoginHistoryService')
-    && str_contains($auth, "'password_mfa'"),
-    'Successful authentication is not audited.'
+    && str_contains($auth, 'finalizeLogin')
+    && str_contains($auth, 'updateLastLogin')
+    && !str_contains($auth, "'password_mfa'"),
+    'Canonical successful authentication finalization is incomplete.'
 );
 
 $expect(

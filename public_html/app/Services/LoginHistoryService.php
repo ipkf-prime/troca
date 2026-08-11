@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Repositories\LoginHistoryRepository;
+use App\Support\AdminFormat;
 use IPKF\Support\Session;
 use Throwable;
 
@@ -70,11 +71,14 @@ class LoginHistoryService extends BaseService
         $method = (string) (
             $item['auth_method'] ?? 'session'
         );
+        $mfaVerified = !empty(
+            $item['mfa_verified']
+        );
 
         return [
             'id' => (int) ($item['id'] ?? 0),
-            'logged_in_at' => (string) (
-                $item['logged_in_at'] ?? ''
+            'logged_in_at' => $this->displayDateTime(
+                $item['logged_in_at'] ?? null
             ),
             'ip_address' => trim((string) (
                 $item['ip_address'] ?? ''
@@ -88,20 +92,29 @@ class LoginHistoryService extends BaseService
             'role_code' => trim((string) (
                 $item['role_code_snapshot'] ?? ''
             )),
-            'mfa_verified' => !empty(
-                $item['mfa_verified']
-            ),
+            'mfa_verified' => $mfaVerified,
             'auth_method' => $method,
             'auth_method_label' => match ($method) {
-                'password' => 'رمز عبور',
+                'password' => $mfaVerified
+                    ? 'رمز عبور و MFA'
+                    : 'رمز عبور',
                 'password_mfa' => 'رمز عبور و MFA',
-                'token' => 'توکن ورود',
-                'sso' => 'ورود یکپارچه',
+                'token' => $mfaVerified
+                    ? 'توکن ورود و MFA'
+                    : 'توکن ورود',
+                'sso' => $mfaVerified
+                    ? 'ورود یکپارچه و MFA'
+                    : 'ورود یکپارچه',
                 'legacy' => 'آخرین ورود ثبت‌شده',
                 default => 'ورود سامانه‌ای',
             },
             'is_legacy' => $method === 'legacy',
         ];
+    }
+
+    private function displayDateTime(mixed $value): string
+    {
+        return AdminFormat::jalaliDateTime($value);
     }
 
     private function method(string $method): string

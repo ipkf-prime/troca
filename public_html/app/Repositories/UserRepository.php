@@ -89,13 +89,23 @@ class UserRepository extends BaseRepository
         return count($users) === 1 ? $users[0] : null;
     }
 
-    public function updateLoginSuccess(int $userId): void
+    public function resetLoginFailures(int $userId): void
     {
         $statement = $this->connection()->prepare("
             UPDATE users
             SET failed_login_attempts = 0,
                 locked_until = NULL,
-                last_login_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        ");
+        $statement->execute([$userId]);
+    }
+
+    public function updateLastLogin(int $userId): void
+    {
+        $statement = $this->connection()->prepare("
+            UPDATE users
+            SET last_login_at = CURRENT_TIMESTAMP,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         ");

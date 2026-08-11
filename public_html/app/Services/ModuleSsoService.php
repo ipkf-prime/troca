@@ -56,6 +56,7 @@ class ModuleSsoService extends BaseService
                 'audience' => $module,
                 'active_role_assignment_id' => (int) Session::get('active_role_assignment_id', 0),
                 'active_organizational_appointment' => (string) Session::get('active_organizational_appointment', ''),
+                'mfa_verified' => (bool) Session::get('auth_mfa_verified', false),
             ]
         );
 
@@ -91,6 +92,7 @@ class ModuleSsoService extends BaseService
         $metadata = json_decode((string) ($record['metadata_json'] ?? ''), true);
         $record['safe_assignment_id'] = max(0, (int) ($metadata['active_role_assignment_id'] ?? 0));
         $record['safe_appointment_reference'] = trim((string) ($metadata['active_organizational_appointment'] ?? ''));
+        $record['safe_mfa_verified'] = !empty($metadata['mfa_verified']);
         $record['safe_redirect_path'] = $this->returnPath((string) ($record['redirect_path'] ?? ''));
         return $record;
     }

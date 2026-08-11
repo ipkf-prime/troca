@@ -32,7 +32,9 @@ class AuthService extends BaseService
             return null;
         }
 
-        $this->users->updateLoginSuccess((int) $user['id']);
+        // Password verification succeeded. This state belongs to the
+        // password credential check, not to completion of authentication.
+        $this->users->resetLoginFailures((int) $user['id']);
 
         $mfa = new MfaService();
 
@@ -40,24 +42,55 @@ class AuthService extends BaseService
             return [
                 'authenticated' => false,
                 'mfa_required' => true,
-                'methods' => $mfa->startPending((int) $user['id']),
+                'methods' => $mfa->startPending(
+                    (int) $user['id'],
+                    'password'
+                ),
             ];
         }
 
-        $this->login(
+        return $this->finalizeLogin(
             (int) $user['id'],
-            false,
-            'password'
+            'password',
+            false
         );
-
-        return $this->currentUser();
     }
 
-    public function login(
+    public function completePendingMfa(
+        string $challengeMethod,
+        string $code
+    ): ?array {
+        $verified = (new MfaService())->verifyPendingChallenge(
+            $challengeMethod,
+            $code
+        );
+
+        if ($verified === null) {
+            return null;
+        }
+
+        return $this->finalizeLogin(
+            (int) $verified['user_id'],
+            (string) ($verified['auth_method'] ?? 'password'),
+            true
+        );
+    }
+
+    public function finalizeLogin(
         int $userId,
-        bool $mfaVerified = false,
-        string $method = 'session'
-    ): void {
+        string $method = 'session',
+        bool $mfaVerified = false
+    ): ?array {
+        $user = $this->users->findById($userId);
+
+        // Eligibility is deliberately checked immediately before session
+        // mutation so a user disabled or locked during MFA/SSO cannot enter.
+        if ($user === null || !$this->canAuthenticate($user)) {
+            return null;
+        }
+
+        $method = $this->normalizeAuthMethod($method);
+
         Session::regenerate();
         Session::put('auth_user_id', $userId);
         Session::put(
@@ -68,6 +101,10 @@ class AuthService extends BaseService
             'auth_mfa_verified',
             $mfaVerified
         );
+
+        // last_login_at means a completed authenticated session, not merely
+        // a successfully verified password.
+        $this->users->updateLastLogin($userId);
 
         $access = new AccessService();
         $access->ensureDefaultAssignment($userId);
@@ -84,6 +121,8 @@ class AuthService extends BaseService
 
         (new InternalMessageLoginNotifierService())
             ->notify($userId);
+
+        return $this->safeUser($user);
     }
 
     public function logout(): void
@@ -95,19 +134,9 @@ class AuthService extends BaseService
         Session::forget('auth_pending_user_id');
         Session::forget('auth_pending_at');
         Session::forget('auth_pending_methods');
+        Session::forget('auth_pending_auth_method');
         Session::forget('module_sso_return_path');
         Session::forget('messages_unread_on_login');
-    }
-
-    public function completeMfaLogin(int $userId): ?array
-    {
-        $this->login(
-            $userId,
-            true,
-            'password_mfa'
-        );
-
-        return $this->currentUser();
     }
 
     public function currentUserId(): ?int
@@ -180,6 +209,22 @@ class AuthService extends BaseService
             'mobile' => $user['mobile'] ?? null,
             'status' => $user['status'] ?? null,
         ];
+    }
+
+    private function normalizeAuthMethod(string $method): string
+    {
+        $method = strtolower(trim($method));
+
+        return in_array(
+            $method,
+            [
+                'password',
+                'token',
+                'sso',
+                'session',
+            ],
+            true
+        ) ? $method : 'session';
     }
 
     private function canAuthenticate(array $user): bool

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Repositories\UserRepository;
+use App\Support\AdminFormat;
 use IPKF\Support\Session;
 
 class AccountSecurityService extends BaseService
@@ -35,9 +36,11 @@ class AccountSecurityService extends BaseService
             'recovery_codes' => $this->pullRecoveryCodes(),
             'session' => [
                 'id_short' => substr(session_id(), 0, 10),
-                'login_at' => (string) Session::get(
-                    'auth_login_at',
-                    ''
+                'login_at' => $this->displayDateTime(
+                    Session::get(
+                        'auth_login_at',
+                        ''
+                    )
                 ),
                 'mfa_verified' => (bool) Session::get(
                     'auth_mfa_verified',
@@ -56,6 +59,11 @@ class AccountSecurityService extends BaseService
                 $this->loginHistory->recent($userId, 10),
             'account_label' => $this->accountLabel($user),
         ];
+    }
+
+    private function displayDateTime(mixed $value): string
+    {
+        return AdminFormat::jalaliDateTime($value);
     }
 
     public function beginTotp(

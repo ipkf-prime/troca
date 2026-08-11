@@ -60,8 +60,10 @@ class MfaService extends BaseService
             && $this->methodsForUser($userId) !== [];
     }
 
-    public function startPending(int $userId): array
-    {
+    public function startPending(
+        int $userId,
+        string $authMethod = 'password'
+    ): array {
         $methods = array_values(array_map(
             static fn (array $method): string =>
                 (string) $method['method'],
@@ -77,6 +79,10 @@ class MfaService extends BaseService
         Session::put('auth_pending_user_id', $userId);
         Session::put('auth_pending_at', time());
         Session::put('auth_pending_methods', $methods);
+        Session::put(
+            'auth_pending_auth_method',
+            $this->pendingAuthMethodValue($authMethod)
+        );
 
         return $methods;
     }
@@ -105,6 +111,7 @@ class MfaService extends BaseService
         Session::forget('auth_pending_user_id');
         Session::forget('auth_pending_at');
         Session::forget('auth_pending_methods');
+        Session::forget('auth_pending_auth_method');
     }
 
     public function beginTotpSetup(
@@ -295,12 +302,21 @@ class MfaService extends BaseService
     public function verifyPendingChallenge(
         string $method,
         string $code
-    ): ?int {
+    ): ?array {
         $userId = $this->pendingUserId();
 
         if ($userId === null) {
             return null;
         }
+
+        // Defaulting to password preserves already-open pending sessions
+        // created before authentication provenance was stored.
+        $authMethod = $this->pendingAuthMethodValue(
+            (string) Session::get(
+                'auth_pending_auth_method',
+                'password'
+            )
+        );
 
         $valid = false;
 
@@ -320,7 +336,10 @@ class MfaService extends BaseService
 
         $this->clearPending();
 
-        return $userId;
+        return [
+            'user_id' => $userId,
+            'auth_method' => $authMethod,
+        ];
     }
 
     private function confirmTotpChallenge(
@@ -343,6 +362,18 @@ class MfaService extends BaseService
             ),
             $code
         );
+    }
+
+    private function pendingAuthMethodValue(
+        string $method
+    ): string {
+        $method = strtolower(trim($method));
+
+        return in_array(
+            $method,
+            ['password', 'token'],
+            true
+        ) ? $method : 'password';
     }
 
     private function extractSecret(string $stored): string

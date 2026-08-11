@@ -1324,7 +1324,11 @@ $router->get('/auth/module-sso/callback', function ($request, $response) {
     }
 
     $auth = new \App\Services\AuthService();
-    if ($auth->completeMfaLogin((int) $record['user_id']) === null) {
+    if ($auth->finalizeLogin(
+        (int) $record['user_id'],
+        'sso',
+        (bool) ($record['safe_mfa_verified'] ?? false)
+    ) === null) {
         $auth->logout();
         return $response->status(401)->header('Cache-Control', 'no-store')->send('401 - User is no longer eligible to sign in');
     }
@@ -1456,17 +1460,15 @@ $router->post('/admin/mfa', function ($request, $response) use ($adminRender, $a
     $recoveryCode = trim((string) $request->input('recovery_code', ''));
     $method = $recoveryCode !== '' ? 'recovery_code' : 'totp';
     $code = $recoveryCode !== '' ? $recoveryCode : $totpCode;
-    $mfa = new \App\Services\MfaService();
-    $userId = $mfa->verifyPendingChallenge($method, $code);
+    $user = (new \App\Services\AuthService())
+        ->completePendingMfa($method, $code);
 
-    if ($userId === null) {
+    if ($user === null) {
         return $adminRender($response, 'mfa', [
             'title' => 'رمز یکبارمصرف',
             'error' => 'رمز وارد شده معتبر نیست.',
         ], 422);
     }
-
-    (new \App\Services\AuthService())->completeMfaLogin($userId);
 
     return $response->redirect($adminHomeUrl($request));
 });
@@ -1488,16 +1490,15 @@ $router->get('/admin/mfa/recovery', function ($request, $response) use ($adminRe
 
 $router->post('/admin/mfa/recovery', function ($request, $response) use ($adminRender, $adminHomeUrl) {
     $code = trim((string) $request->input('recovery_code', ''));
-    $userId = (new \App\Services\MfaService())->verifyPendingChallenge('recovery_code', $code);
+    $user = (new \App\Services\AuthService())
+        ->completePendingMfa('recovery_code', $code);
 
-    if ($userId === null) {
+    if ($user === null) {
         return $adminRender($response, 'mfa-recovery', [
             'title' => 'کد بازیابی',
             'error' => 'کد بازیابی معتبر نیست.',
         ], 422);
     }
-
-    (new \App\Services\AuthService())->completeMfaLogin($userId);
 
     return $response->redirect($adminHomeUrl($request));
 });
@@ -4372,18 +4373,16 @@ $router->post('/mfa/totp/confirm', function ($request, $response) {
 $router->post('/mfa/challenge/verify', function ($request, $response) {
     $method = trim((string) $request->input('method', 'totp'));
     $code = trim((string) $request->input('code', ''));
-    $mfa = new \App\Services\MfaService();
-    $userId = $mfa->verifyPendingChallenge($method, $code);
+    $user = (new \App\Services\AuthService())
+        ->completePendingMfa($method, $code);
 
-    if ($userId === null) {
+    if ($user === null) {
         return $response->status(401)->json([
             'status' => 'error',
             'authenticated' => false,
             'message' => 'Invalid MFA challenge.',
         ]);
     }
-
-    $user = (new \App\Services\AuthService())->completeMfaLogin($userId);
 
     return $response->json([
         'status' => 'ok',
@@ -4396,18 +4395,16 @@ $router->post('/mfa/challenge/verify', function ($request, $response) {
 $router->post('/mfa/verify', function ($request, $response) {
     $method = trim((string) $request->input('method', 'totp'));
     $code = trim((string) $request->input('code', ''));
-    $mfa = new \App\Services\MfaService();
-    $userId = $mfa->verifyPendingChallenge($method, $code);
+    $user = (new \App\Services\AuthService())
+        ->completePendingMfa($method, $code);
 
-    if ($userId === null) {
+    if ($user === null) {
         return $response->status(401)->json([
             'status' => 'error',
             'authenticated' => false,
             'message' => 'Invalid MFA challenge.',
         ]);
     }
-
-    $user = (new \App\Services\AuthService())->completeMfaLogin($userId);
 
     return $response->json([
         'status' => 'ok',
@@ -4447,18 +4444,16 @@ $router->post('/mfa/recovery-codes/regenerate', function ($request, $response) {
 
 $router->post('/mfa/recovery/verify', function ($request, $response) {
     $code = trim((string) $request->input('recovery_code', ''));
-    $mfa = new \App\Services\MfaService();
-    $userId = $mfa->verifyPendingChallenge('recovery_code', $code);
+    $user = (new \App\Services\AuthService())
+        ->completePendingMfa('recovery_code', $code);
 
-    if ($userId === null) {
+    if ($user === null) {
         return $response->status(401)->json([
             'status' => 'error',
             'authenticated' => false,
             'message' => 'Invalid recovery code.',
         ]);
     }
-
-    $user = (new \App\Services\AuthService())->completeMfaLogin($userId);
 
     return $response->json([
         'status' => 'ok',
@@ -4585,13 +4580,29 @@ $router->post('/auth/token-login', function ($request, $response) {
             'status' => 'ok',
             'authenticated' => false,
             'mfa_required' => true,
-            'methods' => $mfa->startPending($userId),
+            'methods' => $mfa->startPending(
+                $userId,
+                'token'
+            ),
         ]);
     }
 
     $auth = new \App\Services\AuthService();
-    $auth->login($userId);
-    $user = $auth->currentUser();
+    $user = $auth->finalizeLogin(
+        $userId,
+        'token',
+        false
+    );
+
+    if ($user === null) {
+        $auth->logout();
+
+        return $response->status(401)->json([
+            'status' => 'error',
+            'authenticated' => false,
+            'message' => 'User is no longer eligible to sign in.',
+        ]);
+    }
 
     return $response->json([
         'status' => 'ok',
@@ -4620,13 +4631,29 @@ $router->get('/auth/token-login', function ($request, $response) {
             'status' => 'ok',
             'authenticated' => false,
             'mfa_required' => true,
-            'methods' => $mfa->startPending($userId),
+            'methods' => $mfa->startPending(
+                $userId,
+                'token'
+            ),
         ]);
     }
 
     $auth = new \App\Services\AuthService();
-    $auth->login($userId);
-    $user = $auth->currentUser();
+    $user = $auth->finalizeLogin(
+        $userId,
+        'token',
+        false
+    );
+
+    if ($user === null) {
+        $auth->logout();
+
+        return $response->status(401)->json([
+            'status' => 'error',
+            'authenticated' => false,
+            'message' => 'User is no longer eligible to sign in.',
+        ]);
+    }
 
     return $response->json([
         'status' => 'ok',
