@@ -260,6 +260,112 @@ $bookLocked =
     ) === '1';
 
 
+$bookDirectionLabels = [
+    'incoming' => 'وارده',
+    'outgoing' => 'صادره',
+    'internal' => 'داخلی',
+];
+
+$bookDirectionInput = [];
+
+if (
+    array_key_exists(
+        'direction_codes',
+        $formInput
+    )
+) {
+    $bookDirectionInput =
+        is_array(
+            $formInput[
+                'direction_codes'
+            ]
+        )
+            ? $formInput[
+                'direction_codes'
+            ]
+            : [
+                $formInput[
+                    'direction_codes'
+                ],
+            ];
+
+} elseif (
+    array_key_exists(
+        'direction_codes_present',
+        $formInput
+    )
+) {
+    /*
+     * The user explicitly submitted the
+     * multi-direction control but selected
+     * no direction.
+     */
+    $bookDirectionInput = [];
+
+} elseif (
+    array_key_exists(
+        'scope_code',
+        $formInput
+    )
+) {
+    $legacyBookScope =
+        (string) $formInput[
+            'scope_code'
+        ];
+
+    if ($legacyBookScope === 'general') {
+        $bookDirectionInput = [
+            'incoming',
+            'outgoing',
+            'internal',
+        ];
+
+    } elseif (
+        isset(
+            $bookDirectionLabels[
+                $legacyBookScope
+            ]
+        )
+    ) {
+        $bookDirectionInput = [
+            $legacyBookScope,
+        ];
+    }
+
+} elseif ($formInput === []) {
+    $bookDirectionInput = [
+        'incoming',
+    ];
+}
+
+$bookDirectionInput =
+    array_values(
+        array_unique(
+            array_filter(
+                array_map(
+                    static fn (
+                        mixed $value
+                    ): string =>
+                        strtolower(
+                            trim(
+                                (string) $value
+                            )
+                        ),
+                    $bookDirectionInput
+                ),
+                static fn (
+                    string $value
+                ): bool =>
+                    isset(
+                        $bookDirectionLabels[
+                            $value
+                        ]
+                    )
+            )
+        )
+    );
+
+
 $servedInput =
     $formInput[
         'served_organization_ids'
@@ -360,20 +466,6 @@ ob_start();
         </div>
     </section>
 <?php endif; ?>
-
-<section class="automation-secretariat-summary">
-    <?php foreach ([
-        ['دبیرخانه‌ها', count($desks)],
-        ['دوره‌های ثبت', count($periods)],
-        ['منابع شماره', count($sequences)],
-        ['دفاتر ثبت', count($books)],
-    ] as [$label, $count]): ?>
-        <article class="admin-card">
-            <span><?= admin_h($label) ?></span>
-            <strong><?= admin_h($digits($count)) ?></strong>
-        </article>
-    <?php endforeach; ?>
-</section>
 
 <section class="admin-section admin-users-panel">
     <div class="admin-section__header">
@@ -785,6 +877,7 @@ ob_start();
                                     <td>
                                         <?php if ($deskCanEdit): ?>
                                             <a
+                                                class="automation-secretariat-action-button"
                                                 href="/admin/automation/secretariat?section=desk&amp;edit_desk=<?= rawurlencode(
                                                     $deskReference
                                                 ) ?>"
@@ -1111,6 +1204,7 @@ ob_start();
                                     <td>
                                         <?php if ($periodCanEdit): ?>
                                             <a
+                                                class="automation-secretariat-action-button"
                                                 href="/admin/automation/secretariat?section=period&amp;edit_period=<?= rawurlencode(
                                                     $periodReference
                                                 ) ?>"
@@ -1504,6 +1598,7 @@ ob_start();
 
                                         <?php if ($sequenceCanEdit): ?>
                                             <a
+                                                class="automation-secretariat-action-button"
                                                 href="/admin/automation/secretariat?section=sequence&amp;edit_sequence=<?= rawurlencode(
                                                     $sequenceReference
                                                 ) ?>"
@@ -1535,8 +1630,9 @@ ob_start();
                 <div>
                     <h3>دفتر ثبت</h3>
                     <p class="admin-muted">
-                        دفتر وارده، صادره، داخلی یا عمومی را به دبیرخانه،
-                        دوره و منبع شماره متصل کنید.
+                        یک دفتر ثبت می‌تواند یک یا چند نوع مکاتبه
+                        وارده، صادره و داخلی را پوشش دهد و همه آن‌ها
+                        از منبع شماره متصل به همان دفتر استفاده کنند.
                     </p>
                 </div>
             </div>
@@ -1675,33 +1771,46 @@ ob_start();
                         </select>
                     </label>
 
-                    <label>
-                        <span>نوع دفتر</span>
-                        <select
-                            name="scope_code"
-                            <?= $bookLocked ? 'disabled' : '' ?>
+                    <div class="admin-form-grid__wide">
+                        <span class="automation-secretariat-field-title">
+                            انواع مکاتبه دفتر
+                        </span>
+
+                        <input
+                            type="hidden"
+                            name="direction_codes_present"
+                            value="1"
                         >
-                            <?php foreach ([
-                                'incoming' => 'وارده',
-                                'outgoing' => 'صادره',
-                                'internal' => 'داخلی',
-                                'general' => 'عمومی',
-                            ] as $code => $label): ?>
-                                <option
-                                    value="<?= admin_h($code) ?>"
-                                    <?= $selected(
-                                        $inputValue(
-                                            'scope_code',
-                                            'incoming'
-                                        ),
-                                        $code
-                                    ) ?>
-                                >
+
+                        <div class="automation-secretariat-flags automation-secretariat-book-directions">
+                            <?php foreach (
+                                $bookDirectionLabels
+                                as $code => $label
+                            ): ?>
+                                <label>
+                                    <input
+                                        type="checkbox"
+                                        name="direction_codes[]"
+                                        value="<?= admin_h($code) ?>"
+                                        <?= $bookLocked ? 'disabled' : '' ?>
+                                        <?= in_array(
+                                            $code,
+                                            $bookDirectionInput,
+                                            true
+                                        ) ? ' checked' : '' ?>
+                                    >
                                     <?= admin_h($label) ?>
-                                </option>
+                                </label>
                             <?php endforeach; ?>
-                        </select>
-                    </label>
+                        </div>
+
+                        <small class="admin-muted">
+                            می‌توانید بیش از یک نوع را انتخاب کنید.
+                            در این حالت همه انواع انتخاب‌شده از همین
+                            دفتر و منبع شماره استفاده می‌کنند و توالی
+                            شماره میان آن‌ها مشترک خواهد بود.
+                        </small>
+                    </div>
 
                     <label>
                         <span>راهبرد شماره‌گذاری</span>
@@ -1794,7 +1903,7 @@ ob_start();
                             <tr>
                                 <th>عنوان</th>
                                 <th>کد</th>
-                                <th>نوع</th>
+                                <th>انواع مکاتبه</th>
                                 <th>سازمان</th>
                                 <th>دبیرخانه</th>
                                 <th>دوره</th>
@@ -1816,17 +1925,83 @@ ob_start();
                                         )
                                     );
 
-                                $scopeLabels = [
-                                    'incoming' => 'وارده',
-                                    'outgoing' => 'صادره',
-                                    'internal' => 'داخلی',
-                                    'general' => 'عمومی',
-                                ];
+                                $bookDirectionCodes =
+                                    is_array(
+                                        $book[
+                                            'direction_codes'
+                                        ] ?? null
+                                    )
+                                        ? $book[
+                                            'direction_codes'
+                                        ]
+                                        : [];
+
+                                if ($bookDirectionCodes === []) {
+                                    $legacyBookScope =
+                                        (string) (
+                                            $book[
+                                                'scope_code'
+                                            ]
+                                            ?? ''
+                                        );
+
+                                    if (
+                                        $legacyBookScope
+                                        === 'general'
+                                    ) {
+                                        $bookDirectionCodes = [
+                                            'incoming',
+                                            'outgoing',
+                                            'internal',
+                                        ];
+
+                                    } elseif (
+                                        isset(
+                                            $bookDirectionLabels[
+                                                $legacyBookScope
+                                            ]
+                                        )
+                                    ) {
+                                        $bookDirectionCodes = [
+                                            $legacyBookScope,
+                                        ];
+                                    }
+                                }
+
+                                $bookDirectionTitles = [];
+
+                                foreach (
+                                    $bookDirectionCodes
+                                    as $directionCode
+                                ) {
+                                    $directionCode =
+                                        (string) $directionCode;
+
+                                    if (
+                                        isset(
+                                            $bookDirectionLabels[
+                                                $directionCode
+                                            ]
+                                        )
+                                    ) {
+                                        $bookDirectionTitles[] =
+                                            $bookDirectionLabels[
+                                                $directionCode
+                                            ];
+                                    }
+                                }
                                 ?>
                                 <tr>
                                     <td><?= admin_h($book['title'] ?? '') ?></td>
                                     <td class="automation-secretariat-code"><?= admin_h($book['code'] ?? '') ?></td>
-                                    <td><?= admin_h($scopeLabels[$book['scope_code'] ?? ''] ?? ($book['scope_code'] ?? '')) ?></td>
+                                    <td><?= admin_h(
+                                        $bookDirectionTitles !== []
+                                            ? implode(
+                                                '، ',
+                                                $bookDirectionTitles
+                                            )
+                                            : '—'
+                                    ) ?></td>
                                     <td><?= admin_h($book['organization_title'] ?? '') ?></td>
                                     <td><?= admin_h($book['desk_title'] ?? '') ?></td>
                                     <td><?= admin_h($book['period_title'] ?? '') ?></td>
@@ -1840,6 +2015,7 @@ ob_start();
                                     <td>
                                         <?php if ($bookReference !== ''): ?>
                                             <a
+                                                class="automation-secretariat-action-button"
                                                 href="/admin/automation/secretariat?section=book&amp;edit_book=<?= rawurlencode(
                                                     $bookReference
                                                 ) ?>"

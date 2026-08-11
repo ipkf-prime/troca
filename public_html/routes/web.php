@@ -2860,17 +2860,43 @@ $secretariatManagementUpdate =
                     (int) $context['user_id']
                 );
 
+            $submittedInput =
+                $request->all();
+
             $formInput =
                 array_merge(
                     is_array($defaults)
                         ? $defaults
                         : [],
-                    $request->all(),
+                    $submittedInput,
                     [
                         $editInputKey =>
                             $reference,
                     ]
                 );
+
+            /*
+             * array_merge() keeps the default
+             * direction list when every checkbox
+             * was intentionally unchecked because
+             * unchecked HTML checkboxes are absent
+             * from the submitted payload.
+             */
+            if (
+                $section === 'book'
+                && array_key_exists(
+                    'direction_codes_present',
+                    $submittedInput
+                )
+                && !array_key_exists(
+                    'direction_codes',
+                    $submittedInput
+                )
+            ) {
+                $formInput[
+                    'direction_codes'
+                ] = [];
+            }
 
             return $secretariatManagementRender(
                 $response,
