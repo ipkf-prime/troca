@@ -39,6 +39,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateEnterpriseAutomationSecretariatFoundation::class,
                     \IPKF\Database\Migrations\AddRegistryBookPublicReference::class,
                     \IPKF\Database\Migrations\CreateRegistryBookDirections::class,
+                    \IPKF\Database\Migrations\AddRegistryNumberReservationIdempotency::class,
                     \IPKF\Database\Migrations\CreatePlatformCommercialFoundationTables::class,
                     \IPKF\Database\Migrations\CreateApplicationMigrationHistoryTable::class,
                     \IPKF\Database\Migrations\CreateApplicationModuleRegistryTable::class,
@@ -69,6 +70,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateEnterpriseAutomationSecretariatFoundation::class,
                     \IPKF\Database\Migrations\AddRegistryBookPublicReference::class,
                     \IPKF\Database\Migrations\CreateRegistryBookDirections::class,
+                    \IPKF\Database\Migrations\AddRegistryNumberReservationIdempotency::class,
                 ],
             ],
             'work' => [
