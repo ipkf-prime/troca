@@ -40,6 +40,36 @@ if (
     );
 }
 
+$defaultAssignmentId = 0;
+$defaultAssignmentTitle =
+    'کاربر (خودکار)';
+
+foreach ($assignments as $assignment) {
+    if (
+        (int) (
+            $assignment['is_default']
+            ?? 0
+        ) !== 1
+    ) {
+        continue;
+    }
+
+    $defaultAssignmentId =
+        (int) (
+            $assignment['id']
+            ?? 0
+        );
+
+    $defaultAssignmentTitle =
+        (string) (
+            $assignment['role_title']
+            ?? 'کاربر'
+        );
+
+    break;
+}
+
+
 $scopeLabel = static function (array $assignment): string {
     return match (strtolower((string) ($assignment['scope_type'] ?? 'global'))) {
         'global' => 'سراسری',
@@ -159,7 +189,59 @@ ob_start();
 .profile-role-card__action {
     align-items:center;
     display:flex;
+    flex-wrap:wrap;
+    gap:.45rem;
     justify-content:flex-end;
+}
+
+.profile-default-summary {
+    align-items:center;
+    background:var(--admin-primary-soft);
+    border:1px solid
+        color-mix(
+            in srgb,
+            var(--admin-primary) 28%,
+            var(--admin-border)
+        );
+    border-radius:.7rem;
+    display:flex;
+    gap:.4rem;
+    justify-content:space-between;
+    margin-bottom:.75rem;
+    padding:.55rem .7rem;
+}
+
+.profile-default-summary span {
+    color:var(--admin-text-muted);
+    font-size:.68rem;
+}
+
+.profile-default-summary strong {
+    font-size:.72rem;
+}
+
+.profile-role-card.is-default {
+    border-color:color-mix(
+        in srgb,
+        var(--admin-primary) 55%,
+        var(--admin-border)
+    );
+}
+
+.profile-role-card__default-badge {
+    background:var(--admin-primary-soft);
+    border:1px solid
+        color-mix(
+            in srgb,
+            var(--admin-primary) 40%,
+            var(--admin-border)
+        );
+    border-radius:999px;
+    color:var(--admin-primary);
+    display:inline-flex;
+    font-size:.62rem;
+    font-weight:800;
+    padding:.25rem .55rem;
 }
 
 .profile-role-card__action .admin-button {
@@ -199,6 +281,18 @@ ob_start();
         <div class="account-notice account-notice--danger">
             امکان تغییر به این نقش وجود ندارد.
         </div>
+    <?php elseif ($status === 'default_saved'): ?>
+        <div class="account-notice account-notice--success">
+            نقش پیش‌فرض شما با موفقیت ذخیره شد.
+        </div>
+    <?php elseif ($status === 'default_forbidden'): ?>
+        <div class="account-notice account-notice--danger">
+            امکان انتخاب این نقش به‌عنوان نقش پیش‌فرض وجود ندارد.
+        </div>
+    <?php elseif ($status === 'invalid_csrf'): ?>
+        <div class="account-notice account-notice--danger">
+            نشست فرم معتبر نیست. صفحه را دوباره بارگذاری کنید.
+        </div>
     <?php endif; ?>
 
     <section class="account-card">
@@ -215,6 +309,15 @@ ob_start();
             </span>
         </div>
 
+        <div class="profile-default-summary">
+            <span>نقش پیش‌فرض هنگام ورود</span>
+            <strong>
+                <?= admin_h(
+                    $defaultAssignmentTitle
+                ) ?>
+            </strong>
+        </div>
+
         <?php if ($assignments === []): ?>
             <div class="account-notice account-notice--info">
                 نقش پایه «کاربر» برای این حساب در نظر گرفته می‌شود.
@@ -227,10 +330,19 @@ ob_start();
                         $assignment['id'] ?? 0
                     );
                     $roleCode = (string) ($assignment['role_code'] ?? '');
+
+                    $isDefault =
+                        $defaultAssignmentId
+                        === (int) (
+                            $assignment['id']
+                            ?? 0
+                        );
                     ?>
                     <article class="profile-role-card<?= $isActive
                         ? ' is-active'
-                        : '' ?>">
+                        : '' ?><?= $isDefault
+                            ? ' is-default'
+                            : '' ?>">
                         <div class="profile-role-card__head">
                             <div class="profile-role-card__title">
                                 <strong>
@@ -249,6 +361,19 @@ ob_start();
                                     : 'قابل انتخاب' ?>
                             </span>
                         </div>
+
+                        <?php if ($isDefault): ?>
+                            <span class="profile-role-card__default-badge">
+                                نقش پیش‌فرض
+                            </span>
+                        <?php elseif (
+                            $defaultAssignmentId < 1
+                            && $roleCode === 'user'
+                        ): ?>
+                            <span class="profile-role-card__default-badge">
+                                پیش‌فرض خودکار
+                            </span>
+                        <?php endif; ?>
 
                         <div class="profile-role-fields">
                             <div class="profile-role-field">
@@ -309,6 +434,39 @@ ob_start();
                                     </button>
                                 </form>
                             <?php endif; ?>
+
+                            <form
+                                method="post"
+                                action="/admin/profile/access/default-role"
+                            >
+                                <input
+                                    type="hidden"
+                                    name="_token"
+                                    value="<?= admin_h(
+                                        (new \IPKF\Security\Csrf())->token()
+                                    ) ?>"
+                                >
+
+                                <input
+                                    type="hidden"
+                                    name="role_assignment_id"
+                                    value="<?= $isDefault
+                                        ? 0
+                                        : (int) (
+                                            $assignment['id']
+                                            ?? 0
+                                        ) ?>"
+                                >
+
+                                <button
+                                    class="admin-button admin-button--soft"
+                                    type="submit"
+                                >
+                                    <?= $isDefault
+                                        ? 'حذف نقش پیش‌فرض'
+                                        : 'پیش‌فرض من' ?>
+                                </button>
+                            </form>
                         </div>
                     </article>
                 <?php endforeach; ?>

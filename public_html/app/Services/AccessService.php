@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Repositories\AccessControlRepository;
 use App\Repositories\RoleRepository;
 use IPKF\Support\Session;
 
@@ -49,6 +50,36 @@ class AccessService extends BaseService
         }
 
         return $assignment;
+    }
+
+
+    public function setDefaultAssignment(
+        int $userId,
+        int $assignmentId,
+        string $ip = ''
+    ): bool {
+        if ($assignmentId > 0) {
+            $assignment =
+                $this->roles
+                    ->assignmentForUser(
+                        $userId,
+                        $assignmentId
+                    );
+
+            if ($assignment === null) {
+                return false;
+            }
+        }
+
+        (new AccessControlRepository())
+            ->saveDefaultRoleAssignment(
+                $userId,
+                $assignmentId,
+                $userId,
+                $ip
+            );
+
+        return true;
     }
 
 

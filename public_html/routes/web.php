@@ -1571,6 +1571,83 @@ $router->get('/admin/profile/access', function ($request, $response) use ($admin
     ]);
 });
 
+$router->post(
+    '/admin/profile/access/default-role',
+    function (
+        $request,
+        $response
+    ) {
+        $auth =
+            new \App\Services\AuthService();
+
+        $userId =
+            $auth->currentUserId();
+
+        if ($userId === null) {
+            return $response->redirect(
+                '/admin/login'
+            );
+        }
+
+        if (
+            !(new \IPKF\Security\Csrf())
+                ->check(
+                    (string) $request
+                        ->input(
+                            '_token',
+                            ''
+                        )
+                )
+        ) {
+            return $response->redirect(
+                '/admin/profile/access'
+                . '?status=invalid_csrf'
+            );
+        }
+
+        $assignmentId =
+            max(
+                0,
+                (int) $request->input(
+                    'role_assignment_id',
+                    0
+                )
+            );
+
+        try {
+            $saved =
+                (new \App\Services\AccessService())
+                    ->setDefaultAssignment(
+                        $userId,
+                        $assignmentId,
+                        (string) (
+                            $_SERVER[
+                                'REMOTE_ADDR'
+                            ]
+                            ?? ''
+                        )
+                    );
+
+            return $response->redirect(
+                '/admin/profile/access'
+                . '?status='
+                . (
+                    $saved
+                        ? 'default_saved'
+                        : 'default_forbidden'
+                )
+            );
+
+        } catch (\Throwable) {
+            return $response->redirect(
+                '/admin/profile/access'
+                . '?status=default_forbidden'
+            );
+        }
+    }
+);
+
+
 $router->get('/admin/account', function ($request, $response) use ($adminRender, $adminGuard) {
     $context = $adminGuard($response, '/admin/account');
 
