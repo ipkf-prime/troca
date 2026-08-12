@@ -355,9 +355,7 @@ if (
     }
 
 } elseif ($formInput === []) {
-    $bookDirectionInput = [
-        'incoming',
-    ];
+    $bookDirectionInput = [];
 }
 
 $bookDirectionInput =
@@ -1780,6 +1778,15 @@ ob_start();
                             required
                             <?= $bookLocked ? 'disabled' : '' ?>
                         >
+                            <option
+                                value=""
+                                <?= $inputValue('number_sequence_id') === ''
+                                    ? 'selected'
+                                    : '' ?>
+                            >
+                                انتخاب منبع شماره
+                            </option>
+
                             <?php foreach ($sequences as $sequence): ?>
                                 <option
                                     value="<?= admin_h($sequence['id']) ?>"
@@ -2109,6 +2116,15 @@ ob_start();
                             name="secretariat_desk_reference"
                             required
                         >
+                            <option
+                                value=""
+                                <?= $inputValue(
+                                    'secretariat_desk_reference'
+                                ) === '' ? 'selected' : '' ?>
+                            >
+                                انتخاب دبیرخانه
+                            </option>
+
                             <?php foreach ($desks as $desk): ?>
                                 <option
                                     value="<?= admin_h(
@@ -2142,6 +2158,15 @@ ob_start();
                             name="appointment_reference"
                             required
                         >
+                            <option
+                                value=""
+                                <?= $inputValue(
+                                    'appointment_reference'
+                                ) === '' ? 'selected' : '' ?>
+                            >
+                                انتخاب انتصاب سازمانی
+                            </option>
+
                             <?php foreach (
                                 $appointments
                                 as $appointment
