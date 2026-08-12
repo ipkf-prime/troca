@@ -11,6 +11,125 @@ $form = $form ?? [];
 $options = $options ?? [];
 $references = $references ?? [];
 $errors = $errors ?? [];
+$errorMessages = [
+    'subject_required' =>
+        'موضوع مکاتبه الزامی است.',
+    'content_required' =>
+        'متن نامه الزامی است.',
+    'document_template_required' =>
+        'انتخاب قالب استاندارد نامه الزامی است.',
+    'invalid_lookup' =>
+        'یکی از گزینه‌های انتخاب‌شده در فرم معتبر نیست؛ لطفاً دوباره انتخاب کنید.',
+    'organization_required' =>
+        'سازمان فعال کاربر برای ثبت مکاتبه مشخص نیست.',
+    'sender_required' =>
+        'فرستنده مکاتبه مشخص نشده است.',
+    'receiver_required' =>
+        'حداقل یک گیرنده اصلی باید مشخص شود.',
+    'party_required' =>
+        'حداقل یک طرف مکاتبه باید مشخص شود.',
+    'external_party_required' =>
+        'نام طرف بیرونی مکاتبه باید وارد شود.',
+    'invalid_core_reference' =>
+        'مرجع داخلی انتخاب‌شده معتبر نیست؛ لطفاً طرف داخلی را دوباره انتخاب کنید.',
+    'invalid_party_role' =>
+        'نقش یکی از طرف‌های مکاتبه معتبر نیست.',
+    'incoming_sender_must_be_external' =>
+        'فرستنده نامه وارده باید بیرون از سازمان باشد.',
+    'incoming_receiver_must_be_internal' =>
+        'گیرنده نامه وارده باید داخل سازمان باشد.',
+    'outgoing_sender_must_be_internal' =>
+        'فرستنده نامه صادره باید داخل سازمان باشد.',
+    'outgoing_receiver_must_be_external' =>
+        'گیرنده نامه صادره باید بیرون از سازمان باشد.',
+    'internal_parties_must_be_internal' =>
+        'در نامه داخلی، فرستنده و گیرندگان باید داخل سازمان باشند.',
+    'invalid_relation' =>
+        'اطلاعات عطف، پیرو یا ارتباط با نامه قبلی کامل یا معتبر نیست.',
+    'invalid_date' =>
+        'تاریخ واردشده معتبر نیست.',
+    'not_editable' =>
+        'این مکاتبه دیگر در وضعیت قابل ویرایش نیست.',
+    'forbidden_scope' =>
+        'شما به این مکاتبه در محدوده سازمانی فعلی دسترسی ندارید.',
+    'stale_update' =>
+        'این پیش‌نویس هم‌زمان تغییر کرده است؛ صفحه را تازه‌سازی و دوباره بررسی کنید.',
+    'runtime_unavailable' =>
+        'ثبت اطلاعات به دلیل خطای داخلی سامانه انجام نشد؛ دوباره تلاش کنید.',
+    'invalid' =>
+        'بخشی از اطلاعات فرم کامل یا معتبر نیست.',
+];
+
+$errorLabels = [];
+
+foreach ($errors as $error) {
+    $code = trim((string) $error);
+
+    $errorLabels[] =
+        $errorMessages[$code]
+        ?? 'بخشی از اطلاعات فرم کامل یا معتبر نیست.';
+}
+
+$errorLabels =
+    array_values(
+        array_unique(
+            $errorLabels
+        )
+    );
+
+$baseErrorCodes = [
+    'subject_required',
+    'document_template_required',
+    'invalid_lookup',
+    'organization_required',
+    'invalid_date',
+];
+
+$contentErrorCodes = [
+    'content_required',
+];
+
+$partyErrorCodes = [
+    'sender_required',
+    'receiver_required',
+    'party_required',
+    'external_party_required',
+    'invalid_core_reference',
+    'invalid_party_role',
+    'incoming_sender_must_be_external',
+    'incoming_receiver_must_be_internal',
+    'outgoing_sender_must_be_internal',
+    'outgoing_receiver_must_be_external',
+    'internal_parties_must_be_internal',
+    'invalid_relation',
+];
+
+$initialErrorTab = '';
+
+foreach ($errors as $error) {
+    if (in_array((string) $error, $baseErrorCodes, true)) {
+        $initialErrorTab = 'base';
+        break;
+    }
+}
+
+if ($initialErrorTab === '') {
+    foreach ($errors as $error) {
+        if (in_array((string) $error, $contentErrorCodes, true)) {
+            $initialErrorTab = 'content';
+            break;
+        }
+    }
+}
+
+if ($initialErrorTab === '') {
+    foreach ($errors as $error) {
+        if (in_array((string) $error, $partyErrorCodes, true)) {
+            $initialErrorTab = 'parties';
+            break;
+        }
+    }
+}
 $isEdit = (bool) ($isEdit ?? false);
 $action = $isEdit
     ? '/admin/automation/correspondences/' . rawurlencode((string) ($form['public_reference'] ?? '')) . '/versions'
@@ -40,20 +159,64 @@ $partySelect = static function (string $name, array $items, string $selected, st
     return $html . '</select>';
 };
 
-$referenceSelect = static function (string $selected = '') use ($references): string {
-    $html = '<select name="party_reference_token[]"><option value="">انتخاب مرجع داخلی</option>';
-    foreach (['users' => 'کاربران', 'persons' => 'اشخاص', 'organizations' => 'سازمان‌ها', 'org_units' => 'واحدها'] as $group => $label) {
-        if (($references[$group] ?? []) === []) {
-            continue;
-        }
-        $html .= '<optgroup label="' . admin_h($label) . '">';
-        foreach ($references[$group] as $item) {
-            $token = (string) ($item['token'] ?? '');
-            $html .= '<option value="' . admin_h($token) . '"' . ($token === $selected ? ' selected' : '') . '>'
-                . admin_h($item['label'] ?? '')
+$referenceSelect = static function (
+    string $selected = ''
+) use ($references): string {
+    $html =
+        '<select name="party_reference_token[]">'
+        . '<option value="">انتخاب مرجع داخلی</option>';
+
+    $groups = [
+        'users' => 'کاربر',
+        'persons' => 'شخص',
+        'organizations' => 'سازمان',
+        'org_units' => 'واحد',
+    ];
+
+    foreach ($groups as $group => $prefix) {
+        foreach (
+            $references[$group] ?? []
+            as $item
+        ) {
+            $token =
+                (string) (
+                    $item['token']
+                    ?? ''
+                );
+
+            $label =
+                trim(
+                    (string) (
+                        $item['label']
+                        ?? ''
+                    )
+                );
+
+            if (
+                $token === ''
+                || $label === ''
+            ) {
+                continue;
+            }
+
+            $display =
+                $prefix
+                . ' — '
+                . $label;
+
+            $html .=
+                '<option value="'
+                . admin_h($token)
+                . '"'
+                . (
+                    $token === $selected
+                        ? ' selected'
+                        : ''
+                )
+                . '>'
+                . admin_h($display)
                 . '</option>';
         }
-        $html .= '</optgroup>';
     }
 
     return $html . '</select>';
@@ -77,10 +240,13 @@ $initialDirection = (string) ($form['direction_code'] ?? 'incoming');
 $directionLabels = ['incoming' => 'نامه وارده', 'outgoing' => 'نامه صادره', 'internal' => 'نامه داخلی'];
 $directionLabel = $directionLabels[$initialDirection] ?? 'مکاتبه';
 $visiblePartyCount = max(2, min(6, count($storedParties)));
-$selectedTemplateReference = trim((string) ($form['document_template_reference'] ?? ''));
-if ($selectedTemplateReference === '' && $documentTemplates !== []) {
-    $selectedTemplateReference = (string) ($documentTemplates[0]['public_reference'] ?? '');
-}
+$selectedTemplateReference =
+    trim(
+        (string) (
+            $form['document_template_reference']
+            ?? ''
+        )
+    );
 $externalDateFa = trim((string) ($form['external_date_fa'] ?? ''));
 if ($externalDateFa === '') {
     $externalDateFa = \App\Support\PersianDate::fromGregorianDate((string) ($form['external_date'] ?? ''));
@@ -106,11 +272,15 @@ ob_start();
 <?php if (($editable ?? true) !== true): ?>
     <section class="admin-section"><div class="admin-alert admin-alert--warning">این مکاتبه دیگر پیش‌نویس قابل ویرایش نیست.</div></section>
 <?php else: ?>
-    <?php if ($errors !== []): ?>
-        <div class="admin-alert admin-alert--danger" role="alert">اطلاعات فرم کامل یا معتبر نیست. فیلدهای ضروری، تاریخ و طرف‌های مکاتبه را بررسی کنید.</div>
+    <?php if ($errorLabels !== []): ?>
+        <div class="admin-alert admin-alert--danger" role="alert">
+            <?php foreach ($errorLabels as $errorLabel): ?>
+                <div><?= admin_h($errorLabel) ?></div>
+            <?php endforeach; ?>
+        </div>
     <?php endif; ?>
 
-    <form class="automation-form automation-form--structured automation-tab-workspace" method="post" action="<?= admin_h($action) ?>" data-automation-draft-tabs data-correspondence-direction="<?= admin_h($initialDirection) ?>">
+    <form class="automation-form automation-form--structured automation-tab-workspace" method="post" action="<?= admin_h($action) ?>" data-automation-draft-tabs data-correspondence-direction="<?= admin_h($initialDirection) ?>" data-initial-error-tab="<?= admin_h($initialErrorTab) ?>">
         <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
         <input type="hidden" name="form_public_reference" value="<?=admin_h($form['public_reference']??'')?>">
         <input type="hidden" name="direction_code" value="<?= admin_h($initialDirection) ?>">
@@ -129,14 +299,26 @@ ob_start();
                 <label class="admin-form-grid__wide"><span>موضوع</span><input name="subject" value="<?= admin_h($form['subject'] ?? '') ?>" maxlength="500" required></label>
                 <?php if ($initialDirection !== 'incoming'): ?><fieldset class="automation-template-picker admin-form-grid__wide" data-template-picker>
                     <legend>قالب استاندارد نامه</legend>
+
+                    <div class="admin-form-grid__wide">
+                        <a
+                            class="admin-button admin-button--soft"
+                            href="/admin/automation/templates"
+                            target="_blank"
+                            rel="noopener"
+                        >
+                            مشاهده قالب‌های استاندارد
+                        </a>
+                    </div>
+
                     <label><span>انتخاب قالب</span><select name="document_template_reference" required data-template-select><option value="">انتخاب قالب نامه</option><?php foreach ($documentTemplates as $template): $reference=(string)($template['public_reference']??''); ?><option value="<?=admin_h($reference)?>" data-page="<?=admin_h($template['page_size_code']??'')?>" data-language="<?=admin_h(($template['language_code']??'')==='fa'?'فارسی':'انگلیسی')?>" data-signatures="<?=admin_h($template['signature_slots']??1)?>" data-version="<?=admin_h($template['version_number']??1)?>" <?= $reference===$selectedTemplateReference?'selected':'' ?>><?=admin_h($template['title_fa']??'')?></option><?php endforeach;?></select></label>
                     <div class="automation-template-summary" data-template-summary>یک قالب را انتخاب کنید.</div>
                 </fieldset><?php endif; ?>
                 <label><span>اولویت</span><?= $select('priority_code', $options['priorities'] ?? [], (string) ($form['priority_code'] ?? 'normal')) ?></label>
                 <label><span>محرمانگی</span><?= $select('confidentiality_code', $options['confidentialities'] ?? [], (string) ($form['confidentiality_code'] ?? 'normal')) ?></label>
                 <label><span>کانال</span><?= $select('channel_code', $options['channels'] ?? [], (string) ($form['channel_code'] ?? 'manual')) ?></label>
-                <?php if ($initialDirection !== 'internal'): ?><label><span>شماره نامه بیرونی</span><input name="external_number" value="<?= admin_h($form['external_number'] ?? '') ?>" maxlength="190"></label>
-                <label><span>تاریخ نامه بیرونی</span><div class="admin-persian-date" data-persian-datepicker><input type="text" name="external_date_fa" data-persian-date-input inputmode="numeric" autocomplete="off" placeholder="۱۴۰۵/۰۴/۲۷" value="<?= admin_h($externalDateFa) ?>"><input type="hidden" name="external_date" data-persian-date-output value="<?= admin_h($form['external_date'] ?? '') ?>"><button type="button" class="admin-persian-date__toggle" data-persian-date-toggle aria-label="انتخاب تاریخ"><?= \App\Support\AdminIcon::html('calendar') ?></button></div></label><?php endif; ?>
+                <?php if ($initialDirection === 'incoming'): ?><label><span>شماره نامه بیرونی</span><input name="external_number" value="<?= admin_h($form['external_number'] ?? '') ?>" maxlength="190"></label>
+                <label><span>تاریخ نامه بیرونی</span><div class="admin-persian-date" data-persian-datepicker><input type="text" name="external_date_fa" data-persian-date-input inputmode="numeric" autocomplete="off" placeholder="مثلاً ۱۴۰۵/۰۱/۰۱" value="<?= admin_h($externalDateFa) ?>"><input type="hidden" name="external_date" data-persian-date-output value="<?= admin_h($form['external_date'] ?? '') ?>"><button type="button" class="admin-persian-date__toggle" data-persian-date-toggle aria-label="انتخاب تاریخ"><?= \App\Support\AdminIcon::html('calendar') ?></button></div></label><?php endif; ?>
                 <label class="admin-form-grid__wide"><span>خلاصه</span><textarea name="summary" rows="3" maxlength="2000"><?= admin_h($form['summary'] ?? '') ?></textarea></label>
             </div>
             <div class="automation-draft-navigation"><button class="admin-button" type="button" data-draft-next="<?= $initialDirection === 'incoming' ? 'parties' : 'content' ?>">ادامه</button></div>
@@ -151,6 +333,15 @@ ob_start();
 
         <section class="automation-form-section automation-party-editor automation-draft-panel" data-draft-panel="parties" role="tabpanel">
             <div class="automation-form-section__head"><div><h3>فرستنده و گیرندگان</h3></div></div>
+            <div class="automation-form-section__head">
+                <div>
+                    <h4>گیرندگان اصلی، رونوشت و رونوشت مخفی</h4>
+                    <p class="admin-muted">
+                        برای هر مخاطب، نقش او در مکاتبه را مشخص کنید.
+                    </p>
+                </div>
+            </div>
+
             <div class="automation-party-list">
                 <?php for ($index = 0; $index < 6; $index++):
                     $stored = $storedParties[$index] ?? [];
@@ -172,13 +363,75 @@ ob_start();
                     $nameValue = $arrayValue($externalNames, $index, (string) ($stored['external_display_name'] ?? ''));
                     $organizationValue = $arrayValue($externalOrganizations, $index, (string) ($stored['external_organization_name'] ?? ''));
                     $contactValue = $arrayValue($externalContacts, $index, (string) ($stored['external_contact_or_address'] ?? ''));
-                    $partyTitle = $index === 0 ? 'فرستنده' : 'گیرنده' . ($index > 1 ? ' ' . \App\Support\AdminFormat::digits($index) : '');
+                    $partyTitle =
+                        $index === 0
+                            ? 'فرستنده'
+                            : match ($role) {
+                                'cc' => 'رونوشت',
+                                'bcc' => 'رونوشت مخفی',
+                                default =>
+                                    'گیرنده'
+                                    . (
+                                        $index > 1
+                                            ? ' '
+                                            . \App\Support\AdminFormat::digits(
+                                                $index
+                                            )
+                                            : ''
+                                    ),
+                            };
                 ?>
                     <article class="automation-party-card automation-party-card--simple" data-automation-party data-recipient-row="<?= admin_h($index) ?>" <?= $index >= $visiblePartyCount ? 'hidden' : '' ?>>
                         <header><strong data-party-title><?= admin_h($partyTitle) ?></strong><?php if ($index > 1): ?><button type="button" class="automation-recipient-remove" data-remove-recipient aria-label="حذف گیرنده">×</button><?php endif; ?></header>
                         <div class="automation-party-row">
-                            <input type="hidden" name="party_role_code[]" value="<?= admin_h($role) ?>">
-                            <input type="hidden" name="party_kind[]" value="<?= admin_h($kind) ?>">
+                            <?php if ($index === 0): ?>
+                                <input
+                                    type="hidden"
+                                    name="party_role_code[]"
+                                    value="sender"
+                                >
+                            <?php else: ?>
+                                <label>
+                                    <span>نقش گیرنده</span>
+                                    <select
+                                        name="party_role_code[]"
+                                        data-party-role
+                                    >
+                                        <option
+                                            value="primary_recipient"
+                                            <?= $role === 'primary_recipient'
+                                                ? 'selected'
+                                                : '' ?>
+                                        >
+                                            گیرنده اصلی
+                                        </option>
+
+                                        <option
+                                            value="cc"
+                                            <?= $role === 'cc'
+                                                ? 'selected'
+                                                : '' ?>
+                                        >
+                                            رونوشت
+                                        </option>
+
+                                        <option
+                                            value="bcc"
+                                            <?= $role === 'bcc'
+                                                ? 'selected'
+                                                : '' ?>
+                                        >
+                                            رونوشت مخفی
+                                        </option>
+                                    </select>
+                                </label>
+                            <?php endif; ?>
+
+                            <input
+                                type="hidden"
+                                name="party_kind[]"
+                                value="<?= admin_h($kind) ?>"
+                            >
                             <?php if ($inputKind === 'external'): ?>
                                 <input type="hidden" name="party_reference_token[]" value="">
                                 <label data-party-external><span><?= $index === 0 ? 'نام فرستنده یا نماینده' : 'نام گیرنده یا نماینده' ?></span><input name="external_display_name[]" value="<?= admin_h($nameValue) ?>" maxlength="255" placeholder="نام شخص یا نماینده"></label>
@@ -244,9 +497,41 @@ ob_start();
             const target = form.querySelector('[data-draft-review="' + name + '"]');
             if (target) target.textContent = valueText;
         };
-        const roles = [...form.querySelectorAll('[name="party_role_code[]"]')];
-        const kinds = [...form.querySelectorAll('[name="party_kind[]"]')];
-        const count = roles.filter((role, index) => role.value && kinds[index]?.value).length;
+        const count = [
+            ...form.querySelectorAll(
+                '[data-automation-party]'
+            )
+        ].filter((row) => {
+            if (row.hidden) {
+                return false;
+            }
+
+            const role = row.querySelector(
+                '[name="party_role_code[]"]'
+            )?.value?.trim();
+
+            const kind = row.querySelector(
+                '[name="party_kind[]"]'
+            )?.value?.trim();
+
+            if (!role || !kind) {
+                return false;
+            }
+
+            if (kind === 'external') {
+                return Boolean(
+                    row.querySelector(
+                        '[name="external_display_name[]"]'
+                    )?.value?.trim()
+                );
+            }
+
+            return Boolean(
+                row.querySelector(
+                    '[name="party_reference_token[]"]'
+                )?.value?.trim()
+            );
+        }).length;
         set('subject', value('subject'));
         const directionLabels = { incoming: 'نامه وارده', outgoing: 'نامه صادره', internal: 'نامه داخلی' };
         set('direction_code', directionLabels[form.elements.direction_code?.value] || '—');
@@ -288,7 +573,12 @@ ob_start();
         }
     });
 
-    const requested = location.hash.startsWith('#draft-') ? location.hash.slice(7) : 'base';
+    const errorTab = form.dataset.initialErrorTab || '';
+    const requested = errorTab || (
+        location.hash.startsWith('#draft-')
+            ? location.hash.slice(7)
+            : 'base'
+    );
     activate(requested);
 
     const templateSelect = form.querySelector('[data-template-select]');
@@ -304,6 +594,63 @@ ob_start();
     const direction = form.dataset.correspondenceDirection || 'incoming';
     const recipientRows = [...form.querySelectorAll('[data-recipient-row]')];
     const addRecipient = form.querySelector('[data-add-recipient]');
+
+    const syncPartyTitle = (row) => {
+        if (!row) return;
+
+        const index = Number(
+            row.dataset.recipientRow || 0
+        );
+
+        const title = row.querySelector(
+            '[data-party-title]'
+        );
+
+        if (!title) return;
+
+        if (index === 0) {
+            title.textContent = 'فرستنده';
+            return;
+        }
+
+        const role = row.querySelector(
+            '[name="party_role_code[]"]'
+        )?.value;
+
+        if (role === 'cc') {
+            title.textContent = 'رونوشت';
+            return;
+        }
+
+        if (role === 'bcc') {
+            title.textContent = 'رونوشت مخفی';
+            return;
+        }
+
+        const digits = String(index).replace(
+            /\d/g,
+            (digit) =>
+                '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]
+        );
+
+        title.textContent =
+            index > 1
+                ? 'گیرنده ' + digits
+                : 'گیرنده';
+    };
+
+    form.querySelectorAll(
+        '[data-party-role]'
+    ).forEach((field) => {
+        field.addEventListener(
+            'change',
+            () => syncPartyTitle(
+                field.closest('[data-recipient-row]')
+            )
+        );
+    });
+
+    recipientRows.forEach(syncPartyTitle);
     const fixedKind = (index) => {
         if (direction === 'internal') return 'person';
         if (direction === 'incoming') return index === 0 ? 'external' : 'person';
@@ -319,7 +666,12 @@ ob_start();
         row.hidden = false;
         const role = row.querySelector('[name="party_role_code[]"]');
         const kind = row.querySelector('[name="party_kind[]"]');
-        if (role) role.value = 'primary_recipient';
+        if (role) {
+            role.value = 'primary_recipient';
+        }
+
+        syncPartyTitle(row);
+
         if (kind) {
             kind.value = fixedKind(index);
             kind.dispatchEvent(new Event('change'));

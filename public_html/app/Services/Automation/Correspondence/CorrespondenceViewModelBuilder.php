@@ -105,6 +105,21 @@ class CorrespondenceViewModelBuilder
             'channel' => $this->lookups->label('correspondence_channel', $row['channel_code'] ?? ''),
             'external_number' => $this->value($row['external_number'] ?? null),
             'external_date' => $this->dateOnly($row['external_date'] ?? null),
+
+            'official_number' =>
+                isset($row['official_registration_number'])
+                && trim((string) $row['official_registration_number']) !== ''
+                    ? AdminFormat::digits(
+                        (string) $row['official_registration_number']
+                    )
+                    : '—',
+
+            'official_registered_at' =>
+                $this->dateTime(
+                    $row['official_registered_at']
+                    ?? null
+                ),
+
             'created_at' => $this->dateTime($row['created_at'] ?? null),
             'updated_at' => $this->dateTime($row['updated_at'] ?? null),
             'lock_version' => (int) ($row['lock_version'] ?? 0),

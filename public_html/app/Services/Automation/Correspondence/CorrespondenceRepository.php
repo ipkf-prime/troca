@@ -452,6 +452,45 @@ class CorrespondenceRepository
         $sql = "
             SELECT
                 c.*,
+
+                (
+                    SELECT
+                        cr.formatted_number
+
+                    FROM correspondence_registrations cr
+
+                    WHERE cr.correspondence_id =
+                            c.id
+                      AND cr.registration_role_code =
+                            'official'
+                      AND cr.status_code =
+                            'active'
+                      AND cr.cancelled_at IS NULL
+
+                    ORDER BY cr.id DESC
+
+                    LIMIT 1
+                ) AS official_registration_number,
+
+                (
+                    SELECT
+                        cr.registered_at
+
+                    FROM correspondence_registrations cr
+
+                    WHERE cr.correspondence_id =
+                            c.id
+                      AND cr.registration_role_code =
+                            'official'
+                      AND cr.status_code =
+                            'active'
+                      AND cr.cancelled_at IS NULL
+
+                    ORDER BY cr.id DESC
+
+                    LIMIT 1
+                ) AS official_registered_at,
+
                 t.public_reference
                     AS document_template_reference,
                 t.title_fa

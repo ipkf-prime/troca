@@ -47,6 +47,7 @@ class AdminNavigationRbacService extends BaseService
             '/admin/automation/correspondences/{public_reference}' => 'automation.correspondence.view',
             '/admin/automation/correspondences/{public_reference}/edit' => 'automation.correspondence.edit_draft',
             '/admin/automation/correspondences/{public_reference}/versions' => 'automation.correspondence.edit_draft',
+            '/admin/automation/correspondences/{public_reference}/register' => 'automation.correspondence.register',
             '/admin/automation/correspondences/{public_reference}/edit/attachments' => 'automation.correspondence.edit_draft',
             '/admin/automation/correspondences/{public_reference}/attachments/{file_reference}' => 'automation.correspondence.view',
             '/admin/automation/templates' => 'automation.correspondence.view',

@@ -120,6 +120,539 @@ document.addEventListener("DOMContentLoaded", () => {
         sync();
     });
 
+
+    /* Firefox custom select
+     *
+     * Keep the native select as the canonical form control,
+     * but never rely on Firefox's native popup rendering.
+     */
+    const isFirefox =
+        typeof navigator !== "undefined"
+        && /firefox/i.test(navigator.userAgent);
+
+    const firefoxSelects = [];
+
+    const closeFirefoxSelects = (except = null) => {
+        firefoxSelects.forEach((control) => {
+            if (control !== except) {
+                control.close();
+            }
+        });
+    };
+
+    const enhanceFirefoxSelect = (select) => {
+        if (
+            !isFirefox
+            || !(select instanceof HTMLSelectElement)
+            || select.dataset.firefoxSelectEnhanced === "1"
+        ) {
+            return;
+        }
+
+        select.dataset.firefoxSelectEnhanced = "1";
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "admin-firefox-select";
+
+        select.parentNode.insertBefore(wrapper, select);
+        wrapper.appendChild(select);
+
+        select.classList.add(
+            "admin-firefox-select__native"
+        );
+
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className =
+            "admin-firefox-select__button";
+        button.setAttribute(
+            "aria-haspopup",
+            "listbox"
+        );
+        button.setAttribute(
+            "aria-expanded",
+            "false"
+        );
+
+        const value = document.createElement("span");
+        value.className =
+            "admin-firefox-select__value";
+
+        button.appendChild(value);
+        wrapper.appendChild(button);
+
+        const menu = document.createElement("div");
+        menu.className =
+            "admin-firefox-select__menu";
+        menu.setAttribute("role", "listbox");
+        menu.hidden = true;
+
+        /*
+         * Portal the popup to document.body so cards,
+         * grids and overflow containers can never clip it.
+         */
+        menu.dir =
+            select.dir
+            || select.closest("[dir]")?.getAttribute("dir")
+            || document.documentElement.dir
+            || "rtl";
+
+        document.body.appendChild(menu);
+
+        const rebuild = () => {
+            menu.innerHTML = "";
+
+            Array.from(select.children).forEach(
+                (node) => {
+                    if (
+                        node instanceof HTMLOptGroupElement
+                    ) {
+                        const group =
+                            document.createElement("div");
+
+                        group.className =
+                            "admin-firefox-select__group";
+
+                        group.textContent =
+                            node.label || "";
+
+                        menu.appendChild(group);
+
+                        Array.from(node.children)
+                            .forEach((option) => {
+                                appendOption(option);
+                            });
+
+                        return;
+                    }
+
+                    if (
+                        node instanceof HTMLOptionElement
+                    ) {
+                        appendOption(node);
+                    }
+                }
+            );
+
+            sync();
+        };
+
+        const appendOption = (option) => {
+            const item =
+                document.createElement("button");
+
+            item.type = "button";
+            item.className =
+                "admin-firefox-select__option";
+
+            item.textContent =
+                option.textContent || "";
+
+            item.dataset.value =
+                option.value;
+
+            item.disabled =
+                option.disabled;
+
+            item.setAttribute(
+                "role",
+                "option"
+            );
+
+            item.addEventListener(
+                "click",
+                () => {
+                    if (option.disabled) {
+                        return;
+                    }
+
+                    select.value =
+                        option.value;
+
+                    select.dispatchEvent(
+                        new Event(
+                            "change",
+                            { bubbles: true }
+                        )
+                    );
+
+                    control.close();
+                    button.focus();
+                }
+            );
+
+            menu.appendChild(item);
+        };
+
+        const sync = () => {
+            const selected =
+                select.options[
+                    select.selectedIndex
+                ];
+
+            value.textContent =
+                selected?.textContent
+                || "انتخاب کنید";
+
+            wrapper.classList.toggle(
+                "is-disabled",
+                select.disabled
+            );
+
+            button.disabled =
+                select.disabled;
+
+            menu.querySelectorAll(
+                ".admin-firefox-select__option"
+            ).forEach((item) => {
+                const selectedItem =
+                    item.dataset.value
+                    === select.value;
+
+                item.classList.toggle(
+                    "is-selected",
+                    selectedItem
+                );
+
+                item.classList.toggle(
+                    "is-active",
+                    selectedItem
+                );
+
+                item.setAttribute(
+                    "aria-selected",
+                    selectedItem
+                        ? "true"
+                        : "false"
+                );
+            });
+        };
+
+        const positionMenu = () => {
+            const rect =
+                button.getBoundingClientRect();
+
+            const gap = 6;
+
+            const viewportHeight =
+                window.innerHeight
+                || document.documentElement.clientHeight;
+
+            const below =
+                viewportHeight
+                - rect.bottom
+                - gap
+                - 10;
+
+            const above =
+                rect.top
+                - gap
+                - 10;
+
+            const openAbove =
+                below < 180
+                && above > below;
+
+            const available =
+                Math.max(
+                    100,
+                    openAbove
+                        ? above
+                        : below
+                );
+
+            menu.style.left =
+                Math.round(rect.left) + "px";
+
+            menu.style.width =
+                Math.round(rect.width) + "px";
+
+            menu.style.right = "auto";
+
+            menu.style.maxHeight =
+                Math.floor(
+                    Math.min(
+                        320,
+                        available
+                    )
+                )
+                + "px";
+
+            if (openAbove) {
+                menu.style.top = "auto";
+
+                menu.style.bottom =
+                    Math.round(
+                        viewportHeight
+                        - rect.top
+                        + gap
+                    )
+                    + "px";
+            } else {
+                menu.style.bottom = "auto";
+
+                menu.style.top =
+                    Math.round(
+                        rect.bottom
+                        + gap
+                    )
+                    + "px";
+            }
+        };
+
+        const control = {
+            select,
+            wrapper,
+            button,
+            menu,
+
+            open() {
+                if (select.disabled) {
+                    return;
+                }
+
+                closeFirefoxSelects(control);
+
+                rebuild();
+                positionMenu();
+
+                menu.hidden = false;
+                wrapper.classList.add(
+                    "is-open"
+                );
+
+                button.setAttribute(
+                    "aria-expanded",
+                    "true"
+                );
+
+                const selectedItem =
+                    menu.querySelector(
+                        ".admin-firefox-select__option.is-selected"
+                    );
+
+                selectedItem?.scrollIntoView({
+                    block: "nearest",
+                });
+            },
+
+            close() {
+                menu.hidden = true;
+
+                wrapper.classList.remove(
+                    "is-open"
+                );
+
+                button.setAttribute(
+                    "aria-expanded",
+                    "false"
+                );
+            },
+        };
+
+        firefoxSelects.push(control);
+
+        button.addEventListener(
+            "click",
+            (event) => {
+                event.stopPropagation();
+
+                if (menu.hidden) {
+                    control.open();
+                } else {
+                    control.close();
+                }
+            }
+        );
+
+        button.addEventListener(
+            "keydown",
+            (event) => {
+                if (
+                    event.key === "ArrowDown"
+                    || event.key === "ArrowUp"
+                ) {
+                    event.preventDefault();
+
+                    const enabled =
+                        Array.from(
+                            select.options
+                        ).filter(
+                            (option) =>
+                                !option.disabled
+                        );
+
+                    if (enabled.length === 0) {
+                        return;
+                    }
+
+                    let index =
+                        enabled.findIndex(
+                            (option) =>
+                                option.value
+                                === select.value
+                        );
+
+                    if (event.key === "ArrowDown") {
+                        index =
+                            Math.min(
+                                enabled.length - 1,
+                                index + 1
+                            );
+                    } else {
+                        index =
+                            Math.max(
+                                0,
+                                index < 0
+                                    ? 0
+                                    : index - 1
+                            );
+                    }
+
+                    select.value =
+                        enabled[index].value;
+
+                    select.dispatchEvent(
+                        new Event(
+                            "change",
+                            { bubbles: true }
+                        )
+                    );
+
+                    sync();
+                    return;
+                }
+
+                if (
+                    event.key === "Escape"
+                    && !menu.hidden
+                ) {
+                    event.preventDefault();
+                    control.close();
+                }
+            }
+        );
+
+        select.addEventListener(
+            "change",
+            sync
+        );
+
+        select.addEventListener(
+            "invalid",
+            () => {
+                window.setTimeout(
+                    () => button.focus(),
+                    0
+                );
+            }
+        );
+
+        const observer =
+            new MutationObserver(
+                () => rebuild()
+            );
+
+        observer.observe(
+            select,
+            {
+                childList: true,
+                subtree: true,
+                attributes: true,
+                attributeFilter: [
+                    "disabled",
+                    "selected",
+                    "label",
+                ],
+            }
+        );
+
+        rebuild();
+        sync();
+    };
+
+    if (isFirefox) {
+        document.documentElement.classList.add(
+            "admin-firefox"
+        );
+
+        document.querySelectorAll("select")
+            .forEach(enhanceFirefoxSelect);
+
+        const selectObserver =
+            new MutationObserver(
+                (mutations) => {
+                    mutations.forEach(
+                        (mutation) => {
+                            mutation.addedNodes
+                                .forEach(
+                                    (node) => {
+                                        if (
+                                            !(
+                                                node
+                                                instanceof Element
+                                            )
+                                        ) {
+                                            return;
+                                        }
+
+                                        if (
+                                            node.matches?.(
+                                                "select"
+                                            )
+                                        ) {
+                                            enhanceFirefoxSelect(
+                                                node
+                                            );
+                                        }
+
+                                        node.querySelectorAll?.(
+                                            "select"
+                                        ).forEach(
+                                            enhanceFirefoxSelect
+                                        );
+                                    }
+                                );
+                        }
+                    );
+                }
+            );
+
+        selectObserver.observe(
+            document.body,
+            {
+                childList: true,
+                subtree: true,
+            }
+        );
+
+        document.addEventListener(
+            "click",
+            () => closeFirefoxSelects()
+        );
+
+        document.addEventListener(
+            "keydown",
+            (event) => {
+                if (event.key === "Escape") {
+                    closeFirefoxSelects();
+                }
+            }
+        );
+
+        window.addEventListener(
+            "resize",
+            () => closeFirefoxSelects(),
+            { passive: true }
+        );
+
+        window.addEventListener(
+            "scroll",
+            () => closeFirefoxSelects(),
+            { passive: true }
+        );
+    }
+
     const focusTarget = document.querySelector('[data-autofocus="true"]:not([disabled]), [autofocus]:not([disabled])');
     const canFocus = (element) => {
         if (!(element instanceof HTMLElement)) {

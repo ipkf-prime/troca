@@ -3848,6 +3848,118 @@ $router->post('/admin/automation/correspondences/{public_reference}/versions', f
     }
 });
 
+$router->post(
+    '/admin/automation/correspondences/{public_reference}/register',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/correspondences/{public_reference}/register'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $publicReference =
+            trim(
+                (string) $request->route(
+                    'public_reference'
+                )
+            );
+
+        $detailUrl =
+            '/admin/automation/correspondences/'
+            . rawurlencode(
+                $publicReference
+            );
+
+        if (
+            !(new \IPKF\Security\Csrf())
+                ->check(
+                    (string) $request->input(
+                        '_token',
+                        ''
+                    )
+                )
+        ) {
+            return $response->redirect(
+                $detailUrl
+                . '?registration_status=invalid_csrf'
+            );
+        }
+
+        try {
+            $result =
+                (new \App\Services\Automation\Correspondence\CorrespondenceRegistrationService())
+                    ->registerOfficial(
+                        $publicReference,
+                        (int) $context['user_id']
+                    );
+
+            if (
+                ($result['ok'] ?? false)
+                === true
+            ) {
+                $status =
+                    ($result[
+                        'already_registered'
+                    ] ?? false)
+                        ? 'already_registered'
+                        : 'registered';
+
+                return $response->redirect(
+                    $detailUrl
+                    . '?registration_status='
+                    . rawurlencode(
+                        $status
+                    )
+                );
+            }
+
+            $errors =
+                is_array(
+                    $result['errors']
+                    ?? null
+                )
+                    ? $result['errors']
+                    : [];
+
+            $status =
+                trim(
+                    (string) (
+                        $errors[0]
+                        ?? 'registration_failed'
+                    )
+                );
+
+            if ($status === '') {
+                $status =
+                    'registration_failed';
+            }
+
+            return $response->redirect(
+                $detailUrl
+                . '?registration_status='
+                . rawurlencode(
+                    $status
+                )
+            );
+
+        } catch (\Throwable) {
+            return $response->redirect(
+                $detailUrl
+                . '?registration_status=runtime_unavailable'
+            );
+        }
+    }
+);
+
 $router->post('/admin/automation/correspondences/{public_reference}/edit/attachments', function ($request, $response) use ($adminGuard) {
     $context = $adminGuard($response, '/admin/automation/correspondences/{public_reference}/edit/attachments');
     if (!is_array($context)) return $context;
@@ -3918,7 +4030,25 @@ $router->get('/admin/automation/correspondences/{public_reference}', function ($
         'title' => 'جزئیات مکاتبه',
         'context' => $context,
         'detail' => $detail,
-        'attachmentStatus' => (string) $request->input('attachment_status', ''),
+
+        'attachmentStatus' =>
+            (string) $request->input(
+                'attachment_status',
+                ''
+            ),
+
+        'registrationStatus' =>
+            (string) $request->input(
+                'registration_status',
+                ''
+            ),
+
+        'canRegister' =>
+            (new \App\Services\AdminNavigationRbacService())
+                ->can(
+                    (int) $context['user_id'],
+                    'automation.correspondence.register'
+                ),
     ]);
 });
 $adminPlaceholder = function ($path, $title, $message) use ($adminRender, $adminGuard) {

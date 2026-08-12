@@ -372,12 +372,14 @@ class CorrespondenceCommandService
         }
 
         $externalDate =
-            $this->dateInput(
-                $input,
-                'external_date',
-                'external_date_fa',
-                $errors
-            );
+            $direction === 'incoming'
+                ? $this->dateInput(
+                    $input,
+                    'external_date',
+                    'external_date_fa',
+                    $errors
+                )
+                : null;
 
         $parties =
             $this->normalizeParties(
@@ -421,7 +423,13 @@ class CorrespondenceCommandService
             'priority_code' => $priority,
             'confidentiality_code' => $confidentiality,
             'channel_code' => $channel,
-            'external_number' => $this->nullable($input['external_number'] ?? '', 190),
+            'external_number' =>
+                $direction === 'incoming'
+                    ? $this->nullable(
+                        $input['external_number'] ?? '',
+                        190
+                    )
+                    : null,
             'external_date' => $externalDate,
             'received_at' => null,
             'dispatched_at' => null,
@@ -483,7 +491,49 @@ class CorrespondenceCommandService
             $role = $this->code($roles[$i] ?? '');
             $kind = $this->code($kinds[$i] ?? '');
 
-            if ($role === '' && $kind === '' && trim((string) ($names[$i] ?? '')) === '') {
+            /*
+             * Pre-rendered recipient rows may carry role/kind
+             * defaults while still being hidden and unused.
+             * Only actual party data makes a row substantive.
+             */
+            $tokenValue =
+                trim(
+                    (string) (
+                        $tokens[$i]
+                        ?? ''
+                    )
+                );
+
+            $nameValue =
+                trim(
+                    (string) (
+                        $names[$i]
+                        ?? ''
+                    )
+                );
+
+            $organizationValue =
+                trim(
+                    (string) (
+                        $organizations[$i]
+                        ?? ''
+                    )
+                );
+
+            $contactValue =
+                trim(
+                    (string) (
+                        $contacts[$i]
+                        ?? ''
+                    )
+                );
+
+            if (
+                $tokenValue === ''
+                && $nameValue === ''
+                && $organizationValue === ''
+                && $contactValue === ''
+            ) {
                 continue;
             }
 

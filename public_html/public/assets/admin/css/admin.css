@@ -3712,3 +3712,197 @@ input[aria-invalid="true"] {
         padding-bottom: 12px;
     }
 }
+
+/* Firefox native select safe mode
+ *
+ * Firefox renders the popup portion of native <select> controls
+ * outside the normal document paint path. Complex inherited theme
+ * styles can therefore result in blank or unreadable option lists.
+ *
+ * Keep native selects visually standard and readable in Firefox.
+ */
+@supports (-moz-appearance: none) {
+
+    select {
+        -moz-appearance: auto !important;
+        appearance: auto !important;
+
+        color-scheme: light !important;
+
+        color: #20302c !important;
+        background-color: #ffffff !important;
+
+        font-family: Tahoma, Arial, sans-serif !important;
+        font-size: 14px !important;
+        font-weight: 400 !important;
+        font-style: normal !important;
+
+        text-shadow: none !important;
+        opacity: 1 !important;
+
+        direction: inherit;
+        text-align: start;
+    }
+
+    select option,
+    select optgroup {
+        color: #20302c !important;
+        background-color: #ffffff !important;
+
+        font-family: Tahoma, Arial, sans-serif !important;
+        font-size: 14px !important;
+        font-weight: 400 !important;
+        font-style: normal !important;
+
+        line-height: normal !important;
+        text-shadow: none !important;
+        opacity: 1 !important;
+
+        direction: inherit;
+        text-align: start;
+    }
+
+    select optgroup {
+        font-weight: 700 !important;
+    }
+
+}
+/* Firefox custom select
+ *
+ * Firefox native select popups are replaced by an in-document
+ * control. The original select remains the form/value source.
+ */
+.admin-firefox-select {
+    position: relative;
+    width: 100%;
+}
+
+.admin-firefox-select__native {
+    position: absolute !important;
+    inset-inline-start: 0;
+    bottom: 0;
+    width: 1px !important;
+    height: 1px !important;
+    min-width: 1px !important;
+    min-height: 1px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+.admin-firefox-select__button {
+    width: 100%;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+
+    padding: 9px 12px;
+
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+
+    background: var(--admin-surface);
+    color: var(--admin-text);
+
+    font: inherit;
+    line-height: 1.6;
+    text-align: start;
+
+    cursor: pointer;
+}
+
+.admin-firefox-select__button::after {
+    content: "⌄";
+    flex: 0 0 auto;
+    font-size: 16px;
+    line-height: 1;
+}
+
+.admin-firefox-select__button:hover {
+    border-color: var(--admin-primary);
+}
+
+.admin-firefox-select__button:focus-visible {
+    outline: 2px solid var(--admin-primary);
+    outline-offset: 2px;
+}
+
+.admin-firefox-select.is-disabled
+.admin-firefox-select__button {
+    opacity: .65;
+    cursor: not-allowed;
+}
+
+.admin-firefox-select__menu {
+    position: fixed;
+    z-index: 10050;
+
+    inset: auto;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+
+    max-height: min(320px, 45vh);
+    overflow: auto;
+
+    padding: 6px;
+
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+
+    background: #fff;
+    color: #20302c;
+
+    box-shadow: 0 14px 36px rgba(20, 45, 38, .16);
+}
+
+.admin-firefox-select__menu[hidden] {
+    display: none !important;
+}
+
+.admin-firefox-select__group {
+    padding: 8px 10px 4px;
+
+    color: var(--admin-muted);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.admin-firefox-select__option {
+    width: 100%;
+    display: block;
+
+    padding: 9px 10px;
+
+    border: 0;
+    border-radius: 8px;
+
+    background: transparent;
+    color: #20302c;
+
+    font: inherit;
+    line-height: 1.6;
+    text-align: start;
+
+    cursor: pointer;
+}
+
+.admin-firefox-select__option:hover,
+.admin-firefox-select__option.is-active {
+    background: var(--admin-primary-soft);
+    color: var(--admin-primary);
+}
+
+.admin-firefox-select__option.is-selected {
+    font-weight: 700;
+}
+
+.admin-firefox-select__option:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
