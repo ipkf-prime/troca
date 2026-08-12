@@ -99,6 +99,7 @@ class CorrespondenceViewModelBuilder
             'document_template' => $this->value($row['document_template_title'] ?? null),
             'content' => $this->value($version['content_snapshot'] ?? null),
             'type' => $this->lookups->label('correspondence_direction', $row['direction_code'] ?? ''),
+            'direction_code' => (string) ($row['direction_code'] ?? ''),
             'status' => $this->badge((string) ($row['status_code'] ?? '')),
             'priority' => $this->lookups->label('correspondence_priority', $row['priority_code'] ?? ''),
             'confidentiality' => $this->lookups->label('correspondence_confidentiality', $row['confidentiality_code'] ?? ''),
