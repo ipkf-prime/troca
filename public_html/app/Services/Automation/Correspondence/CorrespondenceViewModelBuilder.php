@@ -27,7 +27,7 @@ class CorrespondenceViewModelBuilder
             'status' => $this->badge((string) ($row['status_code'] ?? '')),
             'priority' => $this->lookups->label('correspondence_priority', $row['priority_code'] ?? ''),
             'confidentiality' => $this->lookups->label('correspondence_confidentiality', $row['confidentiality_code'] ?? ''),
-            'correspondent' => $this->value($row['correspondent_display'] ?? null),
+            'correspondent' => $this->listCorrespondent($row),
             'current_version' => AdminFormat::digits((int) ($row['current_version_number'] ?? 0)),
             'relevant_date' => $this->dateOnly($row['external_date'] ?? null),
             'updated_at' => $this->dateTime($row['updated_at'] ?? null),
@@ -136,6 +136,57 @@ class CorrespondenceViewModelBuilder
             'change_note' => $this->value($row['change_note'] ?? null),
             'created_at' => $this->dateTime($row['created_at'] ?? null),
         ];
+    }
+
+    private function listCorrespondent(array $row): string
+    {
+        $kind =
+            trim(
+                (string) (
+                    $row[
+                        'correspondent_target_kind_code'
+                    ] ?? ''
+                )
+            );
+
+        if ($kind === '') {
+            return '—';
+        }
+
+        return $this->partyDisplay([
+            'target_kind_code' =>
+                $kind,
+
+            'person_id' =>
+                $row[
+                    'correspondent_person_id'
+                ] ?? null,
+
+            'organization_id' =>
+                $row[
+                    'correspondent_organization_id'
+                ] ?? null,
+
+            'org_unit_id' =>
+                $row[
+                    'correspondent_org_unit_id'
+                ] ?? null,
+
+            'external_display_name' =>
+                $row[
+                    'correspondent_external_display_name'
+                ] ?? null,
+
+            'external_organization_name' =>
+                $row[
+                    'correspondent_external_organization_name'
+                ] ?? null,
+
+            'external_contact_or_address' =>
+                $row[
+                    'correspondent_external_contact_or_address'
+                ] ?? null,
+        ]);
     }
 
     private function party(array $row): array

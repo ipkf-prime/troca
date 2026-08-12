@@ -74,3 +74,24 @@ $expect(
 );
 
 echo "Automation correspondence directional summary checks passed.\n";
+
+$detailView = file_get_contents(
+    dirname(__DIR__)
+    . '/public_html/resources/views/admin/'
+    . 'automation-correspondence-detail.php'
+);
+
+if (
+    !str_contains(
+        $detailView,
+        "(\$c['summary'] ?? '—') !== '—'"
+    )
+) {
+    fwrite(
+        STDERR,
+        "FAIL: Empty correspondence summary must not render placeholder dash.\n"
+    );
+    exit(1);
+}
+
+echo "Empty correspondence summary visibility check passed.\n";

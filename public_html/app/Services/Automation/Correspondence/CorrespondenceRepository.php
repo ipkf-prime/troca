@@ -307,31 +307,57 @@ class CorrespondenceRepository
                     v.created_at
                         AS version_created_at,
 
-                    (
-                        SELECT
-                            COALESCE(
-                                cp.external_display_name,
-                                cp.external_organization_name,
-                                ''
-                            )
+                    cp_main.target_kind_code
+                        AS correspondent_target_kind_code,
 
-                        FROM correspondence_parties cp
+                    cp_main.person_id
+                        AS correspondent_person_id,
 
-                        WHERE cp.correspondence_id =
-                            c.id
+                    cp_main.organization_id
+                        AS correspondent_organization_id,
 
-                        ORDER BY
-                            cp.sort_order ASC,
-                            cp.id ASC
+                    cp_main.org_unit_id
+                        AS correspondent_org_unit_id,
 
-                        LIMIT 1
-                    ) AS correspondent_display
+                    cp_main.external_display_name
+                        AS correspondent_external_display_name,
+
+                    cp_main.external_organization_name
+                        AS correspondent_external_organization_name,
+
+                    cp_main.external_contact_or_address
+                        AS correspondent_external_contact_or_address
 
                 FROM correspondences c
 
                 LEFT JOIN correspondence_versions v
                     ON v.id =
                         c.current_version_id
+
+                LEFT JOIN correspondence_parties cp_main
+                    ON cp_main.id = (
+                        SELECT cp_pick.id
+
+                        FROM correspondence_parties cp_pick
+
+                        WHERE cp_pick.correspondence_id =
+                                c.id
+
+                          AND cp_pick.party_role_code =
+                                CASE
+                                    WHEN c.direction_code =
+                                        'incoming'
+                                    THEN 'sender'
+
+                                    ELSE 'primary_recipient'
+                                END
+
+                        ORDER BY
+                            cp_pick.sort_order ASC,
+                            cp_pick.id ASC
+
+                        LIMIT 1
+                    )
 
                 {$where}
 
