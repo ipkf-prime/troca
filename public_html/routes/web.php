@@ -3695,6 +3695,768 @@ $router->post(
     }
 );
 
+
+/*
+|--------------------------------------------------------------------------
+| External organization correspondence directory
+|--------------------------------------------------------------------------
+|
+| External directory data lives on core.primary.
+| Administration is exposed from the Automation workspace.
+|
+*/
+
+$externalDirectoryService =
+    static function () {
+        return new \App\Services\Automation\Correspondence\ExternalOrganizationDirectoryService();
+    };
+
+$externalDirectoryCsrf =
+    static function (
+        $request
+    ): bool {
+        return
+            (new \IPKF\Security\Csrf())
+                ->check(
+                    (string) $request->input(
+                        '_token',
+                        ''
+                    )
+                );
+    };
+
+$externalDirectoryRedirect =
+    static function (
+        $response,
+        string $organizationReference = '',
+        string $status = '',
+        array $queryContext = [],
+        string $fragment = ''
+    ) {
+        $query =
+            $queryContext;
+
+        if ($organizationReference !== '') {
+            $query['organization'] =
+                $organizationReference;
+        }
+
+        if ($status !== '') {
+            $query['status'] =
+                $status;
+        }
+
+        $url =
+            '/admin/automation/external-organizations';
+
+        if ($query !== []) {
+            $url .=
+                '?'
+                . http_build_query(
+                    $query
+                );
+        }
+
+        if ($fragment !== '') {
+            $url .=
+                '#'
+                . rawurlencode(
+                    $fragment
+                );
+        }
+
+        return
+            $response->redirect(
+                $url
+            );
+    };
+
+
+$router->get(
+    '/admin/automation/external-organizations',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard,
+        $externalDirectoryService
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/external-organizations'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $query =
+            trim(
+                (string) $request->input(
+                    'q',
+                    ''
+                )
+            );
+
+        $organizationReference =
+            trim(
+                (string) $request->input(
+                    'organization',
+                    ''
+                )
+            );
+
+        $page =
+            $externalDirectoryService()
+                ->page(
+                    $query,
+                    $organizationReference
+                );
+
+        return
+            $adminRender(
+                $response,
+                'automation-external-organizations',
+                [
+                    'title' =>
+                        'سازمان‌های بیرونی',
+                    'context' =>
+                        $context,
+                    'page' =>
+                        $page,
+                    'query' =>
+                        $query,
+                    'status' =>
+                        trim(
+                            (string) $request
+                                ->input(
+                                    'status',
+                                    ''
+                                )
+                        ),
+                    'errors' =>
+                        [],
+                    'formInput' =>
+                        [],
+                ]
+            );
+    }
+);
+
+
+$router->post(
+    '/admin/automation/external-organizations/save',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $externalDirectoryService,
+        $externalDirectoryCsrf,
+        $externalDirectoryRedirect
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/external-organizations/save'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $reference =
+            trim(
+                (string) $request->input(
+                    'public_reference',
+                    ''
+                )
+            );
+
+        if (!$externalDirectoryCsrf($request)) {
+            return
+                $externalDirectoryRedirect(
+                    $response,
+                    $reference,
+                    'invalid_csrf'
+                );
+        }
+
+        $result =
+            $externalDirectoryService()
+                ->saveOrganization(
+                    $request->all()
+                );
+
+        if (($result['ok'] ?? false) !== true) {
+            return
+                $externalDirectoryRedirect(
+                    $response,
+                    $reference,
+                    'organization_failed'
+                );
+        }
+
+        $savedReference =
+            trim(
+                (string) (
+                    $result[
+                        'public_reference'
+                    ]
+                    ?? $reference
+                )
+            );
+
+        return
+            $externalDirectoryRedirect(
+                $response,
+                $savedReference,
+                $reference === ''
+                    ? 'organization_saved'
+                    : 'organization_updated'
+            );
+    }
+);
+
+
+$router->post(
+    '/admin/automation/external-organizations/deactivate',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $externalDirectoryService,
+        $externalDirectoryCsrf,
+        $externalDirectoryRedirect
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/external-organizations/deactivate'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        if (!$externalDirectoryCsrf($request)) {
+            return
+                $externalDirectoryRedirect(
+                    $response,
+                    '',
+                    'invalid_csrf'
+                );
+        }
+
+        $result =
+            $externalDirectoryService()
+                ->deactivateOrganization(
+                    trim(
+                        (string) $request->input(
+                            'organization_reference',
+                            ''
+                        )
+                    )
+                );
+
+        return
+            $externalDirectoryRedirect(
+                $response,
+                '',
+                ($result['ok'] ?? false) === true
+                    ? 'organization_deactivated'
+                    : 'organization_failed'
+            );
+    }
+);
+
+
+$router->post(
+    '/admin/automation/external-organizations/contact-points/save',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $externalDirectoryService,
+        $externalDirectoryCsrf,
+        $externalDirectoryRedirect
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/external-organizations/contact-points/save'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $organizationReference =
+            trim(
+                (string) $request->input(
+                    'organization_reference',
+                    ''
+                )
+            );
+
+        if (!$externalDirectoryCsrf($request)) {
+            return
+                $externalDirectoryRedirect(
+                    $response,
+                    $organizationReference,
+                    'invalid_csrf'
+                );
+        }
+
+        $isEdit =
+            trim(
+                (string) $request->input(
+                    'public_reference',
+                    ''
+                )
+            ) !== '';
+
+        $result =
+            $externalDirectoryService()
+                ->saveContactPoint(
+                    $organizationReference,
+                    $request->all()
+                );
+
+        return
+            $externalDirectoryRedirect(
+                $response,
+                $organizationReference,
+                ($result['ok'] ?? false) === true
+                    ? (
+                        $isEdit
+                            ? 'point_updated'
+                            : 'point_saved'
+                    )
+                    : 'point_failed'
+            );
+    }
+);
+
+
+$router->post(
+    '/admin/automation/external-organizations/contact-points/deactivate',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $externalDirectoryService,
+        $externalDirectoryCsrf,
+        $externalDirectoryRedirect
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/external-organizations/contact-points/deactivate'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $organizationReference =
+            trim(
+                (string) $request->input(
+                    'organization_reference',
+                    ''
+                )
+            );
+
+        if (!$externalDirectoryCsrf($request)) {
+            return
+                $externalDirectoryRedirect(
+                    $response,
+                    $organizationReference,
+                    'invalid_csrf'
+                );
+        }
+
+        $result =
+            $externalDirectoryService()
+                ->deactivateContactPoint(
+                    $organizationReference,
+                    trim(
+                        (string) $request->input(
+                            'contact_point_reference',
+                            ''
+                        )
+                    )
+                );
+
+        return
+            $externalDirectoryRedirect(
+                $response,
+                $organizationReference,
+                ($result['ok'] ?? false) === true
+                    ? 'point_deactivated'
+                    : 'point_failed'
+            );
+    }
+);
+
+
+$router->post(
+    '/admin/automation/external-organizations/contact-methods/save',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $externalDirectoryService,
+        $externalDirectoryCsrf,
+        $externalDirectoryRedirect
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/external-organizations/contact-methods/save'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $organizationReference =
+            trim(
+                (string) $request->input(
+                    'organization_reference',
+                    ''
+                )
+            );
+
+        /*
+         * contact-method-post-save-context-v11
+         *
+         * Preserve the selected destination and
+         * contacts workspace after create/update/failure.
+         */
+        $contactPointReference =
+            trim(
+                (string) $request->input(
+                    'contact_point_reference',
+                    ''
+                )
+            );
+
+        $contactMethodRedirectContext = [
+            'tab' =>
+                'contacts',
+
+            'point' =>
+                $contactPointReference,
+
+            'mode' =>
+                'manage-contacts',
+        ];
+
+        $contactMethodRedirectFragment =
+            $contactPointReference !== ''
+                ? 'destination-'
+                    . $contactPointReference
+                : '';
+
+        if (!$externalDirectoryCsrf($request)) {
+            return
+                $externalDirectoryRedirect(
+                    $response,
+                    $organizationReference,
+                    'invalid_csrf',
+                    $contactMethodRedirectContext,
+                    $contactMethodRedirectFragment
+                );
+        }
+
+        $isEdit =
+            trim(
+                (string) $request->input(
+                    'public_reference',
+                    ''
+                )
+            ) !== '';
+
+        $result =
+            $externalDirectoryService()
+                ->saveContactMethod(
+                    $organizationReference,
+                    $contactPointReference,
+                    $request->all()
+                );
+
+        return
+            $externalDirectoryRedirect(
+                $response,
+                $organizationReference,
+                ($result['ok'] ?? false) === true
+                    ? (
+                        $isEdit
+                            ? 'method_updated'
+                            : 'method_saved'
+                    )
+                    : 'method_failed',
+                $contactMethodRedirectContext,
+                $contactMethodRedirectFragment
+            );
+    }
+);
+
+
+$router->post(
+    '/admin/automation/external-organizations/contact-methods/deactivate',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $externalDirectoryService,
+        $externalDirectoryCsrf,
+        $externalDirectoryRedirect
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/external-organizations/contact-methods/deactivate'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $organizationReference =
+            trim(
+                (string) $request->input(
+                    'organization_reference',
+                    ''
+                )
+            );
+
+
+        /*
+         * contact-method-deactivate-context-v12
+         *
+         * Keep the contacts tab, selected destination
+         * and manage-contacts workspace after deactivate.
+         */
+        $contactPointReference =
+            trim(
+                (string) $request->input(
+                    'contact_point_reference',
+                    ''
+                )
+            );
+
+        $contactMethodRedirectContext = [
+            'tab' =>
+                'contacts',
+
+            'point' =>
+                $contactPointReference,
+
+            'mode' =>
+                'manage-contacts',
+        ];
+
+        $contactMethodRedirectFragment =
+            $contactPointReference !== ''
+                ? 'destination-'
+                    . $contactPointReference
+                : '';
+
+        if (!$externalDirectoryCsrf($request)) {
+            return
+                $externalDirectoryRedirect(
+                    $response,
+                    $organizationReference,
+                    'invalid_csrf',
+                    $contactMethodRedirectContext,
+                    $contactMethodRedirectFragment
+                );
+        }
+
+        $result =
+            $externalDirectoryService()
+                ->deactivateContactMethod(
+                    $organizationReference,
+                    trim(
+                        (string) $request->input(
+                            'contact_point_reference',
+                            ''
+                        )
+                    ),
+                    trim(
+                        (string) $request->input(
+                            'method_reference',
+                            ''
+                        )
+                    )
+                );
+
+        return
+            $externalDirectoryRedirect(
+                $response,
+                $organizationReference,
+                ($result['ok'] ?? false) === true
+                    ? 'method_deactivated'
+                    : 'method_failed',
+                $contactMethodRedirectContext,
+                $contactMethodRedirectFragment
+            );
+    }
+);
+
+
+$router->post(
+    '/admin/automation/external-organizations/addresses/save',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $externalDirectoryService,
+        $externalDirectoryCsrf,
+        $externalDirectoryRedirect
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/external-organizations/addresses/save'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $organizationReference =
+            trim(
+                (string) $request->input(
+                    'organization_reference',
+                    ''
+                )
+            );
+
+        if (!$externalDirectoryCsrf($request)) {
+            return
+                $externalDirectoryRedirect(
+                    $response,
+                    $organizationReference,
+                    'invalid_csrf'
+                );
+        }
+
+        $isEdit =
+            trim(
+                (string) $request->input(
+                    'public_reference',
+                    ''
+                )
+            ) !== '';
+
+        $result =
+            $externalDirectoryService()
+                ->saveAddress(
+                    $organizationReference,
+                    trim(
+                        (string) $request->input(
+                            'contact_point_reference',
+                            ''
+                        )
+                    ),
+                    $request->all()
+                );
+
+        return
+            $externalDirectoryRedirect(
+                $response,
+                $organizationReference,
+                ($result['ok'] ?? false) === true
+                    ? (
+                        $isEdit
+                            ? 'address_updated'
+                            : 'address_saved'
+                    )
+                    : 'address_failed'
+            );
+    }
+);
+
+
+$router->post(
+    '/admin/automation/external-organizations/addresses/deactivate',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $externalDirectoryService,
+        $externalDirectoryCsrf,
+        $externalDirectoryRedirect
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/external-organizations/addresses/deactivate'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $organizationReference =
+            trim(
+                (string) $request->input(
+                    'organization_reference',
+                    ''
+                )
+            );
+
+        if (!$externalDirectoryCsrf($request)) {
+            return
+                $externalDirectoryRedirect(
+                    $response,
+                    $organizationReference,
+                    'invalid_csrf'
+                );
+        }
+
+        $result =
+            $externalDirectoryService()
+                ->deactivateAddress(
+                    $organizationReference,
+                    trim(
+                        (string) $request->input(
+                            'contact_point_reference',
+                            ''
+                        )
+                    ),
+                    trim(
+                        (string) $request->input(
+                            'address_reference',
+                            ''
+                        )
+                    )
+                );
+
+        return
+            $externalDirectoryRedirect(
+                $response,
+                $organizationReference,
+                ($result['ok'] ?? false) === true
+                    ? 'address_deactivated'
+                    : 'address_failed'
+            );
+    }
+);
+
+
 $router->get('/admin/automation/correspondences', function ($request, $response) use ($adminRender, $adminGuard, $automationUnavailable) {
     $context = $adminGuard($response, '/admin/automation/correspondences');
 
@@ -3960,6 +4722,123 @@ $router->post(
     }
 );
 
+$router->post(
+    '/admin/automation/correspondences/{public_reference}/dispatch',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/correspondences/{public_reference}/dispatch'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $publicReference =
+            trim(
+                (string) $request->route(
+                    'public_reference'
+                )
+            );
+
+        $detailUrl =
+            '/admin/automation/correspondences/'
+            . rawurlencode(
+                $publicReference
+            );
+
+        if (
+            !(new \IPKF\Security\Csrf())
+                ->check(
+                    (string) $request->input(
+                        '_token',
+                        ''
+                    )
+                )
+        ) {
+            return $response->redirect(
+                $detailUrl
+                . '?dispatch_status=invalid_csrf'
+            );
+        }
+
+        try {
+            $result =
+                (new \App\Services\Automation\Correspondence\CorrespondenceDispatchService())
+                    ->dispatch(
+                        $publicReference,
+                        (int) $context['user_id'],
+                        trim(
+                            (string) $request->input(
+                                'channel_code',
+                                ''
+                            )
+                        )
+                    );
+
+            if (
+                ($result['ok'] ?? false)
+                === true
+            ) {
+                $status =
+                    ($result[
+                        'already_dispatched'
+                    ] ?? false)
+                        ? 'already_dispatched'
+                        : 'dispatched';
+
+                return $response->redirect(
+                    $detailUrl
+                    . '?dispatch_status='
+                    . rawurlencode(
+                        $status
+                    )
+                );
+            }
+
+            $errors =
+                is_array(
+                    $result['errors']
+                    ?? null
+                )
+                    ? $result['errors']
+                    : [];
+
+            $status =
+                trim(
+                    (string) (
+                        $errors[0]
+                        ?? 'dispatch_failed'
+                    )
+                );
+
+            if ($status === '') {
+                $status = 'dispatch_failed';
+            }
+
+            return $response->redirect(
+                $detailUrl
+                . '?dispatch_status='
+                . rawurlencode(
+                    $status
+                )
+            );
+
+        } catch (\Throwable) {
+            return $response->redirect(
+                $detailUrl
+                . '?dispatch_status=runtime_unavailable'
+            );
+        }
+    }
+);
+
 $router->post('/admin/automation/correspondences/{public_reference}/edit/attachments', function ($request, $response) use ($adminGuard) {
     $context = $adminGuard($response, '/admin/automation/correspondences/{public_reference}/edit/attachments');
     if (!is_array($context)) return $context;
@@ -4043,11 +4922,24 @@ $router->get('/admin/automation/correspondences/{public_reference}', function ($
                 ''
             ),
 
+        'dispatchStatus' =>
+            (string) $request->input(
+                'dispatch_status',
+                ''
+            ),
+
         'canRegister' =>
             (new \App\Services\AdminNavigationRbacService())
                 ->can(
                     (int) $context['user_id'],
                     'automation.correspondence.register'
+                ),
+
+        'canDispatch' =>
+            (new \App\Services\AdminNavigationRbacService())
+                ->can(
+                    (int) $context['user_id'],
+                    'automation.correspondence.dispatch'
                 ),
     ]);
 });

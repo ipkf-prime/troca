@@ -27,6 +27,8 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\AddDefaultRoleAssignmentSelection::class,
                     \IPKF\Database\Migrations\CreateAdminUsersOrganizationTables::class,
                     \IPKF\Database\Migrations\CreateExtendedPersonDataTables::class,
+                    \IPKF\Database\Migrations\CreateExternalOrganizationCorrespondenceDirectory::class,
+                    \IPKF\Database\Migrations\AddStructuredExternalOrganizationPhoneFields::class,
                     \IPKF\Database\Migrations\CreateDynamicOrganizationCoreTables::class,
                     \IPKF\Database\Migrations\CreateDynamicGeographyTables::class,
                     \IPKF\Database\Migrations\CreateMultiSourceCodingGeographyTables::class,
@@ -72,6 +74,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\AddRegistryBookPublicReference::class,
                     \IPKF\Database\Migrations\CreateRegistryBookDirections::class,
                     \IPKF\Database\Migrations\AddRegistryNumberReservationIdempotency::class,
+                    \IPKF\Database\Migrations\CreateAutomationCorrespondenceDispatchFoundation::class,
                 ],
             ],
             'work' => [
