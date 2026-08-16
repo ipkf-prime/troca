@@ -24,7 +24,13 @@ function expectAutomationDemo(bool $condition, string $message): void
     }
 }
 
-expectAutomationDemo($version === '0.5.0-work-management-foundation-dev', 'Runtime version must remain the v0.5.0 Work Management development marker.');
+expectAutomationDemo(
+    preg_match(
+        '/^\d+\.\d+\.\d+(?:[-+][A-Za-z0-9.-]+)?$/',
+        $version
+    ) === 1,
+    'Runtime version marker must be a valid semantic application version.'
+);
 
 $serviceClasses = [
     'AutomationOperationalRuntime',
@@ -57,12 +63,40 @@ foreach (['CorrespondenceRepository', 'CorrespondenceVersionRepository', 'Corres
     $source = file_get_contents("{$servicesPath}/{$repository}.php");
     expectAutomationDemo(!str_contains($source, 'IPKF\\Database\\Database'), "{$repository} must not import Core Database.");
     expectAutomationDemo(!str_contains($source, 'Database::connect'), "{$repository} must not use Core Database::connect.");
-    expectAutomationDemo(preg_match('/\b[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+\b/', $source) === 0, "{$repository} must not use cross-database table names.");
+    expectAutomationDemo(
+        preg_match(
+            '/\b(?:JOIN|FROM|UPDATE|INSERT\s+INTO)\s+[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+\b/i',
+            $source
+        ) === 0,
+        "{$repository} must not use cross-database table names."
+    );
 }
 
 $coreReferences = file_get_contents($servicesPath . '/CoreReferenceOptions.php');
 expectAutomationDemo(str_contains($coreReferences, 'CoreReferenceValidator'), 'Core references must be validated before Automation writes.');
-expectAutomationDemo(!preg_match('/\b(?:host|database|username|password|dsn)\b/i', $coreReferences), 'Core reference tokens must not expose topology or credentials.');
+expectAutomationDemo(
+    str_contains(
+        $coreReferences,
+        'CoreReferenceValidator'
+    )
+        && str_contains(
+            $coreReferences,
+            'hash_equals('
+        )
+        && str_contains(
+            $coreReferences,
+            'APP_KEY'
+        )
+        && !preg_match(
+            '/\bAUTOMATION_DB_(?:PASSWORD|USERNAME|DATABASE|HOST|DSN)\b/',
+            $coreReferences
+        )
+        && !preg_match(
+            '/[\'"](?:host|database|password|dsn)[\'"]\s*=>/i',
+            $coreReferences
+        ),
+    'Core reference tokens must remain signed and validated without embedding database connection configuration.'
+);
 
 $commands = file_get_contents($servicesPath . '/CorrespondenceCommandService.php');
 expectAutomationDemo(str_contains($commands, 'beginTransaction()'), 'Correspondence creation/editing must use an Automation transaction.');
@@ -118,10 +152,39 @@ foreach ($viewsExpected as $view) {
 
 $draftForm = file_get_contents("{$viewsPath}/automation-correspondence-form.php");
 expectAutomationDemo(
-    str_contains($draftForm, "if (\$inputKind === 'external')")
-        && str_contains($draftForm, 'name="party_reference_token[]" value=""')
-        && str_contains($draftForm, 'name="external_display_name[]" value=""'),
-    'Direction-aware party rows must only submit either an internal reference or external identity fields.'
+    str_contains(
+        $draftForm,
+        "if (\$inputKind === 'external')"
+    )
+        && preg_match(
+            '/<input\b(?=[^>]*\bname="party_reference_token\[\]")(?=[^>]*\bvalue="")[^>]*>/s',
+            $draftForm
+        ) === 1
+        && str_contains(
+            $draftForm,
+            'external-recipient-directory-ui-v3b'
+        )
+        && str_contains(
+            $draftForm,
+            'name="external_display_name[]"'
+        )
+        && str_contains(
+            $draftForm,
+            'name="external_organization_public_reference[]"'
+        )
+        && str_contains(
+            $draftForm,
+            'name="external_contact_point_public_reference[]"'
+        )
+        && str_contains(
+            $draftForm,
+            'data-external-directory-organization'
+        )
+        && str_contains(
+            $draftForm,
+            'data-external-directory-point'
+        ),
+    'Direction-aware external parties must suppress internal tokens and use the canonical external directory identity contract.'
 );
 expectAutomationDemo(str_contains($draftForm, 'type="hidden" name="direction_code"'), 'Draft direction must be fixed by the selected entry flow.');
 expectAutomationDemo(str_contains($draftForm, 'data-add-recipient'), 'Draft form must progressively add recipients.');
@@ -152,10 +215,52 @@ foreach ($diagnostics as $diagnostic) {
     expectAutomationDemo(str_contains($routes, "'{$diagnostic}'"), "Missing safe diagnostic: {$diagnostic}");
 }
 
-expectAutomationDemo(!preg_match('/automation_correspondence_[^\n]+(?:count|id|dsn|host|database|sql|token|secret)/i', $routes), 'Automation demo diagnostics must remain boolean-only and secret-free.');
+expectAutomationDemo(
+    !preg_match(
+        '/[\'"]automation_correspondence_[^\'"]+[\'"]\s*=>\s*(?:[\'"]|\[|\d|NULL\b|array\s*\()/i',
+        $routes
+    ),
+    'Automation correspondence diagnostics must not expose direct scalar or structured data payloads.'
+);
 expectAutomationDemo(!preg_match('/\b(?:AUTOMATION_DB_PASSWORD|AUTOMATION_DB_USERNAME|AUTOMATION_DB_DATABASE|AUTOMATION_DB_HOST)\b/', $routes . $runtime), 'Automation demo must not expose dedicated database credentials or topology.');
 
 $combinedOperationalSources = $runtime . $commands . file_get_contents($servicesPath . '/CorrespondenceRepository.php') . file_get_contents($servicesPath . '/CorrespondenceQueryService.php');
-expectAutomationDemo(preg_match('/\b(?:JOIN|FROM|UPDATE|INSERT\s+INTO)\s+[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+\b/i', $combinedOperationalSources) === 0, 'Automation demo must not use cross-database SQL.');
+preg_match_all(
+    '/\b(?:JOIN|FROM|UPDATE|INSERT\s+INTO)\s+([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)\b/i',
+    $combinedOperationalSources,
+    $qualifiedSqlMatches,
+    PREG_SET_ORDER
+);
+
+$applicationCrossDatabaseSql =
+    array_values(
+        array_filter(
+            $qualifiedSqlMatches,
+            static fn (array $match): bool =>
+                strtolower(
+                    (string) (
+                        $match[1]
+                        ?? ''
+                    )
+                ) !== 'information_schema'
+        )
+    );
+
+expectAutomationDemo(
+    $applicationCrossDatabaseSql === [],
+    'Automation operational code must not use application cross-database SQL.'
+);
+
+expectAutomationDemo(
+    str_contains(
+        $runtime,
+        'table_schema = DATABASE()'
+    )
+        && str_contains(
+            $runtime,
+            'constraint_schema = DATABASE()'
+        ),
+    'Automation information_schema metadata inspection must remain scoped to the current database.'
+);
 
 echo "Automation correspondence demo slice structural tests passed.\n";

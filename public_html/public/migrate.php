@@ -106,6 +106,7 @@ try {
         new \IPKF\Database\Migrations\AddDefaultRoleAssignmentSelection(),
         new \IPKF\Database\Migrations\CreateAdminUsersOrganizationTables(),
         new \IPKF\Database\Migrations\CreateExtendedPersonDataTables(),
+        new \IPKF\Database\Migrations\CreateExternalOrganizationCorrespondenceDirectory(),
         new \IPKF\Database\Migrations\CreateDynamicOrganizationCoreTables(),
         new \IPKF\Database\Migrations\CompleteOrganizationalIdentityAndSignatureFoundation(),
         new \IPKF\Database\Migrations\RepairLegacyJalaliAppointmentDates(),

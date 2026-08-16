@@ -9,7 +9,11 @@ class AutomationCorrespondenceSeeder extends Seeder
         'correspondence_status' => 'وضعیت مکاتبه',
         'correspondence_priority' => 'اولویت مکاتبه',
         'correspondence_confidentiality' => 'طبقه‌بندی محرمانگی',
-        'correspondence_channel' => 'کانال دریافت یا ارسال',
+        'correspondence_channel' => 'روش دریافت مکاتبه',
+        'correspondence_dispatch_channel' => 'روش ارسال خارج از کارتابل',
+        'correspondence_dispatch_status' => 'وضعیت ارسال خارج از کارتابل',
+        'correspondence_dispatch_followup_type' => 'نوع پیگیری ارسال',
+        'correspondence_dispatch_followup_status' => 'وضعیت پیگیری ارسال',
         'correspondence_party_role' => 'نقش طرف مکاتبه',
         'correspondence_party_kind' => 'نوع طرف مکاتبه',
         'registry_book_scope' => 'دامنه دفتر ثبت',
@@ -54,9 +58,37 @@ class AutomationCorrespondenceSeeder extends Seeder
             ['manual', 'ثبت دستی'],
             ['postal', 'پست'],
             ['courier', 'پیک'],
-            ['email', 'رایانامه'],
+            ['hand_delivery', 'تحویل دستی'],
+            ['fax', 'فاکس'],
+            ['email', 'ایمیل'],
             ['system', 'سامانه'],
-            ['internal', 'داخلی'],
+        ],
+        'correspondence_dispatch_channel' => [
+            ['postal', 'پست'],
+            ['courier', 'پیک'],
+            ['hand_delivery', 'تحویل دستی'],
+            ['fax', 'فاکس'],
+            ['email', 'ایمیل'],
+            ['system', 'سامانه'],
+        ],
+        'correspondence_dispatch_status' => [
+            ['prepared', 'آماده ارسال'],
+            ['pending', 'در انتظار ارسال'],
+            ['queued', 'در صف ارسال'],
+            ['dispatched', 'ارسال‌شده'],
+            ['delivered', 'تحویل‌شده'],
+            ['failed', 'ناموفق'],
+            ['cancelled', 'لغوشده'],
+        ],
+        'correspondence_dispatch_followup_type' => [
+            ['destination_registration', 'اخذ شماره ثبت مقصد'],
+            ['delivery_confirmation', 'تأیید تحویل'],
+            ['phone_followup', 'پیگیری تلفنی'],
+        ],
+        'correspondence_dispatch_followup_status' => [
+            ['pending', 'در انتظار پیگیری'],
+            ['completed', 'تکمیل‌شده'],
+            ['cancelled', 'لغوشده'],
         ],
         'correspondence_party_role' => [
             ['sender', 'فرستنده'],
@@ -146,6 +178,7 @@ class AutomationCorrespondenceSeeder extends Seeder
         ['automation.correspondence.create', 'create', 'ایجاد پیش‌نویس مکاتبه'],
         ['automation.correspondence.edit_draft', 'edit_draft', 'ویرایش پیش‌نویس مکاتبه'],
         ['automation.correspondence.register', 'register', 'ثبت رسمی مکاتبه'],
+        ['automation.correspondence.dispatch', 'dispatch', 'ثبت ارسال مکاتبه صادره'],
         ['automation.correspondence.route', 'route', 'ارجاع مکاتبه'],
         ['automation.correspondence.cartable.view', 'cartable_view', 'مشاهده کارتابل مکاتبات'],
         ['automation.correspondence.close', 'close', 'بستن مکاتبه'],
@@ -161,6 +194,7 @@ class AutomationCorrespondenceSeeder extends Seeder
 
         $this->seedLookupDomains();
         $this->seedLookupValues();
+        $this->retireObsoleteValues();
     }
 
     private function seedLookupDomains(): void
@@ -208,6 +242,23 @@ class AutomationCorrespondenceSeeder extends Seeder
                 $valueStatement->execute([(int) $domainId, $code, $title, ($index + 1) * 10]);
             }
         }
+    }
+
+
+    private function retireObsoleteValues(): void
+    {
+        $statement = $this->db->prepare("
+            UPDATE lookup_values AS lv
+            INNER JOIN lookup_domains AS ld
+                ON ld.id = lv.domain_id
+            SET
+                lv.status = 'inactive',
+                lv.updated_at = CURRENT_TIMESTAMP
+            WHERE ld.code = 'correspondence_channel'
+              AND lv.code = 'internal'
+        ");
+
+        $statement->execute();
     }
 
     private function tableExists(string $table): bool

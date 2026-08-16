@@ -120,6 +120,7 @@ try {
         new \IPKF\Database\Seeds\RuntimeCheckSeeder(),
         new \IPKF\Database\Seeds\AuthRbacSeeder(),
         new \IPKF\Database\Seeds\MultiSourceMetadataSeeder(),
+        new \IPKF\Database\Seeds\ExternalOrganizationContactCatalogSeeder(),
         new \IPKF\Database\Seeds\AutomationCorrespondenceSeeder(),
         new \IPKF\Database\Seeds\AutomationCorrespondencePermissionsSeeder(),
         new \IPKF\Database\Seeds\WorkManagementPermissionsSeeder(),

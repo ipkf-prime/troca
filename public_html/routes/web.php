@@ -3921,6 +3921,355 @@ $router->post(
 );
 
 
+/*
+ * external-directory-quick-modal-v3c
+ *
+ * Lightweight creation endpoint used by the outgoing
+ * correspondence recipient modal.
+ *
+ * This endpoint creates directory data only.
+ * It does not create/update a correspondence and never
+ * executes dispatch.
+ */
+$router->post(
+    '/admin/automation/external-organizations/quick-create',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $externalDirectoryService,
+        $externalDirectoryCsrf
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/automation/external-organizations/quick-create'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        if (!$externalDirectoryCsrf($request)) {
+            return
+                $response
+                    ->status(419)
+                    ->json([
+                        'ok' => false,
+                        'errors' => [
+                            '_token' =>
+                                'نشست شما منقضی شده است. صفحه را تازه‌سازی کنید.',
+                        ],
+                    ]);
+        }
+
+        $service =
+            $externalDirectoryService();
+
+        $organizationReference =
+            trim(
+                (string) $request->input(
+                    'organization_reference',
+                    ''
+                )
+            );
+
+        $title =
+            trim(
+                (string) $request->input(
+                    'title_fa',
+                    ''
+                )
+            );
+
+        $shortTitle =
+            trim(
+                (string) $request->input(
+                    'short_title',
+                    ''
+                )
+            );
+
+        $pointTitle =
+            trim(
+                (string) $request->input(
+                    'contact_point_title',
+                    ''
+                )
+            );
+
+        $contactPerson =
+            trim(
+                (string) $request->input(
+                    'contact_person_name',
+                    ''
+                )
+            );
+
+        $errors = [];
+
+        if (
+            $organizationReference === ''
+            && $title === ''
+        ) {
+            $errors['title_fa'] =
+                'نام رسمی سازمان الزامی است.';
+        }
+
+        if ($pointTitle === '') {
+            $errors['contact_point_title'] =
+                'عنوان مقصد مکاتباتی الزامی است.';
+        }
+
+        if ($errors !== []) {
+            return
+                $response
+                    ->status(422)
+                    ->json([
+                        'ok' => false,
+                        'errors' => $errors,
+                    ]);
+        }
+
+        /*
+         * A non-empty organization_reference is used only
+         * for recovery if organization creation succeeded
+         * but destination creation failed.
+         */
+        if ($organizationReference === '') {
+            $organizationResult =
+                $service->saveOrganization([
+                    'title_fa' =>
+                        $title,
+
+                    'short_title' =>
+                        $shortTitle,
+                ]);
+
+            if (
+                ($organizationResult['ok'] ?? false)
+                !== true
+            ) {
+                return
+                    $response
+                        ->status(422)
+                        ->json([
+                            'ok' => false,
+                            'errors' =>
+                                $organizationResult[
+                                    'errors'
+                                ]
+                                ?? [
+                                    'organization' =>
+                                        'ثبت سازمان انجام نشد.',
+                                ],
+                        ]);
+            }
+
+            $organizationReference =
+                trim(
+                    (string) (
+                        $organizationResult[
+                            'public_reference'
+                        ]
+                        ?? ''
+                    )
+                );
+
+        } else {
+            $directoryPage =
+                $service->page(
+                    '',
+                    $organizationReference
+                );
+
+            $existingOrganization =
+                $directoryPage[
+                    'selected_organization'
+                ]
+                ?? null;
+
+            if (
+                !is_array(
+                    $existingOrganization
+                )
+                ||
+                (string) (
+                    $existingOrganization[
+                        'status'
+                    ]
+                    ?? ''
+                ) !== 'active'
+            ) {
+                return
+                    $response
+                        ->status(422)
+                        ->json([
+                            'ok' => false,
+                            'errors' => [
+                                'organization_reference' =>
+                                    'سازمان بیرونی برای ادامه ثبت مقصد معتبر نیست.',
+                            ],
+                        ]);
+            }
+
+            $title =
+                trim(
+                    (string) (
+                        $existingOrganization[
+                            'title_fa'
+                        ]
+                        ?? ''
+                    )
+                );
+
+            $shortTitle =
+                trim(
+                    (string) (
+                        $existingOrganization[
+                            'short_title'
+                        ]
+                        ?? ''
+                    )
+                );
+        }
+
+        if (
+            $organizationReference === ''
+        ) {
+            return
+                $response
+                    ->status(500)
+                    ->json([
+                        'ok' => false,
+                        'errors' => [
+                            'organization' =>
+                                'شناسه سازمان ایجادشده در دسترس نیست.',
+                        ],
+                    ]);
+        }
+
+        $pointResult =
+            $service->saveContactPoint(
+                $organizationReference,
+                [
+                    'title' =>
+                        $pointTitle,
+
+                    'point_kind_code' =>
+                        'secretariat',
+
+                    'contact_person_name' =>
+                        $contactPerson,
+
+                    'is_primary' =>
+                        '1',
+                ]
+            );
+
+        if (
+            ($pointResult['ok'] ?? false)
+            !== true
+        ) {
+            /*
+             * Organization may already have been created.
+             * Return its durable reference so the modal can
+             * retry only the destination without producing
+             * a duplicate organization.
+             */
+            return
+                $response
+                    ->status(422)
+                    ->json([
+                        'ok' => false,
+                        'partial' => true,
+
+                        'organization' => [
+                            'public_reference' =>
+                                $organizationReference,
+
+                            'title' =>
+                                $title,
+
+                            'short_title' =>
+                                $shortTitle,
+                        ],
+
+                        'errors' =>
+                            $pointResult[
+                                'errors'
+                            ]
+                            ?? [
+                                'contact_point' =>
+                                    'سازمان ثبت شد اما مقصد مکاتباتی ثبت نشد.',
+                            ],
+                    ]);
+        }
+
+        $pointReference =
+            trim(
+                (string) (
+                    $pointResult[
+                        'public_reference'
+                    ]
+                    ?? ''
+                )
+            );
+
+        if ($pointReference === '') {
+            return
+                $response
+                    ->status(500)
+                    ->json([
+                        'ok' => false,
+                        'partial' => true,
+
+                        'organization' => [
+                            'public_reference' =>
+                                $organizationReference,
+
+                            'title' =>
+                                $title,
+
+                            'short_title' =>
+                                $shortTitle,
+                        ],
+
+                        'errors' => [
+                            'contact_point' =>
+                                'شناسه مقصد مکاتباتی ایجادشده در دسترس نیست.',
+                        ],
+                    ]);
+        }
+
+        return
+            $response->json([
+                'ok' => true,
+
+                'organization' => [
+                    'public_reference' =>
+                        $organizationReference,
+
+                    'title' =>
+                        $title,
+
+                    'short_title' =>
+                        $shortTitle,
+                ],
+
+                'contact_point' => [
+                    'public_reference' =>
+                        $pointReference,
+
+                    'title' =>
+                        $pointTitle,
+                ],
+            ]);
+    }
+);
+
+
 $router->post(
     '/admin/automation/external-organizations/deactivate',
     function (
@@ -4769,29 +5118,39 @@ $router->post(
         }
 
         try {
+            /*
+             * dispatch-request-lifecycle-d2
+             *
+             * This route records a dispatch request only.
+             * No provider is called here.
+             */
             $result =
-                (new \App\Services\Automation\Correspondence\CorrespondenceDispatchService())
-                    ->dispatch(
-                        $publicReference,
-                        (int) $context['user_id'],
-                        trim(
-                            (string) $request->input(
-                                'channel_code',
-                                ''
-                            )
+                (
+                    new \App\Services\Automation\Correspondence\CorrespondenceDispatchService()
+                )->request(
+                    $publicReference,
+                    (int) $context['user_id'],
+                    trim(
+                        (string) $request->input(
+                            'channel_code',
+                            ''
                         )
-                    );
+                    )
+                );
 
             if (
                 ($result['ok'] ?? false)
                 === true
             ) {
                 $status =
-                    ($result[
-                        'already_dispatched'
-                    ] ?? false)
-                        ? 'already_dispatched'
-                        : 'dispatched';
+                    (int) (
+                        $result[
+                            'created_count'
+                        ]
+                        ?? 0
+                    ) > 0
+                        ? 'dispatch_requested'
+                        : 'dispatch_already_requested';
 
                 return $response->redirect(
                     $detailUrl
@@ -4814,12 +5173,13 @@ $router->post(
                 trim(
                     (string) (
                         $errors[0]
-                        ?? 'dispatch_failed'
+                        ?? 'dispatch_request_failed'
                     )
                 );
 
             if ($status === '') {
-                $status = 'dispatch_failed';
+                $status =
+                    'dispatch_request_failed';
             }
 
             return $response->redirect(
@@ -4903,6 +5263,28 @@ $router->get('/admin/automation/correspondences/{public_reference}', function ($
 
     if ($detail === null) {
         return $adminRender($response, 'placeholder', ['title' => 'مکاتبه پیدا نشد', 'context' => $context, 'message' => 'مکاتبه مورد نظر پیدا نشد.'], 404);
+    }
+
+    try {
+        $detail['dispatch_monitor'] =
+            (new \App\Services\Automation\Correspondence\CorrespondenceDispatchReadModelService())
+                ->forCorrespondence(
+                    (string) $request->route(
+                        'public_reference'
+                    )
+                );
+    } catch (\Throwable) {
+        $detail['dispatch_monitor'] = [
+            'available' => false,
+            'error' =>
+                'dispatch_read_model_unavailable',
+            'recipient_count' => 0,
+            'dispatch_count' => 0,
+            'attempt_count' => 0,
+            'unassigned_dispatch_count' => 0,
+            'recipients' => [],
+            'unassigned_dispatches' => [],
+        ];
     }
 
     return $adminRender($response, 'automation-correspondence-detail', [

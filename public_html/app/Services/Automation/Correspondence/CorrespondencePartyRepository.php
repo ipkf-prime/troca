@@ -24,8 +24,11 @@ class CorrespondencePartyRepository
             INSERT INTO correspondence_parties (
                 correspondence_id, party_role_code, target_kind_code, person_id, organization_id,
                 org_unit_id, external_display_name, external_organization_name,
-                external_contact_or_address, sort_order, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                external_contact_or_address,
+                external_organization_public_reference,
+                external_contact_point_public_reference,
+                sort_order, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ');
 
         foreach ($parties as $index => $party) {
@@ -39,6 +42,18 @@ class CorrespondencePartyRepository
                 $party['external_display_name'],
                 $party['external_organization_name'],
                 $party['external_contact_or_address'],
+
+                /*
+                 * external-recipient-directory-bridge-v2
+                 */
+                $party[
+                    'external_organization_public_reference'
+                ] ?? null,
+
+                $party[
+                    'external_contact_point_public_reference'
+                ] ?? null,
+
                 ($index + 1) * 10,
                 $now,
             ]);

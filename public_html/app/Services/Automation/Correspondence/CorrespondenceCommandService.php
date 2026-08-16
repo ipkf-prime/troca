@@ -21,7 +21,8 @@ class CorrespondenceCommandService
         private ?CorrespondenceDocumentTemplateRepository $documentTemplates = null,
         private ?CoreReferenceOptions $coreReferences = null,
         private ?CorrespondenceRelationRepository $relations = null,
-        private ?EnterpriseAutomationContextService $enterpriseContext = null
+        private ?EnterpriseAutomationContextService $enterpriseContext = null,
+        private ?ExternalOrganizationDirectoryReferenceResolver $externalDirectory = null
     ) {
         $this->runtime ??= new AutomationOperationalRuntime();
         $this->correspondences ??= new CorrespondenceRepository($this->runtime);
@@ -328,11 +329,41 @@ class CorrespondenceCommandService
         $errors = [];
         $subject = $this->trim($input['subject'] ?? '', 500);
         $summary = $this->trim($input['summary'] ?? '', 2000);
-        $content = $this->trim($input['content'] ?? '', 8000);
+        $contentFormat =
+            $this->code(
+                $input[
+                    'content_format_code'
+                ] ?? 'plain'
+            );
+
+        $contentInput =
+            (string) (
+                $input[
+                    'content'
+                ] ?? ''
+            );
+
+        $content =
+            $contentFormat === 'html'
+                ? (
+                    new CorrespondenceRichTextContent()
+                )->encodeHtml(
+                    $contentInput
+                )
+                : $this->trim(
+                    $contentInput,
+                    8000
+                );
         $direction = $this->code($input['direction_code'] ?? '');
         $priority = $this->code($input['priority_code'] ?? 'normal');
         $confidentiality = $this->code($input['confidentiality_code'] ?? 'normal');
-        $channel = $this->code($input['channel_code'] ?? 'manual');
+        $channel =
+            $direction === 'incoming'
+                ? $this->code(
+                    $input['channel_code']
+                    ?? 'manual'
+                )
+                : 'manual';
         $templateReference = trim((string) ($input['document_template_reference'] ?? ''));
         $templateVersion = $templateReference !== '' ? $this->documentTemplates->activeVersion($templateReference) : null;
 
@@ -352,11 +383,20 @@ class CorrespondenceCommandService
             'correspondence_direction' => $direction,
             'correspondence_priority' => $priority,
             'correspondence_confidentiality' => $confidentiality,
-            'correspondence_channel' => $channel,
         ] as $domain => $code) {
             if (!$this->lookups->valid($domain, $code)) {
                 $errors[] = 'invalid_lookup';
             }
+        }
+
+        if (
+            $direction === 'incoming'
+            && !$this->lookups->valid(
+                'correspondence_channel',
+                $channel
+            )
+        ) {
+            $errors[] = 'invalid_lookup';
         }
 
         $organizationId =
@@ -484,8 +524,41 @@ class CorrespondenceCommandService
         $names = $this->arrayInput($input['external_display_name'] ?? []);
         $organizations = $this->arrayInput($input['external_organization_name'] ?? []);
         $contacts = $this->arrayInput($input['external_contact_or_address'] ?? []);
+
+        /*
+         * external-recipient-directory-bridge-v2
+         *
+         * Stable references are persisted alongside the
+         * historical/display snapshot fields.
+         */
+        $externalOrganizationReferences =
+            $this->arrayInput(
+                $input[
+                    'external_organization_public_reference'
+                ] ?? []
+            );
+
+        $externalContactPointReferences =
+            $this->arrayInput(
+                $input[
+                    'external_contact_point_public_reference'
+                ] ?? []
+            );
+
         $parties = [];
-        $max = min(6, max(count($roles), count($kinds), count($tokens), count($names)));
+
+        $max =
+            min(
+                6,
+                max(
+                    count($roles),
+                    count($kinds),
+                    count($tokens),
+                    count($names),
+                    count($externalOrganizationReferences),
+                    count($externalContactPointReferences)
+                )
+            );
 
         for ($i = 0; $i < $max; $i++) {
             $role = $this->code($roles[$i] ?? '');
@@ -528,11 +601,29 @@ class CorrespondenceCommandService
                     )
                 );
 
+            $externalOrganizationReferenceValue =
+                trim(
+                    (string) (
+                        $externalOrganizationReferences[$i]
+                        ?? ''
+                    )
+                );
+
+            $externalContactPointReferenceValue =
+                trim(
+                    (string) (
+                        $externalContactPointReferences[$i]
+                        ?? ''
+                    )
+                );
+
             if (
                 $tokenValue === ''
                 && $nameValue === ''
                 && $organizationValue === ''
                 && $contactValue === ''
+                && $externalOrganizationReferenceValue === ''
+                && $externalContactPointReferenceValue === ''
             ) {
                 continue;
             }
@@ -545,8 +636,169 @@ class CorrespondenceCommandService
             if ($kind === 'external') {
                 $name = $this->trim($names[$i] ?? '', 255);
 
+                if (
+                    $name === ''
+                    && $externalOrganizationReferenceValue === ''
+                    && $externalContactPointReferenceValue === ''
+                ) {
+                    $errors[] =
+                        'external_party_required';
+
+                    continue;
+                }
+
+                $externalOrganizationNameSnapshot =
+                    $this->nullable(
+                        $organizations[$i]
+                        ?? '',
+                        255
+                    );
+
+                $externalContactSnapshot =
+                    $this->nullable(
+                        $contacts[$i]
+                        ?? '',
+                        1000
+                    );
+
+                $externalOrganizationReference =
+                    $this->externalDirectoryReference(
+                        $externalOrganizationReferenceValue
+                    );
+
+                $externalContactPointReference =
+                    $this->externalDirectoryReference(
+                        $externalContactPointReferenceValue
+                    );
+
+                if (
+                    (
+                        $externalOrganizationReferenceValue !== ''
+                        && $externalOrganizationReference === null
+                    )
+                    ||
+                    (
+                        $externalContactPointReferenceValue !== ''
+                        && $externalContactPointReference === null
+                    )
+                ) {
+                    $errors[] =
+                        'invalid_external_directory_reference';
+
+                    continue;
+                }
+
+                /*
+                 * A contact point is never meaningful without
+                 * its owning external organization reference.
+                 */
+                if (
+                    $externalContactPointReference !== null
+                    && $externalOrganizationReference === null
+                ) {
+                    $errors[] =
+                        'external_directory_organization_required';
+
+                    continue;
+                }
+
+                /*
+                 * external-recipient-directory-bridge-v3a
+                 *
+                 * UUID shape validation from V2 is not enough.
+                 * Explicit directory bindings must be resolved
+                 * against Core before they enter automation DB.
+                 */
+                if (
+                    $externalOrganizationReference !== null
+                    || $externalContactPointReference !== null
+                ) {
+                    $directoryResolution =
+                        $this
+                            ->externalDirectoryResolver()
+                            ->resolve(
+                                $externalOrganizationReference,
+                                $externalContactPointReference
+                            );
+
+                    if (
+                        ($directoryResolution['ok'] ?? false)
+                        !== true
+                    ) {
+                        $errors[] =
+                            (string) (
+                                $directoryResolution['error']
+                                ?? 'invalid_external_directory_reference'
+                            );
+
+                        continue;
+                    }
+
+                    $externalOrganizationReference =
+                        $directoryResolution[
+                            'external_organization_public_reference'
+                        ] ?? null;
+
+                    $externalContactPointReference =
+                        $directoryResolution[
+                            'external_contact_point_public_reference'
+                        ] ?? null;
+
+                    $resolvedOrganizationName =
+                        trim(
+                            (string) (
+                                $directoryResolution[
+                                    'external_organization_name'
+                                ]
+                                ?? ''
+                            )
+                        );
+
+                    $resolvedContactPointTitle =
+                        trim(
+                            (string) (
+                                $directoryResolution[
+                                    'external_contact_point_title'
+                                ]
+                                ?? ''
+                            )
+                        );
+
+                    if (
+                        $resolvedOrganizationName
+                        !== ''
+                    ) {
+                        $externalOrganizationNameSnapshot =
+                            $this->nullable(
+                                $resolvedOrganizationName,
+                                255
+                            );
+                    }
+
+                    if (
+                        $resolvedContactPointTitle
+                        !== ''
+                    ) {
+                        $externalContactSnapshot =
+                            $this->nullable(
+                                $resolvedContactPointTitle,
+                                1000
+                            );
+                    }
+
+                    if ($name === '') {
+                        $name =
+                            $resolvedContactPointTitle
+                            !== ''
+                                ? $resolvedContactPointTitle
+                                : $resolvedOrganizationName;
+                    }
+                }
+
                 if ($name === '') {
-                    $errors[] = 'external_party_required';
+                    $errors[] =
+                        'external_party_required';
+
                     continue;
                 }
 
@@ -557,8 +809,17 @@ class CorrespondenceCommandService
                     'organization_id' => null,
                     'org_unit_id' => null,
                     'external_display_name' => $name,
-                    'external_organization_name' => $this->nullable($organizations[$i] ?? '', 255),
-                    'external_contact_or_address' => $this->nullable($contacts[$i] ?? '', 1000),
+                    'external_organization_name' =>
+                        $externalOrganizationNameSnapshot,
+
+                    'external_contact_or_address' =>
+                        $externalContactSnapshot,
+
+                    'external_organization_public_reference' =>
+                        $externalOrganizationReference,
+
+                    'external_contact_point_public_reference' =>
+                        $externalContactPointReference,
                 ];
                 continue;
             }
@@ -622,6 +883,12 @@ class CorrespondenceCommandService
                 'external_display_name' => null,
                 'external_organization_name' => null,
                 'external_contact_or_address' => null,
+
+                'external_organization_public_reference' =>
+                    null,
+
+                'external_contact_point_public_reference' =>
+                    null,
             ];
         }
 
@@ -657,11 +924,64 @@ class CorrespondenceCommandService
         }
 
         if ($direction === 'outgoing') {
-            if (array_filter($senders, $isExternal) !== []) {
-                $errors[] = 'outgoing_sender_must_be_internal';
+            if (
+                array_filter(
+                    $senders,
+                    $isExternal
+                ) !== []
+            ) {
+                $errors[] =
+                    'outgoing_sender_must_be_internal';
             }
-            if (array_filter($receivers, static fn (array $party): bool => !$isExternal($party)) !== []) {
-                $errors[] = 'outgoing_receiver_must_be_external';
+
+            if (
+                array_filter(
+                    $receivers,
+                    static fn (array $party): bool =>
+                        !$isExternal($party)
+                ) !== []
+            ) {
+                $errors[] =
+                    'outgoing_receiver_must_be_external';
+            }
+
+            /*
+             * external-recipient-directory-outgoing-policy-v3b
+             *
+             * Primary outgoing recipients must be bound
+             * explicitly to an external organization and
+             * one correspondence destination.
+             */
+            foreach ($receivers as $receiver) {
+                if (
+                    (
+                        $receiver[
+                            'external_organization_public_reference'
+                        ]
+                        ?? null
+                    ) === null
+                ) {
+                    $errors[] =
+                        'external_directory_organization_required';
+
+                    break;
+                }
+            }
+
+            foreach ($receivers as $receiver) {
+                if (
+                    (
+                        $receiver[
+                            'external_contact_point_public_reference'
+                        ]
+                        ?? null
+                    ) === null
+                ) {
+                    $errors[] =
+                        'external_directory_contact_point_required';
+
+                    break;
+                }
             }
         }
 
@@ -673,6 +993,47 @@ class CorrespondenceCommandService
     private function publicReference(): string
     {
         return 'COR-' . gmdate('Ymd') . '-' . strtoupper(bin2hex(random_bytes(5)));
+    }
+
+    private function externalDirectoryResolver():
+        ExternalOrganizationDirectoryReferenceResolver
+    {
+        return
+            $this->externalDirectory ??=
+                new ExternalOrganizationDirectoryReferenceResolver();
+    }
+
+    private function externalDirectoryReference(
+        mixed $value
+    ): ?string {
+        $value =
+            trim(
+                (string) (
+                    $value
+                    ?? ''
+                )
+            );
+
+        if ($value === '') {
+            return null;
+        }
+
+        /*
+         * V2 validates only the stable-reference shape.
+         * V3 resolves ownership/existence against Core
+         * before the UI is allowed to submit these values.
+         */
+        return
+            preg_match(
+                '/^[0-9a-f]{8}-'
+                . '[0-9a-f]{4}-'
+                . '[1-5][0-9a-f]{3}-'
+                . '[89ab][0-9a-f]{3}-'
+                . '[0-9a-f]{12}$/i',
+                $value
+            ) === 1
+                ? $value
+                : null;
     }
 
     private function arrayInput(mixed $value): array

@@ -9,10 +9,16 @@ class AutomationCorrespondencePermissionsSeeder extends Seeder
         ['automation.correspondence.create', 'create', 'ایجاد پیش نویس مکاتبه'],
         ['automation.correspondence.edit_draft', 'edit_draft', 'ویرایش پیش نویس مکاتبه'],
         ['automation.correspondence.register', 'register', 'ثبت رسمی مکاتبه'],
+        ['automation.correspondence.dispatch', 'dispatch', 'ثبت ارسال مکاتبه صادره'],
         ['automation.correspondence.route', 'route', 'ارجاع مکاتبه'],
         ['automation.correspondence.cartable.view', 'cartable_view', 'مشاهده کارتابل مکاتبات'],
         ['automation.correspondence.close', 'close', 'بستن مکاتبه'],
         ['automation.registry.manage', 'manage_registry', 'مدیریت دفترهای ثبت'],
+        [
+            'automation.external_directory.manage',
+            'manage_external_directory',
+            'مدیریت سازمان‌های بیرونی و دبیرخانه‌های مقصد',
+        ],
         ['automation.audit.view', 'view_audit', 'مشاهده تاریخچه مکاتبات'],
     ];
 
@@ -39,9 +45,27 @@ class AutomationCorrespondencePermissionsSeeder extends Seeder
         ");
 
         foreach (self::PERMISSIONS as [$code, $action, $title]) {
-            $resource = str_contains($code, '.registry.')
-                ? 'registry'
-                : (str_contains($code, '.audit.') ? 'audit' : 'correspondence');
+            $resource =
+                str_contains(
+                    $code,
+                    '.external_directory.'
+                )
+                    ? 'external_directory'
+                    : (
+                        str_contains(
+                            $code,
+                            '.registry.'
+                        )
+                            ? 'registry'
+                            : (
+                                str_contains(
+                                    $code,
+                                    '.audit.'
+                                )
+                                    ? 'audit'
+                                    : 'correspondence'
+                            )
+                    );
             $statement->execute([$code, $resource, $action, $title]);
         }
     }

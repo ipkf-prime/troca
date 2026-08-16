@@ -25,6 +25,7 @@ class CorrespondenceViewModelBuilder
             'type' => $this->lookups->label('correspondence_direction', $row['direction_code'] ?? ''),
             'direction' => $this->lookups->label('correspondence_direction', $row['direction_code'] ?? ''),
             'status' => $this->badge((string) ($row['status_code'] ?? '')),
+            'status_code' => (string) ($row['status_code'] ?? ''),
             'priority' => $this->lookups->label('correspondence_priority', $row['priority_code'] ?? ''),
             'confidentiality' => $this->lookups->label('correspondence_confidentiality', $row['confidentiality_code'] ?? ''),
             'correspondent' => $this->listCorrespondent($row),
@@ -101,6 +102,7 @@ class CorrespondenceViewModelBuilder
             'type' => $this->lookups->label('correspondence_direction', $row['direction_code'] ?? ''),
             'direction_code' => (string) ($row['direction_code'] ?? ''),
             'status' => $this->badge((string) ($row['status_code'] ?? '')),
+            'status_code' => (string) ($row['status_code'] ?? ''),
             'priority' => $this->lookups->label('correspondence_priority', $row['priority_code'] ?? ''),
             'confidentiality' => $this->lookups->label('correspondence_confidentiality', $row['confidentiality_code'] ?? ''),
             'channel' => $this->lookups->label('correspondence_channel', $row['channel_code'] ?? ''),
@@ -118,6 +120,12 @@ class CorrespondenceViewModelBuilder
             'official_registered_at' =>
                 $this->dateTime(
                     $row['official_registered_at']
+                    ?? null
+                ),
+
+            'dispatched_at' =>
+                $this->dateTime(
+                    $row['dispatched_at']
                     ?? null
                 ),
 

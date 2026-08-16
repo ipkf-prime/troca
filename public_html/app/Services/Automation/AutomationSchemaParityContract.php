@@ -20,6 +20,9 @@ class AutomationSchemaParityContract
         'correspondence_events',
         'private_files',
         'correspondence_attachments',
+        'correspondence_dispatches',
+        'correspondence_dispatch_attempts',
+        'correspondence_dispatch_followups',
     ];
 
     public const INTERNAL_FOREIGN_KEYS = [
@@ -40,6 +43,10 @@ class AutomationSchemaParityContract
         'corr_attach_corr_fk',
         'corr_attach_version_fk',
         'corr_attach_file_fk',
+        'corr_dispatch_corr_fk',
+        'corr_dispatch_party_fk',
+        'corr_dispatch_attempt_dispatch_fk',
+        'corr_dispatch_followup_dispatch_fk',
     ];
 
     public const CORE_REFERENCE_TABLES = [
@@ -69,5 +76,8 @@ class AutomationSchemaParityContract
         'correspondence_events',
         'private_files',
         'correspondence_attachments',
+        'correspondence_dispatches',
+        'correspondence_dispatch_attempts',
+        'correspondence_dispatch_followups',
     ];
 }

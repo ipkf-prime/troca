@@ -74,6 +74,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\AddRegistryBookPublicReference::class,
                     \IPKF\Database\Migrations\CreateRegistryBookDirections::class,
                     \IPKF\Database\Migrations\AddRegistryNumberReservationIdempotency::class,
+                    \IPKF\Database\Migrations\AddExternalDirectoryReferencesToCorrespondenceParties::class,
                     \IPKF\Database\Migrations\CreateAutomationCorrespondenceDispatchFoundation::class,
                 ],
             ],

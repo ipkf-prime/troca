@@ -233,9 +233,73 @@ $partyTokens = array_values(is_array($form['party_reference_token'] ?? null) ? $
 $externalNames = array_values(is_array($form['external_display_name'] ?? null) ? $form['external_display_name'] : []);
 $externalOrganizations = array_values(is_array($form['external_organization_name'] ?? null) ? $form['external_organization_name'] : []);
 $externalContacts = array_values(is_array($form['external_contact_or_address'] ?? null) ? $form['external_contact_or_address'] : []);
+
+$externalOrganizationReferences =
+    array_values(
+        is_array(
+            $form[
+                'external_organization_public_reference'
+            ] ?? null
+        )
+            ? $form[
+                'external_organization_public_reference'
+            ]
+            : []
+    );
+
+$externalContactPointReferences =
+    array_values(
+        is_array(
+            $form[
+                'external_contact_point_public_reference'
+            ] ?? null
+        )
+            ? $form[
+                'external_contact_point_public_reference'
+            ]
+            : []
+    );
 $documentTemplates = array_values(is_array($options['document_templates'] ?? null) ? $options['document_templates'] : []);
 $relatedCorrespondences = array_values(is_array($options['related_correspondences'] ?? null) ? $options['related_correspondences'] : []);
 $storedRelations = array_values(is_array($form['relations'] ?? null) ? $form['relations'] : []);
+
+$externalDirectory =
+    array_values(
+        is_array(
+            $options[
+                'external_directory'
+            ] ?? null
+        )
+            ? $options[
+                'external_directory'
+            ]
+            : []
+    );
+$receiveChannelCodes = [
+    'manual',
+    'postal',
+    'courier',
+    'hand_delivery',
+    'fax',
+    'email',
+    'system',
+];
+
+$receiveChannels =
+    array_values(
+        array_filter(
+            is_array($options['channels'] ?? null)
+                ? $options['channels']
+                : [],
+            static fn (array $item): bool =>
+                in_array(
+                    (string) ($item['code'] ?? ''),
+                    $receiveChannelCodes,
+                    true
+                )
+        )
+    );
+
 $initialDirection = (string) ($form['direction_code'] ?? 'incoming');
 $directionLabels = ['incoming' => 'نامه وارده', 'outgoing' => 'نامه صادره', 'internal' => 'نامه داخلی'];
 $directionLabel = $directionLabels[$initialDirection] ?? 'مکاتبه';
@@ -316,7 +380,16 @@ ob_start();
                 </fieldset><?php endif; ?>
                 <label><span>اولویت</span><?= $select('priority_code', $options['priorities'] ?? [], (string) ($form['priority_code'] ?? 'normal')) ?></label>
                 <label><span>محرمانگی</span><?= $select('confidentiality_code', $options['confidentialities'] ?? [], (string) ($form['confidentiality_code'] ?? 'normal')) ?></label>
-                <label><span>کانال</span><?= $select('channel_code', $options['channels'] ?? [], (string) ($form['channel_code'] ?? 'manual')) ?></label>
+                <?php if ($initialDirection === 'incoming'): ?>
+                <label>
+                    <span>روش دریافت</span>
+                    <?= $select(
+                        'channel_code',
+                        $receiveChannels,
+                        (string) ($form['channel_code'] ?? 'manual')
+                    ) ?>
+                </label>
+                <?php endif; ?>
                 <?php if ($initialDirection === 'incoming'): ?><label><span>شماره نامه بیرونی</span><input name="external_number" value="<?= admin_h($form['external_number'] ?? '') ?>" maxlength="190"></label>
                 <label><span>تاریخ نامه بیرونی</span><div class="admin-persian-date" data-persian-datepicker><input type="text" name="external_date_fa" data-persian-date-input inputmode="numeric" autocomplete="off" placeholder="مثلاً ۱۴۰۵/۰۱/۰۱" value="<?= admin_h($externalDateFa) ?>"><input type="hidden" name="external_date" data-persian-date-output value="<?= admin_h($form['external_date'] ?? '') ?>"><button type="button" class="admin-persian-date__toggle" data-persian-date-toggle aria-label="انتخاب تاریخ"><?= \App\Support\AdminIcon::html('calendar') ?></button></div></label><?php endif; ?>
                 <label class="admin-form-grid__wide"><span>خلاصه</span><textarea name="summary" rows="3" maxlength="2000"><?= admin_h($form['summary'] ?? '') ?></textarea></label>
@@ -326,7 +399,7 @@ ob_start();
 
         <?php if ($initialDirection !== 'incoming'): ?><section class="automation-form-section automation-draft-panel" data-draft-panel="content" role="tabpanel">
             <div class="automation-form-section__head"><div><h3>متن مکاتبه</h3></div></div>
-            <label class="automation-form__wide"><span>متن نامه</span><textarea name="content" rows="10" maxlength="8000" required><?= admin_h($form['content'] ?? '') ?></textarea></label>
+            <?php /* Rich editor owns name="content". */ require __DIR__ . '/partials/automation-correspondence-rich-editor.php'; ?>
             <?php if ($isEdit): ?><label class="automation-form__wide"><span>یادداشت تغییر</span><input name="change_note" maxlength="500" placeholder="شرح کوتاه تغییرات این نسخه"></label><?php endif; ?>
             <div class="automation-draft-navigation"><button class="admin-button admin-button--soft" type="button" data-draft-next="base">قبلی</button><button class="admin-button" type="button" data-draft-next="parties">ادامه: طرف‌های مکاتبه</button></div>
         </section><?php endif; ?>
@@ -360,6 +433,31 @@ ob_start();
                             ? 'person'
                             : (($initialDirection === 'incoming' && $index === 0) || ($initialDirection === 'outgoing' && $index > 0) ? 'external' : 'person'));
                     $tokenValue = $arrayValue($partyTokens, $index, (string) ($stored['reference_token'] ?? ''));
+
+                    $organizationReferenceValue =
+                        $arrayValue(
+                            $externalOrganizationReferences,
+                            $index,
+                            (string) (
+                                $stored[
+                                    'external_organization_public_reference'
+                                ]
+                                ?? ''
+                            )
+                        );
+
+                    $contactPointReferenceValue =
+                        $arrayValue(
+                            $externalContactPointReferences,
+                            $index,
+                            (string) (
+                                $stored[
+                                    'external_contact_point_public_reference'
+                                ]
+                                ?? ''
+                            )
+                        );
+
                     $nameValue = $arrayValue($externalNames, $index, (string) ($stored['external_display_name'] ?? ''));
                     $organizationValue = $arrayValue($externalOrganizations, $index, (string) ($stored['external_organization_name'] ?? ''));
                     $contactValue = $arrayValue($externalContacts, $index, (string) ($stored['external_contact_or_address'] ?? ''));
@@ -433,15 +531,240 @@ ob_start();
                                 value="<?= admin_h($kind) ?>"
                             >
                             <?php if ($inputKind === 'external'): ?>
-                                <input type="hidden" name="party_reference_token[]" value="">
-                                <label data-party-external><span><?= $index === 0 ? 'نام فرستنده یا نماینده' : 'نام گیرنده یا نماینده' ?></span><input name="external_display_name[]" value="<?= admin_h($nameValue) ?>" maxlength="255" placeholder="نام شخص یا نماینده"></label>
-                                <label data-party-external><span>سازمان بیرونی</span><input name="external_organization_name[]" value="<?= admin_h($organizationValue) ?>" maxlength="255"></label>
-                                <label class="automation-party-row__wide" data-party-external><span>نشانی یا تماس بیرونی</span><input name="external_contact_or_address[]" value="<?= admin_h($contactValue) ?>" maxlength="1000"></label>
+                                <input
+                                    type="hidden"
+                                    name="party_reference_token[]"
+                                    value=""
+                                >
+
+                                <?php /* external-recipient-directory-ui-v3b */ ?>
+
+                                <label data-party-external>
+                                    <span><?= $index === 0
+                                        ? 'نام فرستنده یا نماینده'
+                                        : 'نام مخاطب یا نماینده' ?></span>
+
+                                    <input
+                                        name="external_display_name[]"
+                                        value="<?= admin_h($nameValue) ?>"
+                                        maxlength="255"
+                                        placeholder="نام شخص، واحد یا نماینده"
+                                        data-external-display-name
+                                    >
+                                </label>
+
+                                <?php if ($initialDirection === 'outgoing'): ?>
+
+                                    <label data-party-external>
+                                        <span>سازمان بیرونی</span>
+
+                                        <div
+                                            class="automation-external-directory-select-row"
+                                            data-external-directory-select-row
+                                        >
+                                        <select
+                                            name="external_organization_public_reference[]"
+                                            data-external-directory-organization
+                                        >
+                                            <option value="">
+                                                انتخاب سازمان بیرونی
+                                            </option>
+
+                                            <?php foreach ($externalDirectory as $directoryOrganization):
+                                                $directoryOrganizationReference =
+                                                    (string) (
+                                                        $directoryOrganization[
+                                                            'public_reference'
+                                                        ]
+                                                        ?? ''
+                                                    );
+
+                                                $directoryOrganizationTitle =
+                                                    (string) (
+                                                        $directoryOrganization[
+                                                            'title'
+                                                        ]
+                                                        ?? ''
+                                                    );
+                                            ?>
+                                                <option
+                                                    value="<?= admin_h($directoryOrganizationReference) ?>"
+                                                    data-title="<?= admin_h($directoryOrganizationTitle) ?>"
+                                                    <?= $directoryOrganizationReference === $organizationReferenceValue
+                                                        ? 'selected'
+                                                        : '' ?>
+                                                >
+                                                    <?= admin_h($directoryOrganizationTitle) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+
+                                        <button
+                                            type="button"
+                                            class="admin-button admin-button--soft automation-external-directory-quick-button"
+                                            data-external-directory-quick-open
+                                            title="افزودن سریع سازمان بیرونی"
+                                        >
+                                            + سازمان جدید
+                                        </button>
+                                        </div>
+                                    </label>
+
+                                    <label data-party-external>
+                                        <span>مقصد مکاتباتی</span>
+
+                                        <select
+                                            name="external_contact_point_public_reference[]"
+                                            data-external-directory-point
+                                        >
+                                            <option value="">
+                                                انتخاب مقصد مکاتباتی
+                                            </option>
+
+                                            <?php foreach ($externalDirectory as $directoryOrganization):
+                                                $directoryOrganizationReference =
+                                                    (string) (
+                                                        $directoryOrganization[
+                                                            'public_reference'
+                                                        ]
+                                                        ?? ''
+                                                    );
+
+                                                foreach (
+                                                    $directoryOrganization[
+                                                        'contact_points'
+                                                    ] ?? []
+                                                    as $directoryPoint
+                                                ):
+                                                    $directoryPointReference =
+                                                        (string) (
+                                                            $directoryPoint[
+                                                                'public_reference'
+                                                            ]
+                                                            ?? ''
+                                                        );
+
+                                                    $directoryPointTitle =
+                                                        (string) (
+                                                            $directoryPoint[
+                                                                'title'
+                                                            ]
+                                                            ?? ''
+                                                        );
+                                            ?>
+                                                <option
+                                                    value="<?= admin_h($directoryPointReference) ?>"
+                                                    data-organization-reference="<?= admin_h($directoryOrganizationReference) ?>"
+                                                    data-title="<?= admin_h($directoryPointTitle) ?>"
+                                                    <?= $directoryPointReference === $contactPointReferenceValue
+                                                        ? 'selected'
+                                                        : '' ?>
+                                                >
+                                                    <?= admin_h($directoryPointTitle) ?>
+                                                </option>
+                                            <?php
+                                                endforeach;
+                                            endforeach;
+                                            ?>
+                                        </select>
+                                    </label>
+
+                                    <input
+                                        type="hidden"
+                                        name="external_organization_name[]"
+                                        value="<?= admin_h($organizationValue) ?>"
+                                        data-external-organization-snapshot
+                                    >
+
+                                    <input
+                                        type="hidden"
+                                        name="external_contact_or_address[]"
+                                        value="<?= admin_h($contactValue) ?>"
+                                        data-external-contact-snapshot
+                                    >
+
+                                <?php else: ?>
+
+                                    <input
+                                        type="hidden"
+                                        name="external_organization_public_reference[]"
+                                        value="<?= admin_h($organizationReferenceValue) ?>"
+                                    >
+
+                                    <input
+                                        type="hidden"
+                                        name="external_contact_point_public_reference[]"
+                                        value="<?= admin_h($contactPointReferenceValue) ?>"
+                                    >
+
+                                    <label data-party-external>
+                                        <span>سازمان بیرونی</span>
+
+                                        <input
+                                            name="external_organization_name[]"
+                                            value="<?= admin_h($organizationValue) ?>"
+                                            maxlength="255"
+                                        >
+                                    </label>
+
+                                    <label
+                                        class="automation-party-row__wide"
+                                        data-party-external
+                                    >
+                                        <span>نشانی یا تماس بیرونی</span>
+
+                                        <input
+                                            name="external_contact_or_address[]"
+                                            value="<?= admin_h($contactValue) ?>"
+                                            maxlength="1000"
+                                        >
+                                    </label>
+
+                                <?php endif; ?>
+
                             <?php else: ?>
-                                <label class="automation-party-row__wide" data-party-internal><span><?= $index === 0 ? 'فرستنده داخلی' : 'گیرنده داخلی' ?></span><?= $referenceSelect($tokenValue) ?></label>
-                                <input type="hidden" name="external_display_name[]" value="">
-                                <input type="hidden" name="external_organization_name[]" value="">
-                                <input type="hidden" name="external_contact_or_address[]" value="">
+
+                                <label
+                                    class="automation-party-row__wide"
+                                    data-party-internal
+                                >
+                                    <span><?= $index === 0
+                                        ? 'فرستنده داخلی'
+                                        : 'گیرنده داخلی' ?></span>
+
+                                    <?= $referenceSelect($tokenValue) ?>
+                                </label>
+
+                                <input
+                                    type="hidden"
+                                    name="external_display_name[]"
+                                    value=""
+                                >
+
+                                <input
+                                    type="hidden"
+                                    name="external_organization_name[]"
+                                    value=""
+                                >
+
+                                <input
+                                    type="hidden"
+                                    name="external_contact_or_address[]"
+                                    value=""
+                                >
+
+                                <input
+                                    type="hidden"
+                                    name="external_organization_public_reference[]"
+                                    value=""
+                                >
+
+                                <input
+                                    type="hidden"
+                                    name="external_contact_point_public_reference[]"
+                                    value=""
+                                >
+
                             <?php endif; ?>
                         </div>
                     </article>
@@ -476,8 +799,275 @@ ob_start();
                 <a class="admin-button admin-button--soft" href="/admin/automation/correspondences">انصراف</a>
             </div>
         </section>
+
+        <?php if ($initialDirection === 'outgoing'): ?>
+            <?php /* external-directory-quick-modal-v3c */ ?>
+
+            <dialog
+                class="automation-external-directory-modal"
+                data-external-directory-modal
+                aria-labelledby="external-directory-modal-title"
+            >
+                <div class="automation-external-directory-modal__head">
+                    <div>
+                        <strong id="external-directory-modal-title">
+                            افزودن سریع سازمان بیرونی
+                        </strong>
+
+                        <p>
+                            سازمان و مقصد مکاتباتی را بدون خروج از پیش‌نویس ثبت کنید.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="automation-external-directory-modal__close"
+                        data-external-directory-quick-close
+                        aria-label="بستن"
+                    >
+                        ×
+                    </button>
+                </div>
+
+                <div class="automation-external-directory-modal__body">
+                    <div
+                        class="automation-external-directory-modal__message"
+                        data-external-directory-quick-message
+                        hidden
+                    ></div>
+
+                    <label>
+                        <span>نام رسمی سازمان *</span>
+
+                        <input
+                            type="text"
+                            maxlength="255"
+                            autocomplete="off"
+                            placeholder="مثلاً سازمان ... "
+                            data-external-directory-quick-title
+                        >
+                    </label>
+
+                    <label>
+                        <span>عنوان کوتاه</span>
+
+                        <input
+                            type="text"
+                            maxlength="190"
+                            autocomplete="off"
+                            placeholder="اختیاری"
+                            data-external-directory-quick-short-title
+                        >
+                    </label>
+
+                    <label>
+                        <span>مقصد مکاتباتی *</span>
+
+                        <input
+                            type="text"
+                            maxlength="255"
+                            autocomplete="off"
+                            placeholder="مثلاً دبیرخانه مرکزی"
+                            data-external-directory-quick-point-title
+                        >
+                    </label>
+
+                    <label>
+                        <span>نام رابط / مسئول</span>
+
+                        <input
+                            type="text"
+                            maxlength="255"
+                            autocomplete="off"
+                            placeholder="اختیاری"
+                            data-external-directory-quick-contact-person
+                        >
+                    </label>
+
+                    <p class="admin-muted">
+                        برای سازمان موجود از فهرست «سازمان بیرونی» همان گیرنده استفاده کنید.
+                    </p>
+                </div>
+
+                <div class="automation-external-directory-modal__actions">
+                    <a
+                        class="admin-button admin-button--soft"
+                        href="/admin/automation/external-organizations"
+                        target="_blank"
+                        rel="noopener"
+                    >
+                        مدیریت کامل سازمان‌ها
+                    </a>
+
+                    <div>
+                        <button
+                            type="button"
+                            class="admin-button admin-button--soft"
+                            data-external-directory-quick-close
+                        >
+                            انصراف
+                        </button>
+
+                        <button
+                            type="button"
+                            class="admin-button"
+                            data-external-directory-quick-save
+                        >
+                            ثبت و انتخاب
+                        </button>
+                    </div>
+                </div>
+            </dialog>
+        <?php endif; ?>
+
     </form>
 <?php endif; ?>
+
+<style>
+.automation-external-directory-select-row {
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto;
+    gap: 8px;
+    align-items: center;
+}
+
+.automation-external-directory-quick-button {
+    white-space: nowrap;
+    min-height: 38px;
+}
+
+.automation-external-directory-modal {
+    width: min(
+        620px,
+        calc(100vw - 28px)
+    );
+    border: 0;
+    border-radius: 16px;
+    padding: 0;
+    direction: rtl;
+    box-shadow:
+        0 24px 70px
+        rgba(0, 0, 0, .22);
+}
+
+.automation-external-directory-modal::backdrop {
+    background:
+        rgba(18, 39, 36, .48);
+    backdrop-filter: blur(2px);
+}
+
+.automation-external-directory-modal__head,
+.automation-external-directory-modal__actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+}
+
+.automation-external-directory-modal__head {
+    border-bottom:
+        1px solid
+        rgba(0, 0, 0, .08);
+}
+
+.automation-external-directory-modal__head strong {
+    display: block;
+    font-size: 16px;
+}
+
+.automation-external-directory-modal__head p {
+    margin: 5px 0 0;
+    opacity: .72;
+    font-size: 12px;
+}
+
+.automation-external-directory-modal__close {
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 22px;
+    line-height: 1;
+}
+
+.automation-external-directory-modal__body {
+    display: grid;
+    grid-template-columns:
+        repeat(
+            2,
+            minmax(0, 1fr)
+        );
+    gap: 14px;
+    padding: 18px;
+}
+
+.automation-external-directory-modal__body label {
+    display: grid;
+    gap: 6px;
+}
+
+/*
+ * external-directory-quick-modal-full-width-v3c1
+ *
+ * Keep the quick-create dialog visually compact and
+ * predictable: every input occupies the full row.
+ */
+.automation-external-directory-modal__body label,
+.automation-external-directory-modal__message,
+.automation-external-directory-modal__body .admin-muted {
+    grid-column: 1 / -1;
+}
+
+.automation-external-directory-modal__message {
+    border-radius: 10px;
+    padding: 10px 12px;
+    background:
+        rgba(176, 50, 50, .09);
+}
+
+.automation-external-directory-modal__actions {
+    border-top:
+        1px solid
+        rgba(0, 0, 0, .08);
+}
+
+.automation-external-directory-modal__actions > div {
+    display: flex;
+    gap: 8px;
+}
+
+@media (max-width: 720px) {
+    .automation-external-directory-select-row {
+        grid-template-columns: 1fr;
+    }
+
+    .automation-external-directory-modal__body {
+        grid-template-columns: 1fr;
+    }
+
+    .automation-external-directory-modal__body label {
+        grid-column: 1 / -1;
+    }
+
+    .automation-external-directory-modal__actions {
+        align-items: stretch;
+        flex-direction: column-reverse;
+    }
+
+    .automation-external-directory-modal__actions > div {
+        width: 100%;
+    }
+
+    .automation-external-directory-modal__actions button {
+        flex: 1;
+    }
+}
+</style>
+
 <script>
 (function () {
     const form = document.querySelector('[data-automation-draft-tabs]');
@@ -522,6 +1112,10 @@ ob_start();
                 return Boolean(
                     row.querySelector(
                         '[name="external_display_name[]"]'
+                    )?.value?.trim()
+                    ||
+                    row.querySelector(
+                        '[name="external_organization_public_reference[]"]'
                     )?.value?.trim()
                 );
             }
@@ -656,6 +1250,682 @@ ob_start();
         if (direction === 'incoming') return index === 0 ? 'external' : 'person';
         return index === 0 ? 'person' : 'external';
     };
+    const syncExternalDirectory = (row) => {
+        if (!row) return;
+
+        const kind =
+            row.querySelector(
+                '[name="party_kind[]"]'
+            )?.value || '';
+
+        const role =
+            row.querySelector(
+                '[name="party_role_code[]"]'
+            )?.value || '';
+
+        const organization =
+            row.querySelector(
+                '[data-external-directory-organization]'
+            );
+
+        const point =
+            row.querySelector(
+                '[data-external-directory-point]'
+            );
+
+        if (!organization || !point) {
+            return;
+        }
+
+        const organizationSnapshot =
+            row.querySelector(
+                '[data-external-organization-snapshot]'
+            );
+
+        const contactSnapshot =
+            row.querySelector(
+                '[data-external-contact-snapshot]'
+            );
+
+        const displayName =
+            row.querySelector(
+                '[data-external-display-name]'
+            );
+
+        const organizationReference =
+            organization.value || '';
+
+        [...point.options].forEach(
+            (option, index) => {
+                if (index === 0) {
+                    option.hidden = false;
+                    option.disabled = false;
+                    return;
+                }
+
+                const belongs =
+                    organizationReference !== ''
+                    &&
+                    option.dataset.organizationReference
+                        === organizationReference;
+
+                option.hidden = !belongs;
+                option.disabled = !belongs;
+            }
+        );
+
+        const selectedPoint =
+            point.selectedOptions?.[0];
+
+        if (
+            point.value !== ''
+            && (
+                !selectedPoint
+                ||
+                selectedPoint.dataset.organizationReference
+                    !== organizationReference
+            )
+        ) {
+            point.value = '';
+        }
+
+        const required =
+            direction === 'outgoing'
+            && !row.hidden
+            && kind === 'external'
+            && role === 'primary_recipient';
+
+        organization.required = required;
+        point.required = required;
+
+        if (
+            organization.value !== ''
+            && organizationSnapshot
+        ) {
+            const title =
+                organization.selectedOptions?.[0]
+                    ?.dataset.title || '';
+
+            organizationSnapshot.value =
+                title;
+
+            if (
+                displayName
+                && displayName.value.trim() === ''
+                && title !== ''
+            ) {
+                displayName.value =
+                    title;
+            }
+        }
+
+        if (
+            point.value !== ''
+            && contactSnapshot
+        ) {
+            const title =
+                point.selectedOptions?.[0]
+                    ?.dataset.title || '';
+
+            contactSnapshot.value =
+                title;
+        }
+    };
+
+    recipientRows.forEach(
+        syncExternalDirectory
+    );
+
+    form.querySelectorAll(
+        '[data-external-directory-organization]'
+    ).forEach((field) => {
+        field.addEventListener(
+            'change',
+            () => {
+                const row =
+                    field.closest(
+                        '[data-recipient-row]'
+                    );
+
+                const point =
+                    row?.querySelector(
+                        '[data-external-directory-point]'
+                    );
+
+                if (point) {
+                    point.value = '';
+                }
+
+                syncExternalDirectory(row);
+            }
+        );
+    });
+
+    form.querySelectorAll(
+        '[data-external-directory-point]'
+    ).forEach((field) => {
+        field.addEventListener(
+            'change',
+            () =>
+                syncExternalDirectory(
+                    field.closest(
+                        '[data-recipient-row]'
+                    )
+                )
+        );
+    });
+
+    form.querySelectorAll(
+        '[data-party-role]'
+    ).forEach((field) => {
+        field.addEventListener(
+            'change',
+            () =>
+                syncExternalDirectory(
+                    field.closest(
+                        '[data-recipient-row]'
+                    )
+                )
+        );
+    });
+
+    /*
+     * external-directory-quick-modal-v3c
+     */
+    const quickDirectoryModal =
+        form.querySelector(
+            '[data-external-directory-modal]'
+        );
+
+    const quickDirectoryTitle =
+        form.querySelector(
+            '[data-external-directory-quick-title]'
+        );
+
+    const quickDirectoryShortTitle =
+        form.querySelector(
+            '[data-external-directory-quick-short-title]'
+        );
+
+    const quickDirectoryPointTitle =
+        form.querySelector(
+            '[data-external-directory-quick-point-title]'
+        );
+
+    const quickDirectoryContactPerson =
+        form.querySelector(
+            '[data-external-directory-quick-contact-person]'
+        );
+
+    const quickDirectoryMessage =
+        form.querySelector(
+            '[data-external-directory-quick-message]'
+        );
+
+    const quickDirectorySave =
+        form.querySelector(
+            '[data-external-directory-quick-save]'
+        );
+
+    let quickDirectoryRow = null;
+    let quickDirectoryOrganizationReference = '';
+
+    const showQuickDirectoryMessage = (
+        message = ''
+    ) => {
+        if (!quickDirectoryMessage) {
+            return;
+        }
+
+        quickDirectoryMessage.textContent =
+            message;
+
+        quickDirectoryMessage.hidden =
+            message === '';
+    };
+
+    const resetQuickDirectory = () => {
+        quickDirectoryOrganizationReference = '';
+
+        if (quickDirectoryTitle) {
+            quickDirectoryTitle.value = '';
+            quickDirectoryTitle.disabled = false;
+        }
+
+        if (quickDirectoryShortTitle) {
+            quickDirectoryShortTitle.value = '';
+            quickDirectoryShortTitle.disabled = false;
+        }
+
+        if (quickDirectoryPointTitle) {
+            quickDirectoryPointTitle.value = '';
+        }
+
+        if (quickDirectoryContactPerson) {
+            quickDirectoryContactPerson.value = '';
+        }
+
+        showQuickDirectoryMessage('');
+    };
+
+    const upsertDirectoryOrganization = (
+        row,
+        organization
+    ) => {
+        const select =
+            row?.querySelector(
+                '[data-external-directory-organization]'
+            );
+
+        const reference =
+            organization?.public_reference || '';
+
+        const title =
+            organization?.title || '';
+
+        if (
+            !select
+            || reference === ''
+            || title === ''
+        ) {
+            return;
+        }
+
+        let option =
+            [...select.options].find(
+                (candidate) =>
+                    candidate.value === reference
+            );
+
+        if (!option) {
+            option =
+                document.createElement(
+                    'option'
+                );
+
+            option.value =
+                reference;
+
+            select.appendChild(
+                option
+            );
+        }
+
+        option.textContent =
+            title;
+
+        option.dataset.title =
+            title;
+
+        select.value =
+            reference;
+    };
+
+    const upsertDirectoryPoint = (
+        row,
+        organizationReference,
+        point
+    ) => {
+        const select =
+            row?.querySelector(
+                '[data-external-directory-point]'
+            );
+
+        const reference =
+            point?.public_reference || '';
+
+        const title =
+            point?.title || '';
+
+        if (
+            !select
+            || organizationReference === ''
+            || reference === ''
+            || title === ''
+        ) {
+            return;
+        }
+
+        let option =
+            [...select.options].find(
+                (candidate) =>
+                    candidate.value === reference
+            );
+
+        if (!option) {
+            option =
+                document.createElement(
+                    'option'
+                );
+
+            option.value =
+                reference;
+
+            select.appendChild(
+                option
+            );
+        }
+
+        option.textContent =
+            title;
+
+        option.dataset.title =
+            title;
+
+        option.dataset.organizationReference =
+            organizationReference;
+
+        select.value =
+            reference;
+    };
+
+    form.querySelectorAll(
+        '[data-external-directory-quick-open]'
+    ).forEach((button) => {
+        button.addEventListener(
+            'click',
+            () => {
+                quickDirectoryRow =
+                    button.closest(
+                        '[data-recipient-row]'
+                    );
+
+                resetQuickDirectory();
+
+                if (
+                    quickDirectoryModal
+                    && typeof quickDirectoryModal
+                        .showModal === 'function'
+                ) {
+                    quickDirectoryModal
+                        .showModal();
+
+                    setTimeout(
+                        () =>
+                            quickDirectoryTitle
+                                ?.focus(),
+                        0
+                    );
+                }
+            }
+        );
+    });
+
+    form.querySelectorAll(
+        '[data-external-directory-quick-close]'
+    ).forEach((button) => {
+        button.addEventListener(
+            'click',
+            () => {
+                quickDirectoryModal?.close();
+                quickDirectoryRow = null;
+                resetQuickDirectory();
+            }
+        );
+    });
+
+    quickDirectoryModal?.addEventListener(
+        'cancel',
+        () => {
+            quickDirectoryRow = null;
+            resetQuickDirectory();
+        }
+    );
+
+    quickDirectorySave?.addEventListener(
+        'click',
+        async () => {
+            if (!quickDirectoryRow) {
+                return;
+            }
+
+            const title =
+                quickDirectoryTitle
+                    ?.value.trim()
+                || '';
+
+            const pointTitle =
+                quickDirectoryPointTitle
+                    ?.value.trim()
+                || '';
+
+            if (
+                quickDirectoryOrganizationReference === ''
+                && title === ''
+            ) {
+                showQuickDirectoryMessage(
+                    'نام رسمی سازمان را وارد کنید.'
+                );
+
+                quickDirectoryTitle
+                    ?.focus();
+
+                return;
+            }
+
+            if (pointTitle === '') {
+                showQuickDirectoryMessage(
+                    'عنوان مقصد مکاتباتی را وارد کنید.'
+                );
+
+                quickDirectoryPointTitle
+                    ?.focus();
+
+                return;
+            }
+
+            const csrfToken =
+                form.querySelector(
+                    '[name="_token"]'
+                )?.value || '';
+
+            if (csrfToken === '') {
+                showQuickDirectoryMessage(
+                    'توکن امنیتی فرم در دسترس نیست. صفحه را تازه‌سازی کنید.'
+                );
+
+                return;
+            }
+
+            const body =
+                new URLSearchParams();
+
+            body.set(
+                '_token',
+                csrfToken
+            );
+
+            body.set(
+                'organization_reference',
+                quickDirectoryOrganizationReference
+            );
+
+            body.set(
+                'title_fa',
+                title
+            );
+
+            body.set(
+                'short_title',
+                quickDirectoryShortTitle
+                    ?.value.trim()
+                || ''
+            );
+
+            body.set(
+                'contact_point_title',
+                pointTitle
+            );
+
+            body.set(
+                'contact_person_name',
+                quickDirectoryContactPerson
+                    ?.value.trim()
+                || ''
+            );
+
+            quickDirectorySave.disabled =
+                true;
+
+            quickDirectorySave.textContent =
+                'در حال ثبت...';
+
+            showQuickDirectoryMessage('');
+
+            try {
+                const response =
+                    await fetch(
+                        '/admin/automation/external-organizations/quick-create',
+                        {
+                            method: 'POST',
+
+                            credentials:
+                                'same-origin',
+
+                            headers: {
+                                'Content-Type':
+                                    'application/x-www-form-urlencoded; charset=UTF-8',
+
+                                'Accept':
+                                    'application/json',
+
+                                'X-Requested-With':
+                                    'XMLHttpRequest',
+                            },
+
+                            body:
+                                body.toString(),
+                        }
+                    );
+
+                const contentType =
+                    response.headers.get(
+                        'content-type'
+                    ) || '';
+
+                if (
+                    !contentType.includes(
+                        'application/json'
+                    )
+                ) {
+                    throw new Error(
+                        'پاسخ معتبر از سامانه دریافت نشد. ممکن است نشست شما منقضی شده باشد.'
+                    );
+                }
+
+                const payload =
+                    await response.json();
+
+                if (
+                    payload?.organization
+                    ?.public_reference
+                ) {
+                    upsertDirectoryOrganization(
+                        quickDirectoryRow,
+                        payload.organization
+                    );
+                }
+
+                if (
+                    payload?.partial === true
+                    && payload?.organization
+                        ?.public_reference
+                ) {
+                    quickDirectoryOrganizationReference =
+                        payload.organization
+                            .public_reference;
+
+                    if (quickDirectoryTitle) {
+                        quickDirectoryTitle.value =
+                            payload.organization
+                                .title || title;
+
+                        quickDirectoryTitle.disabled =
+                            true;
+                    }
+
+                    if (quickDirectoryShortTitle) {
+                        quickDirectoryShortTitle.value =
+                            payload.organization
+                                .short_title || '';
+
+                        quickDirectoryShortTitle.disabled =
+                            true;
+                    }
+                }
+
+                if (
+                    !response.ok
+                    || payload?.ok !== true
+                ) {
+                    const error =
+                        Object.values(
+                            payload?.errors || {}
+                        )[0]
+                        || 'ثبت اطلاعات انجام نشد.';
+
+                    showQuickDirectoryMessage(
+                        payload?.partial === true
+                            ? (
+                                'سازمان ثبت شد، اما مقصد ثبت نشد. '
+                                + error
+                                + ' دوباره «ثبت مقصد» را بزنید.'
+                            )
+                            : error
+                    );
+
+                    if (
+                        payload?.partial === true
+                    ) {
+                        quickDirectorySave.textContent =
+                            'ثبت مقصد';
+                    }
+
+                    return;
+                }
+
+                const organizationReference =
+                    payload.organization
+                        ?.public_reference
+                    || '';
+
+                upsertDirectoryPoint(
+                    quickDirectoryRow,
+                    organizationReference,
+                    payload.contact_point
+                );
+
+                syncExternalDirectory(
+                    quickDirectoryRow
+                );
+
+                quickDirectoryModal?.close();
+
+                quickDirectoryRow = null;
+
+                resetQuickDirectory();
+
+            } catch (error) {
+                showQuickDirectoryMessage(
+                    error?.message
+                    || 'خطا در ارتباط با سامانه.'
+                );
+
+            } finally {
+                quickDirectorySave.disabled =
+                    false;
+
+                if (
+                    quickDirectoryOrganizationReference
+                    === ''
+                ) {
+                    quickDirectorySave.textContent =
+                        'ثبت و انتخاب';
+                }
+            }
+        }
+    );
+
     const syncAddButton = () => {
         if (addRecipient) addRecipient.hidden = !recipientRows.some((row, index) => index > 1 && row.hidden);
     };
@@ -676,7 +1946,12 @@ ob_start();
             kind.value = fixedKind(index);
             kind.dispatchEvent(new Event('change'));
         }
-        row.querySelector('[data-party-internal] select, [data-party-external] input')?.focus();
+        syncExternalDirectory(row);
+
+        row.querySelector(
+            '[data-party-internal] select, [data-party-external] input, [data-party-external] select'
+        )?.focus();
+
         syncAddButton();
     });
     form.querySelectorAll('[data-remove-recipient]').forEach((button) => button.addEventListener('click', () => {
@@ -685,6 +1960,7 @@ ob_start();
         row.querySelectorAll('input').forEach((field) => field.value = '');
         row.querySelectorAll('select').forEach((field) => field.value = '');
         row.hidden = true;
+        syncExternalDirectory(row);
         syncAddButton();
     }));
     syncAddButton();

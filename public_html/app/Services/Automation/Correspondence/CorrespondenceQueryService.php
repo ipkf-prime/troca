@@ -21,7 +21,8 @@ class CorrespondenceQueryService
         private ?CorrespondenceViewModelBuilder $viewModels = null,
         private ?CorrespondenceRelationRepository $relations = null,
         private ?CorrespondenceAttachmentRepository $attachments = null,
-        private ?EnterpriseAutomationContextService $enterpriseContext = null
+        private ?EnterpriseAutomationContextService $enterpriseContext = null,
+        private ?ExternalOrganizationDirectoryFormOptions $externalDirectoryOptions = null
     ) {
         $runtime = new AutomationOperationalRuntime();
         $this->correspondences ??= new CorrespondenceRepository($runtime);
@@ -252,6 +253,14 @@ class CorrespondenceQueryService
                 $this->lookups
                     ->formOptions()
                 + [
+                    /*
+                     * external-recipient-directory-bridge-v3b
+                     */
+                    'external_directory' =>
+                        $this
+                            ->externalDirectoryFormOptions()
+                            ->options(),
+
                     'document_templates' =>
                         $this->documentTemplates
                             ->options(),
@@ -387,6 +396,14 @@ class CorrespondenceQueryService
     public function templates(): array
     {
         return $this->documentTemplates->options();
+    }
+
+    private function externalDirectoryFormOptions():
+        ExternalOrganizationDirectoryFormOptions
+    {
+        return
+            $this->externalDirectoryOptions ??=
+                new ExternalOrganizationDirectoryFormOptions();
     }
 
     private function formParties(array $parties): array
