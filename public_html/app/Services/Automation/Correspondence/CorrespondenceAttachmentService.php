@@ -9,6 +9,8 @@ use RuntimeException;
 class CorrespondenceAttachmentService
 {
     private const MAX_BYTES = 10485760;
+    private const MAX_FILES = 3;
+    private const MAX_TOTAL_BYTES = 20971520;
     private const MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
 
     public function __construct(
@@ -72,6 +74,159 @@ class CorrespondenceAttachmentService
         return ['ok' => true];
     }
 
+    /**
+     * correspondence-attachment-wizard-v1
+     */
+    public function uploadMany(
+        string $correspondenceReference,
+        array $uploads,
+        string $role,
+        int $userId
+    ): array {
+        $names =
+            $uploads['name']
+            ?? [];
+
+        if (!is_array($names)) {
+            $names =
+                $names === ''
+                    ? []
+                    : [$names];
+        }
+
+        $files = [];
+
+        foreach (
+            array_keys($names)
+            as $index
+        ) {
+            $file = [
+                'name' =>
+                    (string) (
+                        $uploads['name'][$index]
+                        ?? ''
+                    ),
+
+                'type' =>
+                    (string) (
+                        $uploads['type'][$index]
+                        ?? ''
+                    ),
+
+                'tmp_name' =>
+                    (string) (
+                        $uploads['tmp_name'][$index]
+                        ?? ''
+                    ),
+
+                'error' =>
+                    (int) (
+                        $uploads['error'][$index]
+                        ?? UPLOAD_ERR_NO_FILE
+                    ),
+
+                'size' =>
+                    (int) (
+                        $uploads['size'][$index]
+                        ?? 0
+                    ),
+            ];
+
+            if (
+                $file['error']
+                === UPLOAD_ERR_NO_FILE
+            ) {
+                continue;
+            }
+
+            $files[] = $file;
+        }
+
+        if ($files === []) {
+            return [
+                'ok' => true,
+                'count' => 0,
+            ];
+        }
+
+        if (
+            count($files)
+            > self::MAX_FILES
+        ) {
+            return [
+                'ok' => false,
+                'error' =>
+                    'too_many_files',
+                'count' => 0,
+            ];
+        }
+
+        $total = 0;
+
+        foreach ($files as $file) {
+            if (
+                $file['error']
+                !== UPLOAD_ERR_OK
+            ) {
+                return [
+                    'ok' => false,
+                    'error' =>
+                        'invalid_upload',
+                    'count' => 0,
+                ];
+            }
+
+            $total +=
+                (int) $file['size'];
+        }
+
+        if (
+            $total
+            > self::MAX_TOTAL_BYTES
+        ) {
+            return [
+                'ok' => false,
+                'error' =>
+                    'invalid_total_size',
+                'count' => 0,
+            ];
+        }
+
+        $stored = 0;
+
+        foreach ($files as $file) {
+            $result =
+                $this->upload(
+                    $correspondenceReference,
+                    $file,
+                    $role,
+                    null,
+                    $userId
+                );
+
+            if (
+                ($result['ok'] ?? false)
+                !== true
+            ) {
+                return [
+                    'ok' => false,
+
+                    'error' =>
+                        $result['error']
+                        ?? 'invalid_upload',
+
+                    'count' => $stored,
+                ];
+            }
+
+            $stored++;
+        }
+
+        return [
+            'ok' => true,
+            'count' => $stored,
+        ];
+    }
     private function text(?string $value, int $max): ?string
     {
         $value = trim((string) $value);

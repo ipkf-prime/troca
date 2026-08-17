@@ -4879,7 +4879,68 @@ $router->post('/admin/automation/correspondences', function ($request, $response
         $result = $service->create($request->all(), (int) $context['user_id'], $context);
 
         if (($result['ok'] ?? false) === true) {
-            return $response->redirect('/admin/automation/correspondences/' . rawurlencode((string) $result['public_reference']));
+            $publicReference =
+                (string) $result['public_reference'];
+
+            $attachmentResult =
+                (new \App\Services\Automation\Correspondence\CorrespondenceAttachmentService())
+                    ->uploadMany(
+                        $publicReference,
+                        is_array(
+                            $_FILES['attachments']
+                            ?? null
+                        )
+                            ? $_FILES['attachments']
+                            : [],
+                        (string) $request->input(
+                            'attachment_role_code',
+                            'enclosure'
+                        ),
+                        (int) $context['user_id']
+                    );
+
+            $attachmentCount =
+                (int) (
+                    $attachmentResult['count']
+                    ?? 0
+                );
+
+            $attachmentStatus =
+                (
+                    $attachmentResult['ok']
+                    ?? false
+                ) === true
+                    ? (
+                        $attachmentCount > 0
+                            ? 'uploaded'
+                            : ''
+                    )
+                    : (
+                        $attachmentCount > 0
+                            ? 'partial'
+                            : 'failed'
+                    );
+
+            $url =
+                '/admin/automation/correspondences/'
+                . rawurlencode(
+                    $publicReference
+                );
+
+            if (
+                $attachmentStatus
+                !== ''
+            ) {
+                $url .=
+                    '?tab=attachments'
+                    . '&attachment_status='
+                    . rawurlencode(
+                        $attachmentStatus
+                    );
+            }
+
+            return $response
+                ->redirect($url);
         }
 
         $form = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->form(null, (int) $context['user_id']);
@@ -4940,7 +5001,65 @@ $router->post('/admin/automation/correspondences/{public_reference}/versions', f
         $result = (new \App\Services\Automation\Correspondence\CorrespondenceDraftService())->update($publicReference, $request->all(), (int) $context['user_id'], $context);
 
         if (($result['ok'] ?? false) === true) {
-            return $response->redirect('/admin/automation/correspondences/' . rawurlencode($publicReference));
+            $attachmentResult =
+                (new \App\Services\Automation\Correspondence\CorrespondenceAttachmentService())
+                    ->uploadMany(
+                        $publicReference,
+                        is_array(
+                            $_FILES['attachments']
+                            ?? null
+                        )
+                            ? $_FILES['attachments']
+                            : [],
+                        (string) $request->input(
+                            'attachment_role_code',
+                            'enclosure'
+                        ),
+                        (int) $context['user_id']
+                    );
+
+            $attachmentCount =
+                (int) (
+                    $attachmentResult['count']
+                    ?? 0
+                );
+
+            $attachmentStatus =
+                (
+                    $attachmentResult['ok']
+                    ?? false
+                ) === true
+                    ? (
+                        $attachmentCount > 0
+                            ? 'uploaded'
+                            : ''
+                    )
+                    : (
+                        $attachmentCount > 0
+                            ? 'partial'
+                            : 'failed'
+                    );
+
+            $url =
+                '/admin/automation/correspondences/'
+                . rawurlencode(
+                    $publicReference
+                );
+
+            if (
+                $attachmentStatus
+                !== ''
+            ) {
+                $url .=
+                    '?tab=attachments'
+                    . '&attachment_status='
+                    . rawurlencode(
+                        $attachmentStatus
+                    );
+            }
+
+            return $response
+                ->redirect($url);
         }
 
         $form = (new \App\Services\Automation\Correspondence\CorrespondenceQueryService())->form($publicReference, (int) $context['user_id']);
@@ -5240,10 +5359,71 @@ $router->get('/admin/automation/correspondences/{public_reference}/attachments/{
     if ($file === null || $root === false || $path === false || !str_starts_with($path, $root . DIRECTORY_SEPARATOR) || !is_file($path) || !is_readable($path)) {
         return $response->status(404)->send('404 - File not found');
     }
-    $filename = preg_replace('/[^A-Za-z0-9._-]/', '_', (string) $file['original_filename']) ?: 'attachment';
+    /* attachment-download-utf8-filename-v1 */
+    $originalFilename = basename(
+        str_replace(
+            '\\',
+            '/',
+            str_replace(
+                ["\r", "\n", "\0"],
+                '',
+                (string) $file['original_filename']
+            )
+        )
+    );
+
+    if ($originalFilename === '') {
+        $originalFilename = 'attachment';
+    }
+
+    $extension = strtolower(
+        (string) pathinfo(
+            $originalFilename,
+            PATHINFO_EXTENSION
+        )
+    );
+
+    $extension = preg_replace(
+        '/[^A-Za-z0-9]/',
+        '',
+        $extension
+    ) ?: '';
+
+    $asciiFilename = preg_replace(
+        '/[^A-Za-z0-9._-]/',
+        '_',
+        $originalFilename
+    ) ?: '';
+
+    $asciiStem = trim(
+        (string) pathinfo(
+            $asciiFilename,
+            PATHINFO_FILENAME
+        ),
+        '._-'
+    );
+
+    if ($asciiStem === '') {
+        $asciiFilename =
+            'attachment'
+            . (
+                $extension !== ''
+                    ? '.' . $extension
+                    : ''
+            );
+    }
+
+    $contentDisposition =
+        'attachment; filename="'
+        . $asciiFilename
+        . '"; filename*=UTF-8\'\''
+        . rawurlencode(
+            $originalFilename
+        );
+
     return $response->header('Content-Type', (string) $file['mime_type'])
         ->header('Content-Length', (string) filesize($path))
-        ->header('Content-Disposition', 'attachment; filename="' . $filename . '"')
+        ->header('Content-Disposition', $contentDisposition)
         ->header('X-Content-Type-Options', 'nosniff')
         ->send((string) file_get_contents($path));
 });

@@ -344,7 +344,7 @@ ob_start();
         </div>
     <?php endif; ?>
 
-    <form class="automation-form automation-form--structured automation-tab-workspace" method="post" action="<?= admin_h($action) ?>" data-automation-draft-tabs data-correspondence-direction="<?= admin_h($initialDirection) ?>" data-initial-error-tab="<?= admin_h($initialErrorTab) ?>">
+    <form class="automation-form automation-form--structured automation-tab-workspace" method="post" enctype="multipart/form-data" action="<?= admin_h($action) ?>" data-automation-draft-tabs data-correspondence-direction="<?= admin_h($initialDirection) ?>" data-initial-error-tab="<?= admin_h($initialErrorTab) ?>">
         <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
         <input type="hidden" name="form_public_reference" value="<?=admin_h($form['public_reference']??'')?>">
         <input type="hidden" name="direction_code" value="<?= admin_h($initialDirection) ?>">
@@ -353,8 +353,9 @@ ob_start();
         <nav class="automation-draft-tabs" role="tablist" aria-label="مراحل ایجاد پیش‌نویس">
             <button type="button" class="automation-draft-tab" data-draft-tab="base" role="tab"><b>۱</b><span>اطلاعات پایه</span></button>
             <?php if ($initialDirection !== 'incoming'): ?><button type="button" class="automation-draft-tab" data-draft-tab="content" role="tab"><b>۲</b><span>متن مکاتبه</span></button><?php endif; ?>
-            <button type="button" class="automation-draft-tab" data-draft-tab="parties" role="tab"><b><?= $initialDirection === 'incoming' ? '۲' : '۳' ?></b><span>فرستنده و گیرندگان</span></button>
-            <button type="button" class="automation-draft-tab" data-draft-tab="review" role="tab"><b><?= $initialDirection === 'incoming' ? '۳' : '۴' ?></b><span>مرور و ثبت</span></button>
+            <button type="button" class="automation-draft-tab" data-draft-tab="attachments" role="tab"><b><?= $initialDirection === 'incoming' ? '۲' : '۳' ?></b><span>پیوست‌ها</span></button>
+            <button type="button" class="automation-draft-tab" data-draft-tab="parties" role="tab"><b><?= $initialDirection === 'incoming' ? '۳' : '۴' ?></b><span>فرستنده و گیرندگان</span></button>
+            <button type="button" class="automation-draft-tab" data-draft-tab="review" role="tab"><b><?= $initialDirection === 'incoming' ? '۴' : '۵' ?></b><span>مرور و ثبت</span></button>
         </nav>
 
         <section class="automation-form-section automation-draft-panel" data-draft-panel="base" role="tabpanel">
@@ -394,16 +395,122 @@ ob_start();
                 <label><span>تاریخ نامه بیرونی</span><div class="admin-persian-date" data-persian-datepicker><input type="text" name="external_date_fa" data-persian-date-input inputmode="numeric" autocomplete="off" placeholder="مثلاً ۱۴۰۵/۰۱/۰۱" value="<?= admin_h($externalDateFa) ?>"><input type="hidden" name="external_date" data-persian-date-output value="<?= admin_h($form['external_date'] ?? '') ?>"><button type="button" class="admin-persian-date__toggle" data-persian-date-toggle aria-label="انتخاب تاریخ"><?= \App\Support\AdminIcon::html('calendar') ?></button></div></label><?php endif; ?>
                 <label class="admin-form-grid__wide"><span>خلاصه</span><textarea name="summary" rows="3" maxlength="2000"><?= admin_h($form['summary'] ?? '') ?></textarea></label>
             </div>
-            <div class="automation-draft-navigation"><button class="admin-button" type="button" data-draft-next="<?= $initialDirection === 'incoming' ? 'parties' : 'content' ?>">ادامه</button></div>
+            <div class="automation-draft-navigation"><button class="admin-button" type="button" data-draft-next="<?= $initialDirection === 'incoming' ? 'attachments' : 'content' ?>">ادامه</button></div>
         </section>
 
         <?php if ($initialDirection !== 'incoming'): ?><section class="automation-form-section automation-draft-panel" data-draft-panel="content" role="tabpanel">
             <div class="automation-form-section__head"><div><h3>متن مکاتبه</h3></div></div>
             <?php /* Rich editor owns name="content". */ require __DIR__ . '/partials/automation-correspondence-rich-editor.php'; ?>
             <?php if ($isEdit): ?><label class="automation-form__wide"><span>یادداشت تغییر</span><input name="change_note" maxlength="500" placeholder="شرح کوتاه تغییرات این نسخه"></label><?php endif; ?>
-            <div class="automation-draft-navigation"><button class="admin-button admin-button--soft" type="button" data-draft-next="base">قبلی</button><button class="admin-button" type="button" data-draft-next="parties">ادامه: طرف‌های مکاتبه</button></div>
+            <div class="automation-draft-navigation"><button class="admin-button admin-button--soft" type="button" data-draft-next="base">قبلی</button><button class="admin-button" type="button" data-draft-next="attachments">ادامه: پیوست‌ها</button></div>
         </section><?php endif; ?>
 
+        <?php /* correspondence-attachment-wizard-v1 */ ?>
+        <section
+            class="automation-form-section automation-draft-panel automation-attachment-panel"
+            data-draft-panel="attachments"
+            role="tabpanel"
+        >
+            <div class="automation-form-section__head">
+                <div>
+                    <h3>پیوست‌های مکاتبه</h3>
+                    <p class="admin-muted">
+                        حداکثر ۳ فایل؛ هر فایل ۱۰ و مجموع فایل‌ها ۲۰ مگابایت
+                    </p>
+                </div>
+            </div>
+
+            <div
+                class="automation-attachment-dropzone"
+                data-attachment-dropzone
+            >
+                <input
+                    type="file"
+                    name="attachments[]"
+                    accept=".pdf,.docx,.jpg,.jpeg,.png"
+                    multiple
+                    data-attachment-input
+                >
+
+                <div
+                    class="automation-attachment-dropzone__icon"
+                    aria-hidden="true"
+                >
+                    <?= \App\Support\AdminIcon::html('file-lines') ?>
+                </div>
+
+                <strong>انتخاب فایل‌های پیوست</strong>
+
+                <span>
+                    PDF، Word، JPG یا PNG
+                </span>
+
+                <button
+                    type="button"
+                    class="admin-button admin-button--soft"
+                    data-attachment-select
+                >
+                    انتخاب فایل
+                </button>
+            </div>
+
+            <label class="automation-attachment-role">
+                <span>نوع پیوست‌ها</span>
+
+                <select name="attachment_role_code">
+                    <option value="enclosure">
+                        پیوست
+                    </option>
+
+                    <option value="supporting">
+                        مدرک پشتیبان
+                    </option>
+
+                    <option value="scan">
+                        تصویر اسکن‌شده
+                    </option>
+
+                    <option value="main">
+                        فایل اصلی
+                    </option>
+                </select>
+            </label>
+
+            <div
+                class="automation-attachment-message admin-alert admin-alert--danger"
+                data-attachment-message
+                role="alert"
+                hidden
+            ></div>
+
+            <div
+                class="automation-attachment-list"
+                data-attachment-list
+                aria-live="polite"
+            >
+                <p class="admin-empty-state">
+                    فایلی انتخاب نشده است.
+                </p>
+            </div>
+
+            <div class="automation-draft-navigation">
+                <button
+                    class="admin-button admin-button--soft"
+                    type="button"
+                    data-draft-next="<?= $initialDirection === 'incoming' ? 'base' : 'content' ?>"
+                >
+                    قبلی
+                </button>
+
+                <button
+                    class="admin-button"
+                    type="button"
+                    data-draft-next="parties"
+                >
+                    ادامه: طرف‌های مکاتبه
+                </button>
+            </div>
+        </section>
         <section class="automation-form-section automation-party-editor automation-draft-panel" data-draft-panel="parties" role="tabpanel">
             <div class="automation-form-section__head"><div><h3>فرستنده و گیرندگان</h3></div></div>
             <div class="automation-form-section__head">
@@ -781,7 +888,7 @@ ob_start();
                 </div>
                 <?php endfor; ?>
             </div>
-            <div class="automation-draft-navigation"><button class="admin-button admin-button--soft" type="button" data-draft-next="<?= $initialDirection === 'incoming' ? 'base' : 'content' ?>">قبلی</button><button class="admin-button" type="button" data-draft-next="review">ادامه: مرور و ثبت</button></div>
+            <div class="automation-draft-navigation"><button class="admin-button admin-button--soft" type="button" data-draft-next="attachments">قبلی</button><button class="admin-button" type="button" data-draft-next="review">ادامه: مرور و ثبت</button></div>
         </section>
 
         <section class="automation-form-section automation-draft-panel automation-draft-review" data-draft-panel="review" role="tabpanel">
@@ -792,6 +899,7 @@ ob_start();
                 <div><span>اولویت</span><strong data-draft-review="priority_code">—</strong></div>
                 <div><span>قالب نامه</span><strong data-draft-review="document_template_reference">—</strong></div>
                 <div><span>طرف‌های تکمیل‌شده</span><strong data-draft-review="parties">۰</strong></div>
+                <div><span>تعداد پیوست</span><strong data-draft-review="attachments">۰</strong></div>
             </div>
             <div class="admin-form-actions automation-form-actions automation-draft-navigation">
                 <button class="admin-button admin-button--soft" type="button" data-draft-next="parties">قبلی</button>
@@ -924,6 +1032,185 @@ ob_start();
 <?php endif; ?>
 
 <style>
+/* attachment-wizard-single-row-v1 */
+.automation-draft-tabs {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+}
+
+.automation-draft-tab {
+    min-width: 0;
+    padding: 10px 8px;
+    gap: 7px;
+    font-size: .9rem;
+    white-space: nowrap;
+}
+
+.automation-draft-tab b {
+    width: 25px;
+    min-width: 25px;
+    height: 25px;
+    font-size: .82rem;
+}
+
+.automation-draft-tab span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+    .automation-draft-tabs {
+        grid-auto-columns:
+            minmax(150px, 1fr);
+    }
+
+    .automation-draft-tab {
+        padding-inline: 7px;
+        font-size: .84rem;
+    }
+}
+/* correspondence-attachment-wizard-v1 */
+.automation-attachment-panel {
+    gap: 18px;
+}
+
+.automation-attachment-dropzone {
+    min-height: 180px;
+    border: 2px dashed var(--admin-border);
+    border-radius: 16px;
+    background: var(--admin-surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 24px;
+    text-align: center;
+    position: relative;
+    transition:
+        border-color .18s ease,
+        background-color .18s ease;
+}
+
+.automation-attachment-dropzone.is-dragging {
+    border-color: var(--admin-primary);
+    background: rgba(15, 139, 123, .08);
+}
+
+.automation-attachment-dropzone > input[type="file"] {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.automation-attachment-dropzone__icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    color: var(--admin-primary);
+    background: rgba(15, 139, 123, .12);
+    display: grid;
+    place-items: center;
+}
+
+.automation-attachment-dropzone__icon svg {
+    width: 25px;
+    height: 25px;
+}
+
+.automation-attachment-dropzone > span {
+    color: var(--admin-muted);
+    font-size: .9rem;
+}
+
+.automation-attachment-role {
+    max-width: 360px;
+}
+
+.automation-attachment-list {
+    display: grid;
+    gap: 10px;
+}
+
+.automation-attachment-item {
+    display: grid;
+    grid-template-columns:
+        auto
+        minmax(0, 1fr)
+        auto;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    background: var(--admin-surface);
+}
+
+.automation-attachment-item__icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    color: var(--admin-primary);
+    background: rgba(15, 139, 123, .1);
+}
+
+.automation-attachment-item__body {
+    min-width: 0;
+}
+
+.automation-attachment-item__body strong,
+.automation-attachment-item__body span {
+    display: block;
+}
+
+.automation-attachment-item__body strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.automation-attachment-item__body span {
+    color: var(--admin-muted);
+    margin-top: 3px;
+    font-size: .84rem;
+}
+
+.automation-attachment-remove {
+    border: 0;
+    background: transparent;
+    color: #b42318;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.automation-attachment-remove:hover {
+    background: rgba(180, 35, 24, .08);
+}
+
+@media (max-width: 640px) {
+    .automation-attachment-item {
+        grid-template-columns:
+            auto
+            minmax(0, 1fr);
+    }
+
+    .automation-attachment-remove {
+        grid-column: 1 / -1;
+        justify-self: end;
+    }
+}
 .automation-external-directory-select-row {
     display: grid;
     grid-template-columns:
@@ -1132,8 +1419,395 @@ ob_start();
         set('priority_code', selected('priority_code'));
         set('document_template_reference', selected('document_template_reference'));
         set('parties', String(count).replace(/\d/g, (digit) => '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]));
+        const attachmentCount = form.querySelector('[data-attachment-input]')?.files?.length || 0;
+        set('attachments', String(attachmentCount).replace(/\d/g, (digit) => '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]));
     }
 
+    const attachmentInput =
+        form.querySelector(
+            '[data-attachment-input]'
+        );
+
+    const attachmentSelect =
+        form.querySelector(
+            '[data-attachment-select]'
+        );
+
+    const attachmentDropzone =
+        form.querySelector(
+            '[data-attachment-dropzone]'
+        );
+
+    const attachmentList =
+        form.querySelector(
+            '[data-attachment-list]'
+        );
+
+    const attachmentMessage =
+        form.querySelector(
+            '[data-attachment-message]'
+        );
+
+    const attachmentRules = {
+        maxFiles: 3,
+        maxEach: 10 * 1024 * 1024,
+        maxTotal: 20 * 1024 * 1024,
+        extensions: [
+            'pdf',
+            'docx',
+            'jpg',
+            'jpeg',
+            'png',
+        ],
+    };
+
+    const attachmentFaNumber = (value) =>
+        String(value).replace(
+            /\d/g,
+            (digit) =>
+                '۰۱۲۳۴۵۶۷۸۹'[Number(digit)]
+        );
+
+    const attachmentFileSize = (bytes) => {
+        if (bytes < 1024 * 1024) {
+            return attachmentFaNumber(
+                Math.max(
+                    1,
+                    Math.ceil(bytes / 1024)
+                )
+            ) + ' کیلوبایت';
+        }
+
+        return attachmentFaNumber(
+            (
+                bytes
+                / (1024 * 1024)
+            ).toFixed(1)
+        ) + ' مگابایت';
+    };
+
+    const showAttachmentError = (
+        message = ''
+    ) => {
+        if (!attachmentMessage) {
+            return;
+        }
+
+        attachmentMessage.textContent =
+            message;
+
+        attachmentMessage.hidden =
+            message === '';
+    };
+
+    const validateAttachments = (
+        files
+    ) => {
+        if (
+            files.length
+            > attachmentRules.maxFiles
+        ) {
+            return 'حداکثر ۳ فایل قابل انتخاب است.';
+        }
+
+        let total = 0;
+
+        for (const file of files) {
+            total += file.size;
+
+            const extension =
+                file.name
+                    .split('.')
+                    .pop()
+                    ?.toLowerCase()
+                || '';
+
+            if (
+                !attachmentRules
+                    .extensions
+                    .includes(extension)
+            ) {
+                return 'فرمت یکی از فایل‌ها مجاز نیست.';
+            }
+
+            if (
+                file.size < 1
+                || file.size
+                    > attachmentRules.maxEach
+            ) {
+                return 'حجم هر فایل باید حداکثر ۱۰ مگابایت باشد.';
+            }
+        }
+
+        if (
+            total
+            > attachmentRules.maxTotal
+        ) {
+            return 'مجموع حجم فایل‌ها باید حداکثر ۲۰ مگابایت باشد.';
+        }
+
+        return '';
+    };
+
+    const applyAttachmentFiles = (
+        files
+    ) => {
+        if (
+            !attachmentInput
+            || typeof DataTransfer
+                === 'undefined'
+        ) {
+            return;
+        }
+
+        const transfer =
+            new DataTransfer();
+
+        files.forEach(
+            (file) =>
+                transfer.items.add(file)
+        );
+
+        attachmentInput.files =
+            transfer.files;
+
+        renderAttachments();
+    };
+
+    function renderAttachments() {
+        if (
+            !attachmentInput
+            || !attachmentList
+        ) {
+            return;
+        }
+
+        const files = [
+            ...attachmentInput.files
+        ];
+
+        const error =
+            validateAttachments(files);
+
+        showAttachmentError(error);
+
+        attachmentInput
+            .setCustomValidity(error);
+
+        attachmentList
+            .replaceChildren();
+
+        if (files.length === 0) {
+            const empty =
+                document.createElement('p');
+
+            empty.className =
+                'admin-empty-state';
+
+            empty.textContent =
+                'فایلی انتخاب نشده است.';
+
+            attachmentList.append(empty);
+
+            return;
+        }
+
+        files.forEach(
+            (file, index) => {
+                const item =
+                    document.createElement(
+                        'article'
+                    );
+
+                item.className =
+                    'automation-attachment-item';
+
+                const icon =
+                    document.createElement(
+                        'span'
+                    );
+
+                icon.className =
+                    'automation-attachment-item__icon';
+
+                icon.textContent = '📎';
+
+                icon.setAttribute(
+                    'aria-hidden',
+                    'true'
+                );
+
+                const body =
+                    document.createElement(
+                        'div'
+                    );
+
+                body.className =
+                    'automation-attachment-item__body';
+
+                const name =
+                    document.createElement(
+                        'strong'
+                    );
+
+                name.textContent =
+                    file.name;
+
+                const meta =
+                    document.createElement(
+                        'span'
+                    );
+
+                meta.textContent =
+                    attachmentFileSize(
+                        file.size
+                    );
+
+                body.append(
+                    name,
+                    meta
+                );
+
+                const remove =
+                    document.createElement(
+                        'button'
+                    );
+
+                remove.type = 'button';
+
+                remove.className =
+                    'automation-attachment-remove';
+
+                remove.textContent = 'حذف';
+
+                remove.setAttribute(
+                    'aria-label',
+                    'حذف فایل '
+                        + file.name
+                );
+
+                remove.addEventListener(
+                    'click',
+                    () => {
+                        applyAttachmentFiles(
+                            files.filter(
+                                (
+                                    unused,
+                                    fileIndex
+                                ) =>
+                                    fileIndex
+                                    !== index
+                            )
+                        );
+                    }
+                );
+
+                item.append(
+                    icon,
+                    body,
+                    remove
+                );
+
+                attachmentList.append(
+                    item
+                );
+            }
+        );
+    }
+
+    attachmentSelect
+        ?.addEventListener(
+            'click',
+            () =>
+                attachmentInput?.click()
+        );
+
+    attachmentDropzone
+        ?.addEventListener(
+            'click',
+            (event) => {
+                if (
+                    event.target
+                        instanceof Element
+                    && event.target.closest(
+                        'button'
+                    )
+                ) {
+                    return;
+                }
+
+                attachmentInput?.click();
+            }
+        );
+
+    attachmentInput
+        ?.addEventListener(
+            'change',
+            renderAttachments
+        );
+
+    [
+        'dragenter',
+        'dragover',
+    ].forEach(
+        (eventName) => {
+            attachmentDropzone
+                ?.addEventListener(
+                    eventName,
+                    (event) => {
+                        event.preventDefault();
+
+                        attachmentDropzone
+                            .classList
+                            .add(
+                                'is-dragging'
+                            );
+                    }
+                );
+        }
+    );
+
+    [
+        'dragleave',
+        'drop',
+    ].forEach(
+        (eventName) => {
+            attachmentDropzone
+                ?.addEventListener(
+                    eventName,
+                    (event) => {
+                        event.preventDefault();
+
+                        attachmentDropzone
+                            .classList
+                            .remove(
+                                'is-dragging'
+                            );
+                    }
+                );
+        }
+    );
+
+    attachmentDropzone
+        ?.addEventListener(
+            'drop',
+            (event) => {
+                const files = [
+                    ...(
+                        event
+                            .dataTransfer
+                            ?.files
+                        || []
+                    ),
+                ];
+
+                applyAttachmentFiles(
+                    files
+                );
+            }
+        );
+
+    renderAttachments();
     function activate(name, focusTab = false) {
         if (!names.includes(name)) name = 'base';
         tabs.forEach((tab) => {
