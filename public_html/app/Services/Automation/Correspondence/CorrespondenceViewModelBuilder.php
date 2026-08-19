@@ -246,6 +246,7 @@ class CorrespondenceViewModelBuilder
             'mime_type' => (string) ($row['mime_type'] ?? ''),
             'size' => AdminFormat::digits(number_format(((int) ($row['size_bytes'] ?? 0)) / 1024, 0)) . ' کیلوبایت',
             'url' => '/admin/automation/correspondences/' . rawurlencode($correspondenceReference) . '/attachments/' . rawurlencode($fileReference),
+            'remove_url' => '/admin/automation/correspondences/' . rawurlencode($correspondenceReference) . '/attachments/' . rawurlencode($fileReference) . '/remove',
         ];
     }
 

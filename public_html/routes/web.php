@@ -5337,6 +5337,51 @@ $router->post('/admin/automation/correspondences/{public_reference}/edit/attachm
     }
 });
 
+/* attachment-soft-delete-route-v1 */
+$router->post('/admin/automation/correspondences/{public_reference}/attachments/{file_reference}/remove', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard(
+        $response,
+        '/admin/automation/correspondences/{public_reference}/attachments/{file_reference}/remove'
+    );
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $correspondenceReference =
+        (string) $request->route('public_reference');
+
+    $fileReference =
+        (string) $request->route('file_reference');
+
+    try {
+        $result =
+            (new \App\Services\Automation\Correspondence\CorrespondenceAttachmentService())
+                ->remove(
+                    $correspondenceReference,
+                    $fileReference,
+                    (int) $context['user_id']
+                );
+
+        $status =
+            ($result['ok'] ?? false)
+                ? 'removed'
+                : (string) (
+                    $result['error']
+                    ?? 'attachment_not_removable'
+                );
+
+    } catch (\Throwable) {
+        $status = 'attachment_remove_failed';
+    }
+
+    return $response->redirect(
+        '/admin/automation/correspondences/'
+        . rawurlencode($correspondenceReference)
+        . '?tab=attachments&attachment_status='
+        . rawurlencode($status)
+    );
+});
 $router->get('/admin/automation/correspondences/{public_reference}/attachments/{file_reference}', function ($request, $response) use ($adminGuard) {
     $context = $adminGuard($response, '/admin/automation/correspondences/{public_reference}/attachments/{file_reference}');
     if (!is_array($context)) return $context;

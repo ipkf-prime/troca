@@ -150,5 +150,66 @@ LEGACY
     ),
     'Legacy ASCII-only download filename logic must be removed.'
 );
+
+$repository = file_get_contents(
+    $root
+    . '/public_html/app/Services/Automation/Correspondence/CorrespondenceAttachmentRepository.php'
+);
+
+$lookups = file_get_contents(
+    $root
+    . '/public_html/app/Services/Automation/Correspondence/AutomationLookupRepository.php'
+);
+
+$viewModel = file_get_contents(
+    $root
+    . '/public_html/app/Services/Automation/Correspondence/CorrespondenceViewModelBuilder.php'
+);
+
+$detail = file_get_contents(
+    $root
+    . '/public_html/resources/views/admin/automation-correspondence-detail.php'
+);
+
+foreach (
+    [
+        [$repository, 'attachment-soft-delete-v1'],
+        [$repository, "status = 'inactive'"],
+        [$repository, "'attachment_removed'"],
+        [$repository, 'LIMIT 1 FOR UPDATE'],
+        [$service, 'public function remove('],
+        [$service, "'attachment_not_removable'"],
+        [$lookups, "'attachment_removed' => 'پیوست حذف شد'"],
+        [$viewModel, "'remove_url'"],
+        [$detail, 'حذف پیوست'],
+        [$detail, "attachmentStatus==='removed'"],
+        [$routes, 'attachment-soft-delete-route-v1'],
+        [$routes, '/attachments/{file_reference}/remove'],
+    ]
+    as [$content, $marker]
+) {
+    $expect(
+        is_string($content)
+        && str_contains($content, $marker),
+        'Missing attachment removal marker: '
+            . $marker
+    );
+}
+
+$expect(
+    !str_contains(
+        (string) $repository,
+        'DELETE FROM private_files'
+    ),
+    'Attachment removal must not physically delete private files.'
+);
+
+$expect(
+    !str_contains(
+        (string) $detail,
+        'name="_token"value='
+    ),
+    'Attachment removal token input must be valid HTML.'
+);
 echo
     "Automation correspondence attachment workflow test passed.\n";

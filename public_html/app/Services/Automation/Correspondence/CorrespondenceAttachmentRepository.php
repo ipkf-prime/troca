@@ -238,6 +238,159 @@ class CorrespondenceAttachmentRepository
         }
     }
 
+    /**
+     * attachment-soft-delete-v1
+     */
+    public function remove(
+        string $correspondenceReference,
+        string $fileReference,
+        int $userId,
+        string $now,
+        array $actorContext
+    ): bool {
+        $pdo = $this->runtime->connection();
+
+        $scope =
+            is_array($actorContext['repository_scope'] ?? null)
+                ? $actorContext['repository_scope']
+                : null;
+
+        [$scopeSql, $scopeParams] =
+            $this->scopeClause($scope);
+
+        $pdo->beginTransaction();
+
+        try {
+            $sql = "
+                SELECT
+                    c.id AS correspondence_id,
+                    c.status_code,
+                    f.id AS file_id,
+                    f.public_reference AS file_reference,
+                    f.original_filename,
+                    a.attachment_role_code
+                FROM private_files f
+                INNER JOIN correspondence_attachments a
+                    ON a.file_id = f.id
+                INNER JOIN correspondences c
+                    ON c.id = a.correspondence_id
+                WHERE c.public_reference = ?
+                  AND f.public_reference = ?
+                  AND f.status = 'active'
+            ";
+
+            $params = [
+                $correspondenceReference,
+                $fileReference,
+            ];
+
+            if ($scopeSql !== '') {
+                $sql .= ' AND ' . $scopeSql;
+                $params = array_merge(
+                    $params,
+                    $scopeParams
+                );
+            }
+
+            $sql .= ' LIMIT 1 FOR UPDATE';
+
+            $select = $pdo->prepare($sql);
+            $select->execute($params);
+
+            $row = $select->fetch(PDO::FETCH_ASSOC);
+
+            if (
+                !is_array($row)
+                || ($row['status_code'] ?? '') !== 'draft'
+            ) {
+                $pdo->rollBack();
+                return false;
+            }
+
+            $deactivate = $pdo->prepare("
+                UPDATE private_files
+                SET
+                    status = 'inactive',
+                    updated_at = ?
+                WHERE id = ?
+                  AND status = 'active'
+            ");
+
+            $deactivate->execute([
+                $now,
+                (int) $row['file_id'],
+            ]);
+
+            if ($deactivate->rowCount() !== 1) {
+                $pdo->rollBack();
+                return false;
+            }
+
+            $event = $pdo->prepare("
+                INSERT INTO correspondence_events (
+                    correspondence_id,
+                    referral_id,
+                    root_organization_id,
+                    organization_id,
+                    secretariat_desk_id,
+                    event_type_code,
+                    actor_user_id,
+                    actor_org_unit_id,
+                    actor_appointment_reference,
+                    actor_context_snapshot_json,
+                    occurred_at,
+                    previous_status_code,
+                    resulting_status_code,
+                    safe_metadata_json,
+                    created_at
+                )
+                VALUES (
+                    ?, NULL, ?, ?, ?,
+                    'attachment_removed',
+                    ?, ?, ?, ?, ?,
+                    'draft', 'draft',
+                    ?, ?
+                )
+            ");
+
+            $event->execute([
+                (int) $row['correspondence_id'],
+                $actorContext['root_organization_id'] ?? null,
+                $actorContext['organization_id'] ?? null,
+                $actorContext['secretariat_desk_id'] ?? null,
+                $userId,
+                $actorContext['org_unit_id'] ?? null,
+                $actorContext['appointment_reference'] ?? null,
+                $actorContext['snapshot_json'] ?? null,
+                $now,
+                json_encode(
+                    [
+                        'file_reference' =>
+                            (string) $row['file_reference'],
+                        'original_filename' =>
+                            (string) $row['original_filename'],
+                        'role' =>
+                            (string) $row[
+                                'attachment_role_code'
+                            ],
+                    ],
+                    JSON_UNESCAPED_UNICODE
+                    | JSON_UNESCAPED_SLASHES
+                ),
+                $now,
+            ]);
+
+            $pdo->commit();
+            return true;
+
+        } catch (\Throwable $exception) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            throw $exception;
+        }
+    }
     public function listFor(
         int $correspondenceId
     ): array {

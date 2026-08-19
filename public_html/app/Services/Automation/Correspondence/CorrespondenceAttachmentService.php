@@ -227,6 +227,56 @@ class CorrespondenceAttachmentService
             'count' => $stored,
         ];
     }
+    /**
+     * attachment-soft-delete-v1
+     */
+    public function remove(
+        string $correspondenceReference,
+        string $fileReference,
+        int $userId
+    ): array {
+        $correspondenceReference =
+            trim($correspondenceReference);
+
+        $fileReference =
+            trim($fileReference);
+
+        if (
+            $correspondenceReference === ''
+            || $fileReference === ''
+        ) {
+            return [
+                'ok' => false,
+                'error' =>
+                    'attachment_not_removable',
+            ];
+        }
+
+        $actor =
+            $this->enterpriseContext
+                ->forUser($userId);
+
+        $removed =
+            $this->attachments
+                ->remove(
+                    $correspondenceReference,
+                    $fileReference,
+                    $userId,
+                    Clock::databaseTimestamp(),
+                    $actor
+                );
+
+        return $removed
+            ? [
+                'ok' => true,
+                'status' => 'removed',
+            ]
+            : [
+                'ok' => false,
+                'error' =>
+                    'attachment_not_removable',
+            ];
+    }
     private function text(?string $value, int $max): ?string
     {
         $value = trim((string) $value);
