@@ -63,6 +63,60 @@ class CorrespondenceAttachmentRepository
             }
 
             /*
+             * attachment-content-deduplication-v1
+             *
+             * Duplicate content is rejected only among active
+             * attachments of this correspondence. The correspondence
+             * row is already locked, so concurrent uploads cannot
+             * bypass this check.
+             */
+            $checksum =
+                strtolower(
+                    trim(
+                        (string) (
+                            $file['sha256_checksum']
+                            ?? ''
+                        )
+                    )
+                );
+
+            if (
+                strlen($checksum) !== 64
+                || preg_match(
+                    '/\A[a-f0-9]{64}\z/',
+                    $checksum
+                ) !== 1
+            ) {
+                throw new \DomainException(
+                    'invalid_attachment_checksum'
+                );
+            }
+
+            $duplicateCheck =
+                $pdo->prepare("
+                    SELECT COUNT(*)
+                    FROM correspondence_attachments a
+                    INNER JOIN private_files f
+                        ON f.id = a.file_id
+                       AND f.status = 'active'
+                    WHERE a.correspondence_id = ?
+                      AND f.sha256_checksum = ?
+                ");
+
+            $duplicateCheck->execute([
+                $correspondenceId,
+                $checksum,
+            ]);
+
+            if (
+                (int) $duplicateCheck->fetchColumn()
+                > 0
+            ) {
+                throw new \DomainException(
+                    'duplicate_attachment'
+                );
+            }
+            /*
              * attachment-total-limit-v1
              *
              * Count active attachments while the correspondence row

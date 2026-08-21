@@ -95,7 +95,11 @@ class CorrespondenceAttachmentService
                 'original_filename' => $this->filename((string) ($upload['name'] ?? 'attachment')),
                 'mime_type' => $mime,
                 'size_bytes' => $size,
-                'sha256_checksum' => hash_file('sha256', $path),
+                'sha256_checksum' =>
+                    (string) hash_file(
+                        'sha256',
+                        $path
+                    ),
             ],
             $role,
             $this->text($title, 255),
@@ -113,6 +117,8 @@ class CorrespondenceAttachmentService
                         'primary_attachment_exists',
                         'attachment_limit_reached',
                         'attachment_not_editable',
+                        'duplicate_attachment',
+                        'invalid_attachment_checksum',
                     ],
                     true
                 )

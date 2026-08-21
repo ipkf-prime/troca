@@ -749,5 +749,94 @@ foreach (
             . $legacyUiMarker
     );
 }
+
+/**
+ * attachment-content-deduplication-contract-test-v1
+ */
+$deduplicationContracts = [
+    [
+        $repository,
+        'attachment-content-deduplication-v1',
+    ],
+    [
+        $repository,
+        "f.sha256_checksum = ?",
+    ],
+    [
+        $repository,
+        "'duplicate_attachment'",
+    ],
+    [
+        $repository,
+        "'invalid_attachment_checksum'",
+    ],
+    [
+        $repository,
+        "f.status = 'active'",
+    ],
+    [
+        $service,
+        "'sha256_checksum' =>",
+    ],
+    [
+        $service,
+        "hash_file(",
+    ],
+    [
+        $service,
+        "'duplicate_attachment'",
+    ],
+    [
+        $service,
+        "'invalid_attachment_checksum'",
+    ],
+    [
+        $service,
+        '@unlink($path)',
+    ],
+    [
+        $detail,
+        "attachmentStatus==='duplicate_attachment'",
+    ],
+    [
+        $detail,
+        'این فایل قبلاً به همین مکاتبه پیوست شده است.',
+    ],
+    [
+        $detail,
+        "attachmentStatus==='invalid_attachment_checksum'",
+    ],
+];
+
+foreach (
+    $deduplicationContracts
+    as [$content, $marker]
+) {
+    $expect(
+        is_string($content)
+        && str_contains(
+            $content,
+            $marker
+        ),
+        'Missing attachment deduplication marker: '
+            . $marker
+    );
+}
+
+$expect(
+    substr_count(
+        (string) $repository,
+        'attachment-content-deduplication-v1'
+    ) === 1,
+    'Attachment deduplication guard must occur exactly once.'
+);
+
+$expect(
+    substr_count(
+        (string) $detail,
+        "attachmentStatus==='duplicate_attachment'"
+    ) === 1,
+    'Duplicate attachment must have exactly one detail message.'
+);
 echo
     "Automation correspondence attachment workflow test passed.\n";
