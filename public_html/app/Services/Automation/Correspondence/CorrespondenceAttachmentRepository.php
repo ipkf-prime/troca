@@ -734,6 +734,80 @@ class CorrespondenceAttachmentRepository
             throw $exception;
         }
     }
+    /**
+     * attachment-lifecycle-repository-v1
+     */
+    public function purgeCandidates(
+        string $cutoff,
+        int $limit
+    ): array {
+        $limit =
+            max(
+                1,
+                min(
+                    1000,
+                    $limit
+                )
+            );
+
+        $statement =
+            $this->runtime
+                ->connection()
+                ->prepare("
+                    SELECT
+                        id,
+                        public_reference,
+                        storage_key,
+                        size_bytes,
+                        updated_at
+                    FROM private_files
+                    WHERE status = 'inactive'
+                      AND updated_at IS NOT NULL
+                      AND updated_at < ?
+                    ORDER BY
+                        updated_at,
+                        id
+                    LIMIT {$limit}
+                ");
+
+        $statement->execute([
+            $cutoff,
+        ]);
+
+        return
+            $statement->fetchAll(
+                PDO::FETCH_ASSOC
+            ) ?: [];
+    }
+
+    public function markPurged(
+        int $fileId,
+        string $expectedUpdatedAt,
+        string $now
+    ): bool {
+        $statement =
+            $this->runtime
+                ->connection()
+                ->prepare("
+                    UPDATE private_files
+                    SET
+                        status = 'purged',
+                        updated_at = ?
+                    WHERE id = ?
+                      AND status = 'inactive'
+                      AND updated_at = ?
+                ");
+
+        $statement->execute([
+            $now,
+            $fileId,
+            $expectedUpdatedAt,
+        ]);
+
+        return
+            $statement->rowCount()
+            === 1;
+    }
     public function listFor(
         int $correspondenceId
     ): array {

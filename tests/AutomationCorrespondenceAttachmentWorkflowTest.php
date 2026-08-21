@@ -838,5 +838,188 @@ $expect(
     ) === 1,
     'Duplicate attachment must have exactly one detail message.'
 );
+
+/*
+ * attachment-lifecycle-foundation-contract-test-v1
+ */
+$lifecyclePolicySource = file_get_contents(
+    $root
+    . '/public_html/app/Services/Automation/Correspondence/'
+    . 'CorrespondenceAttachmentLifecyclePolicy.php'
+);
+
+$lifecycleRepositorySource = file_get_contents(
+    $root
+    . '/public_html/app/Services/Automation/Correspondence/'
+    . 'CorrespondenceAttachmentRepository.php'
+);
+
+$lifecycleEnvironmentSource = file_get_contents(
+    $root
+    . '/public_html/.env.example'
+);
+
+foreach (
+    [
+        [
+            $lifecyclePolicySource,
+            'attachment-lifecycle-policy-v1',
+        ],
+        [
+            $lifecyclePolicySource,
+            'AUTOMATION_ATTACHMENT_RETENTION_DAYS',
+        ],
+        [
+            $lifecyclePolicySource,
+            'AUTOMATION_ATTACHMENT_PURGE_BATCH_SIZE',
+        ],
+        [
+            $lifecycleRepositorySource,
+            'attachment-lifecycle-repository-v1',
+        ],
+        [
+            $lifecycleRepositorySource,
+            'public function purgeCandidates(',
+        ],
+        [
+            $lifecycleRepositorySource,
+            "WHERE status = 'inactive'",
+        ],
+        [
+            $lifecycleRepositorySource,
+            "status = 'purged'",
+        ],
+        [
+            $lifecycleRepositorySource,
+            'public function markPurged(',
+        ],
+        [
+            $lifecycleEnvironmentSource,
+            'AUTOMATION_ATTACHMENT_RETENTION_DAYS=30',
+        ],
+        [
+            $lifecycleEnvironmentSource,
+            'AUTOMATION_ATTACHMENT_PURGE_BATCH_SIZE=100',
+        ],
+    ]
+    as [$content, $marker]
+) {
+    $expect(
+        is_string($content)
+        && str_contains(
+            $content,
+            $marker
+        ),
+        'Missing attachment lifecycle marker: '
+            . $marker
+    );
+}
+
+$expect(
+    !str_contains(
+        (string) $lifecycleRepositorySource,
+        'DELETE FROM private_files'
+    ),
+    'Lifecycle processing must preserve private-file records.'
+);
+
+/*
+ * attachment-lifecycle-purge-contract-test-v1
+ */
+$lifecycleServiceSourceV1 = file_get_contents(
+    $root
+    . '/public_html/app/Services/Automation/Correspondence/'
+    . 'CorrespondenceAttachmentLifecycleService.php'
+);
+
+$lifecycleCliSourceV1 = file_get_contents(
+    $root
+    . '/public_html/scripts/'
+    . 'purge-inactive-correspondence-attachments.php'
+);
+
+foreach (
+    [
+        [
+            $lifecycleServiceSourceV1,
+            'attachment-lifecycle-purge-service-v1',
+        ],
+        [
+            $lifecycleServiceSourceV1,
+            'attachment-lifecycle-missing-file-safety-v1',
+        ],
+        [
+            $lifecycleServiceSourceV1,
+            'public function run(',
+        ],
+        [
+            $lifecycleServiceSourceV1,
+            'realpath($configured)',
+        ],
+        [
+            $lifecycleServiceSourceV1,
+            'DIRECTORY_SEPARATOR',
+        ],
+        [
+            $lifecycleServiceSourceV1,
+            '@unlink(',
+        ],
+        [
+            $lifecycleServiceSourceV1,
+            '->markPurged(',
+        ],
+        [
+            $lifecycleCliSourceV1,
+            'attachment-lifecycle-purge-cli-v1',
+        ],
+        [
+            $lifecycleCliSourceV1,
+            "PHP_SAPI !== 'cli'",
+        ],
+        [
+            $lifecycleCliSourceV1,
+            "'execute'",
+        ],
+        [
+            $lifecycleCliSourceV1,
+            'PURGE-INACTIVE-CORRESPONDENCE-ATTACHMENTS',
+        ],
+    ]
+    as [$content, $marker]
+) {
+    $expect(
+        is_string($content)
+        && str_contains(
+            $content,
+            $marker
+        ),
+        'Missing lifecycle purge marker: '
+            . $marker
+    );
+}
+
+$expect(
+    !str_contains(
+        (string) $lifecycleServiceSourceV1,
+        'original_filename'
+    ),
+    'Lifecycle purge output must not expose original filenames.'
+);
+
+$expect(
+    !str_contains(
+        (string) $lifecycleCliSourceV1,
+        'storage_key'
+    ),
+    'Lifecycle CLI must not print storage keys.'
+);
+
+$expect(
+    !str_contains(
+        (string) $lifecycleCliSourceV1,
+        'public_reference'
+    ),
+    'Lifecycle CLI must not print public references.'
+);
 echo
     "Automation correspondence attachment workflow test passed.\n";
