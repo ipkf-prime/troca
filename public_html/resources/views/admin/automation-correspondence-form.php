@@ -454,27 +454,10 @@ ob_start();
                 </button>
             </div>
 
-            <label class="automation-attachment-role">
-                <span>نوع پیوست‌ها</span>
-
-                <select name="attachment_role_code">
-                    <option value="enclosure">
-                        پیوست
-                    </option>
-
-                    <option value="supporting">
-                        مدرک پشتیبان
-                    </option>
-
-                    <option value="scan">
-                        تصویر اسکن‌شده
-                    </option>
-
-                    <option value="main">
-                        فایل اصلی
-                    </option>
-                </select>
-            </label>
+            <?php /* attachment-per-file-metadata-v1 */ ?>
+            <p class="admin-muted automation-attachment-metadata-help">
+                عنوان و نوع هر فایل را پس از انتخاب، در ردیف همان فایل مشخص کنید.
+            </p>
 
             <div
                 class="automation-attachment-message admin-alert admin-alert--danger"
@@ -1169,6 +1152,36 @@ ob_start();
     min-width: 0;
 }
 
+.automation-attachment-metadata-help {
+    margin: 0;
+}
+
+.automation-attachment-item__fields {
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1fr)
+        minmax(180px, .65fr);
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.automation-attachment-item__fields label {
+    display: grid;
+    gap: 5px;
+}
+
+.automation-attachment-item__fields label > span {
+    margin: 0;
+    color: var(--admin-muted);
+    font-size: .8rem;
+}
+
+.automation-attachment-item__fields input,
+.automation-attachment-item__fields select {
+    width: 100%;
+    min-width: 0;
+}
+
 .automation-attachment-item__body strong,
 .automation-attachment-item__body span {
     display: block;
@@ -1204,6 +1217,10 @@ ob_start();
         grid-template-columns:
             auto
             minmax(0, 1fr);
+    }
+
+    .automation-attachment-item__fields {
+        grid-template-columns: 1fr;
     }
 
     .automation-attachment-remove {
@@ -1574,6 +1591,9 @@ ob_start();
         renderAttachments();
     };
 
+    const attachmentMetadata =
+        new Map();
+
     function renderAttachments() {
         if (
             !attachmentInput
@@ -1596,6 +1616,24 @@ ob_start();
 
         attachmentList
             .replaceChildren();
+
+        if (attachmentSelect) {
+            const limitReached =
+                files.length
+                >= attachmentRules.maxFiles;
+
+            attachmentSelect.disabled =
+                limitReached;
+
+            attachmentSelect.textContent =
+                limitReached
+                    ? 'حداکثر ۳ فایل انتخاب شده'
+                    : (
+                        files.length === 0
+                            ? 'انتخاب فایل'
+                            : 'افزودن فایل دیگر'
+                    );
+        }
 
         if (files.length === 0) {
             const empty =
@@ -1668,6 +1706,116 @@ ob_start();
                     meta
                 );
 
+                const fields =
+                    document.createElement(
+                        'div'
+                    );
+
+                fields.className =
+                    'automation-attachment-item__fields';
+
+                const titleLabel =
+                    document.createElement(
+                        'label'
+                    );
+
+                const titleCaption =
+                    document.createElement(
+                        'span'
+                    );
+
+                titleCaption.textContent =
+                    'عنوان پیوست';
+
+                const titleInput =
+                    document.createElement(
+                        'input'
+                    );
+
+                titleInput.type = 'text';
+                titleInput.name =
+                    'attachment_titles[]';
+                titleInput.maxLength = 255;
+                titleInput.placeholder =
+                    'اختیاری';
+
+                const roleLabel =
+                    document.createElement(
+                        'label'
+                    );
+
+                const roleCaption =
+                    document.createElement(
+                        'span'
+                    );
+
+                roleCaption.textContent =
+                    'نوع پیوست';
+
+                const roleSelect =
+                    document.createElement(
+                        'select'
+                    );
+
+                roleSelect.name =
+                    'attachment_role_codes[]';
+
+                [
+                    [
+                        'enclosure',
+                        'پیوست',
+                    ],
+                    [
+                        'supporting',
+                        'مدرک پشتیبان',
+                    ],
+                    [
+                        'scan',
+                        'تصویر اسکن‌شده',
+                    ],
+                    [
+                        'main',
+                        'فایل اصلی',
+                    ],
+                ].forEach(
+                    ([
+                        value,
+                        label,
+                    ]) => {
+                        const option =
+                            document.createElement(
+                                'option'
+                            );
+
+                        option.value =
+                            value;
+
+                        option.textContent =
+                            label;
+
+                        roleSelect.append(
+                            option
+                        );
+                    }
+                );
+
+                titleLabel.append(
+                    titleCaption,
+                    titleInput
+                );
+
+                roleLabel.append(
+                    roleCaption,
+                    roleSelect
+                );
+
+                fields.append(
+                    titleLabel,
+                    roleLabel
+                );
+
+                body.append(fields);
+
                 const remove =
                     document.createElement(
                         'button'
@@ -1702,6 +1850,54 @@ ob_start();
                     }
                 );
 
+                const metadataKey =
+                    [
+                        file.name,
+                        file.size,
+                        file.lastModified,
+                    ].join('|');
+
+                item.dataset
+                    .attachmentMetadataKey =
+                    metadataKey;
+
+                const previous =
+                    attachmentMetadata.get(
+                        metadataKey
+                    );
+
+                if (previous) {
+                    titleInput.value =
+                        previous.title;
+
+                    roleSelect.value =
+                        previous.role;
+                }
+
+                const rememberMetadata = () => {
+                    attachmentMetadata.set(
+                        metadataKey,
+                        {
+                            title:
+                                titleInput.value,
+                            role:
+                                roleSelect.value,
+                        }
+                    );
+                };
+
+                titleInput.addEventListener(
+                    'input',
+                    rememberMetadata
+                );
+
+                roleSelect.addEventListener(
+                    'change',
+                    rememberMetadata
+                );
+
+                rememberMetadata();
+
                 item.append(
                     icon,
                     body,
@@ -1715,11 +1911,73 @@ ob_start();
         );
     }
 
+    /**
+     * attachment-incremental-picker-v1
+     *
+     * Native file inputs replace their existing FileList whenever
+     * the file dialog is opened again. Preserve the current files
+     * before opening the dialog, then merge them with the new
+     * selection.
+     */
+    let attachmentFilesBeforeDialog = [];
+
+    const attachmentFileIdentity = (
+        file
+    ) => [
+        file.name,
+        file.size,
+        file.lastModified,
+    ].join('|');
+
+    const mergeAttachmentFiles = (
+        currentFiles,
+        selectedFiles
+    ) => {
+        const merged = new Map();
+
+        [
+            ...currentFiles,
+            ...selectedFiles,
+        ].forEach(
+            (file) => {
+                merged.set(
+                    attachmentFileIdentity(file),
+                    file
+                );
+            }
+        );
+
+        return [
+            ...merged.values(),
+        ];
+    };
+
+    const openAttachmentPicker = () => {
+        if (!attachmentInput) {
+            return;
+        }
+
+        const existingFiles = [
+            ...attachmentInput.files,
+        ];
+
+        if (
+            existingFiles.length
+            >= attachmentRules.maxFiles
+        ) {
+            return;
+        }
+
+        attachmentFilesBeforeDialog =
+            existingFiles;
+
+        attachmentInput.click();
+    };
+
     attachmentSelect
         ?.addEventListener(
             'click',
-            () =>
-                attachmentInput?.click()
+            openAttachmentPicker
         );
 
     attachmentDropzone
@@ -1736,14 +1994,28 @@ ob_start();
                     return;
                 }
 
-                attachmentInput?.click();
+                openAttachmentPicker();
             }
         );
 
     attachmentInput
         ?.addEventListener(
             'change',
-            renderAttachments
+            () => {
+                const newlySelected = [
+                    ...attachmentInput.files,
+                ];
+
+                const merged =
+                    mergeAttachmentFiles(
+                        attachmentFilesBeforeDialog,
+                        newlySelected
+                    );
+
+                attachmentFilesBeforeDialog = [];
+
+                applyAttachmentFiles(merged);
+            }
         );
 
     [

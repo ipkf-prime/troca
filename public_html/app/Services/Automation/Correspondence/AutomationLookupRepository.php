@@ -14,7 +14,7 @@ class AutomationLookupRepository
         'correspondence_channel' => ['manual' => 'ثبت دستی', 'postal' => 'پست', 'courier' => 'پیک', 'email' => 'رایانامه', 'system' => 'سامانه', 'internal' => 'داخلی'],
         'correspondence_party_role' => ['sender' => 'فرستنده', 'primary_recipient' => 'گیرنده اصلی', 'cc' => 'رونوشت', 'bcc' => 'رونوشت مخفی', 'external_correspondent' => 'طرف بیرونی'],
         'correspondence_party_kind' => ['person' => 'شخص داخلی', 'user' => 'کاربر داخلی', 'organization' => 'سازمان', 'org_unit' => 'واحد سازمانی', 'external' => 'طرف بیرونی'],
-        'correspondence_event_type' => ['created' => 'ایجاد شد', 'revised' => 'نسخه جدید پیش نویس', 'registered' => 'ثبت رسمی', 'dispatched' => 'ارسال شد', 'cancelled' => 'لغو شد', 'attachment_linked' => 'پیوست افزوده شد', 'attachment_removed' => 'پیوست حذف شد'],
+        'correspondence_event_type' => ['created' => 'ایجاد شد', 'revised' => 'نسخه جدید پیش نویس', 'registered' => 'ثبت رسمی', 'dispatched' => 'ارسال شد', 'cancelled' => 'لغو شد', 'attachment_linked' => 'پیوست افزوده شد', 'attachment_removed' => 'پیوست حذف شد', 'attachment_metadata_updated' => 'مشخصات پیوست ویرایش شد'],
         'correspondence_relation_type' => ['reply_to' => 'عطف / پاسخ به', 'follow_up' => 'پیرو', 'continuation' => 'ادامه', 'replacement' => 'جایگزین', 'related' => 'مرتبط', 'cancellation_reference' => 'مرجع ابطال'],
         'attachment_role' => ['main' => 'فایل اصلی', 'enclosure' => 'پیوست', 'supporting' => 'مدرک پشتیبان', 'scan' => 'تصویر اسکن‌شده'],
     ];

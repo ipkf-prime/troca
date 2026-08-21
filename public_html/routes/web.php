@@ -4892,9 +4892,13 @@ $router->post('/admin/automation/correspondences', function ($request, $response
                         )
                             ? $_FILES['attachments']
                             : [],
-                        (string) $request->input(
-                            'attachment_role_code',
-                            'enclosure'
+                        (array) $request->input(
+                            'attachment_titles',
+                            []
+                        ),
+                        (array) $request->input(
+                            'attachment_role_codes',
+                            []
                         ),
                         (int) $context['user_id']
                     );
@@ -4954,8 +4958,54 @@ $router->post('/admin/automation/correspondences', function ($request, $response
             'isEdit' => false,
             'editable' => true,
         ], 422);
-    } catch (\Throwable) {
-        return $automationUnavailable($response, $context);
+    } catch (\Throwable $exception) {
+        /*
+         * correspondence-create-failure-telemetry-v1
+         *
+         * Do not log request content, user content, file names,
+         * session data, tokens or organizational context.
+         */
+        $logPath =
+            dirname(__DIR__)
+            . '/storage/logs/'
+            . 'correspondence-create-error.log';
+
+        $safeMessage =
+            str_replace(
+                ["\r", "\n"],
+                ' ',
+                $exception->getMessage()
+            );
+
+        $safeMessage =
+            mb_substr(
+                $safeMessage,
+                0,
+                1200
+            );
+
+        $record =
+            gmdate('c')
+            . ' exception='
+            . get_class($exception)
+            . ' message='
+            . $safeMessage
+            . ' file='
+            . basename($exception->getFile())
+            . ' line='
+            . $exception->getLine()
+            . PHP_EOL;
+
+        @file_put_contents(
+            $logPath,
+            $record,
+            FILE_APPEND | LOCK_EX
+        );
+
+        return $automationUnavailable(
+            $response,
+            $context
+        );
     }
 });
 
@@ -5011,9 +5061,13 @@ $router->post('/admin/automation/correspondences/{public_reference}/versions', f
                         )
                             ? $_FILES['attachments']
                             : [],
-                        (string) $request->input(
-                            'attachment_role_code',
-                            'enclosure'
+                        (array) $request->input(
+                            'attachment_titles',
+                            []
+                        ),
+                        (array) $request->input(
+                            'attachment_role_codes',
+                            []
                         ),
                         (int) $context['user_id']
                     );
@@ -5337,6 +5391,59 @@ $router->post('/admin/automation/correspondences/{public_reference}/edit/attachm
     }
 });
 
+/* attachment-metadata-edit-route-v1 */
+$router->post('/admin/automation/correspondences/{public_reference}/attachments/{file_reference}/metadata', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard(
+        $response,
+        '/admin/automation/correspondences/{public_reference}/attachments/{file_reference}/metadata'
+    );
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $correspondenceReference =
+        (string) $request->route('public_reference');
+
+    $fileReference =
+        (string) $request->route('file_reference');
+
+    try {
+        $result =
+            (new \App\Services\Automation\Correspondence\CorrespondenceAttachmentService())
+                ->updateMetadata(
+                    $correspondenceReference,
+                    $fileReference,
+                    (string) $request->input(
+                        'attachment_role_code',
+                        'enclosure'
+                    ),
+                    (string) $request->input(
+                        'title',
+                        ''
+                    ),
+                    (int) $context['user_id']
+                );
+
+        $status =
+            ($result['ok'] ?? false)
+                ? 'metadata_updated'
+                : (string) (
+                    $result['error']
+                    ?? 'attachment_not_editable'
+                );
+
+    } catch (\Throwable) {
+        $status = 'attachment_metadata_update_failed';
+    }
+
+    return $response->redirect(
+        '/admin/automation/correspondences/'
+        . rawurlencode($correspondenceReference)
+        . '?tab=attachments&attachment_status='
+        . rawurlencode($status)
+    );
+});
 /* attachment-soft-delete-route-v1 */
 $router->post('/admin/automation/correspondences/{public_reference}/attachments/{file_reference}/remove', function ($request, $response) use ($adminGuard) {
     $context = $adminGuard(

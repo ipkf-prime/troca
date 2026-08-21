@@ -241,12 +241,15 @@ class CorrespondenceViewModelBuilder
         $fileReference = (string) ($row['file_reference'] ?? '');
         return [
             'role' => $this->lookups->label('attachment_role', $row['attachment_role_code'] ?? ''),
+            'role_code' => (string) ($row['attachment_role_code'] ?? 'enclosure'),
             'title' => $this->value($row['title'] ?? null),
+            'title_raw' => (string) ($row['title'] ?? ''),
             'filename' => (string) ($row['original_filename'] ?? ''),
             'mime_type' => (string) ($row['mime_type'] ?? ''),
             'size' => AdminFormat::digits(number_format(((int) ($row['size_bytes'] ?? 0)) / 1024, 0)) . ' کیلوبایت',
             'url' => '/admin/automation/correspondences/' . rawurlencode($correspondenceReference) . '/attachments/' . rawurlencode($fileReference),
             'remove_url' => '/admin/automation/correspondences/' . rawurlencode($correspondenceReference) . '/attachments/' . rawurlencode($fileReference) . '/remove',
+            'edit_url' => '/admin/automation/correspondences/' . rawurlencode($correspondenceReference) . '/attachments/' . rawurlencode($fileReference) . '/metadata',
         ];
     }
 

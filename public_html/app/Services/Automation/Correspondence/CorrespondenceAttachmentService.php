@@ -77,10 +77,14 @@ class CorrespondenceAttachmentService
     /**
      * correspondence-attachment-wizard-v1
      */
+    /**
+     * attachment-per-file-metadata-backend-v1
+     */
     public function uploadMany(
         string $correspondenceReference,
         array $uploads,
-        string $role,
+        array $titles,
+        array $roles,
         int $userId
     ): array {
         $names =
@@ -139,6 +143,9 @@ class CorrespondenceAttachmentService
                 continue;
             }
 
+            $file['_metadata_index'] =
+                (int) $index;
+
             $files[] = $file;
         }
 
@@ -195,12 +202,38 @@ class CorrespondenceAttachmentService
         $stored = 0;
 
         foreach ($files as $file) {
+            $metadataIndex =
+                (int) (
+                    $file['_metadata_index']
+                    ?? 0
+                );
+
+            $title =
+                array_key_exists(
+                    $metadataIndex,
+                    $titles
+                )
+                    ? (string) $titles[
+                        $metadataIndex
+                    ]
+                    : '';
+
+            $role =
+                array_key_exists(
+                    $metadataIndex,
+                    $roles
+                )
+                    ? (string) $roles[
+                        $metadataIndex
+                    ]
+                    : 'enclosure';
+
             $result =
                 $this->upload(
                     $correspondenceReference,
                     $file,
                     $role,
-                    null,
+                    $title,
                     $userId
                 );
 
@@ -226,6 +259,81 @@ class CorrespondenceAttachmentService
             'ok' => true,
             'count' => $stored,
         ];
+    }
+    /**
+     * attachment-metadata-edit-v1
+     */
+    public function updateMetadata(
+        string $correspondenceReference,
+        string $fileReference,
+        string $role,
+        ?string $title,
+        int $userId
+    ): array {
+        $correspondenceReference =
+            trim($correspondenceReference);
+
+        $fileReference =
+            trim($fileReference);
+
+        $role = trim($role);
+
+        if (
+            $correspondenceReference === ''
+            || $fileReference === ''
+        ) {
+            return [
+                'ok' => false,
+                'error' =>
+                    'attachment_not_editable',
+            ];
+        }
+
+        if (
+            !in_array(
+                $role,
+                [
+                    'main',
+                    'enclosure',
+                    'supporting',
+                    'scan',
+                ],
+                true
+            )
+        ) {
+            return [
+                'ok' => false,
+                'error' =>
+                    'invalid_attachment_role',
+            ];
+        }
+
+        $actor =
+            $this->enterpriseContext
+                ->forUser($userId);
+
+        $updated =
+            $this->attachments
+                ->updateMetadata(
+                    $correspondenceReference,
+                    $fileReference,
+                    $role,
+                    $this->text($title, 255),
+                    $userId,
+                    Clock::databaseTimestamp(),
+                    $actor
+                );
+
+        return $updated
+            ? [
+                'ok' => true,
+                'status' => 'metadata_updated',
+            ]
+            : [
+                'ok' => false,
+                'error' =>
+                    'attachment_not_editable',
+            ];
     }
     /**
      * attachment-soft-delete-v1

@@ -211,5 +211,310 @@ $expect(
     ),
     'Attachment removal token input must be valid HTML.'
 );
+
+/**
+ * attachment-metadata-contract-test-v1
+ */
+$metadataContracts = [
+    [
+        $repository,
+        'attachment-metadata-edit-v1',
+    ],
+    [
+        $repository,
+        'public function updateMetadata(',
+    ],
+    [
+        $repository,
+        'UPDATE correspondence_attachments',
+    ],
+    [
+        $repository,
+        "'attachment_metadata_updated'",
+    ],
+    [
+        $repository,
+        'LIMIT 1 FOR UPDATE',
+    ],
+    [
+        $service,
+        'public function updateMetadata(',
+    ],
+    [
+        $service,
+        "'invalid_attachment_role'",
+    ],
+    [
+        $service,
+        "'attachment_not_editable'",
+    ],
+    [
+        $service,
+        "'metadata_updated'",
+    ],
+    [
+        $lookups,
+        "'attachment_metadata_updated' => "
+        . "'مشخصات پیوست ویرایش شد'",
+    ],
+    [
+        $viewModel,
+        "'role_code'",
+    ],
+    [
+        $viewModel,
+        "'title_raw'",
+    ],
+    [
+        $viewModel,
+        "'edit_url'",
+    ],
+    [
+        $detail,
+        'ذخیره مشخصات',
+    ],
+    [
+        $detail,
+        "attachmentStatus==='metadata_updated'",
+    ],
+    [
+        $detail,
+        "attachmentStatus==='invalid_attachment_role'",
+    ],
+    [
+        $detail,
+        "attachmentStatus==='attachment_not_editable'",
+    ],
+    [
+        $routes,
+        'attachment-metadata-edit-route-v1',
+    ],
+    [
+        $routes,
+        '/attachments/{file_reference}/metadata',
+    ],
+    [
+        $routes,
+        '->updateMetadata(',
+    ],
+];
+
+foreach ($metadataContracts as [$content, $requiredMarker]) {
+    $expect(
+        is_string($content)
+        && str_contains(
+            $content,
+            $requiredMarker
+        ),
+        'Missing attachment metadata marker: '
+            . $requiredMarker
+    );
+}
+
+foreach (
+    [
+        'موفقیتحذف',
+        'فایلرا',
+        'مدرکپشتیبان',
+        'method="post"action=',
+        '<divclass=',
+        'name="_token"value=',
+    ]
+    as $malformedMarker
+) {
+    $expect(
+        !str_contains(
+            (string) $detail,
+            $malformedMarker
+        ),
+        'Malformed attachment UI marker remains: '
+            . $malformedMarker
+    );
+}
+
+$expect(
+    substr_count(
+        (string) $routes,
+        'attachment-metadata-edit-route-v1'
+    ) === 1,
+    'Attachment metadata route must be declared exactly once.'
+);
+
+$expect(
+    !str_contains(
+        (string) $repository,
+        'UPDATE private_files'
+        . "\n"
+        . '                SET original_filename'
+    ),
+    'Metadata edit must not change the original filename.'
+);
+
+/**
+ * attachment-per-file-metadata-contract-test-v1
+ */
+$perFileMetadataContracts = [
+    [
+        $form,
+        'attachment-per-file-metadata-v1',
+    ],
+    [
+        $form,
+        "titleInput.name =\n"
+        . "                    'attachment_titles[]'",
+    ],
+    [
+        $form,
+        "roleSelect.name =\n"
+        . "                    'attachment_role_codes[]'",
+    ],
+    [
+        $form,
+        'const attachmentMetadata =',
+    ],
+    [
+        $form,
+        'automation-attachment-item__fields',
+    ],
+    [
+        $form,
+        'عنوان و نوع هر فایل',
+    ],
+    [
+        $service,
+        'attachment-per-file-metadata-backend-v1',
+    ],
+    [
+        $service,
+        'array $titles',
+    ],
+    [
+        $service,
+        'array $roles',
+    ],
+    [
+        $service,
+        "\$file['_metadata_index']",
+    ],
+    [
+        $service,
+        '$metadataIndex',
+    ],
+    [
+        $routes,
+        "'attachment_titles'",
+    ],
+    [
+        $routes,
+        "'attachment_role_codes'",
+    ],
+];
+
+foreach (
+    $perFileMetadataContracts
+    as [$content, $requiredMarker]
+) {
+    $expect(
+        is_string($content)
+        && str_contains(
+            $content,
+            $requiredMarker
+        ),
+        'Missing per-file attachment metadata marker: '
+            . $requiredMarker
+    );
+}
+
+$expect(
+    !str_contains(
+        (string) $form,
+        'name="attachment_role_code"'
+    ),
+    'Draft wizard must not retain the global attachment role.'
+);
+
+$expect(
+    !str_contains(
+        (string) $form,
+        'admin-alertadmin-alert--danger'
+    ),
+    'Attachment error alert classes must be separated.'
+);
+
+$expect(
+    substr_count(
+        (string) $routes,
+        "'attachment_titles'"
+    ) === 2,
+    'Create and update routes must both accept per-file titles.'
+);
+
+$expect(
+    substr_count(
+        (string) $routes,
+        "'attachment_role_codes'"
+    ) === 2,
+    'Create and update routes must both accept per-file roles.'
+);
+
+$uploadManyStart = strpos(
+    (string) $service,
+    'public function uploadMany('
+);
+
+$uploadManyEnd = strpos(
+    (string) $service,
+    'public function updateMetadata(',
+    $uploadManyStart === false
+        ? 0
+        : $uploadManyStart
+);
+
+$expect(
+    $uploadManyStart !== false
+    && $uploadManyEnd !== false
+    && $uploadManyEnd > $uploadManyStart,
+    'Upload-many service boundary must exist.'
+);
+
+$uploadManySource = substr(
+    (string) $service,
+    (int) $uploadManyStart,
+    (int) $uploadManyEnd
+        - (int) $uploadManyStart
+);
+
+$expect(
+    preg_match(
+        '/\$role,\s*null,\s*\$userId/s',
+        $uploadManySource
+    ) !== 1,
+    'Upload-many must not discard the attachment title.'
+);
+
+/**
+ * attachment-incremental-picker-contract-test-v1
+ */
+foreach (
+    [
+        'attachment-incremental-picker-v1',
+        'attachmentFilesBeforeDialog',
+        'mergeAttachmentFiles',
+        'attachmentFileIdentity',
+        'openAttachmentPicker',
+        "'افزودن فایل دیگر'",
+        "'حداکثر ۳ فایل انتخاب شده'",
+    ]
+    as $marker
+) {
+    $expect(
+        str_contains(
+            (string) $form,
+            $marker
+        ),
+        'Missing incremental attachment picker marker: '
+            . $marker
+    );
+}
 echo
     "Automation correspondence attachment workflow test passed.\n";
