@@ -7,10 +7,14 @@ use PDO;
 class CorrespondenceAttachmentRepository
 {
     public function __construct(
-        private ?AutomationOperationalRuntime $runtime = null
+        private ?AutomationOperationalRuntime $runtime = null,
+        private ?CorrespondenceAttachmentPolicy $policy = null
     ) {
         $this->runtime ??=
             new AutomationOperationalRuntime();
+
+        $this->policy ??=
+            new CorrespondenceAttachmentPolicy();
     }
 
     public function add(
@@ -29,6 +33,88 @@ class CorrespondenceAttachmentRepository
         $pdo->beginTransaction();
 
         try {
+            /*
+             * attachment-primary-uniqueness-v1
+             *
+             * Lock the correspondence row before checking the
+             * current primary attachment. This serializes concurrent
+             * upload and metadata-edit requests for the same draft.
+             */
+            $correspondenceLock =
+                $pdo->prepare("
+                    SELECT status_code
+                    FROM correspondences
+                    WHERE id = ?
+                    LIMIT 1
+                    FOR UPDATE
+                ");
+
+            $correspondenceLock->execute([
+                $correspondenceId,
+            ]);
+
+            $correspondenceStatus =
+                $correspondenceLock->fetchColumn();
+
+            if ($correspondenceStatus !== 'draft') {
+                throw new \DomainException(
+                    'attachment_not_editable'
+                );
+            }
+
+            /*
+             * attachment-total-limit-v1
+             *
+             * Count active attachments while the correspondence row
+             * remains locked. Concurrent uploads cannot exceed the
+             * per-correspondence limit.
+             */
+            $attachmentCount =
+                $pdo->prepare("
+                    SELECT COUNT(*)
+                    FROM correspondence_attachments a
+                    INNER JOIN private_files f
+                        ON f.id = a.file_id
+                       AND f.status = 'active'
+                    WHERE a.correspondence_id = ?
+                ");
+
+            $attachmentCount->execute([
+                $correspondenceId,
+            ]);
+
+            if (
+                (int) $attachmentCount->fetchColumn()
+                >= $this->policy->maxFiles()
+            ) {
+                throw new \DomainException(
+                    'attachment_limit_reached'
+                );
+            }
+
+            if ($role === 'main') {
+                $primaryCheck =
+                    $pdo->prepare("
+                        SELECT COUNT(*)
+                        FROM correspondence_attachments a
+                        INNER JOIN private_files f
+                            ON f.id = a.file_id
+                           AND f.status = 'active'
+                        WHERE a.correspondence_id = ?
+                          AND a.attachment_role_code = 'main'
+                    ");
+
+                $primaryCheck->execute([
+                    $correspondenceId,
+                ]);
+
+                if ((int) $primaryCheck->fetchColumn() > 0) {
+                    throw new \DomainException(
+                        'primary_attachment_exists'
+                    );
+                }
+            }
+
             $statement =
                 $pdo->prepare("
                     INSERT INTO private_files (
@@ -313,6 +399,41 @@ class CorrespondenceAttachmentRepository
 
             $oldRole =
                 (string) $row['attachment_role_code'];
+
+            if (
+                $role === 'main'
+                && $oldRole !== 'main'
+            ) {
+                /*
+                 * attachment-primary-uniqueness-v1
+                 *
+                 * The correspondence row is locked by the preceding
+                 * SELECT ... FOR UPDATE. Count only active files and
+                 * exclude the attachment currently being edited.
+                 */
+                $primaryCheck =
+                    $pdo->prepare("
+                        SELECT COUNT(*)
+                        FROM correspondence_attachments a
+                        INNER JOIN private_files f
+                            ON f.id = a.file_id
+                           AND f.status = 'active'
+                        WHERE a.correspondence_id = ?
+                          AND a.attachment_role_code = 'main'
+                          AND a.id <> ?
+                    ");
+
+                $primaryCheck->execute([
+                    (int) $row['correspondence_id'],
+                    (int) $row['attachment_id'],
+                ]);
+
+                if ((int) $primaryCheck->fetchColumn() > 0) {
+                    throw new \DomainException(
+                        'primary_attachment_exists'
+                    );
+                }
+            }
 
             $oldTitle =
                 $row['title'] === null

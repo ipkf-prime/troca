@@ -48,9 +48,9 @@ foreach (
         'data-attachment-input',
         'data-attachment-list',
         'automation-attachment-remove',
-        'maxFiles: 3',
-        'maxEach: 10 * 1024 * 1024',
-        'maxTotal: 20 * 1024 * 1024',
+        '$attachmentPolicyClientRules',
+        'json_encode(',
+        'attachmentRules.maxTotal',
         "set('attachments'",
     ]
     as $marker
@@ -68,8 +68,8 @@ foreach (
 foreach (
     [
         'public function uploadMany(',
-        'private const MAX_FILES = 3;',
-        'private const MAX_TOTAL_BYTES = 20971520;',
+        '$this->policy->maxFiles()',
+        '$this->policy->maxTotalBytes()',
         "'too_many_files'",
         "'invalid_total_size'",
     ]
@@ -503,7 +503,7 @@ foreach (
         'attachmentFileIdentity',
         'openAttachmentPicker',
         "'افزودن فایل دیگر'",
-        "'حداکثر ۳ فایل انتخاب شده'",
+        'attachmentRules.maxFiles',
     ]
     as $marker
 ) {
@@ -514,6 +514,239 @@ foreach (
         ),
         'Missing incremental attachment picker marker: '
             . $marker
+    );
+}
+
+/**
+ * attachment-primary-uniqueness-contract-test-v1
+ */
+$primaryAttachmentContracts = [
+    [
+        $repository,
+        'attachment-primary-uniqueness-v1',
+    ],
+    [
+        $repository,
+        "a.attachment_role_code = 'main'",
+    ],
+    [
+        $repository,
+        'SELECT status_code',
+    ],
+    [
+        $repository,
+        'FOR UPDATE',
+    ],
+    [
+        $repository,
+        "'primary_attachment_exists'",
+    ],
+    [
+        $service,
+        "'primary_attachment_exists'",
+    ],
+    [
+        $form,
+        'attachment-primary-ui-guard-v1',
+    ],
+    [
+        $form,
+        'برای هر مکاتبه فقط یک فایل اصلی قابل ثبت است.',
+    ],
+    [
+        $detail,
+        "attachmentStatus==='primary_attachment_exists'",
+    ],
+    [
+        $detail,
+        'برای هر مکاتبه فقط یک فایل اصلی قابل ثبت است.',
+    ],
+];
+
+foreach (
+    $primaryAttachmentContracts
+    as [$content, $marker]
+) {
+    $expect(
+        is_string($content)
+        && str_contains(
+            $content,
+            $marker
+        ),
+        'Missing primary attachment uniqueness marker: '
+            . $marker
+    );
+}
+
+$expect(
+    substr_count(
+        (string) $repository,
+        'attachment-primary-uniqueness-v1'
+    ) === 2,
+    'Primary uniqueness must guard upload and metadata edit.'
+);
+
+$expect(
+    substr_count(
+        (string) $detail,
+        "attachmentStatus==='primary_attachment_exists'"
+    ) === 1,
+    'Primary conflict must have one detail message.'
+);
+
+/**
+ * attachment-total-limit-contract-test-v1
+ */
+$totalAttachmentLimitContracts = [
+    [
+        $repository,
+        'attachment-total-limit-v1',
+    ],
+    [
+        $repository,
+        "'attachment_limit_reached'",
+    ],
+    [
+        $repository,
+        '$this->policy->maxFiles()',
+    ],
+    [
+        $service,
+        "'attachment_limit_reached'",
+    ],
+    [
+        $detail,
+        "attachmentStatus==='attachment_limit_reached'",
+    ],
+    [
+        $detail,
+        '$activeAttachmentCount<$attachmentPolicyMaxFiles',
+    ],
+    [
+        $detail,
+        '$activeAttachmentCount>=$attachmentPolicyMaxFiles',
+    ],
+    [
+        $detail,
+        'attachmentPolicyMaxFilesFa',
+    ],
+    [
+        $detail,
+        'attachmentPolicyMaxFilesFa',
+    ],
+];
+
+foreach (
+    $totalAttachmentLimitContracts
+    as [$content, $marker]
+) {
+    $expect(
+        is_string($content)
+        && str_contains(
+            $content,
+            $marker
+        ),
+        'Missing total attachment limit marker: '
+            . $marker
+    );
+}
+
+/**
+ * attachment-dynamic-policy-contract-test-v1
+ */
+$policy = file_get_contents(
+    $root
+    . '/public_html/app/Services/Automation/Correspondence/CorrespondenceAttachmentPolicy.php'
+);
+
+$envExample = file_get_contents(
+    $root
+    . '/public_html/.env.example'
+);
+
+foreach (
+    [
+        [$policy, 'attachment-dynamic-policy-v1'],
+        [$policy, 'AUTOMATION_ATTACHMENT_MAX_FILES'],
+        [$policy, 'AUTOMATION_ATTACHMENT_MAX_FILE_MB'],
+        [$policy, 'AUTOMATION_ATTACHMENT_MAX_TOTAL_MB'],
+        [$policy, 'AUTOMATION_ATTACHMENT_ALLOWED_EXTENSIONS'],
+        [$policy, 'AUTOMATION_ATTACHMENT_ALLOWED_MIME_TYPES'],
+        [$policy, 'DEFAULT_MAX_FILES = 3'],
+        [$policy, 'DEFAULT_MAX_FILE_MB = 10'],
+        [$policy, 'DEFAULT_MAX_TOTAL_MB = 20'],
+        [$policy, 'allowedExtensions()'],
+        [$policy, 'allowedMimeTypes()'],
+        [$policy, 'accepts('],
+        [$policy, 'clientRules()'],
+        [$policy, 'allowedTypeLabel()'],
+        [$policy, 'persianNumber('],
+        [$repository, '$this->policy->maxFiles()'],
+        [$service, '$this->policy->maxFileBytes()'],
+        [$service, '$this->policy->maxTotalBytes()'],
+        [$service, '$this->policy->accepts('],
+        [$detail, 'attachment-dynamic-policy-ui-v1'],
+        [$detail, '$attachmentPolicyMaxFiles'],
+        [$detail, '$attachmentPolicyAccept'],
+        [$form, '$attachmentPolicyClientRules'],
+        [$form, 'json_encode('],
+        [$form, 'attachmentRules.maxFiles'],
+        [$form, 'attachmentRules.maxFileMb'],
+        [$form, 'attachmentRules.maxTotalMb'],
+        [$envExample, 'AUTOMATION_ATTACHMENT_MAX_FILES=3'],
+        [$envExample, 'AUTOMATION_ATTACHMENT_MAX_FILE_MB=10'],
+        [$envExample, 'AUTOMATION_ATTACHMENT_MAX_TOTAL_MB=20'],
+    ]
+    as [$content, $marker]
+) {
+    $expect(
+        is_string($content)
+        && str_contains(
+            $content,
+            $marker
+        ),
+        'Missing dynamic attachment policy marker: '
+            . $marker
+    );
+}
+
+foreach (
+    [
+        'private const MAX_FILES',
+        'private const MAX_TOTAL_BYTES',
+        'private const MIME_TYPES',
+    ]
+    as $legacyServiceMarker
+) {
+    $expect(
+        !str_contains(
+            (string) $service,
+            $legacyServiceMarker
+        ),
+        'Legacy attachment service policy remains: '
+            . $legacyServiceMarker
+    );
+}
+
+foreach (
+    [
+        'maxFiles: 3',
+        'maxEach: 10 * 1024 * 1024',
+        'maxTotal: 20 * 1024 * 1024',
+        'accept=".pdf,.docx,.jpg,.jpeg,.png"',
+        'حداکثر ۳ فایل قابل انتخاب است.',
+        'حجم هر فایل باید حداکثر ۱۰ مگابایت باشد.',
+        'مجموع حجم فایل‌ها باید حداکثر ۲۰ مگابایت باشد.',
+    ]
+    as $legacyUiMarker
+) {
+    $expect(
+        !str_contains(
+            (string) $form,
+            $legacyUiMarker
+        ),
+        'Legacy attachment UI policy remains: '
+            . $legacyUiMarker
     );
 }
 echo

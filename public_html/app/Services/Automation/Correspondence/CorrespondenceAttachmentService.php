@@ -8,19 +8,27 @@ use RuntimeException;
 
 class CorrespondenceAttachmentService
 {
-    private const MAX_BYTES = 10485760;
-    private const MAX_FILES = 3;
-    private const MAX_TOTAL_BYTES = 20971520;
-    private const MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
 
     public function __construct(
         private ?CorrespondenceRepository $correspondences = null,
         private ?CorrespondenceAttachmentRepository $attachments = null,
-        private ?EnterpriseAutomationContextService $enterpriseContext = null
+        private ?EnterpriseAutomationContextService $enterpriseContext = null,
+        private ?CorrespondenceAttachmentPolicy $policy = null
     ) {
-        $this->correspondences ??= new CorrespondenceRepository();
-        $this->attachments ??= new CorrespondenceAttachmentRepository();
-        $this->enterpriseContext ??= new EnterpriseAutomationContextService();
+        $this->policy ??=
+            new CorrespondenceAttachmentPolicy();
+
+        $this->correspondences ??=
+            new CorrespondenceRepository();
+
+        $this->attachments ??=
+            new CorrespondenceAttachmentRepository(
+                null,
+                $this->policy
+            );
+
+        $this->enterpriseContext ??=
+            new EnterpriseAutomationContextService();
     }
 
     public function upload(string $correspondenceReference, array $upload, string $role, ?string $title, int $userId): array
@@ -34,13 +42,32 @@ class CorrespondenceAttachmentService
         if ($correspondence === null || ($correspondence['status_code'] ?? '') !== 'draft' || ($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) return ['ok' => false, 'error' => 'invalid_upload'];
         $tmp = (string) ($upload['tmp_name'] ?? '');
         $size = (int) ($upload['size'] ?? 0);
-        if (!is_uploaded_file($tmp) || $size < 1 || $size > self::MAX_BYTES) return ['ok' => false, 'error' => 'invalid_size'];
+        if (
+            !is_uploaded_file($tmp)
+            || $size < 1
+            || $size > $this->policy->maxFileBytes()
+        ) {
+            return [
+                'ok' => false,
+                'error' => 'invalid_size',
+            ];
+        }
         $mime = (new \finfo(FILEINFO_MIME_TYPE))->file($tmp) ?: 'application/octet-stream';
         $originalExtension = strtolower((string) pathinfo((string) ($upload['name'] ?? ''), PATHINFO_EXTENSION));
         if ($mime === 'application/zip' && $originalExtension === 'docx' && $this->validDocx($tmp)) {
             $mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
         }
-        if (!in_array($mime, self::MIME_TYPES, true)) return ['ok' => false, 'error' => 'invalid_type'];
+        if (
+            !$this->policy->accepts(
+                $originalExtension,
+                $mime
+            )
+        ) {
+            return [
+                'ok' => false,
+                'error' => 'invalid_type',
+            ];
+        }
         if (!in_array($role, ['main', 'enclosure', 'supporting', 'scan'], true)) $role = 'enclosure';
 
         $configuredRoot = trim((string) Env::get('PRIVATE_FILE_STORAGE_PATH', ''));
@@ -48,7 +75,16 @@ class CorrespondenceAttachmentService
         $directory = $root . '/' . gmdate('Y/m');
         if (!is_dir($directory) && !mkdir($directory, 0750, true) && !is_dir($directory)) throw new RuntimeException('Private storage is unavailable.');
         $reference = 'PF-' . strtoupper(bin2hex(random_bytes(10)));
-        $extension = match ($mime) { 'application/pdf' => 'pdf', 'image/jpeg' => 'jpg', 'image/png' => 'png', default => 'docx' };
+        $extension =
+            $this->policy
+                ->storageExtensionForMime($mime);
+
+        if ($extension === null) {
+            return [
+                'ok' => false,
+                'error' => 'invalid_type',
+            ];
+        }
         $path = $directory . '/' . $reference . '.' . $extension;
         if (!move_uploaded_file($tmp, $path)) throw new RuntimeException('Private file could not be stored.');
 
@@ -67,10 +103,33 @@ class CorrespondenceAttachmentService
             Clock::databaseTimestamp(),
             $actor
         );
+        } catch (\DomainException $exception) {
+            @unlink($path);
+
+            if (
+                in_array(
+                    $exception->getMessage(),
+                    [
+                        'primary_attachment_exists',
+                        'attachment_limit_reached',
+                        'attachment_not_editable',
+                    ],
+                    true
+                )
+            ) {
+                return [
+                    'ok' => false,
+                    'error' => $exception->getMessage(),
+                ];
+            }
+
+            throw $exception;
+
         } catch (\Throwable $exception) {
             @unlink($path);
             throw $exception;
         }
+
         return ['ok' => true];
     }
 
@@ -158,7 +217,7 @@ class CorrespondenceAttachmentService
 
         if (
             count($files)
-            > self::MAX_FILES
+            > $this->policy->maxFiles()
         ) {
             return [
                 'ok' => false,
@@ -189,7 +248,7 @@ class CorrespondenceAttachmentService
 
         if (
             $total
-            > self::MAX_TOTAL_BYTES
+            > $this->policy->maxTotalBytes()
         ) {
             return [
                 'ok' => false,
@@ -312,17 +371,33 @@ class CorrespondenceAttachmentService
             $this->enterpriseContext
                 ->forUser($userId);
 
-        $updated =
-            $this->attachments
-                ->updateMetadata(
-                    $correspondenceReference,
-                    $fileReference,
-                    $role,
-                    $this->text($title, 255),
-                    $userId,
-                    Clock::databaseTimestamp(),
-                    $actor
-                );
+        try {
+            $updated =
+                $this->attachments
+                    ->updateMetadata(
+                        $correspondenceReference,
+                        $fileReference,
+                        $role,
+                        $this->text($title, 255),
+                        $userId,
+                        Clock::databaseTimestamp(),
+                        $actor
+                    );
+
+        } catch (\DomainException $exception) {
+            if (
+                $exception->getMessage()
+                === 'primary_attachment_exists'
+            ) {
+                return [
+                    'ok' => false,
+                    'error' =>
+                        'primary_attachment_exists',
+                ];
+            }
+
+            throw $exception;
+        }
 
         return $updated
             ? [

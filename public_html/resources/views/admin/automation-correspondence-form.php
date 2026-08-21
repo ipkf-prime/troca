@@ -1,4 +1,40 @@
 <?php
+/* attachment-dynamic-policy-ui-v1 */
+$attachmentPolicy =
+    new \App\Services\Automation\Correspondence\CorrespondenceAttachmentPolicy();
+
+$attachmentPolicyMaxFiles =
+    $attachmentPolicy->maxFiles();
+
+$attachmentPolicyMaxFileMb =
+    $attachmentPolicy->maxFileMegabytes();
+
+$attachmentPolicyMaxTotalMb =
+    $attachmentPolicy->maxTotalMegabytes();
+
+$attachmentPolicyAccept =
+    $attachmentPolicy->acceptAttribute();
+
+$attachmentPolicyTypeLabel =
+    $attachmentPolicy->allowedTypeLabel();
+
+$attachmentPolicyClientRules =
+    $attachmentPolicy->clientRules();
+
+$attachmentPolicyMaxFilesFa =
+    $attachmentPolicy->persianNumber(
+        $attachmentPolicyMaxFiles
+    );
+
+$attachmentPolicyMaxFileMbFa =
+    $attachmentPolicy->persianNumber(
+        $attachmentPolicyMaxFileMb
+    );
+
+$attachmentPolicyMaxTotalMbFa =
+    $attachmentPolicy->persianNumber(
+        $attachmentPolicyMaxTotalMb
+    );
 
 if (!function_exists('admin_h')) {
     function admin_h($value): string
@@ -415,7 +451,7 @@ ob_start();
                 <div>
                     <h3>پیوست‌های مکاتبه</h3>
                     <p class="admin-muted">
-                        حداکثر ۳ فایل؛ هر فایل ۱۰ و مجموع فایل‌ها ۲۰ مگابایت
+                        حداکثر <?=admin_h($attachmentPolicyMaxFilesFa)?> فایل؛ هر فایل <?=admin_h($attachmentPolicyMaxFileMbFa)?> و مجموع فایل‌ها <?=admin_h($attachmentPolicyMaxTotalMbFa)?> مگابایت
                     </p>
                 </div>
             </div>
@@ -427,7 +463,7 @@ ob_start();
                 <input
                     type="file"
                     name="attachments[]"
-                    accept=".pdf,.docx,.jpg,.jpeg,.png"
+                    accept="<?=admin_h($attachmentPolicyAccept)?>"
                     multiple
                     data-attachment-input
                 >
@@ -1465,18 +1501,12 @@ ob_start();
             '[data-attachment-message]'
         );
 
-    const attachmentRules = {
-        maxFiles: 3,
-        maxEach: 10 * 1024 * 1024,
-        maxTotal: 20 * 1024 * 1024,
-        extensions: [
-            'pdf',
-            'docx',
-            'jpg',
-            'jpeg',
-            'png',
-        ],
-    };
+    const attachmentRules =
+        <?= json_encode(
+            $attachmentPolicyClientRules,
+            JSON_UNESCAPED_UNICODE
+            | JSON_UNESCAPED_SLASHES
+        ) ?>;
 
     const attachmentFaNumber = (value) =>
         String(value).replace(
@@ -1524,7 +1554,11 @@ ob_start();
             files.length
             > attachmentRules.maxFiles
         ) {
-            return 'حداکثر ۳ فایل قابل انتخاب است.';
+                        return `حداکثر ${
+                attachmentFaNumber(
+                    attachmentRules.maxFiles
+                )
+            } فایل قابل انتخاب است.`;
         }
 
         let total = 0;
@@ -1552,7 +1586,11 @@ ob_start();
                 || file.size
                     > attachmentRules.maxEach
             ) {
-                return 'حجم هر فایل باید حداکثر ۱۰ مگابایت باشد.';
+                                return `حجم هر فایل باید حداکثر ${
+                    attachmentFaNumber(
+                        attachmentRules.maxFileMb
+                    )
+                } مگابایت باشد.`;
             }
         }
 
@@ -1560,7 +1598,11 @@ ob_start();
             total
             > attachmentRules.maxTotal
         ) {
-            return 'مجموع حجم فایل‌ها باید حداکثر ۲۰ مگابایت باشد.';
+                        return `مجموع حجم فایل‌ها باید حداکثر ${
+                attachmentFaNumber(
+                    attachmentRules.maxTotalMb
+                )
+            } مگابایت باشد.`;
         }
 
         return '';
@@ -1627,7 +1669,11 @@ ob_start();
 
             attachmentSelect.textContent =
                 limitReached
-                    ? 'حداکثر ۳ فایل انتخاب شده'
+                                        ? `حداکثر ${
+                        attachmentFaNumber(
+                            attachmentRules.maxFiles
+                        )
+                    } فایل انتخاب شده`
                     : (
                         files.length === 0
                             ? 'انتخاب فایل'
@@ -1891,9 +1937,55 @@ ob_start();
                     rememberMetadata
                 );
 
+                /*
+                 * attachment-primary-ui-guard-v1
+                 *
+                 * Keep the wizard in a valid state before submission.
+                 * The transactional repository guard remains the
+                 * authoritative concurrent-request protection.
+                 */
                 roleSelect.addEventListener(
                     'change',
-                    rememberMetadata
+                    () => {
+                        if (
+                            roleSelect.value === 'main'
+                        ) {
+                            const anotherPrimary = [
+                                ...attachmentList
+                                    .querySelectorAll(
+                                        '[name="attachment_role_codes[]"]'
+                                    ),
+                            ].some(
+                                (candidate) =>
+                                    candidate
+                                        !== roleSelect
+                                    && candidate.value
+                                        === 'main'
+                            );
+
+                            if (anotherPrimary) {
+                                roleSelect.value =
+                                    previous?.role
+                                    && previous.role
+                                        !== 'main'
+                                        ? previous.role
+                                        : 'enclosure';
+
+                                showAttachmentError(
+                                    'برای هر مکاتبه فقط یک فایل اصلی قابل ثبت است.'
+                                );
+
+                                rememberMetadata();
+                                return;
+                            }
+                        }
+
+                        showAttachmentError(
+                            validateAttachments(files)
+                        );
+
+                        rememberMetadata();
+                    }
                 );
 
                 rememberMetadata();
