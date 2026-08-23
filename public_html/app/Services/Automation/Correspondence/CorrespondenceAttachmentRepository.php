@@ -965,6 +965,12 @@ class CorrespondenceAttachmentRepository
                 $scope
             );
 
+        /*
+         * attachment-download-clean-only-security-gate-v1
+         *
+         * Download is fail-closed: only content that completed
+         * malware scanning successfully may be served.
+         */
         $sql = "
             SELECT f.*
 
@@ -981,10 +987,7 @@ class CorrespondenceAttachmentRepository
             WHERE c.public_reference = ?
               AND f.public_reference = ?
               AND f.status = 'active'
-              AND f.scan_status_code IN (
-                  'clean',
-                  'not_required'
-              )
+              AND f.scan_status_code = 'clean'
         ";
 
         $params = [

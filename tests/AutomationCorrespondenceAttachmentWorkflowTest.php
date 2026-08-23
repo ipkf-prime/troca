@@ -1055,8 +1055,14 @@ foreach (
 BINDING
         ],
         [$repository, 'invalid_attachment_scan_status'],
-        [$repository, "f.scan_status_code IN ("],
-        [$repository, "'not_required'"],
+        [
+            $repository,
+            'attachment-download-clean-only-security-gate-v1',
+        ],
+        [
+            $repository,
+            "AND f.scan_status_code = 'clean'",
+        ],
         [$routes, "\$attachmentResult['error']"],
         [$detail, 'فایل انتخاب‌شده آلوده تشخیص داده شد و ذخیره نشد.'],
         [$detail, 'بررسی امنیتی فایل انجام نشد؛ لطفاً دوباره تلاش کنید.'],
@@ -1082,6 +1088,36 @@ $expect(
         "'scan_status_code' => 'not_required'"
     ),
     'New uploads must not be marked as not_required.'
+);
+
+/**
+ * attachment-download-clean-only-security-gate-test-v1
+ */
+$legacyDownloadAllowance = <<<'LEGACY_DOWNLOAD_SQL'
+              AND f.scan_status_code IN (
+                  'clean',
+                  'not_required'
+              )
+LEGACY_DOWNLOAD_SQL;
+
+$expect(
+    !str_contains(
+        (string) $repository,
+        $legacyDownloadAllowance
+    ),
+    'Attachment download must not allow legacy not_required files.'
+);
+
+$expect(
+    str_contains(
+        (string) $repository,
+        'attachment-download-clean-only-security-gate-v1'
+    )
+    && str_contains(
+        (string) $repository,
+        "AND f.scan_status_code = 'clean'"
+    ),
+    'Attachment download must remain clean-only.'
 );
 
 /**
