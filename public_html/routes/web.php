@@ -4922,7 +4922,10 @@ $router->post('/admin/automation/correspondences', function ($request, $response
                     : (
                         $attachmentCount > 0
                             ? 'partial'
-                            : 'failed'
+                            : (string) (
+                                $attachmentResult['error']
+                                ?? 'failed'
+                            )
                     );
 
             $url =
@@ -5091,7 +5094,10 @@ $router->post('/admin/automation/correspondences/{public_reference}/versions', f
                     : (
                         $attachmentCount > 0
                             ? 'partial'
-                            : 'failed'
+                            : (string) (
+                                $attachmentResult['error']
+                                ?? 'failed'
+                            )
                     );
 
             $url =

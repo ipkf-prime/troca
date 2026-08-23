@@ -1021,5 +1021,68 @@ $expect(
     ),
     'Lifecycle CLI must not print public references.'
 );
+/**
+ * attachment-malware-scan-integration-contract-test-v1
+ */
+$scannerProvider = file_get_contents(
+    $root
+    . '/public_html/app/Services/Automation/Correspondence/'
+    . 'CorrespondenceAttachmentMalwareScanner.php'
+);
+
+foreach (
+    [
+        [$scannerProvider, 'attachment-clamav-scanner-provider-v1'],
+        [$scannerProvider, "'bypass_shell' => true"],
+        [$scannerProvider, "'--infected'"],
+        [$scannerProvider, "'--no-summary'"],
+        [$scannerProvider, "0 => 'clean'"],
+        [$scannerProvider, "1 => 'infected'"],
+        [$scannerProvider, "default => 'error'"],
+        [$scannerProvider, 'proc_terminate('],
+        [$service, 'attachment-upload-malware-scan-v1'],
+        [$service, "'error' => 'attachment_infected'"],
+        [$service, "'error' => 'attachment_scan_failed'"],
+        [$service, "'scan_status_code' => 'clean'"],
+        [
+            $repository,
+            <<<'BINDING'
+                $userId,
+                $now,
+                $scanStatus,
+                $now,
+                $now,
+BINDING
+        ],
+        [$repository, 'invalid_attachment_scan_status'],
+        [$repository, "f.scan_status_code IN ("],
+        [$repository, "'not_required'"],
+        [$routes, "\$attachmentResult['error']"],
+        [$detail, 'فایل انتخاب‌شده آلوده تشخیص داده شد و ذخیره نشد.'],
+        [$detail, 'بررسی امنیتی فایل انجام نشد؛ لطفاً دوباره تلاش کنید.'],
+        [$envExample, 'AUTOMATION_ATTACHMENT_CLAMSCAN_PATH='],
+        [$envExample, 'AUTOMATION_ATTACHMENT_SCAN_TIMEOUT_SECONDS=45'],
+    ]
+    as [$content, $marker]
+) {
+    $expect(
+        is_string($content)
+        && str_contains(
+            $content,
+            $marker
+        ),
+        'Missing malware scan integration marker: '
+            . $marker
+    );
+}
+
+$expect(
+    !str_contains(
+        (string) $service,
+        "'scan_status_code' => 'not_required'"
+    ),
+    'New uploads must not be marked as not_required.'
+);
+
 echo
     "Automation correspondence attachment workflow test passed.\n";

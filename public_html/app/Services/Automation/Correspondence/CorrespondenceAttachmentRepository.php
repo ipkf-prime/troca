@@ -92,6 +92,18 @@ class CorrespondenceAttachmentRepository
                 );
             }
 
+            $scanStatus =
+                (string) (
+                    $file['scan_status_code']
+                    ?? ''
+                );
+
+            if ($scanStatus !== 'clean') {
+                throw new \DomainException(
+                    'invalid_attachment_scan_status'
+                );
+            }
+
             $duplicateCheck =
                 $pdo->prepare("
                     SELECT COUNT(*)
@@ -196,7 +208,7 @@ class CorrespondenceAttachmentRepository
                         ?,
                         ?,
                         ?,
-                        'not_required',
+                        ?,
                         'active',
                         ?,
                         ?
@@ -224,6 +236,7 @@ class CorrespondenceAttachmentRepository
                 ],
                 $userId,
                 $now,
+                $scanStatus,
                 $now,
                 $now,
             ]);
@@ -881,6 +894,10 @@ class CorrespondenceAttachmentRepository
             WHERE c.public_reference = ?
               AND f.public_reference = ?
               AND f.status = 'active'
+              AND f.scan_status_code IN (
+                  'clean',
+                  'not_required'
+              )
         ";
 
         $params = [

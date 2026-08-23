@@ -13,10 +13,14 @@ class CorrespondenceAttachmentService
         private ?CorrespondenceRepository $correspondences = null,
         private ?CorrespondenceAttachmentRepository $attachments = null,
         private ?EnterpriseAutomationContextService $enterpriseContext = null,
-        private ?CorrespondenceAttachmentPolicy $policy = null
+        private ?CorrespondenceAttachmentPolicy $policy = null,
+        private ?CorrespondenceAttachmentMalwareScanner $scanner = null
     ) {
         $this->policy ??=
             new CorrespondenceAttachmentPolicy();
+
+        $this->scanner ??=
+            new CorrespondenceAttachmentMalwareScanner();
 
         $this->correspondences ??=
             new CorrespondenceRepository();
@@ -70,6 +74,31 @@ class CorrespondenceAttachmentService
         }
         if (!in_array($role, ['main', 'enclosure', 'supporting', 'scan'], true)) $role = 'enclosure';
 
+        /*
+         * attachment-upload-malware-scan-v1
+         *
+         * Scan the PHP upload temporary file before it enters private
+         * storage. Any scanner failure is handled as fail-closed.
+         */
+        $scanResult =
+            $this->scanner->scan(
+                $tmp
+            );
+
+        if ($scanResult === 'infected') {
+            return [
+                'ok' => false,
+                'error' => 'attachment_infected',
+            ];
+        }
+
+        if ($scanResult !== 'clean') {
+            return [
+                'ok' => false,
+                'error' => 'attachment_scan_failed',
+            ];
+        }
+
         $configuredRoot = trim((string) Env::get('PRIVATE_FILE_STORAGE_PATH', ''));
         $root = rtrim($configuredRoot !== '' ? $configuredRoot : dirname(BASE_PATH) . '/storage/private/automation', '/\\');
         $directory = $root . '/' . gmdate('Y/m');
@@ -95,6 +124,7 @@ class CorrespondenceAttachmentService
                 'original_filename' => $this->filename((string) ($upload['name'] ?? 'attachment')),
                 'mime_type' => $mime,
                 'size_bytes' => $size,
+                'scan_status_code' => 'clean',
                 'sha256_checksum' =>
                     (string) hash_file(
                         'sha256',
