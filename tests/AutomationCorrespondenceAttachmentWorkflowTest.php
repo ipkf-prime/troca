@@ -1084,5 +1084,260 @@ $expect(
     'New uploads must not be marked as not_required.'
 );
 
+/**
+ * attachment-security-status-ui-contract-test-v1
+ */
+foreach (
+    [
+        [
+            $repository,
+            'f.scan_status_code',
+        ],
+        [
+            $viewModel,
+            'attachment-security-status-viewmodel-v1',
+        ],
+        [
+            $viewModel,
+            "'بررسی‌شده و سالم'",
+        ],
+        [
+            $viewModel,
+            "'قدیمی؛ بررسی‌نشده'",
+        ],
+        [
+            $viewModel,
+            "'security_label'",
+        ],
+        [
+            $viewModel,
+            "'security_class'",
+        ],
+        [
+            $detail,
+            "attachment['security_label']",
+        ],
+        [
+            $detail,
+            'admin-status-badge--',
+        ],
+    ]
+    as [$content, $marker]
+) {
+    $expect(
+        is_string($content)
+        && str_contains(
+            $content,
+            $marker
+        ),
+        'Missing attachment security UI marker: '
+            . $marker
+    );
+}
+
+/**
+ * attachment-legacy-scan-regression-contract-test-v1
+ */
+$legacyScanPolicySourceV1 =
+    file_get_contents(
+        $root
+        . '/public_html/app/Services/Automation/Correspondence/'
+        . 'CorrespondenceAttachmentLegacyScanPolicy.php'
+    );
+
+$legacyScanServiceSourceV1 =
+    file_get_contents(
+        $root
+        . '/public_html/app/Services/Automation/Correspondence/'
+        . 'CorrespondenceAttachmentLegacyScanService.php'
+    );
+
+$legacyScanCliSourceV1 =
+    file_get_contents(
+        $root
+        . '/public_html/scripts/'
+        . 'scan-legacy-correspondence-attachments.php'
+    );
+
+foreach (
+    [
+        [
+            $envExample,
+            'AUTOMATION_ATTACHMENT_LEGACY_SCAN_BATCH_SIZE=10',
+        ],
+
+        [
+            $legacyScanPolicySourceV1,
+            'attachment-legacy-scan-policy-v1',
+        ],
+        [
+            $legacyScanPolicySourceV1,
+            'private const DEFAULT_BATCH_SIZE = 10;',
+        ],
+        [
+            $legacyScanPolicySourceV1,
+            'AUTOMATION_ATTACHMENT_LEGACY_SCAN_BATCH_SIZE',
+        ],
+
+        [
+            $repository,
+            'attachment-legacy-scan-repository-v1',
+        ],
+        [
+            $repository,
+            'legacyScanCandidates(',
+        ],
+        [
+            $repository,
+            'markLegacyScanResult(',
+        ],
+        [
+            $repository,
+            "scan_status_code = 'not_required'",
+        ],
+        [
+            $repository,
+            "'clean',",
+        ],
+        [
+            $repository,
+            "'infected',",
+        ],
+        [
+            $repository,
+            "'error',",
+        ],
+
+        [
+            $legacyScanServiceSourceV1,
+            'attachment-legacy-scan-service-v1',
+        ],
+        [
+            $legacyScanServiceSourceV1,
+            'CorrespondenceAttachmentLegacyScanService',
+        ],
+        [
+            $legacyScanServiceSourceV1,
+            'legacyScanCandidates(',
+        ],
+        [
+            $legacyScanServiceSourceV1,
+            'markLegacyScanResult(',
+        ],
+        [
+            $legacyScanServiceSourceV1,
+            'realpath($storageKey)',
+        ],
+        [
+            $legacyScanServiceSourceV1,
+            'is_readable($path)',
+        ],
+        [
+            $legacyScanServiceSourceV1,
+            'if (!$execute)',
+        ],
+        [
+            $legacyScanServiceSourceV1,
+            "'updated_count'",
+        ],
+        [
+            $legacyScanServiceSourceV1,
+            "'stale_count'",
+        ],
+
+        [
+            $legacyScanCliSourceV1,
+            'attachment-legacy-scan-cli-v1',
+        ],
+        [
+            $legacyScanCliSourceV1,
+            "'execute'",
+        ],
+        [
+            $legacyScanCliSourceV1,
+            "'confirm:'",
+        ],
+        [
+            $legacyScanCliSourceV1,
+            'SCAN-LEGACY-CORRESPONDENCE-ATTACHMENTS',
+        ],
+        [
+            $legacyScanCliSourceV1,
+            '->run($execute)',
+        ],
+        [
+            $legacyScanCliSourceV1,
+            "'candidate_count'",
+        ],
+        [
+            $legacyScanCliSourceV1,
+            "'eligible_count'",
+        ],
+        [
+            $legacyScanCliSourceV1,
+            "'updated_count'",
+        ],
+        [
+            $legacyScanCliSourceV1,
+            "'stale_count'",
+        ],
+        [
+            $legacyScanCliSourceV1,
+            'exit(2);',
+        ],
+    ]
+    as [$content, $requiredMarker]
+) {
+    $expect(
+        is_string($content)
+        && str_contains(
+            $content,
+            $requiredMarker
+        ),
+        'Missing legacy scan marker: '
+            . $requiredMarker
+    );
+}
+
+$expect(
+    !str_contains(
+        (string) $legacyScanCliSourceV1,
+        'public_reference'
+    ),
+    'Legacy scan CLI must not print public references.'
+);
+
+$expect(
+    !str_contains(
+        (string) $legacyScanCliSourceV1,
+        'original_filename'
+    ),
+    'Legacy scan CLI must not print original filenames.'
+);
+
+$expect(
+    str_contains(
+        (string) $legacyScanServiceSourceV1,
+        "'mode' =>"
+    )
+    && str_contains(
+        (string) $legacyScanServiceSourceV1,
+        "? 'execute'"
+    )
+    && str_contains(
+        (string) $legacyScanServiceSourceV1,
+        ": 'dry-run'"
+    ),
+    'Legacy scan default/execute mode contract is incomplete.'
+);
+
+$expect(
+    str_contains(
+        (string) $repository,
+        "AND scan_status_code = 'not_required'"
+    ),
+    'Legacy scan state transition must remain conditional.'
+);
+
 echo
     "Automation correspondence attachment workflow test passed.\n";

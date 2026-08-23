@@ -821,6 +821,92 @@ class CorrespondenceAttachmentRepository
             $statement->rowCount()
             === 1;
     }
+    /**
+     * attachment-legacy-scan-repository-v1
+     */
+    public function legacyScanCandidates(
+        int $limit
+    ): array {
+        $limit =
+            max(
+                1,
+                min(
+                    100,
+                    $limit
+                )
+            );
+
+        $statement =
+            $this->runtime
+                ->connection()
+                ->query("
+                    SELECT
+                        id,
+                        public_reference,
+                        storage_key,
+                        size_bytes,
+                        scan_status_code
+                    FROM private_files
+                    WHERE status = 'active'
+                      AND scan_status_code = 'not_required'
+                    ORDER BY id
+                    LIMIT {$limit}
+                ");
+
+        return
+            $statement->fetchAll(
+                PDO::FETCH_ASSOC
+            ) ?: [];
+    }
+
+    public function markLegacyScanResult(
+        int $fileId,
+        string $result,
+        string $now
+    ): bool {
+        if (
+            !in_array(
+                $result,
+                [
+                    'clean',
+                    'infected',
+                    'error',
+                ],
+                true
+            )
+        ) {
+            throw new \DomainException(
+                'invalid_attachment_scan_result'
+            );
+        }
+
+        /*
+         * Conditional state transition prevents an older scan from
+         * overwriting a record already handled by another worker.
+         */
+        $statement =
+            $this->runtime
+                ->connection()
+                ->prepare("
+                    UPDATE private_files
+                    SET
+                        scan_status_code = ?,
+                        updated_at = ?
+                    WHERE id = ?
+                      AND status = 'active'
+                      AND scan_status_code = 'not_required'
+                ");
+
+        $statement->execute([
+            $result,
+            $now,
+            $fileId,
+        ]);
+
+        return
+            $statement->rowCount()
+            === 1;
+    }
     public function listFor(
         int $correspondenceId
     ): array {
@@ -841,7 +927,8 @@ class CorrespondenceAttachmentRepository
                         f.original_filename,
                         f.mime_type,
                         f.size_bytes,
-                        f.storage_key
+                        f.storage_key,
+                        f.scan_status_code
 
                     FROM correspondence_attachments a
 

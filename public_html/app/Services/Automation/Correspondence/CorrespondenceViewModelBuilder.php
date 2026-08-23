@@ -239,6 +239,39 @@ class CorrespondenceViewModelBuilder
     private function attachment(string $correspondenceReference, array $row): array
     {
         $fileReference = (string) ($row['file_reference'] ?? '');
+
+        /*
+         * attachment-security-status-viewmodel-v1
+         */
+        $scanStatus =
+            (string) (
+                $row['scan_status_code']
+                ?? 'not_required'
+            );
+
+        $securityLabel =
+            match ($scanStatus) {
+                'clean' =>
+                    'بررسی‌شده و سالم',
+
+                'infected' =>
+                    'آلوده',
+
+                'pending' =>
+                    'در انتظار بررسی',
+
+                'error' =>
+                    'خطا در بررسی',
+
+                default =>
+                    'قدیمی؛ بررسی‌نشده',
+            };
+
+        $securityClass =
+            $scanStatus === 'clean'
+                ? 'active'
+                : 'inactive';
+
         return [
             'role' => $this->lookups->label('attachment_role', $row['attachment_role_code'] ?? ''),
             'role_code' => (string) ($row['attachment_role_code'] ?? 'enclosure'),
@@ -246,6 +279,9 @@ class CorrespondenceViewModelBuilder
             'title_raw' => (string) ($row['title'] ?? ''),
             'filename' => (string) ($row['original_filename'] ?? ''),
             'mime_type' => (string) ($row['mime_type'] ?? ''),
+            'scan_status_code' => $scanStatus,
+            'security_label' => $securityLabel,
+            'security_class' => $securityClass,
             'size' => AdminFormat::digits(number_format(((int) ($row['size_bytes'] ?? 0)) / 1024, 0)) . ' کیلوبایت',
             'url' => '/admin/automation/correspondences/' . rawurlencode($correspondenceReference) . '/attachments/' . rawurlencode($fileReference),
             'remove_url' => '/admin/automation/correspondences/' . rawurlencode($correspondenceReference) . '/attachments/' . rawurlencode($fileReference) . '/remove',
