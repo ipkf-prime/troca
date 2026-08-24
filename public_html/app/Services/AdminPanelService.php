@@ -251,6 +251,29 @@ class AdminPanelService extends BaseService
                 ],
             ],
             [
+                'key' => 'ticketing',
+                'title' => 'پشتیبانی و تیکتینگ',
+                'description' => 'ثبت، پیگیری و مدیریت تیکت‌ها و درخواست‌های پشتیبانی',
+                'subtitle' => 'تیکت‌ها و درخواست‌های پشتیبانی',
+                'icon' => 'support',
+                'color' => 'cyan',
+                'url' => '/admin/ticketing',
+                'permission' => 'ticketing.ticket.view',
+                'sort_order' => 36,
+                'actions' => [
+                    [
+                        'key' => 'ticketing-dashboard',
+                        'title' => 'داشبورد تیکتینگ',
+                        'description' => 'نمای کلی تیکت‌ها و درخواست‌های پشتیبانی',
+                        'icon' => 'dashboard',
+                        'color' => 'cyan',
+                        'url' => '/admin/ticketing',
+                        'permission' => 'ticketing.ticket.view',
+                        'sort_order' => 10,
+                    ],
+                ],
+            ],
+            [
                 'key' => 'reports',
                 'title' => $this->fa('&#x06AF;&#x0632;&#x0627;&#x0631;&#x0634;&#x200C;&#x0647;&#x0627;'),
                 'description' => $this->fa('&#x06AF;&#x0632;&#x0627;&#x0631;&#x0634;&#x200C;&#x0647;&#x0627;&#x06CC; &#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A;&#x06CC; &#x0648; &#x0639;&#x0645;&#x0644;&#x06CC;&#x0627;&#x062A;&#x06CC; &#x0633;&#x0627;&#x0645;&#x0627;&#x0646;&#x0647;'),
@@ -280,6 +303,7 @@ class AdminPanelService extends BaseService
             $qualify = match ($moduleKey) {
                 'automation' => fn (string $path): string => $urls->automationLaunch($path),
                 'work' => fn (string $path): string => $urls->workLaunch($path),
+                'ticketing' => fn (string $path): string => $urls->ticketingLaunch($path),
                 default => fn (string $path): string => $urls->core($path),
             };
             $module['url'] = $qualify((string) ($module['url'] ?? '/'));

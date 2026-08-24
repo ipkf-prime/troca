@@ -214,6 +214,7 @@ class DynamicAdminNavigationService extends BaseService
         return match ((string) ($item['target_application'] ?? 'core')) {
             'work' => $urls->workLaunch($path),
             'automation' => $urls->automationLaunch($path),
+            'ticketing' => $urls->ticketingLaunch($path),
             default => $urls->core($path),
         };
     }
