@@ -60,6 +60,11 @@ class ConnectionRegistry
         $this->definitions['work.primary'] = $workConfig === null
             ? new ConnectionDefinition('work.primary', [], false)
             : new ConnectionDefinition('work.primary', $workConfig, $this->completeConfig($workConfig));
+
+        $ticketingConfig = $this->moduleConfig('ticketing', 'TICKETING');
+        $this->definitions['ticketing.primary'] = $ticketingConfig === null
+            ? new ConnectionDefinition('ticketing.primary', [], false)
+            : new ConnectionDefinition('ticketing.primary', $ticketingConfig, $this->completeConfig($ticketingConfig));
     }
 
     private function moduleConfig(string $moduleKey, string $prefix): ?array

@@ -19,6 +19,11 @@ class ApplicationUrlRegistry
         return $this->moduleUrl('work', 'WORK_APP_URL', $path);
     }
 
+    public function ticketing(string $path = ''): string
+    {
+        return $this->moduleUrl('ticketing', 'TICKETING_APP_URL', $path);
+    }
+
     public function automationLaunch(string $path = '/admin/automation', ?string $requestHost = null): string
     {
         $host = $requestHost ?? (string) ($_SERVER['HTTP_HOST'] ?? '');
@@ -34,6 +39,16 @@ class ApplicationUrlRegistry
         $host = $requestHost ?? (string) ($_SERVER['HTTP_HOST'] ?? '');
         if ($this->isWorkHost($host)) {
             return $this->work($path);
+        }
+
+        return $this->core('/auth/module-sso/start?return_path=' . rawurlencode($path));
+    }
+
+    public function ticketingLaunch(string $path = '/admin/ticketing', ?string $requestHost = null): string
+    {
+        $host = $requestHost ?? (string) ($_SERVER['HTTP_HOST'] ?? '');
+        if ($this->isTicketingHost($host)) {
+            return $this->ticketing($path);
         }
 
         return $this->core('/auth/module-sso/start?return_path=' . rawurlencode($path));
@@ -56,6 +71,11 @@ class ApplicationUrlRegistry
         return $this->moduleHost('work', 'WORK_APP_URL');
     }
 
+    public function ticketingHost(): ?string
+    {
+        return $this->moduleHost('ticketing', 'TICKETING_APP_URL');
+    }
+
     public function guardEnabled(): bool
     {
         return filter_var(Env::get('APP_HOST_GUARD_ENABLED', false), FILTER_VALIDATE_BOOL);
@@ -65,7 +85,7 @@ class ApplicationUrlRegistry
     {
         $host = $this->normalizeHost($requestHost);
         $allowed = array_filter(array_unique(array_merge(
-            [$this->coreHost(), $this->automationHost(), $this->workHost()],
+            [$this->coreHost(), $this->automationHost(), $this->workHost(), $this->ticketingHost()],
             array_map(fn (string $item): string => $this->normalizeHost($item), explode(',', (string) Env::get('ALLOWED_APP_HOSTS', '')))
         )));
 
@@ -90,6 +110,12 @@ class ApplicationUrlRegistry
         return $configured !== null && hash_equals($configured, $this->normalizeHost($requestHost));
     }
 
+    public function isTicketingHost(string $requestHost): bool
+    {
+        $configured = $this->ticketingHost();
+        return $configured !== null && hash_equals($configured, $this->normalizeHost($requestHost));
+    }
+
     public function redirectTarget(string $requestHost, string $requestUri): ?string
     {
         if (!$this->guardEnabled()) {
@@ -99,10 +125,12 @@ class ApplicationUrlRegistry
         $path = parse_url($requestUri, PHP_URL_PATH) ?: '/';
         $automationPath = $path === '/admin/automation' || str_starts_with($path, '/admin/automation/');
         $workPath = $path === '/admin/work' || str_starts_with($path, '/admin/work/');
-        $modulePath = $automationPath || $workPath;
+        $ticketingPath = $path === '/admin/ticketing' || str_starts_with($path, '/admin/ticketing/');
+        $modulePath = $automationPath || $workPath || $ticketingPath;
         $requestIsAutomation = $this->isAutomationHost($requestHost);
         $requestIsWork = $this->isWorkHost($requestHost);
-        $requestIsModule = $requestIsAutomation || $requestIsWork;
+        $requestIsTicketing = $this->isTicketingHost($requestHost);
+        $requestIsModule = $requestIsAutomation || $requestIsWork || $requestIsTicketing;
 
         if ($path === '/' && $requestIsAutomation) {
             return $this->automation('/admin/automation');
@@ -112,11 +140,19 @@ class ApplicationUrlRegistry
             return $this->work('/admin/work');
         }
 
+        if ($path === '/' && $requestIsTicketing) {
+            return $this->ticketing('/admin/ticketing');
+        }
+
         if ($automationPath && $this->isCoreHost($requestHost)) {
             return $this->core('/auth/module-sso/start?return_path=' . rawurlencode($requestUri));
         }
 
         if ($workPath && $this->isCoreHost($requestHost)) {
+            return $this->core('/auth/module-sso/start?return_path=' . rawurlencode($requestUri));
+        }
+
+        if ($ticketingPath && $this->isCoreHost($requestHost)) {
             return $this->core('/auth/module-sso/start?return_path=' . rawurlencode($requestUri));
         }
 
@@ -128,12 +164,20 @@ class ApplicationUrlRegistry
             return $this->work($requestUri);
         }
 
+        if ($ticketingPath && !$requestIsTicketing && $this->ticketingHost() !== null) {
+            return $this->ticketing($requestUri);
+        }
+
         if ($requestIsAutomation && $this->isCentralAuthenticationPath($path)) {
             return $this->core('/auth/module-sso/start?return_path=' . rawurlencode('/admin/automation'));
         }
 
         if ($requestIsWork && $this->isCentralAuthenticationPath($path)) {
             return $this->core('/auth/module-sso/start?return_path=' . rawurlencode('/admin/work'));
+        }
+
+        if ($requestIsTicketing && $this->isCentralAuthenticationPath($path)) {
+            return $this->core('/auth/module-sso/start?return_path=' . rawurlencode('/admin/ticketing'));
         }
 
         if ($requestIsModule
@@ -156,6 +200,10 @@ class ApplicationUrlRegistry
 
         if ($this->isWorkHost($requestHost)) {
             return $this->work('/admin/work');
+        }
+
+        if ($this->isTicketingHost($requestHost)) {
+            return $this->ticketing('/admin/ticketing');
         }
 
         return $this->core('/admin/dashboard');

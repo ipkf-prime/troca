@@ -85,6 +85,11 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateModuleReferenceDataTables::class,
                 ],
             ],
+            'ticketing' => [
+                'connection' => 'ticketing.primary',
+                'migrations' => [
+                ],
+            ],
         ];
     }
 

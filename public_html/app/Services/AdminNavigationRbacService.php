@@ -43,6 +43,7 @@ class AdminNavigationRbacService extends BaseService
             '/admin/automation/external-organizations/contact-methods/deactivate' => 'automation.external_directory.manage',
             '/admin/automation/external-organizations/addresses/save' => 'automation.external_directory.manage',
             '/admin/automation/external-organizations/addresses/deactivate' => 'automation.external_directory.manage',
+            '/admin/ticketing' => 'ticketing.ticket.view',
             '/admin/work' => 'work.project.view',
             '/admin/work/projects' => 'work.project.view',
             '/admin/work/projects/create' => 'work.project.manage',

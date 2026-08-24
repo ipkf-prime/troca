@@ -15,7 +15,7 @@ if (!\IPKF\Support\Maintenance::keyIsValid($_GET['key'] ?? null)) {
 $application = trim((string) ($_GET['application'] ?? ''));
 
 if ($application !== '') {
-    $allowedApplications = ['core', 'automation', 'work'];
+    $allowedApplications = ['core', 'automation', 'work', 'ticketing'];
 
     if (!in_array($application, $allowedApplications, true)) {
         \IPKF\Support\Maintenance::deny('/migrate.php');
@@ -44,6 +44,12 @@ if ($application !== '') {
             }
         }
         if ($application === 'work') {
+            if ($definition === null || $definition->usesFallback() || !$definition->configured()) {
+                throw new \RuntimeException('Dedicated application connection is required.');
+            }
+        }
+
+        if ($application === 'ticketing') {
             if ($definition === null || $definition->usesFallback() || !$definition->configured()) {
                 throw new \RuntimeException('Dedicated application connection is required.');
             }

@@ -59,7 +59,13 @@ foreach ([
 
 expectMultiDb(str_contains($registry, "'core.primary'"), 'Registry must register core.primary.');
 expectMultiDb(str_contains($registry, "'automation.primary'"), 'Registry must register automation.primary.');
-expectMultiDb(str_contains($registry, "'core.primary'") && str_contains($registry, "fallbackConnectionName"), 'Automation fallback must be modeled explicitly.');
+expectMultiDb(
+    preg_match(
+        "/new\\s+ConnectionDefinition\\(\\s*'automation\\.primary'\\s*,\\s*\\[\\]\\s*,\\s*true\\s*,\\s*'core\\.primary'\\s*\\)/s",
+        $registry
+    ) === 1,
+    'Automation fallback must be modeled explicitly.'
+);
 expectMultiDb(str_contains($registry, 'AUTOMATION_DB_HOST'), 'Automation host env key must be supported.');
 expectMultiDb(str_contains($registry, 'AUTOMATION_DB_DATABASE'), 'Automation database env key must be supported.');
 expectMultiDb(str_contains($registry, 'AUTOMATION_DB_USERNAME'), 'Automation username env key must be supported.');
@@ -132,7 +138,19 @@ expectMultiDb(!preg_match('/\b(host|port|database_name|username|password|dsn|sec
 
 $allSources = implode("\n", [$registry, $resolver, $factory, $migrationRegistry, $seederRegistry, $migrationRunner, $historyMigration, $migrate, $seed]);
 expectMultiDb(!preg_match('/REFERENCES\s+[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+/i', $allSources), 'No cross-database foreign keys may be introduced.');
-expectMultiDb(!preg_match('/\b(?:FROM|JOIN|UPDATE|INTO|REFERENCES)\s+[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+/i', $allSources), 'No cross-database SQL may be introduced.');
+$crossDatabaseSqlSources = preg_replace(
+    '/\\binformation_schema\\.[a-zA-Z0-9_]+\\b/i',
+    'information_schema_metadata',
+    $allSources
+);
+
+expectMultiDb(
+    !preg_match(
+        '/\\b(?:FROM|JOIN|UPDATE|INTO|REFERENCES)\\s+[a-zA-Z0-9_]+\\.[a-zA-Z0-9_]+/i',
+        (string) $crossDatabaseSqlSources
+    ),
+    'No application cross-database SQL may be introduced.'
+);
 expectMultiDb(!str_contains($allSources, 'FOREIGN_KEY_CHECKS'), 'No global foreign key check changes may be introduced.');
 expectMultiDb(!preg_match('/\b(?:DROP\s+TABLE|TRUNCATE\s+TABLE|DELETE\s+FROM)\b/i', $allSources), 'No automation table movement or destructive operation may be introduced.');
 

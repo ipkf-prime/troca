@@ -12,7 +12,21 @@ $expect(str_contains($migration, 'CREATE TABLE IF NOT EXISTS application_modules
 $expect(str_contains($migration, 'secret_reference') && !str_contains($migration, 'database_password'), 'Database credentials must use a secret reference, never a stored password.');
 $expect(str_contains($service, 'FILTER_VALIDATE_URL') && str_contains($service, "=== 'https'"), 'Module endpoints must require valid HTTPS URLs.');
 $expect(str_contains($routes, "get('/admin/settings'") && str_contains($routes, "post('/admin/settings/modules'"), 'Module registry settings routes are required.');
-$expect(str_contains($view, 'نام اتصال دیتابیس') && str_contains($view, 'Secret Reference'), 'The central settings form must expose connection metadata without passwords.');
+$expect(
+    str_contains($view, 'اتصال دیتابیس')
+    && str_contains($view, '<span>نام اتصال</span>')
+    && str_contains($view, 'name="database_connection_name"')
+    && str_contains($view, 'name="database_host"')
+    && str_contains($view, 'name="database_port"')
+    && str_contains($view, 'name="database_name"')
+    && str_contains($view, 'data-module-field="database"')
+    && str_contains($view, 'data-module-field="username"')
+    && str_contains($view, 'data-module-field="charset"')
+    && str_contains($view, 'data-module-field="ssl_mode"')
+    && str_contains($view, 'data-module-field="timeout"')
+    && str_contains($view, 'data-module-field="runtime_mode"'),
+    'The central settings form must expose the complete non-secret connection metadata contract.'
+);
 $expect(str_contains($view, "require __DIR__ . '/layout.php'") && str_contains($view, 'ob_start()'), 'The module settings view must render inside the standard Admin layout.');
 $expect(str_contains($view, 'new \\IPKF\\Security\\Csrf()'), 'The module settings form must include CSRF protection.');
 $expect(str_contains($view, 'data-module-select') && str_contains($view, 'data-admin-tab="database"'), 'Module settings must use a catalog dropdown and a compact tabbed workspace.');

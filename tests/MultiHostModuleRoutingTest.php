@@ -20,7 +20,7 @@ $expect(str_contains($registry, "'CORE_APP_URL'") && str_contains($registry, "'A
 $expect(!str_contains($registry, 'oa-dev.troca.ir') && !str_contains($panel, 'oa-dev.troca.ir'), 'Runtime code must not hardcode deployment domains.');
 $expect(str_contains($registry, 'ALLOWED_APP_HOSTS') && str_contains($registry, 'APP_HOST_GUARD_ENABLED'), 'Allowed-host validation must be explicit and configurable.');
 $expect(str_contains($middleware, '421') && str_contains($middleware, 'redirectTarget'), 'Host middleware must reject unknown hosts and redirect misplaced modules.');
-$expect(str_contains($registry, 'workLaunch') && str_contains($registry, "$path === '/' && $requestIsWork"), 'The Work host root and launch flow must be supported.');
+$expect(str_contains($registry, 'workLaunch') && str_contains($registry, '$path === \'/\' && $requestIsWork'), 'The Work host root and launch flow must be supported.');
 $expect(str_contains($kernel, 'ModuleHostMiddleware::class'), 'The host guard must run in the global HTTP kernel.');
 $expect(str_contains($panel, 'ApplicationUrlRegistry') && str_contains($panel, 'automationLaunch($path)') && str_contains($panel, 'workLaunch($path)'), 'Admin module links must use the central SSO launch URL.');
 $expect(str_contains($routes, '/auth/module-sso/start') && str_contains($routes, '/auth/module-sso/callback'), 'Central SSO start and module callback routes are required.');

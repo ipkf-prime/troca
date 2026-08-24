@@ -44,6 +44,11 @@ class ApplicationSeederRegistry
                     \IPKF\Database\Seeds\WorkReferenceDataSeeder::class,
                 ],
             ],
+            'ticketing' => [
+                'connection' => 'ticketing.primary',
+                'seeders' => [
+                ],
+            ],
         ];
     }
 

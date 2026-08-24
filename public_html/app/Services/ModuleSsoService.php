@@ -39,7 +39,11 @@ class ModuleSsoService extends BaseService
     public function issueFor(int $userId, string $returnPath): array
     {
         $module = $this->moduleForPath($returnPath);
-        $permission = $module === 'work' ? 'work.project.view' : 'automation.correspondence.view';
+        $permission = match ($module) {
+            'work' => 'work.project.view',
+            'ticketing' => 'ticketing.ticket.view',
+            default => 'automation.correspondence.view',
+        };
         if (!$this->authorization->hasPermission($userId, $permission)) {
             return ['ok' => false, 'error' => 'forbidden'];
         }
@@ -64,9 +68,11 @@ class ModuleSsoService extends BaseService
 
         return [
             'ok' => true,
-            'transfer_url' => $module === 'work'
-                ? $this->urls->work('/auth/module-sso/callback?code=' . rawurlencode($issued['token']))
-                : $this->urls->automation('/auth/module-sso/callback?code=' . rawurlencode($issued['token'])),
+            'transfer_url' => match ($module) {
+                'work' => $this->urls->work('/auth/module-sso/callback?code=' . rawurlencode($issued['token'])),
+                'ticketing' => $this->urls->ticketing('/auth/module-sso/callback?code=' . rawurlencode($issued['token'])),
+                default => $this->urls->automation('/auth/module-sso/callback?code=' . rawurlencode($issued['token'])),
+            },
         ];
     }
 
@@ -79,7 +85,9 @@ class ModuleSsoService extends BaseService
     {
         $audience = $this->urls->isWorkHost($requestHost)
             ? 'work'
-            : ($this->urls->isAutomationHost($requestHost) ? 'automation' : null);
+            : ($this->urls->isTicketingHost($requestHost)
+                ? 'ticketing'
+                : ($this->urls->isAutomationHost($requestHost) ? 'automation' : null));
         if ($audience === null) {
             return null;
         }
@@ -100,9 +108,15 @@ class ModuleSsoService extends BaseService
     private function moduleForPath(string $path): string
     {
         $parsedPath = (string) parse_url(trim($path), PHP_URL_PATH);
-        return $parsedPath === '/admin/work' || str_starts_with($parsedPath, '/admin/work/')
-            ? 'work'
-            : 'automation';
+        if ($parsedPath === '/admin/work' || str_starts_with($parsedPath, '/admin/work/')) {
+            return 'work';
+        }
+
+        if ($parsedPath === '/admin/ticketing' || str_starts_with($parsedPath, '/admin/ticketing/')) {
+            return 'ticketing';
+        }
+
+        return 'automation';
     }
 
     private function returnPath(string $path): string
@@ -111,7 +125,8 @@ class ModuleSsoService extends BaseService
         $parsedPath = parse_url($path, PHP_URL_PATH);
         if (!is_string($parsedPath)
             || (!($parsedPath === '/admin/automation' || str_starts_with($parsedPath, '/admin/automation/'))
-                && !($parsedPath === '/admin/work' || str_starts_with($parsedPath, '/admin/work/')))
+                && !($parsedPath === '/admin/work' || str_starts_with($parsedPath, '/admin/work/'))
+                && !($parsedPath === '/admin/ticketing' || str_starts_with($parsedPath, '/admin/ticketing/')))
             || str_starts_with($path, '//')
             || parse_url($path, PHP_URL_HOST) !== null
         ) {

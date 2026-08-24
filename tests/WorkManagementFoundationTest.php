@@ -32,8 +32,8 @@ foreach (['work', 'milestone', 'task', 'subtask'] as $type) {
 $expect(str_contains($registry, "'work.primary'"), 'work.primary must be registered.');
 $expect(str_contains($migrationRegistry, "'work' =>") && str_contains($migrationRegistry, "'connection' => 'work.primary'"), 'Work migration group is missing.');
 $expect(str_contains($seederRegistry, 'WorkManagementFoundationSeeder::class'), 'Work metadata seeder is missing.');
-$expect(str_contains($migrate, "['core', 'automation', 'work']"), 'Work migration endpoint must be allowlisted.');
-$expect(str_contains($seed, "['core', 'automation', 'work']"), 'Work seed endpoint must be allowlisted.');
+$expect(str_contains($migrate, "['core', 'automation', 'work', 'ticketing']"), 'Work migration endpoint must be allowlisted.');
+$expect(str_contains($seed, "['core', 'automation', 'work', 'ticketing']"), 'Work seed endpoint must be allowlisted.');
 $expect(str_contains($catalog, '$urls->work()') && str_contains($catalog, "'connection' => 'work.primary'"), 'Environment-driven Work module catalog entry is missing.');
 $expect(str_contains($foundationSeeder, 'work_statuses') && str_contains($foundationSeeder, 'status_code') && str_contains($foundationSeeder, 'status_id'), 'Work foundation seeder must match the Work schema.');
 $expect(!str_contains($foundationSeeder, 'INSERT INTO work_projects
