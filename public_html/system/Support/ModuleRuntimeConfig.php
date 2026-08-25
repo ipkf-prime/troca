@@ -41,6 +41,34 @@ class ModuleRuntimeConfig
         }
     }
 
+
+    public function allActive(): array
+    {
+        try {
+            if (!Database::tableExists('application_modules')) {
+                return [];
+            }
+
+            return Database::connect()
+                ->query("
+                    SELECT *
+                    FROM application_modules
+                    WHERE is_active = 1
+                    ORDER BY sort_order, display_name
+                ")
+                ->fetchAll() ?: [];
+
+        } catch (Throwable) {
+            return [];
+        }
+    }
+
+
+    public function clearCache(): void
+    {
+        self::$cache = [];
+    }
+
     public function secret(array $module, string $fallbackReference): string
     {
         $reference = trim((string) ($module['secret_reference'] ?? ''));

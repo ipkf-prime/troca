@@ -54,6 +54,52 @@ class ApplicationUrlRegistry
         return $this->core('/auth/module-sso/start?return_path=' . rawurlencode($path));
     }
 
+    public function applicationModule(
+        string $moduleKey,
+        string $path = ''
+    ): string {
+        $base = $this->moduleBaseUrl(
+            $moduleKey,
+            ''
+        );
+
+        $normalizedPath =
+            $path === ''
+                ? ''
+                : '/' . ltrim($path, '/');
+
+        return $base !== ''
+            ? $base . $normalizedPath
+            : (
+                $normalizedPath !== ''
+                    ? $normalizedPath
+                    : '/'
+            );
+    }
+
+
+    public function applicationModuleHost(
+        string $moduleKey
+    ): ?string {
+        $base = $this->moduleBaseUrl(
+            $moduleKey,
+            ''
+        );
+
+        $host = $base !== ''
+            ? parse_url(
+                $base,
+                PHP_URL_HOST
+            )
+            : null;
+
+        return is_string($host)
+            && $host !== ''
+                ? $this->normalizeHost($host)
+                : null;
+    }
+
+
     public function coreHost(): ?string
     {
         return $this->configuredHost('CORE_APP_URL');

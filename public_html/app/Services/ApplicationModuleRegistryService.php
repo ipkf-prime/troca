@@ -7,6 +7,7 @@ use IPKF\Support\ApplicationUrlRegistry;
 use IPKF\Support\Env;
 use IPKF\Support\EnvironmentSecretWriter;
 use Throwable;
+use App\Services\DynamicAdminNavigationService;
 
 class ApplicationModuleRegistryService extends BaseService
 {
@@ -90,6 +91,29 @@ class ApplicationModuleRegistryService extends BaseService
         ];
     }
 
+
+    public function runtimeModules(): array
+    {
+        $runtime = new \IPKF\Support\ModuleRuntimeConfig();
+
+        return array_map(
+            static function(array $module): array {
+
+                return [
+                    'key' => $module['module_key'],
+                    'name' => $module['display_name'],
+                    'url' => $module['base_url'],
+                    'callback' => $module['sso_callback_url'] ?? null,
+                    'active' => (int)$module['is_active'],
+                    'sort' => (int)$module['sort_order'],
+                ];
+
+            },
+            $runtime->allActive()
+        );
+    }
+
+
     public function save(array $input): array
     {
         if (!$this->modules->available()) {
@@ -114,11 +138,33 @@ class ApplicationModuleRegistryService extends BaseService
             return ['ok' => false, 'error' => 'Charset یا حالت اجرای ماژول معتبر نیست.'];
         }
 
-        $catalog = $this->catalog();
-        $secretReference = (string) ($catalog[$key]['secret'] ?? '');
-        if ($secretReference === '' || preg_match('/^[A-Z][A-Z0-9_]{2,127}$/', $secretReference) !== 1) {
-            return ['ok' => false, 'error' => 'کلید رمز این ماژول تعریف نشده است.'];
+                $catalog = $this->catalog();
+
+        $secretReference = (string) (
+            $catalog[$key]['secret']
+            ?? strtoupper(
+                preg_replace(
+                    '/[^a-z0-9]+/i',
+                    '_',
+                    $key
+                ) ?? $key
+            ) . '_DB_PASSWORD'
+        );
+
+        if (
+            $secretReference === ''
+            || preg_match(
+                '/^[A-Z][A-Z0-9_]{2,127}$/',
+                $secretReference
+            ) !== 1
+        ) {
+            return [
+                'ok' => false,
+                'error' => 'کلید امن رمز ماژول معتبر نیست.',
+            ];
         }
+
+
 
         $password = (string) ($input['database_password'] ?? '');
         if ($password !== '') {
@@ -128,6 +174,69 @@ class ApplicationModuleRegistryService extends BaseService
                 return ['ok' => false, 'error' => 'ذخیره امن رمز در ENV مشترک انجام نشد. دسترسی فایل و IPKF_SHARED_ENV را بررسی کنید.'];
             }
         }
+
+        $routePath = trim(
+            (string) ($input['route_path'] ?? '')
+        );
+
+        if ($routePath === '') {
+            $routePath = '/admin/' . $key;
+        }
+
+        if (
+            !str_starts_with($routePath, '/')
+            || strlen($routePath) > 255
+        ) {
+            return [
+                'ok' => false,
+                'error' => 'مسیر اصلی ماژول معتبر نیست.',
+            ];
+        }
+
+        $permissionKey = strtolower(
+            trim(
+                (string) (
+                    $input['permission_key']
+                    ?? ''
+                )
+            )
+        );
+
+        if ($permissionKey === '') {
+            $permissionKey = $key . '.view';
+        }
+
+        if (
+            strlen($permissionKey) > 190
+            || preg_match(
+                '/^[a-z][a-z0-9_.-]{2,189}$/',
+                $permissionKey
+            ) !== 1
+        ) {
+            return [
+                'ok' => false,
+                'error' => 'کلید دسترسی ماژول معتبر نیست.',
+            ];
+        }
+
+        $iconCode = trim(
+            (string) ($input['icon_code'] ?? 'apps')
+        );
+
+        if ($iconCode === '') {
+            $iconCode = 'apps';
+        }
+
+        $colorCode = trim(
+            (string) ($input['color_code'] ?? '')
+        );
+
+        $dashboardDescription = trim(
+            (string) (
+                $input['dashboard_description']
+                ?? ''
+            )
+        );
 
         $this->modules->save([
             'module_key' => $key,
@@ -144,9 +253,92 @@ class ApplicationModuleRegistryService extends BaseService
             'connection_timeout' => max(1, min(60, (int) ($input['connection_timeout'] ?? 5))),
             'runtime_mode' => $runtimeMode,
             'secret_reference' => $secretReference,
+
+            'icon_code' =>
+                mb_substr($iconCode, 0, 100),
+
+            'color_code' =>
+                $colorCode !== ''
+                    ? mb_substr($colorCode, 0, 50)
+                    : null,
+
+            'route_path' =>
+                mb_substr($routePath, 0, 255),
+
+            'permission_key' =>
+                mb_substr($permissionKey, 0, 190),
+
+            'sidebar_enabled' =>
+                isset($input['sidebar_enabled'])
+                    ? 1
+                    : 0,
+
+            'dashboard_enabled' =>
+                isset($input['dashboard_enabled'])
+                    ? 1
+                    : 0,
+
+            'dashboard_description' =>
+                $dashboardDescription !== ''
+                    ? $dashboardDescription
+                    : null,
+
             'is_active' => isset($input['is_active']) ? 1 : 0,
             'sort_order' => max(0, (int) ($input['sort_order'] ?? 0)),
         ]);
+
+        try {
+
+            $runtimeModule = [
+                'module_key' => $key,
+
+                'display_name' =>
+                    mb_substr($name, 0, 190),
+
+                'permission_key' =>
+                    $permissionKey,
+
+                'dashboard_description' =>
+                    $dashboardDescription,
+
+                'sort_order' =>
+                    max(
+                        0,
+                        (int) (
+                            $input['sort_order']
+                            ?? 0
+                        )
+                    ),
+
+                'is_active' =>
+                    isset($input['is_active'])
+                        ? 1
+                        : 0,
+            ];
+
+            $runtime =
+                new \IPKF\Support\ModuleRuntimeConfig();
+
+            /*
+             * Clear stale registry cache before syncing
+             * navigation/dashboard/permission state.
+             */
+            $runtime->clearCache();
+
+            (new DynamicPermissionRegistryService())
+                ->syncModule($runtimeModule);
+
+            (new DynamicAdminNavigationService())
+                ->sync();
+
+            $runtime->clearCache();
+
+        } catch (Throwable) {
+
+            // Module save remains durable.
+            // Runtime reconciliation can be retried safely.
+
+        }
 
         return ['ok' => true, 'error' => null];
     }

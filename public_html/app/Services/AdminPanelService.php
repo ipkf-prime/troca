@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Services\DynamicModuleDashboardService;
+
 use IPKF\Support\Session;
 use IPKF\Support\Version;
 use IPKF\Support\ApplicationUrlRegistry;
@@ -37,7 +39,8 @@ class AdminPanelService extends BaseService
         $urls = new ApplicationUrlRegistry();
         $automationShell = $urls->isAutomationHost((string) ($_SERVER['HTTP_HOST'] ?? ''));
         $workShell = $urls->isWorkHost((string) ($_SERVER['HTTP_HOST'] ?? ''));
-        $moduleShell = $automationShell || $workShell;
+        $ticketingShell = $urls->isTicketingHost((string) ($_SERVER['HTTP_HOST'] ?? ''));
+        $moduleShell = $automationShell || $workShell || $ticketingShell;
         $moduleShellContext = null;
 
         if ($workShell) {
@@ -46,6 +49,16 @@ class AdminPanelService extends BaseService
                 'مدیریت کار تروکا',
                 'پروژه‌ها، کارها و تسک‌ها',
                 '/admin/work',
+                $urls->core('/admin/dashboard')
+            );
+        }
+
+        if ($ticketingShell) {
+            $moduleShellContext = AdminModuleUiContract::shell(
+                'ticketing',
+                'پشتیبانی و تیکتینگ تروکا',
+                'تیکت‌ها و درخواست‌های پشتیبانی',
+                '/admin/ticketing',
                 $urls->core('/admin/dashboard')
             );
         }
@@ -73,7 +86,13 @@ class AdminPanelService extends BaseService
                 'recovery_codes_available' => $this->mfa->recoveryCodesAvailable($userId),
             ],
             'navigation' => [
-                'system' => $automationShell ? $this->automationNavigation($userId) : ($workShell ? $this->workNavigation($userId) : $this->moduleNavigation($userId)),
+                'system' => $automationShell
+                    ? $this->automationNavigation($userId)
+                    : ($workShell
+                        ? $this->workNavigation($userId)
+                        : ($ticketingShell
+                            ? $this->ticketingNavigation($userId)
+                            : $this->moduleNavigation($userId))),
                 'account' => $moduleShell ? [
                     ['key' => 'core-panel', 'title' => $this->fa('&#x0628;&#x0627;&#x0632;&#x06AF;&#x0634;&#x062A; &#x0628;&#x0647; &#x067E;&#x0646;&#x0644; &#x0627;&#x0635;&#x0644;&#x06CC;'), 'url' => $urls->core('/admin/dashboard'), 'permission' => null],
                     ['key' => 'logout', 'title' => $this->fa('&#x062E;&#x0631;&#x0648;&#x062C;'), 'url' => '/admin/logout', 'permission' => null],
@@ -109,6 +128,34 @@ class AdminPanelService extends BaseService
         return array_values(array_filter($items, fn (array $item): bool => $this->navigation->can($userId, (string) $item['permission'])));
     }
 
+    public function ticketingNavigation(int $userId): array
+    {
+        $items = [
+            [
+                'key' => 'ticketing-dashboard',
+                'title' => 'داشبورد تیکتینگ',
+                'url' => '/admin/ticketing',
+                'icon' => 'dashboard',
+                'permission' => 'ticketing.ticket.view',
+                'active_paths' => [
+                    '/admin/ticketing',
+                    '/admin/ticketing/*',
+                ],
+            ],
+        ];
+
+        return array_values(
+            array_filter(
+                $items,
+                fn (array $item): bool =>
+                    $this->navigation->can(
+                        $userId,
+                        (string) $item['permission']
+                    )
+            )
+        );
+    }
+
     public function moduleNavigation(int $userId): array
     {
         $items = [];
@@ -124,8 +171,158 @@ class AdminPanelService extends BaseService
             ];
         }
 
+        /*
+         * Application modules are discovered at runtime.
+         *
+         * application_modules is the source of truth for:
+         * - active state
+         * - sidebar visibility
+         * - title
+         * - route
+         * - icon
+         * - base permission
+         * - sort order
+         */
+        $runtime =
+            new \IPKF\Support\ModuleRuntimeConfig();
+
+        foreach ($runtime->allActive() as $module) {
+
+            if (
+                (int) (
+                    $module['sidebar_enabled']
+                    ?? 1
+                ) !== 1
+            ) {
+                continue;
+            }
+
+            $moduleKey = trim(
+                (string) (
+                    $module['module_key']
+                    ?? ''
+                )
+            );
+
+            $route = trim(
+                (string) (
+                    $module['route_path']
+                    ?? ''
+                )
+            );
+
+            $permission = trim(
+                (string) (
+                    $module['permission_key']
+                    ?? ''
+                )
+            );
+
+            if (
+                $moduleKey === ''
+                || $route === ''
+            ) {
+                continue;
+            }
+
+            if (
+                $permission !== ''
+                && !$this->navigation->can(
+                    $userId,
+                    $permission
+                )
+            ) {
+                continue;
+            }
+
+            if (!str_starts_with($route, '/')) {
+                $route = '/' . $route;
+            }
+
+            /*
+             * Core sidebar launches the module through
+             * the existing module SSO entry point.
+             */
+            $launchUrl =
+                '/auth/module-sso/start?return_path='
+                . rawurlencode($route);
+
+            $items[] = [
+                'key' =>
+                    'module-' . $moduleKey,
+
+                'title' =>
+                    (string) (
+                        $module['display_name']
+                        ?? $moduleKey
+                    ),
+
+                'url' =>
+                    $launchUrl,
+
+                'icon' =>
+                    (string) (
+                        $module['icon_code']
+                        ?? 'apps'
+                    ),
+
+                'permission' =>
+                    $permission !== ''
+                        ? $permission
+                        : null,
+
+                'sort_order' =>
+                    (int) (
+                        $module['sort_order']
+                        ?? 0
+                    ),
+
+                'active_paths' => [
+                    $route,
+                    rtrim($route, '/') . '/*',
+                ],
+
+                'target_application' =>
+                    $moduleKey,
+            ];
+        }
+
+        /*
+         * Core/internal definitions remain supported.
+         * Application modules are no longer defined here.
+         */
         foreach ($this->moduleDefinitions() as $module) {
-            $navItem = $this->resolveModuleNavigationItem($userId, $module);
+
+            $moduleKey = trim(
+                (string) (
+                    $module['key']
+                    ?? ''
+                )
+            );
+
+            /*
+             * Do not allow a static application-module
+             * definition to reappear beside runtime registry.
+             */
+            if (
+                in_array(
+                    $moduleKey,
+                    [
+                        'automation',
+                        'work',
+                        'ticketing',
+                    ],
+                    true
+                )
+            ) {
+                continue;
+            }
+
+            $navItem =
+                $this->resolveModuleNavigationItem(
+                    $userId,
+                    $module
+                );
 
             if ($navItem !== null) {
                 $items[] = $navItem;
@@ -139,13 +336,102 @@ class AdminPanelService extends BaseService
 
     public function dashboardModules(int $userId): array
     {
-        $modules = array_map(
-            fn (array $module): ?array => $this->resolveDashboardModule($userId, $module),
-            $this->moduleDefinitions()
+        $modules = [];
+
+        /*
+         * Runtime application modules
+         * loaded from application_modules registry
+         */
+        $runtimeCards =
+            (new DynamicModuleDashboardService())
+                ->cards();
+
+        foreach ($runtimeCards as $module) {
+
+            $permission = trim(
+                (string) (
+                    $module['permission']
+                    ?? ''
+                )
+            );
+
+            if (
+                $permission !== ''
+                && !$this->navigation->can(
+                    $userId,
+                    $permission
+                )
+            ) {
+                continue;
+            }
+
+            $modules[] = [
+                'key' =>
+                    $module['key'],
+
+                'title' =>
+                    $module['title'],
+
+                'description' =>
+                    $module['description'],
+
+                'icon' =>
+                    $module['icon'],
+
+                'color' =>
+                    $module['color'],
+
+                'url' =>
+                    $module['url'],
+
+                'permission' =>
+                    $permission !== ''
+                        ? $permission
+                        : null,
+
+                'sort_order' =>
+                    $module['sort'],
+            ];
+        }
+
+
+        /*
+         * Keep core modules
+         */
+        foreach ($this->moduleDefinitions() as $module) {
+
+            if (in_array(
+                $module['key'] ?? '',
+                [
+                    'work',
+                    'automation',
+                    'ticketing'
+                ],
+                true
+            )) {
+                continue;
+            }
+
+            $resolved =
+                $this->resolveDashboardModule(
+                    $userId,
+                    $module
+                );
+
+            if ($resolved !== null) {
+                $modules[]=$resolved;
+            }
+        }
+
+
+        usort(
+            $modules,
+            fn(array $a,array $b):int =>
+                (int)($a['sort_order'] ?? 0)
+                <=>
+                (int)($b['sort_order'] ?? 0)
         );
 
-        $modules = array_values(array_filter($modules));
-        usort($modules, fn (array $a, array $b): int => (int) ($a['sort_order'] ?? 0) <=> (int) ($b['sort_order'] ?? 0));
 
         return $modules;
     }
@@ -220,59 +506,9 @@ class AdminPanelService extends BaseService
                     ['key' => 'pages', 'title' => $this->fa('&#x0635;&#x0641;&#x062D;&#x0627;&#x062A;'), 'description' => $this->fa('&#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x0635;&#x0641;&#x062D;&#x0627;&#x062A; &#x0648; &#x0645;&#x062D;&#x062A;&#x0648;&#x0627;&#x06CC; &#x0639;&#x0645;&#x0648;&#x0645;&#x06CC;'), 'icon' => 'file-lines', 'color' => 'fuchsia', 'url' => '/admin/pages', 'permission' => 'admin.pages.manage', 'sort_order' => 30],
                 ],
             ],
-            [
-                'key' => 'work',
-                'title' => $this->fa('&#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x06A9;&#x0627;&#x0631;'),
-                'description' => $this->fa('&#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x067E;&#x0631;&#x0648;&#x0698;&#x0647;&#x200C;&#x0647;&#x0627;&#x060C; Work&#x0647;&#x0627;&#x060C; &#x062A;&#x0633;&#x06A9;&#x200C;&#x0647;&#x0627; &#x0648; &#x067E;&#x06CC;&#x06AF;&#x06CC;&#x0631;&#x06CC; &#x062A;&#x06CC;&#x0645;'),
-                'subtitle' => $this->fa('&#x067E;&#x0631;&#x0648;&#x0698;&#x0647;&#x060C; Work &#x0648; &#x062A;&#x0633;&#x06A9;'),
-                'icon' => 'circle-check',
-                'color' => 'green',
-                'url' => '/admin/work',
-                'permission' => 'work.project.view',
-                'sort_order' => 34,
-                'actions' => [
-                    ['key' => 'work-dashboard', 'title' => $this->fa('&#x062F;&#x0627;&#x0634;&#x0628;&#x0648;&#x0631;&#x062F; &#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x06A9;&#x0627;&#x0631;'), 'description' => $this->fa('&#x0646;&#x0645;&#x0627;&#x06CC; &#x06A9;&#x0644;&#x06CC; &#x067E;&#x0631;&#x0648;&#x0698;&#x0647;&#x200C;&#x0647;&#x0627; &#x0648; &#x062A;&#x0633;&#x06A9;&#x200C;&#x0647;&#x0627;'), 'icon' => 'dashboard', 'color' => 'green', 'url' => '/admin/work', 'permission' => 'work.project.view', 'sort_order' => 10],
-                ],
-            ],
-            [
-                'key' => 'automation',
-                'title' => $this->fa('&#x0627;&#x062A;&#x0648;&#x0645;&#x0627;&#x0633;&#x06CC;&#x0648;&#x0646; &#x0627;&#x062F;&#x0627;&#x0631;&#x06CC;'),
-                'description' => $this->fa('&#x0645;&#x06A9;&#x0627;&#x062A;&#x0628;&#x0627;&#x062A; &#x0627;&#x062F;&#x0627;&#x0631;&#x06CC;&#x060C; &#x067E;&#x06CC;&#x0634; &#x0646;&#x0648;&#x06CC;&#x0633;&#x200C;&#x0647;&#x0627;&#x060C; &#x0646;&#x0633;&#x062E;&#x0647;&#x200C;&#x0647;&#x0627;&#x060C; &#x0637;&#x0631;&#x0641;&#x200C;&#x0647;&#x0627; &#x0648; &#x062A;&#x0627;&#x0631;&#x06CC;&#x062E;&#x0686;&#x0647; &#x0631;&#x0648;&#x06CC;&#x062F;&#x0627;&#x062F;&#x0647;&#x0627;'),
-                'subtitle' => $this->fa('&#x0645;&#x06A9;&#x0627;&#x062A;&#x0628;&#x0627;&#x062A;&#x060C; &#x0646;&#x0633;&#x062E;&#x0647;&#x200C;&#x0647;&#x0627; &#x0648; &#x0637;&#x0631;&#x0641;&#x200C;&#x0647;&#x0627;&#x06CC; &#x0646;&#x0627;&#x0645;&#x0647;'),
-                'icon' => 'file-lines',
-                'color' => 'indigo',
-                'url' => '/admin/automation',
-                'permission' => 'automation.correspondence.view',
-                'sort_order' => 35,
-                'actions' => [
-                    ['key' => 'automation-dashboard', 'title' => $this->fa('&#x062F;&#x0627;&#x0634;&#x0628;&#x0648;&#x0631;&#x062F; &#x0645;&#x06A9;&#x0627;&#x062A;&#x0628;&#x0627;&#x062A;'), 'description' => $this->fa('&#x0646;&#x0645;&#x0627;&#x06CC; &#x06A9;&#x0644;&#x06CC; &#x067E;&#x06CC;&#x0634; &#x0646;&#x0648;&#x06CC;&#x0633;&#x200C;&#x0647;&#x0627; &#x0648; &#x0645;&#x06A9;&#x0627;&#x062A;&#x0628;&#x0627;&#x062A; &#x0627;&#x062E;&#x06CC;&#x0631;'), 'icon' => 'dashboard', 'color' => 'indigo', 'url' => '/admin/automation', 'permission' => 'automation.correspondence.view', 'sort_order' => 10],
-                    ['key' => 'automation-correspondences', 'title' => $this->fa('&#x0645;&#x06A9;&#x0627;&#x062A;&#x0628;&#x0627;&#x062A;'), 'description' => $this->fa('&#x062C;&#x0633;&#x062A;&#x062C;&#x0648;&#x060C; &#x0641;&#x06CC;&#x0644;&#x062A;&#x0631; &#x0648; &#x0645;&#x0634;&#x0627;&#x0647;&#x062F;&#x0647; &#x0645;&#x06A9;&#x0627;&#x062A;&#x0628;&#x0627;&#x062A;'), 'icon' => 'file-lines', 'color' => 'blue', 'url' => '/admin/automation/correspondences', 'permission' => 'automation.correspondence.view', 'sort_order' => 20],
-                    ['key' => 'automation-create', 'title' => $this->fa('&#x0627;&#x06CC;&#x062C;&#x0627;&#x062F; &#x067E;&#x06CC;&#x0634; &#x0646;&#x0648;&#x06CC;&#x0633;'), 'description' => $this->fa('&#x062B;&#x0628;&#x062A; &#x0645;&#x06A9;&#x0627;&#x062A;&#x0628;&#x0647; &#x0648; &#x0646;&#x0633;&#x062E;&#x0647; &#x0627;&#x0648;&#x0644;'), 'icon' => 'circle-check', 'color' => 'green', 'url' => '/admin/automation/correspondences/create', 'permission' => 'automation.correspondence.create', 'sort_order' => 30],
-                ],
-            ],
-            [
-                'key' => 'ticketing',
-                'title' => 'پشتیبانی و تیکتینگ',
-                'description' => 'ثبت، پیگیری و مدیریت تیکت‌ها و درخواست‌های پشتیبانی',
-                'subtitle' => 'تیکت‌ها و درخواست‌های پشتیبانی',
-                'icon' => 'support',
-                'color' => 'cyan',
-                'url' => '/admin/ticketing',
-                'permission' => 'ticketing.ticket.view',
-                'sort_order' => 36,
-                'actions' => [
-                    [
-                        'key' => 'ticketing-dashboard',
-                        'title' => 'داشبورد تیکتینگ',
-                        'description' => 'نمای کلی تیکت‌ها و درخواست‌های پشتیبانی',
-                        'icon' => 'dashboard',
-                        'color' => 'cyan',
-                        'url' => '/admin/ticketing',
-                        'permission' => 'ticketing.ticket.view',
-                        'sort_order' => 10,
-                    ],
-                ],
-            ],
+
+
+
             [
                 'key' => 'reports',
                 'title' => $this->fa('&#x06AF;&#x0632;&#x0627;&#x0631;&#x0634;&#x200C;&#x0647;&#x0627;'),

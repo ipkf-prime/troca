@@ -19,6 +19,7 @@ ob_start();
     <nav class="admin-tabs" data-admin-tabs role="tablist" aria-label="تنظیمات ماژول">
         <button class="admin-tab is-active" type="button" data-admin-tab="general">عمومی</button>
         <button class="admin-tab" type="button" data-admin-tab="access">دامنه و ورود</button>
+        <button class="admin-tab" type="button" data-admin-tab="runtime">نمایش و دسترسی</button>
         <button class="admin-tab" type="button" data-admin-tab="database">دیتابیس</button>
         <button class="admin-tab" type="button" data-admin-tab="registered">ماژول‌های ثبت‌شده <small><?= admin_h(\App\Support\AdminFormat::digits(count($registry['items'] ?? []))) ?></small></button>
     </nav>
@@ -48,6 +49,93 @@ ob_start();
             <div class="admin-form-grid">
                 <label><span>آدرس ماژول</span><input type="url" name="base_url" required dir="ltr" placeholder="https://module-dev.troca.ir" data-module-field="base_url"></label>
                 <label><span>Callback ورود یکپارچه</span><input type="url" name="sso_callback_url" dir="ltr" placeholder="https://module-dev.troca.ir/auth/module-sso/callback" data-module-field="callback_url"></label>
+            </div>
+        </section>
+
+        <section class="admin-tab-panel" data-admin-tab-panel="runtime" hidden>
+            <div class="admin-panel-heading">
+                <div>
+                    <h3>نمایش، مسیر و دسترسی</h3>
+                    <p>
+                        این تنظیمات کارت داشبورد، سایدبار
+                        و مجوز پایه ماژول را کنترل می‌کند.
+                    </p>
+                </div>
+            </div>
+
+            <div class="admin-form-grid">
+
+                <label>
+                    <span>مسیر اصلی ماژول</span>
+                    <input
+                        name="route_path"
+                        dir="ltr"
+                        placeholder="/admin/module"
+                        data-module-field="route_path"
+                    >
+                </label>
+
+                <label>
+                    <span>کلید دسترسی پایه</span>
+                    <input
+                        name="permission_key"
+                        dir="ltr"
+                        placeholder="module.view"
+                        data-module-field="permission_key"
+                    >
+                </label>
+
+                <label>
+                    <span>آیکن</span>
+                    <input
+                        name="icon_code"
+                        dir="ltr"
+                        value="apps"
+                        data-module-field="icon_code"
+                    >
+                </label>
+
+                <label>
+                    <span>رنگ</span>
+                    <input
+                        name="color_code"
+                        dir="ltr"
+                        placeholder="indigo"
+                        data-module-field="color_code"
+                    >
+                </label>
+
+                <label class="admin-field--full">
+                    <span>توضیح کارت داشبورد</span>
+                    <textarea
+                        name="dashboard_description"
+                        rows="3"
+                        data-module-field="dashboard_description"
+                    ></textarea>
+                </label>
+
+                <label class="admin-check-field admin-module-toggle">
+                    <input
+                        type="checkbox"
+                        name="dashboard_enabled"
+                        value="1"
+                        checked
+                        data-module-dashboard-enabled
+                    >
+                    <span>نمایش در داشبورد</span>
+                </label>
+
+                <label class="admin-check-field admin-module-toggle">
+                    <input
+                        type="checkbox"
+                        name="sidebar_enabled"
+                        value="1"
+                        checked
+                        data-module-sidebar-enabled
+                    >
+                    <span>نمایش در سایدبار</span>
+                </label>
+
             </div>
         </section>
 
@@ -121,6 +209,40 @@ document.addEventListener('DOMContentLoaded', function () {
             ssl_mode: saved.database_ssl_mode || module.ssl_mode || '',
             timeout: saved.connection_timeout || module.timeout || 5,
             runtime_mode: saved.runtime_mode || module.runtime_mode || 'fallback',
+
+            route_path:
+                saved.route_path
+                || module.route_path
+                || (
+                    key && key !== 'custom'
+                        ? '/admin/' + key
+                        : ''
+                ),
+
+            permission_key:
+                saved.permission_key
+                || module.permission_key
+                || (
+                    key && key !== 'custom'
+                        ? key + '.view'
+                        : ''
+                ),
+
+            icon_code:
+                saved.icon_code
+                || module.icon_code
+                || 'apps',
+
+            color_code:
+                saved.color_code
+                || module.color_code
+                || '',
+
+            dashboard_description:
+                saved.dashboard_description
+                || module.dashboard_description
+                || '',
+
             secret: module.secret || ''
         };
         Object.entries(values).forEach(([field, value]) => { const input = form.querySelector('[data-module-field="' + field + '"]'); if (input) input.value = value; });
@@ -132,6 +254,33 @@ document.addEventListener('DOMContentLoaded', function () {
         if (portInput) portInput.value = saved.database_port || module.port || 3306;
         if (orderInput) orderInput.value = saved.sort_order ?? 10;
         if (activeInput) activeInput.checked = !saved.module_key || Number(saved.is_active) === 1;
+
+        const dashboardEnabled =
+            form.querySelector(
+                '[data-module-dashboard-enabled]'
+            );
+
+        const sidebarEnabled =
+            form.querySelector(
+                '[data-module-sidebar-enabled]'
+            );
+
+        if (dashboardEnabled) {
+            dashboardEnabled.checked =
+                !saved.module_key
+                || Number(
+                    saved.dashboard_enabled ?? 1
+                ) === 1;
+        }
+
+        if (sidebarEnabled) {
+            sidebarEnabled.checked =
+                !saved.module_key
+                || Number(
+                    saved.sidebar_enabled ?? 1
+                ) === 1;
+        }
+
         if (passwordInput) passwordInput.value = '';
         if (secretStatusInput) {
             secretStatusInput.value = module.secret_configured ? '********' : 'تنظیم نشده';
