@@ -90,6 +90,7 @@ class ApplicationMigrationRegistry
             'ticketing' => [
                 'connection' => 'ticketing.primary',
                 'migrations' => [
+                    \IPKF\Database\Migrations\CreateTicketingDomainFoundationTables::class,
                 ],
             ],
         ];

@@ -47,6 +47,7 @@ class ApplicationSeederRegistry
             'ticketing' => [
                 'connection' => 'ticketing.primary',
                 'seeders' => [
+                    \IPKF\Database\Seeds\TicketingDomainFoundationSeeder::class,
                 ],
             ],
         ];
