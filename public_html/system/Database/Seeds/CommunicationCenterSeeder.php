@@ -402,7 +402,7 @@ class CommunicationCenterSeeder extends Seeder
                 'گزارش‌های مدیریتی و عملیاتی',
                 '/admin/reports', 'core', 'reports', 'amber',
                 ['admin.reports.view'], null, ['/admin/reports'], 40],
-            ['core', 'support', 'link', 'پشتیبانی',
+            ['core', 'support', 'link', 'راهنما و پشتیبانی سامانه',
                 'راهنما و پیگیری درخواست‌ها',
                 '/admin/support', 'core', 'support', 'rose',
                 ['support.view'], null, ['/admin/support'], 50],
