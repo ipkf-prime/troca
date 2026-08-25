@@ -82,7 +82,7 @@ $moduleTitles = [
     'core' => 'هسته سامانه',
     'users' => 'کاربران',
     'system' => 'زیرساخت سامانه',
-    'support' => 'پشتیبانی',
+    'support' => 'راهنما و پشتیبانی سامانه',
     'organizations' => 'سازمان‌ها',
     'organization' => 'ساختار سازمانی',
 ];

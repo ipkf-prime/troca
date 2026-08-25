@@ -136,7 +136,7 @@ class AdminNavigationRbacService extends BaseService
             ['key' => 'settings', 'title' => $this->fa('&#x062A;&#x0646;&#x0638;&#x06CC;&#x0645;&#x0627;&#x062A;'), 'url' => '/admin/settings', 'permission' => 'admin.settings.manage', 'badge' => $this->fa('&#x0628;&#x0647;&#x200C;&#x0632;&#x0648;&#x062F;&#x06CC;')],
             ['key' => 'pages', 'title' => $this->fa('&#x0635;&#x0641;&#x062D;&#x0627;&#x062A; &#x062F;&#x0627;&#x062E;&#x0644;&#x06CC;'), 'url' => '/admin/pages', 'permission' => 'admin.pages.manage', 'badge' => $this->fa('&#x0628;&#x0647;&#x200C;&#x0632;&#x0648;&#x062F;&#x06CC;')],
             ['key' => 'reports', 'title' => $this->fa('&#x06AF;&#x0632;&#x0627;&#x0631;&#x0634;&#x200C;&#x0647;&#x0627;'), 'url' => '/admin/reports', 'permission' => 'admin.reports.view', 'badge' => $this->fa('&#x0628;&#x0647;&#x200C;&#x0632;&#x0648;&#x062F;&#x06CC;')],
-            ['key' => 'support', 'title' => $this->fa('&#x067E;&#x0634;&#x062A;&#x06CC;&#x0628;&#x0627;&#x0646;&#x06CC;'), 'url' => '/admin/support', 'permission' => 'support.view', 'badge' => $this->fa('&#x0628;&#x0647;&#x200C;&#x0632;&#x0648;&#x062F;&#x06CC;')],
+            ['key' => 'support', 'title' => 'راهنما و پشتیبانی سامانه', 'url' => '/admin/support', 'permission' => 'support.view', 'badge' => $this->fa('&#x0628;&#x0647;&#x200C;&#x0632;&#x0648;&#x062F;&#x06CC;')],
         ]);
     }
 
