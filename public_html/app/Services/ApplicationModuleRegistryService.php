@@ -227,9 +227,21 @@ class ApplicationModuleRegistryService extends BaseService
             $iconCode = 'apps';
         }
 
-        $colorCode = trim(
+        $colorInput = trim(
             (string) ($input['color_code'] ?? '')
         );
+
+        $colorCode =
+            $this->normalizeModuleColor(
+                $colorInput
+            );
+
+        if ($colorCode === null) {
+            return [
+                'ok' => false,
+                'error' => 'رنگ کارت ماژول معتبر نیست.',
+            ];
+        }
 
         $dashboardDescription = trim(
             (string) (
@@ -258,9 +270,7 @@ class ApplicationModuleRegistryService extends BaseService
                 mb_substr($iconCode, 0, 100),
 
             'color_code' =>
-                $colorCode !== ''
-                    ? mb_substr($colorCode, 0, 50)
-                    : null,
+                $colorCode,
 
             'route_path' =>
                 mb_substr($routePath, 0, 255),
@@ -341,6 +351,41 @@ class ApplicationModuleRegistryService extends BaseService
         }
 
         return ['ok' => true, 'error' => null];
+    }
+
+    private function normalizeModuleColor(
+        string $color
+    ): ?string {
+        $color = strtolower(trim($color));
+
+        if ($color === '') {
+            return '#2563eb';
+        }
+
+        if (
+            preg_match(
+                '/^#[0-9a-f]{6}$/',
+                $color
+            ) === 1
+        ) {
+            return $color;
+        }
+
+        $legacy = [
+            'blue' => '#2563eb',
+            'teal' => '#0f766e',
+            'cyan' => '#0891b2',
+            'purple' => '#7c3aed',
+            'violet' => '#6d28d9',
+            'fuchsia' => '#c026d3',
+            'indigo' => '#4f46e5',
+            'amber' => '#d97706',
+            'orange' => '#f97316',
+            'rose' => '#e11d48',
+            'green' => '#16a34a',
+        ];
+
+        return $legacy[$color] ?? null;
     }
 
     private function safeHttpsUrl(string $url): bool

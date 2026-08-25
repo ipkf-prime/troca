@@ -57,13 +57,13 @@ ob_start();
                 <div>
                     <h3>نمایش، مسیر و دسترسی</h3>
                     <p>
-                        این تنظیمات کارت داشبورد، سایدبار
-                        و مجوز پایه ماژول را کنترل می‌کند.
+                        تنظیمات کارت داشبورد، سایدبار و مجوز پایه ماژول
+                        از این بخش کنترل می‌شود.
                     </p>
                 </div>
             </div>
 
-            <div class="admin-form-grid">
+            <div class="admin-form-grid admin-module-runtime-grid">
 
                 <label>
                     <span>مسیر اصلی ماژول</span>
@@ -95,17 +95,37 @@ ob_start();
                     >
                 </label>
 
-                <label>
-                    <span>رنگ</span>
-                    <input
-                        name="color_code"
-                        dir="ltr"
-                        placeholder="indigo"
-                        data-module-field="color_code"
-                    >
+                <label class="admin-module-color-field">
+                    <span>رنگ کارت داشبورد</span>
+
+                    <div class="admin-module-color-control">
+                        <input
+                            type="color"
+                            name="color_code"
+                            value="#2563eb"
+                            aria-label="انتخاب رنگ کارت"
+                            data-module-field="color_code"
+                            data-module-color-picker
+                        >
+
+                        <input
+                            type="text"
+                            value="#2563EB"
+                            maxlength="7"
+                            dir="ltr"
+                            spellcheck="false"
+                            autocomplete="off"
+                            aria-label="کد HEX رنگ کارت"
+                            data-module-color-hex
+                        >
+                    </div>
+
+                    <small class="admin-field-help">
+                        رنگ انتخاب‌شده مستقیماً روی کارت داشبورد اعمال می‌شود.
+                    </small>
                 </label>
 
-                <label class="admin-field--full">
+                <label class="admin-module-runtime-description">
                     <span>توضیح کارت داشبورد</span>
                     <textarea
                         name="dashboard_description"
@@ -114,27 +134,31 @@ ob_start();
                     ></textarea>
                 </label>
 
-                <label class="admin-check-field admin-module-toggle">
-                    <input
-                        type="checkbox"
-                        name="dashboard_enabled"
-                        value="1"
-                        checked
-                        data-module-dashboard-enabled
-                    >
-                    <span>نمایش در داشبورد</span>
-                </label>
+                <div class="admin-module-runtime-toggles">
 
-                <label class="admin-check-field admin-module-toggle">
-                    <input
-                        type="checkbox"
-                        name="sidebar_enabled"
-                        value="1"
-                        checked
-                        data-module-sidebar-enabled
-                    >
-                    <span>نمایش در سایدبار</span>
-                </label>
+                    <label class="admin-check-field admin-module-toggle">
+                        <input
+                            type="checkbox"
+                            name="dashboard_enabled"
+                            value="1"
+                            checked
+                            data-module-dashboard-enabled
+                        >
+                        <span>نمایش در داشبورد</span>
+                    </label>
+
+                    <label class="admin-check-field admin-module-toggle">
+                        <input
+                            type="checkbox"
+                            name="sidebar_enabled"
+                            value="1"
+                            checked
+                            data-module-sidebar-enabled
+                        >
+                        <span>نمایش در سایدبار</span>
+                    </label>
+
+                </div>
 
             </div>
         </section>
@@ -187,6 +211,54 @@ document.addEventListener('DOMContentLoaded', function () {
     const keyInput = form.querySelector('[data-module-field="key"]');
     const secretStatusInput = form.querySelector('[data-module-secret-status]');
     const passwordInput = form.querySelector('[data-module-password]');
+    const colorPicker = form.querySelector('[data-module-color-picker]');
+    const colorHexInput = form.querySelector('[data-module-color-hex]');
+
+    const legacyModuleColors = {
+        blue: '#2563eb',
+        teal: '#0f766e',
+        cyan: '#0891b2',
+        purple: '#7c3aed',
+        violet: '#6d28d9',
+        fuchsia: '#c026d3',
+        indigo: '#4f46e5',
+        amber: '#d97706',
+        orange: '#f97316',
+        rose: '#e11d48',
+        green: '#16a34a'
+    };
+
+    const normalizeModuleColor = function (value) {
+        const raw = String(value || '').trim().toLowerCase();
+
+        if (/^#[0-9a-f]{6}$/.test(raw)) {
+            return raw;
+        }
+
+        return legacyModuleColors[raw] || '#2563eb';
+    };
+
+    const syncModuleColorText = function () {
+        if (!colorPicker || !colorHexInput) return;
+
+        colorHexInput.value =
+            String(colorPicker.value || '#2563eb').toUpperCase();
+    };
+
+    const applyModuleColorText = function () {
+        if (!colorPicker || !colorHexInput) return;
+
+        const raw = String(colorHexInput.value || '').trim();
+
+        if (/^#[0-9A-Fa-f]{6}$/.test(raw)) {
+            colorPicker.value = raw.toLowerCase();
+            colorHexInput.value = raw.toUpperCase();
+            return;
+        }
+
+        colorHexInput.value =
+            String(colorPicker.value || '#2563eb').toUpperCase();
+    };
     const refreshContext = function () {
         const selected = select.value !== '';
         if (actions) actions.hidden = !selected;
@@ -234,9 +306,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 || 'apps',
 
             color_code:
-                saved.color_code
-                || module.color_code
-                || '',
+                normalizeModuleColor(
+                    saved.color_code
+                    || module.color_code
+                    || '#2563eb'
+                ),
 
             dashboard_description:
                 saved.dashboard_description
@@ -246,6 +320,7 @@ document.addEventListener('DOMContentLoaded', function () {
             secret: module.secret || ''
         };
         Object.entries(values).forEach(([field, value]) => { const input = form.querySelector('[data-module-field="' + field + '"]'); if (input) input.value = value; });
+        syncModuleColorText();
         const hostInput = form.querySelector('[name="database_host"]');
         const portInput = form.querySelector('[name="database_port"]');
         const orderInput = form.querySelector('[name="sort_order"]');
@@ -288,6 +363,21 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         refreshContext();
     };
+    colorPicker?.addEventListener(
+        'input',
+        syncModuleColorText
+    );
+
+    colorHexInput?.addEventListener(
+        'change',
+        applyModuleColorText
+    );
+
+    colorHexInput?.addEventListener(
+        'blur',
+        applyModuleColorText
+    );
+
     select.addEventListener('change', loadSelectedModule);
     nameInput?.addEventListener('input', refreshContext);
     keyInput?.addEventListener('input', refreshContext);

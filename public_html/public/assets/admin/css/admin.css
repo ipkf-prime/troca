@@ -3906,3 +3906,129 @@ input[aria-invalid="true"] {
     opacity: .45;
     cursor: not-allowed;
 }
+
+
+/* =========================================================
+ * Module runtime appearance editor
+ * T5E10-H13
+ * ========================================================= */
+
+.admin-module-runtime-grid {
+    align-items: start;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-module-runtime-grid > label {
+    min-width: 0;
+}
+
+.admin-module-runtime-description {
+    grid-column: auto;
+}
+
+.admin-module-runtime-description textarea {
+    box-sizing: border-box;
+    min-height: 92px;
+    resize: vertical;
+}
+
+.admin-module-color-field {
+    align-content: start;
+    min-width: 0;
+}
+
+.admin-module-color-control {
+    align-items: stretch;
+    display: grid;
+    gap: 8px;
+    grid-template-columns: 58px minmax(0, 1fr);
+    min-width: 0;
+}
+
+.admin-module-color-control input[type="color"] {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    box-sizing: border-box;
+    cursor: pointer;
+    height: 48px;
+    min-height: 48px;
+    padding: 4px;
+    width: 58px;
+}
+
+.admin-module-color-control input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.admin-module-color-control input[type="color"]::-webkit-color-swatch {
+    border: 0;
+    border-radius: 7px;
+}
+
+.admin-module-color-control input[type="color"]::-moz-color-swatch {
+    border: 0;
+    border-radius: 7px;
+}
+
+.admin-module-color-control input[type="text"] {
+    box-sizing: border-box;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .9rem;
+    height: 48px;
+    min-height: 48px;
+    text-align: left;
+}
+
+.admin-field-help {
+    color: var(--admin-text-muted);
+    font-size: .72rem;
+    font-weight: 400;
+    line-height: 1.6;
+}
+
+.admin-module-runtime-toggles {
+    display: grid;
+    gap: 12px;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-module-runtime-toggles .admin-module-toggle {
+    align-self: stretch;
+    box-sizing: border-box;
+    justify-content: flex-start;
+    margin: 0;
+    max-width: none;
+    min-height: 52px;
+    width: 100%;
+}
+
+.admin-module-runtime-toggles .admin-module-toggle span {
+    color: var(--admin-text);
+}
+
+@media (max-width: 900px) {
+    .admin-module-runtime-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-module-runtime-description {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 600px) {
+    .admin-module-runtime-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-module-runtime-description,
+    .admin-module-runtime-toggles {
+        grid-column: auto;
+    }
+
+    .admin-module-runtime-toggles {
+        grid-template-columns: 1fr;
+    }
+}

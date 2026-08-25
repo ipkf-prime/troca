@@ -11,6 +11,40 @@ if (!function_exists('admin_h')) {
     }
 }
 
+if (!function_exists('admin_module_color_hex')) {
+    function admin_module_color_hex($value): string
+    {
+        $value = strtolower(
+            trim((string) ($value ?? ''))
+        );
+
+        if (
+            preg_match(
+                '/^#[0-9a-f]{6}$/',
+                $value
+            ) === 1
+        ) {
+            return $value;
+        }
+
+        $legacy = [
+            'blue' => '#2563eb',
+            'teal' => '#0f766e',
+            'cyan' => '#0891b2',
+            'purple' => '#7c3aed',
+            'violet' => '#6d28d9',
+            'fuchsia' => '#c026d3',
+            'indigo' => '#4f46e5',
+            'amber' => '#d97706',
+            'orange' => '#f97316',
+            'rose' => '#e11d48',
+            'green' => '#16a34a',
+        ];
+
+        return $legacy[$value] ?? '#2563eb';
+    }
+}
+
 $modules = $context['dashboard_modules'] ?? [];
 
 ob_start();
@@ -99,8 +133,14 @@ ob_start();
         </div>
         <div class="admin-module-launcher">
             <?php foreach ($modules as $module): ?>
+                <?php
+                $moduleColor = admin_module_color_hex(
+                    $module['color'] ?? '#2563eb'
+                );
+                ?>
                 <a
-                    class="admin-module-launcher__tile admin-module-launcher__tile--<?= admin_h($module['color'] ?? 'blue') ?>"
+                    class="admin-module-launcher__tile"
+                    style="--module-color-a: <?= admin_h($moduleColor) ?>; --module-color-b: color-mix(in srgb, <?= admin_h($moduleColor) ?> 78%, #000);"
                     href="<?= admin_h($module['url'] ?? '#') ?>"
                 >
                     <span class="admin-module-launcher__icon">
