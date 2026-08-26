@@ -46,6 +46,10 @@ class AdminNavigationRbacService extends BaseService
             '/admin/ticketing' => 'ticketing.ticket.view',
             '/admin/ticketing/tickets' => 'ticketing.ticket.view',
             '/admin/ticketing/tickets/create' => 'ticketing.ticket.view',
+            '/admin/ticketing/projects' => 'ticketing.project.manage',
+            '/admin/ticketing/projects/create' => 'ticketing.project.manage',
+            '/admin/ticketing/projects/{public_reference}' => 'ticketing.project.manage',
+            '/admin/ticketing/projects/{public_reference}/edit' => 'ticketing.project.manage',
             '/admin/ticketing/tickets/{public_reference}' => 'ticketing.ticket.view',
             '/admin/work' => 'work.project.view',
             '/admin/work/projects' => 'work.project.view',
@@ -114,6 +118,32 @@ class AdminNavigationRbacService extends BaseService
             return
                 $this->routePermissions()[
                     '/admin/ticketing/tickets/{public_reference}'
+                ]
+                ?? null;
+        }
+
+        if (
+            preg_match(
+                '#^/admin/ticketing/projects/[A-Za-z0-9_-]+$#',
+                $path
+            ) === 1
+        ) {
+            return
+                $this->routePermissions()[
+                    '/admin/ticketing/projects/{public_reference}'
+                ]
+                ?? null;
+        }
+
+        if (
+            preg_match(
+                '#^/admin/ticketing/projects/[A-Za-z0-9_-]+/edit$#',
+                $path
+            ) === 1
+        ) {
+            return
+                $this->routePermissions()[
+                    '/admin/ticketing/projects/{public_reference}/edit'
                 ]
                 ?? null;
         }

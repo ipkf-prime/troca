@@ -30,21 +30,19 @@ class DynamicPermissionRegistryService extends BaseService
             (int) ($module['is_active'] ?? 0) === 1;
 
         /*
-         * Module disable:
-         * keep role_permissions untouched,
-         * only deactivate permission catalog rows.
+         * Module availability and permission-catalog state
+         * are independent concerns.
+         *
+         * Disabling an application module is enforced by
+         * the module runtime/navigation/SSO gates. It must
+         * not mutate the configured active state of every
+         * permission belonging to that module.
+         *
+         * This preserves non-base permissions such as
+         * project management, assignment, SLA and audit
+         * permissions across module disable/enable cycles.
          */
         if (!$active) {
-            $statement = Database::connect()->prepare("
-                UPDATE permissions
-                SET
-                    is_active = 0,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE module = ?
-            ");
-
-            $statement->execute([$moduleKey]);
-
             return;
         }
 

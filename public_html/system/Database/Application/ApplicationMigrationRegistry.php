@@ -55,6 +55,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\ExposeAutomationSecretariatNavigation::class,
                     \IPKF\Database\Migrations\ExposeTicketingNavigation::class,
                     \IPKF\Database\Migrations\ExposeTicketingModuleShellNavigation::class,
+                    \IPKF\Database\Migrations\EnableTicketingProjectManagement::class,
                     \IPKF\Database\Migrations\ExtendAdminNavigationCoreFeatureMetadata::class,
                     \IPKF\Database\Migrations\CreateSecureMessageExtensionTables::class,
                     \IPKF\Database\Migrations\ExtendNotificationProviderManagement::class,
@@ -93,6 +94,7 @@ class ApplicationMigrationRegistry
                 'connection' => 'ticketing.primary',
                 'migrations' => [
                     \IPKF\Database\Migrations\CreateTicketingDomainFoundationTables::class,
+                    \IPKF\Database\Migrations\CreateTicketingSupportProjectFoundation::class,
                 ],
             ],
         ];

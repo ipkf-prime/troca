@@ -160,12 +160,44 @@ foreach ([
 }
 
 
+/*
+ * Route files may legitimately invoke application
+ * methods such as ->update().  That must not be
+ * confused with a SQL UPDATE statement.
+ *
+ * Protect both sides of the boundary:
+ * - no direct database APIs in routes;
+ * - no actual SQL statement patterns in routes.
+ */
+foreach ([
+    '->prepare(',
+    '->query(',
+    '->exec(',
+    'PDO::',
+    'Database::connect(',
+    "->resolve('ticketing.primary')",
+] as $databaseBoundaryNeedle) {
+    $expect(
+        !str_contains(
+            $routes,
+            $databaseBoundaryNeedle
+        ),
+        'Routes must not use database API directly: '
+        . $databaseBoundaryNeedle
+    );
+}
+
 $expect(
     preg_match(
-        '/\b(?:SELECT|INSERT|UPDATE|DELETE)\b/i',
+        '/\b(?:'
+        . 'SELECT\s+.+?\s+FROM'
+        . '|INSERT\s+INTO'
+        . '|UPDATE\s+[A-Za-z_][A-Za-z0-9_]*\s+SET'
+        . '|DELETE\s+FROM'
+        . ')\b/is',
         $routes
     ) !== 1,
-    'Routes must not execute SQL.'
+    'Routes must not contain SQL statements.'
 );
 
 

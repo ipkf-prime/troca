@@ -180,6 +180,656 @@ $router->get(
 
 /*
  * ---------------------------------------------------------
+ * Support Project Administration
+ * ---------------------------------------------------------
+ */
+$router->get(
+    '/admin/ticketing/projects',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/ticketing/projects'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $filters = [
+            'q' =>
+                trim(
+                    (string) $request->input(
+                        'q',
+                        ''
+                    )
+                ),
+
+            'status' =>
+                trim(
+                    (string) $request->input(
+                        'status',
+                        ''
+                    )
+                ),
+        ];
+
+        try {
+            $list =
+                (
+                    new \App\Services\Ticketing\SupportProjectAdminService()
+                )->index($filters);
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'support_project_index',
+                    [
+                        'user_id' =>
+                            (int) $context['user_id'],
+
+                        'filters' =>
+                            $filters,
+                    ]
+                );
+
+            return $adminRender(
+                $response,
+                'placeholder',
+                [
+                    'title' =>
+                        'پروژه‌های پشتیبانی',
+
+                    'context' =>
+                        $context,
+
+                    'message' =>
+                        'فهرست پروژه‌های پشتیبانی در دسترس نیست. '
+                        . 'کد پیگیری: '
+                        . $incident,
+                ],
+                503
+            );
+        }
+
+        return $adminRender(
+            $response,
+            'ticketing-projects',
+            [
+                'title' =>
+                    'پروژه‌های پشتیبانی',
+
+                'context' =>
+                    $context,
+
+                'list' =>
+                    $list,
+            ]
+        );
+    }
+);
+
+
+$router->get(
+    '/admin/ticketing/projects/create',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/ticketing/projects/create'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $page =
+            (
+                new \App\Services\Ticketing\SupportProjectAdminService()
+            )->createForm();
+
+        return $adminRender(
+            $response,
+            'ticketing-project-form',
+            [
+                'title' =>
+                    'پروژه پشتیبانی جدید',
+
+                'context' =>
+                    $context,
+
+                'mode' =>
+                    $page['mode'],
+
+                'project' =>
+                    $page['project'],
+
+                'form' =>
+                    $page['form'],
+
+                'icon_options' =>
+                    $page['icon_options'],
+
+                'errors' =>
+                    [],
+            ]
+        );
+    }
+);
+
+
+$router->post(
+    '/admin/ticketing/projects',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/ticketing/projects'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $csrf =
+            new \IPKF\Security\Csrf();
+
+        if (
+            !$csrf->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            return $adminRender(
+                $response,
+                'placeholder',
+                [
+                    'title' =>
+                        'ثبت پروژه پشتیبانی',
+
+                    'context' =>
+                        $context,
+
+                    'message' =>
+                        'اعتبار فرم منقضی شده است. صفحه را دوباره بارگذاری کنید.',
+                ],
+                419
+            );
+        }
+
+        $service =
+            new \App\Services\Ticketing\SupportProjectAdminService();
+
+        $input = [
+            'code' =>
+                $request->input(
+                    'code',
+                    ''
+                ),
+
+            'title' =>
+                $request->input(
+                    'title',
+                    ''
+                ),
+
+            'description' =>
+                $request->input(
+                    'description',
+                    ''
+                ),
+
+            'icon_code' =>
+                $request->input(
+                    'icon_code',
+                    'sitemap'
+                ),
+
+            'color_code' =>
+                $request->input(
+                    'color_code',
+                    '#258843'
+                ),
+
+            'sort_order' =>
+                $request->input(
+                    'sort_order',
+                    10
+                ),
+
+            'is_active' =>
+                $request->input(
+                    'is_active',
+                    0
+                ),
+        ];
+
+        try {
+            $result =
+                $service->create(
+                    $input,
+                    (int) $context['user_id']
+                );
+
+            if (empty($result['ok'])) {
+
+                $page =
+                    $service->createForm(
+                        $result['form']
+                        ?? []
+                    );
+
+                return $adminRender(
+                    $response,
+                    'ticketing-project-form',
+                    [
+                        'title' =>
+                            'پروژه پشتیبانی جدید',
+
+                        'context' =>
+                            $context,
+
+                        'mode' =>
+                            $page['mode'],
+
+                        'project' =>
+                            $page['project'],
+
+                        'form' =>
+                            $page['form'],
+
+                        'icon_options' =>
+                            $page['icon_options'],
+
+                        'errors' =>
+                            $result['errors']
+                            ?? [],
+                    ],
+                    422
+                );
+            }
+
+            return $response->redirect(
+                '/admin/ticketing/projects/'
+                . rawurlencode(
+                    (string) $result[
+                        'public_reference'
+                    ]
+                )
+                . '/edit?status=created'
+            );
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'support_project_create',
+                    [
+                        'user_id' =>
+                            (int) $context['user_id'],
+                    ]
+                );
+
+            return $adminRender(
+                $response,
+                'placeholder',
+                [
+                    'title' =>
+                        'ثبت پروژه پشتیبانی',
+
+                    'context' =>
+                        $context,
+
+                    'message' =>
+                        'ثبت پروژه انجام نشد. کد پیگیری: '
+                        . $incident,
+                ],
+                503
+            );
+        }
+    }
+);
+
+
+$router->get(
+    '/admin/ticketing/projects/{public_reference}/edit',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard
+    ) {
+        $reference =
+            trim(
+                (string) $request->route(
+                    'public_reference',
+                    ''
+                )
+            );
+
+        $path =
+            '/admin/ticketing/projects/'
+            . $reference
+            . '/edit';
+
+        $context =
+            $adminGuard(
+                $response,
+                $path
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $page =
+            (
+                new \App\Services\Ticketing\SupportProjectAdminService()
+            )->editForm(
+                $reference
+            );
+
+        if ($page === null) {
+            return $adminRender(
+                $response,
+                'placeholder',
+                [
+                    'title' =>
+                        'پروژه پشتیبانی',
+
+                    'context' =>
+                        $context,
+
+                    'message' =>
+                        'پروژه مورد نظر پیدا نشد.',
+                ],
+                404
+            );
+        }
+
+        return $adminRender(
+            $response,
+            'ticketing-project-form',
+            [
+                'title' =>
+                    'ویرایش پروژه پشتیبانی',
+
+                'context' =>
+                    $context,
+
+                'mode' =>
+                    $page['mode'],
+
+                'project' =>
+                    $page['project'],
+
+                'form' =>
+                    $page['form'],
+
+                'icon_options' =>
+                    $page['icon_options'],
+
+                'errors' =>
+                    [],
+            ]
+        );
+    }
+);
+
+
+$router->post(
+    '/admin/ticketing/projects/{public_reference}',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $reference =
+            trim(
+                (string) $request->route(
+                    'public_reference',
+                    ''
+                )
+            );
+
+        $path =
+            '/admin/ticketing/projects/'
+            . $reference;
+
+        $context =
+            $adminGuard(
+                $response,
+                $path
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $csrf =
+            new \IPKF\Security\Csrf();
+
+        if (
+            !$csrf->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            return $adminRender(
+                $response,
+                'placeholder',
+                [
+                    'title' =>
+                        'ویرایش پروژه پشتیبانی',
+
+                    'context' =>
+                        $context,
+
+                    'message' =>
+                        'اعتبار فرم منقضی شده است. صفحه را دوباره بارگذاری کنید.',
+                ],
+                419
+            );
+        }
+
+        $service =
+            new \App\Services\Ticketing\SupportProjectAdminService();
+
+        $input = [
+            'title' =>
+                $request->input(
+                    'title',
+                    ''
+                ),
+
+            'description' =>
+                $request->input(
+                    'description',
+                    ''
+                ),
+
+            'icon_code' =>
+                $request->input(
+                    'icon_code',
+                    'sitemap'
+                ),
+
+            'color_code' =>
+                $request->input(
+                    'color_code',
+                    '#258843'
+                ),
+
+            'sort_order' =>
+                $request->input(
+                    'sort_order',
+                    10
+                ),
+
+            'is_active' =>
+                $request->input(
+                    'is_active',
+                    0
+                ),
+        ];
+
+        try {
+            $result =
+                $service->update(
+                    $reference,
+                    $input
+                );
+
+            if (!empty($result['not_found'])) {
+                return $adminRender(
+                    $response,
+                    'placeholder',
+                    [
+                        'title' =>
+                            'پروژه پشتیبانی',
+
+                        'context' =>
+                            $context,
+
+                        'message' =>
+                            'پروژه مورد نظر پیدا نشد.',
+                    ],
+                    404
+                );
+            }
+
+            if (empty($result['ok'])) {
+
+                $page =
+                    $service->editForm(
+                        $reference,
+                        $result['form']
+                        ?? []
+                    );
+
+                if ($page === null) {
+                    return $adminRender(
+                        $response,
+                        'placeholder',
+                        [
+                            'title' =>
+                                'پروژه پشتیبانی',
+
+                            'context' =>
+                                $context,
+
+                            'message' =>
+                                'پروژه مورد نظر پیدا نشد.',
+                        ],
+                        404
+                    );
+                }
+
+                return $adminRender(
+                    $response,
+                    'ticketing-project-form',
+                    [
+                        'title' =>
+                            'ویرایش پروژه پشتیبانی',
+
+                        'context' =>
+                            $context,
+
+                        'mode' =>
+                            $page['mode'],
+
+                        'project' =>
+                            $page['project'],
+
+                        'form' =>
+                            $page['form'],
+
+                        'icon_options' =>
+                            $page['icon_options'],
+
+                        'errors' =>
+                            $result['errors']
+                            ?? [],
+                    ],
+                    422
+                );
+            }
+
+            return $response->redirect(
+                '/admin/ticketing/projects/'
+                . rawurlencode($reference)
+                . '/edit?status=updated'
+            );
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'support_project_update',
+                    [
+                        'user_id' =>
+                            (int) $context['user_id'],
+
+                        'project_reference' =>
+                            $reference,
+                    ]
+                );
+
+            return $adminRender(
+                $response,
+                'placeholder',
+                [
+                    'title' =>
+                        'ویرایش پروژه پشتیبانی',
+
+                    'context' =>
+                        $context,
+
+                    'message' =>
+                        'ویرایش پروژه انجام نشد. کد پیگیری: '
+                        . $incident,
+                ],
+                503
+            );
+        }
+    }
+);
+
+
+/*
+ * ---------------------------------------------------------
  * My Tickets
  * ---------------------------------------------------------
  */

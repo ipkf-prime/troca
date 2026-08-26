@@ -34,15 +34,23 @@ $expect(
 );
 
 $expect(
+    !str_contains(
+        $service,
+        'UPDATE permissions'
+        . PHP_EOL
+        . '                SET'
+        . PHP_EOL
+        . '                    is_active = 0'
+    ),
+    'Module disable must not bulk-deactivate permission catalog rows.'
+);
+
+$expect(
     str_contains(
         $service,
-        'WHERE module = ?'
-    )
-    && str_contains(
-        $service,
-        'is_active = 0'
+        'Module availability and permission-catalog state'
     ),
-    'Inactive module permissions must be deactivated.'
+    'Module/permission lifecycle separation contract is missing.'
 );
 
 $expect(

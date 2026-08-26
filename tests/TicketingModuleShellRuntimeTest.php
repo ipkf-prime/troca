@@ -146,12 +146,43 @@ $expect(
     'Ticketing dashboard must render inside standard Admin layout.'
 );
 
+/*
+ * Route code may call application methods named
+ * update(), create(), delete(), etc.
+ *
+ * SQL boundary checks therefore verify real database
+ * APIs and SQL statement shapes rather than isolated
+ * English keywords.
+ */
+foreach ([
+    '->prepare(',
+    '->query(',
+    '->exec(',
+    'PDO::',
+    'Database::connect(',
+    "->resolve('ticketing.primary')",
+] as $databaseBoundaryNeedle) {
+    $expect(
+        !str_contains(
+            $route,
+            $databaseBoundaryNeedle
+        ),
+        'Ticketing routes must not access database APIs directly: '
+        . $databaseBoundaryNeedle
+    );
+}
+
 $expect(
-    !preg_match(
-        '/\b(?:SELECT|INSERT|UPDATE|DELETE|FROM|JOIN)\b/i',
+    preg_match(
+        '/\b(?:'
+        . 'SELECT\s+.+?\s+FROM'
+        . '|INSERT\s+INTO'
+        . '|UPDATE\s+[A-Za-z_][A-Za-z0-9_]*\s+SET'
+        . '|DELETE\s+FROM'
+        . ')\b/is',
         $route
-    ),
-    'Initial Ticketing runtime route must not access a database.'
+    ) !== 1,
+    'Ticketing routes must not contain SQL statements.'
 );
 
 $expect(
