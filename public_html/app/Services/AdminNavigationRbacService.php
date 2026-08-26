@@ -44,6 +44,9 @@ class AdminNavigationRbacService extends BaseService
             '/admin/automation/external-organizations/addresses/save' => 'automation.external_directory.manage',
             '/admin/automation/external-organizations/addresses/deactivate' => 'automation.external_directory.manage',
             '/admin/ticketing' => 'ticketing.ticket.view',
+            '/admin/ticketing/tickets' => 'ticketing.ticket.view',
+            '/admin/ticketing/tickets/create' => 'ticketing.ticket.view',
+            '/admin/ticketing/tickets/{public_reference}' => 'ticketing.ticket.view',
             '/admin/work' => 'work.project.view',
             '/admin/work/projects' => 'work.project.view',
             '/admin/work/projects/create' => 'work.project.manage',
@@ -100,6 +103,19 @@ class AdminNavigationRbacService extends BaseService
 
         if (preg_match('#^/admin/users/[1-9][0-9]*/(identity|contacts|account|access|appointments)$#', $path, $matches) === 1) {
             return $this->routePermissions()['/admin/users/{id}/' . $matches[1]] ?? null;
+        }
+
+        if (
+            preg_match(
+                '#^/admin/ticketing/tickets/[A-Za-z0-9_-]+$#',
+                $path
+            ) === 1
+        ) {
+            return
+                $this->routePermissions()[
+                    '/admin/ticketing/tickets/{public_reference}'
+                ]
+                ?? null;
         }
 
         return null;

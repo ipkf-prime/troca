@@ -1,0 +1,296 @@
+/*
+ * IPKF Ticketing operational UI.
+ *
+ * Scoped to the Ticketing module shell so Core,
+ * Work and Automation presentation remain untouched.
+ */
+
+.ticketing-shell .admin-content {
+    padding-top: 0;
+}
+
+.ticketing-shell .admin-breadcrumb {
+    margin-bottom: 4px;
+}
+
+.ticketing-shell .ticketing-page {
+    gap: 12px;
+}
+
+.ticketing-shell .ticketing-page-head {
+    align-items: flex-end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 18px;
+    justify-content: space-between;
+    margin: 0;
+    min-height: 0;
+    padding: 2px 2px 8px;
+}
+
+.ticketing-shell .ticketing-page-head > div:first-child {
+    min-width: 0;
+}
+
+.ticketing-shell .ticketing-page-head h1 {
+    font-size: 26px;
+    line-height: 1.4;
+    margin: 0 0 4px;
+}
+
+.ticketing-shell .ticketing-page-head p {
+    color: var(--admin-text-muted);
+    margin: 0;
+}
+
+.ticketing-shell .ticketing-page-head .admin-form-actions {
+    gap: 8px;
+}
+
+
+/* Dashboard */
+
+.ticketing-shell .ticketing-metrics {
+    gap: 10px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+}
+
+.ticketing-shell .ticketing-metrics .admin-card {
+    min-height: 88px;
+    padding: 0;
+}
+
+.ticketing-shell .ticketing-metrics .admin-card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 86px;
+    padding: 13px 16px;
+}
+
+.ticketing-shell .ticketing-metrics .admin-muted {
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.ticketing-shell .ticketing-metric-value {
+    color: var(--admin-text);
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1.15;
+    margin-top: 4px;
+}
+
+.ticketing-shell .ticketing-recent,
+.ticketing-shell .ticketing-queue-card {
+    margin: 0;
+}
+
+.ticketing-shell .ticketing-recent {
+    padding: 15px 16px;
+}
+
+.ticketing-shell .ticketing-recent .admin-page-header {
+    margin-bottom: 10px;
+}
+
+.ticketing-shell .ticketing-recent .admin-page-header h2 {
+    margin: 0 0 3px;
+}
+
+.ticketing-shell .ticketing-recent .admin-page-header p {
+    margin: 0;
+}
+
+.ticketing-shell .ticketing-queue-card {
+    min-height: 0;
+    padding: 14px 16px;
+}
+
+.ticketing-shell .ticketing-queue-card h2 {
+    margin: 0 0 4px;
+}
+
+
+/* My Tickets */
+
+.ticketing-shell .ticketing-filter-section {
+    margin: 0;
+    padding: 15px 16px;
+}
+
+.ticketing-shell .ticketing-filter-toolbar {
+    align-items: end;
+    display: grid;
+    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    margin: 0;
+}
+
+.ticketing-shell .ticketing-filter-form {
+    max-width: none;
+}
+
+.ticketing-shell .ticketing-filter-row {
+    display: grid;
+    gap: 10px;
+    grid-template-columns:
+        minmax(260px, 1.5fr)
+        minmax(170px, .8fr)
+        minmax(170px, .8fr)
+        auto
+        auto;
+}
+
+.ticketing-shell .ticketing-filter-row input,
+.ticketing-shell .ticketing-filter-row select {
+    min-width: 0;
+}
+
+.ticketing-shell
+.ticketing-filter-toolbar
+> .admin-muted {
+    align-items: center;
+    background: var(--admin-surface-muted);
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    display: flex;
+    gap: 5px;
+    min-height: 42px;
+    padding: 8px 12px;
+    white-space: nowrap;
+}
+
+.ticketing-shell .ticketing-list-page .admin-table th,
+.ticketing-shell .ticketing-list-page .admin-table td {
+    padding-block: 9px;
+}
+
+
+/* Create Ticket */
+
+.ticketing-shell .ticketing-form-section {
+    margin: 0;
+    padding: 16px 18px;
+}
+
+.ticketing-shell .ticketing-create-form {
+    display: grid;
+    gap: 12px;
+}
+
+.ticketing-shell
+.ticketing-create-form
+.admin-form-grid {
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+}
+
+.ticketing-shell
+.ticketing-create-form
+.admin-form-grid__wide {
+    grid-column: 1 / -1;
+}
+
+.ticketing-shell .ticketing-create-form textarea {
+    min-height: 150px;
+    resize: vertical;
+}
+
+.ticketing-shell
+.ticketing-create-form
+.admin-form-actions {
+    gap: 8px;
+    margin-top: 2px;
+}
+
+
+/* Ticket detail */
+
+.ticketing-shell .ticketing-detail-page {
+    gap: 12px;
+}
+
+.ticketing-shell .ticketing-detail-metrics {
+    gap: 10px;
+    margin: 0;
+}
+
+.ticketing-shell .ticketing-detail-metrics .admin-card {
+    min-height: 82px;
+    padding: 13px 15px;
+}
+
+.ticketing-shell .ticketing-conversation,
+.ticketing-shell .ticketing-history {
+    margin: 0;
+    padding: 15px 16px;
+}
+
+
+/* Responsive */
+
+@media (max-width: 1180px) {
+    .ticketing-shell .ticketing-metrics {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .ticketing-shell .ticketing-filter-row {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .ticketing-shell
+    .ticketing-filter-row
+    .admin-button,
+    .ticketing-shell
+    .ticketing-filter-row
+    button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 680px) {
+    .ticketing-shell .ticketing-page-head {
+        align-items: stretch;
+        display: grid;
+    }
+
+    .ticketing-shell
+    .ticketing-page-head
+    .admin-form-actions {
+        justify-content: stretch;
+    }
+
+    .ticketing-shell
+    .ticketing-page-head
+    .admin-button {
+        flex: 1 1 auto;
+    }
+
+    .ticketing-shell .ticketing-metrics,
+    .ticketing-shell .ticketing-filter-row,
+    .ticketing-shell
+    .ticketing-create-form
+    .admin-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ticketing-shell .ticketing-filter-toolbar {
+        grid-template-columns: 1fr;
+    }
+
+    .ticketing-shell
+    .ticketing-filter-toolbar
+    > .admin-muted {
+        justify-content: space-between;
+    }
+
+    .ticketing-shell
+    .ticketing-create-form
+    .admin-form-grid__wide {
+        grid-column: auto;
+    }
+}

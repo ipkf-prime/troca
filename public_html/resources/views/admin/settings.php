@@ -38,7 +38,7 @@ ob_start();
             <div class="admin-form-grid">
                 <label><span>ماژول</span><select name="catalog_key" required data-module-select><option value="">انتخاب ماژول</option><?php foreach ($catalog as $key => $module): ?><option value="<?= admin_h($key) ?>"><?= admin_h($module['name']) ?></option><?php endforeach; ?><option value="custom">ماژول سفارشی</option></select></label>
                 <label><span>نام نمایشی</span><input name="display_name" required data-module-field="name"></label>
-                <label><span>کلید ماژول</span><input name="module_key" required dir="ltr" pattern="[a-z][a-z0-9_-]{1,99}" data-module-field="key"></label>
+                <label><span>کلید ماژول</span><input name="module_key" required readonly dir="ltr" pattern="[a-z][a-z0-9_-]{1,99}" data-module-field="key"></label>
                 <label class="admin-field--compact"><span>ترتیب نمایش</span><input type="number" name="sort_order" value="10" min="0"></label>
                 <label class="admin-check-field admin-module-toggle"><input type="checkbox" name="is_active" value="1" checked><span>ماژول فعال باشد</span></label>
             </div>
@@ -267,6 +267,12 @@ document.addEventListener('DOMContentLoaded', function () {
     };
     const loadSelectedModule = function () {
         const key = select.value;
+
+        if (keyInput) {
+            keyInput.readOnly =
+                key !== 'custom';
+        }
+
         const module = catalog[key] || {};
         const saved = registered[key] || {};
         const values = {

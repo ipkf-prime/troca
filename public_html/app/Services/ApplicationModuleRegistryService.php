@@ -120,7 +120,49 @@ class ApplicationModuleRegistryService extends BaseService
             return ['ok' => false, 'error' => 'ابتدا Migration را اجرا کنید.'];
         }
 
-        $key = strtolower(trim((string) ($input['module_key'] ?? '')));
+        /*
+         * Installed/catalog module identity is immutable.
+         *
+         * Never trust module_key posted by the browser for a
+         * registered catalog module. Otherwise changing a
+         * presentation field can accidentally create a second
+         * application module under a different primary key.
+         */
+        $catalog = $this->catalog();
+
+        $catalogKey = strtolower(
+            trim(
+                (string) (
+                    $input['catalog_key']
+                    ?? ''
+                )
+            )
+        );
+
+        if (
+            $catalogKey !== ''
+            && $catalogKey !== 'custom'
+        ) {
+            if (!array_key_exists($catalogKey, $catalog)) {
+                return [
+                    'ok' => false,
+                    'error' =>
+                        'ماژول انتخاب‌شده در کاتالوگ معتبر نیست.',
+                ];
+            }
+
+            $key = $catalogKey;
+        } else {
+            $key = strtolower(
+                trim(
+                    (string) (
+                        $input['module_key']
+                        ?? ''
+                    )
+                )
+            );
+        }
+
         $name = trim((string) ($input['display_name'] ?? ''));
         $baseUrl = rtrim(trim((string) ($input['base_url'] ?? '')), '/');
         $callback = trim((string) ($input['sso_callback_url'] ?? ''));
@@ -137,8 +179,6 @@ class ApplicationModuleRegistryService extends BaseService
         if ($charset !== 'utf8mb4' || !in_array($runtimeMode, ['fallback', 'provisioning', 'dedicated'], true)) {
             return ['ok' => false, 'error' => 'Charset یا حالت اجرای ماژول معتبر نیست.'];
         }
-
-                $catalog = $this->catalog();
 
         $secretReference = (string) (
             $catalog[$key]['secret']

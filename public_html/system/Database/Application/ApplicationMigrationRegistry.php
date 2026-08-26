@@ -54,6 +54,8 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateCommunicationCenterFoundationTables::class,
                     \IPKF\Database\Migrations\ExposeAutomationSecretariatNavigation::class,
                     \IPKF\Database\Migrations\ExposeTicketingNavigation::class,
+                    \IPKF\Database\Migrations\ExposeTicketingModuleShellNavigation::class,
+                    \IPKF\Database\Migrations\ExtendAdminNavigationCoreFeatureMetadata::class,
                     \IPKF\Database\Migrations\CreateSecureMessageExtensionTables::class,
                     \IPKF\Database\Migrations\ExtendNotificationProviderManagement::class,
                     \IPKF\Database\Migrations\EnableNotificationProviderManagementCrud::class,

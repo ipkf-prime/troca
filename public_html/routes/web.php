@@ -1345,10 +1345,20 @@ $router->get('/auth/module-sso/callback', function ($request, $response) {
             // The appointment may have expired between issuance and consumption; continue without stale context.
         }
     }
-    $urls = new \IPKF\Support\ApplicationUrlRegistry();
     $safePath = (string) $record['safe_redirect_path'];
-    return $response->header('Cache-Control', 'no-store')->header('Referrer-Policy', 'no-referrer')
-        ->redirect(str_starts_with($safePath, '/admin/work') ? $urls->work($safePath) : $urls->automation($safePath));
+
+    /*
+     * The authorization code is consumed on the
+     * destination module host itself. Redirect locally
+     * using the validated relative admin path.
+     *
+     * This keeps the callback generic for every
+     * registered application module.
+     */
+    return $response
+        ->header('Cache-Control', 'no-store')
+        ->header('Referrer-Policy', 'no-referrer')
+        ->redirect($safePath);
 });
 
 $adminGuard = function ($response, string $path) use ($adminRender, $adminContext) {
@@ -1356,10 +1366,38 @@ $adminGuard = function ($response, string $path) use ($adminRender, $adminContex
 
     if ($context === null) {
         $urls = new \IPKF\Support\ApplicationUrlRegistry();
-        if ($urls->isAutomationHost((string) ($_SERVER['HTTP_HOST'] ?? ''))
-            || $urls->isWorkHost((string) ($_SERVER['HTTP_HOST'] ?? ''))) {
-            $returnPath = (string) ($_SERVER['REQUEST_URI'] ?? $path);
-            return $response->redirect($urls->core('/auth/module-sso/start?return_path=' . rawurlencode($returnPath)));
+        $requestHost =
+            (string) (
+                $_SERVER['HTTP_HOST']
+                ?? ''
+            );
+
+        if (
+            $urls->isApplicationModuleHost(
+                $requestHost
+            )
+        ) {
+            /*
+             * Preserve the complete relative URI,
+             * including query string. Core will either
+             * issue a fresh SSO code immediately or
+             * remember the destination through login/MFA
+             * and issue the fresh code on resume.
+             */
+            $returnPath =
+                (string) (
+                    $_SERVER['REQUEST_URI']
+                    ?? $path
+                );
+
+            return $response->redirect(
+                $urls->core(
+                    '/auth/module-sso/start?return_path='
+                    . rawurlencode(
+                        $returnPath
+                    )
+                )
+            );
         }
 
         return $response->redirect('/admin/login');
@@ -5703,6 +5741,135 @@ $router->post('/admin/settings/modules', function ($request, $response) use ($ad
     $_SESSION['admin_module_registry_error'] = (string) ($result['error'] ?? '');
     return $response->redirect('/admin/settings?status=' . (($result['ok'] ?? false) ? 'saved' : 'invalid'));
 });
+$router->get(
+    '/admin/settings/core-features',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/settings'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $error =
+            (string) (
+                $_SESSION[
+                    'admin_core_feature_error'
+                ]
+                ?? ''
+            );
+
+        unset(
+            $_SESSION[
+                'admin_core_feature_error'
+            ]
+        );
+
+        return $adminRender(
+            $response,
+            'core-feature-settings',
+            [
+                'title' =>
+                    'تنظیمات بخش‌های پنل',
+
+                'context' =>
+                    $context,
+
+                'coreFeatures' =>
+                    (
+                        new \App\Services\CoreFeatureRegistryService()
+                    )->index(),
+
+                'status' =>
+                    trim(
+                        (string) $request->input(
+                            'status',
+                            ''
+                        )
+                    ),
+
+                'error' =>
+                    $error,
+            ]
+        );
+    }
+);
+
+
+$router->post(
+    '/admin/settings/core-features',
+    function (
+        $request,
+        $response
+    ) use ($adminGuard) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/settings'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        if (
+            !(
+                new \IPKF\Security\Csrf()
+            )->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            $_SESSION[
+                'admin_core_feature_error'
+            ] =
+                'نشست فرم معتبر نیست.';
+
+            return $response->redirect(
+                '/admin/settings/core-features'
+                . '?status=invalid'
+            );
+        }
+
+        $result =
+            (
+                new \App\Services\CoreFeatureRegistryService()
+            )->save(
+                $request->all()
+            );
+
+        $_SESSION[
+            'admin_core_feature_error'
+        ] =
+            (string) (
+                $result['error']
+                ?? ''
+            );
+
+        return $response->redirect(
+            '/admin/settings/core-features'
+            . '?status='
+            . (
+                ($result['ok'] ?? false)
+                    ? 'saved'
+                    : 'invalid'
+            )
+        );
+    }
+);
+
+
 $router->get('/admin/users', function ($request, $response) use ($adminRender, $adminGuard) {
     $context = $adminGuard($response, '/admin/users');
 
@@ -5926,18 +6093,69 @@ $router->get('/admin/logout', function ($request, $response) {
     (new \App\Services\AuthService())->logout();
     $urls = new \IPKF\Support\ApplicationUrlRegistry();
 
-    if ($urls->isAutomationHost((string) $request->host())) {
-        return $response->redirect($urls->core('/admin/logout?federated=1&return_module=automation'));
-    }
-    if ($urls->isWorkHost((string) $request->host())) {
-        return $response->redirect($urls->core('/admin/logout?federated=1&return_module=work'));
+    $moduleKey =
+        $urls->applicationModuleKeyForHost(
+            (string) $request->host()
+        );
+
+    if ($moduleKey !== null) {
+        return $response->redirect(
+            $urls->core(
+                '/admin/logout'
+                . '?federated=1'
+                . '&return_module='
+                . rawurlencode(
+                    $moduleKey
+                )
+            )
+        );
     }
 
-    if ((string) $request->input('return_module', '') === 'automation') {
-        return $response->redirect($urls->core('/auth/module-sso/start?return_path=' . rawurlencode('/admin/automation')));
-    }
-    if ((string) $request->input('return_module', '') === 'work') {
-        return $response->redirect($urls->core('/auth/module-sso/start?return_path=' . rawurlencode('/admin/work')));
+    $returnModule =
+        strtolower(
+            trim(
+                (string) $request->input(
+                    'return_module',
+                    ''
+                )
+            )
+        );
+
+    if ($returnModule !== '') {
+        $module =
+            (
+                new \IPKF\Support\ModuleRuntimeConfig()
+            )->active(
+                $returnModule
+            );
+
+        if (is_array($module)) {
+            $returnPath =
+                trim(
+                    (string) (
+                        $module['route_path']
+                        ?? ''
+                    )
+                );
+
+            if (
+                $returnPath !== ''
+                && str_starts_with(
+                    $returnPath,
+                    '/admin/'
+                )
+            ) {
+                return $response->redirect(
+                    $urls->core(
+                        '/auth/module-sso/start'
+                        . '?return_path='
+                        . rawurlencode(
+                            $returnPath
+                        )
+                    )
+                );
+            }
+        }
     }
 
     return $response->redirect($urls->core('/admin/login'));

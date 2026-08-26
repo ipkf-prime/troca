@@ -100,6 +100,77 @@ class ApplicationUrlRegistry
     }
 
 
+    public function applicationModuleKeyForHost(
+        string $requestHost
+    ): ?string {
+        $requestHost =
+            $this->normalizeHost(
+                $requestHost
+            );
+
+        if ($requestHost === '') {
+            return null;
+        }
+
+        foreach (
+            (new ModuleRuntimeConfig())->allActive()
+            as $module
+        ) {
+            $moduleKey = trim(
+                (string) (
+                    $module['module_key']
+                    ?? ''
+                )
+            );
+
+            $baseUrl = trim(
+                (string) (
+                    $module['base_url']
+                    ?? ''
+                )
+            );
+
+            if (
+                $moduleKey === ''
+                || $baseUrl === ''
+            ) {
+                continue;
+            }
+
+            $moduleHost =
+                parse_url(
+                    $baseUrl,
+                    PHP_URL_HOST
+                );
+
+            if (
+                is_string($moduleHost)
+                && $moduleHost !== ''
+                && hash_equals(
+                    $this->normalizeHost(
+                        $moduleHost
+                    ),
+                    $requestHost
+                )
+            ) {
+                return $moduleKey;
+            }
+        }
+
+        return null;
+    }
+
+
+    public function isApplicationModuleHost(
+        string $requestHost
+    ): bool {
+        return
+            $this->applicationModuleKeyForHost(
+                $requestHost
+            ) !== null;
+    }
+
+
     public function coreHost(): ?string
     {
         return $this->configuredHost('CORE_APP_URL');

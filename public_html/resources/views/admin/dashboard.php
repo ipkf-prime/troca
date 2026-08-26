@@ -125,7 +125,7 @@ ob_start();
     <section class="admin-section admin-dashboard-modules">
         <div class="admin-section__header">
             <div>
-                <h2>ماژول‌های سامانه</h2>
+                <h2>بخش‌های سامانه</h2>
                 <p class="admin-muted">
                     دسترسی به بخش‌ها بر اساس نقش فعال شما نمایش داده می‌شود.
                 </p>
@@ -164,7 +164,7 @@ ob_start();
 <?php else: ?>
     <section class="admin-section">
         <div class="admin-empty-state">
-            در حال حاضر ماژولی برای نقش فعال شما نمایش داده نمی‌شود.
+            در حال حاضر بخشی برای نقش فعال شما نمایش داده نمی‌شود.
         </div>
     </section>
 <?php endif; ?>

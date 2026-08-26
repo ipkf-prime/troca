@@ -59,7 +59,12 @@ class AdminPanelService extends BaseService
                 'پشتیبانی و تیکتینگ تروکا',
                 'تیکت‌ها و درخواست‌های پشتیبانی',
                 '/admin/ticketing',
-                $urls->core('/admin/dashboard')
+                $urls->core('/admin/dashboard'),
+                [
+                    'css' => [
+                        '/assets/admin/css/ticketing.css',
+                    ],
+                ]
             );
         }
 
@@ -73,6 +78,37 @@ class AdminPanelService extends BaseService
                 ['css' => ['/assets/admin/css/automation.css']]
             );
         }
+
+        /*
+         * Module identity is runtime metadata.
+         * Keep shell presentation connected to
+         * application_modules instead of static UI values.
+         */
+        if (is_array($moduleShellContext)) {
+            $runtimeModule =
+                (new \IPKF\Support\ModuleRuntimeConfig())
+                    ->active(
+                        (string) (
+                            $moduleShellContext['key']
+                            ?? ''
+                        )
+                    );
+
+            if (is_array($runtimeModule)) {
+                $iconCode = trim(
+                    (string) (
+                        $runtimeModule['icon_code']
+                        ?? ''
+                    )
+                );
+
+                $moduleShellContext['icon_code'] =
+                    $iconCode !== ''
+                        ? $iconCode
+                        : 'dashboard';
+            }
+        }
+
 
         return [
             'user' => $user,
@@ -155,6 +191,7 @@ class AdminPanelService extends BaseService
             )
         );
     }
+
 
     public function moduleNavigation(int $userId): array
     {
@@ -318,6 +355,19 @@ class AdminPanelService extends BaseService
                 continue;
             }
 
+            if (
+                isset(
+                    $module[
+                        'core_sidebar_enabled'
+                    ]
+                )
+                && (int) $module[
+                    'core_sidebar_enabled'
+                ] !== 1
+            ) {
+                continue;
+            }
+
             $navItem =
                 $this->resolveModuleNavigationItem(
                     $userId,
@@ -396,31 +446,17 @@ class AdminPanelService extends BaseService
 
 
         /*
-         * Keep core modules
+         * Core/internal cards are projected from the
+         * Core Feature Registry. Route and permission
+         * identity remain immutable in navigation data.
          */
-        foreach ($this->moduleDefinitions() as $module) {
-
-            if (in_array(
-                $module['key'] ?? '',
-                [
-                    'work',
-                    'automation',
-                    'ticketing'
-                ],
-                true
-            )) {
-                continue;
-            }
-
-            $resolved =
-                $this->resolveDashboardModule(
-                    $userId,
-                    $module
-                );
-
-            if ($resolved !== null) {
-                $modules[]=$resolved;
-            }
+        foreach (
+            (
+                new CoreFeatureRegistryService()
+            )->dashboardCards($userId)
+            as $module
+        ) {
+            $modules[] = $module;
         }
 
 
@@ -532,6 +568,65 @@ class AdminPanelService extends BaseService
                 'sort_order' => 50,
             ],
         ];
+
+        /*
+         * moduleDefinitions keeps immutable Core hub/action
+         * structure. Appearance comes from the registry.
+         */
+        $coreAppearance =
+            (
+                new CoreFeatureRegistryService()
+            )->appearanceMap();
+
+        foreach (
+            $definitions
+            as &$definition
+        ) {
+            $key =
+                (string) (
+                    $definition['key']
+                    ?? ''
+                );
+
+            if (
+                !isset(
+                    $coreAppearance[$key]
+                )
+            ) {
+                continue;
+            }
+
+            $appearance =
+                $coreAppearance[$key];
+
+            $definition['title'] =
+                $appearance['title'];
+
+            $definition['description'] =
+                $appearance['description'];
+
+            $definition['subtitle'] =
+                $appearance['description'];
+
+            $definition['icon'] =
+                $appearance['icon'];
+
+            $definition['color'] =
+                $appearance['color'];
+
+            $definition['sort_order'] =
+                $appearance['sort_order'];
+
+            $definition[
+                'core_sidebar_enabled'
+            ] =
+                $appearance[
+                    'sidebar_enabled'
+                ];
+        }
+
+        unset($definition);
+
 
         $urls = new ApplicationUrlRegistry();
         foreach ($definitions as &$module) {

@@ -21,8 +21,11 @@ class AdminIcon
         'file-lines' => 'file-lines',
         'reports' => 'chart-column',
         'chart-column' => 'chart-column',
-        'support' => 'headset',
+        'support' => 'book-open',
+        'book-open' => 'book-open',
         'headset' => 'headset',
+        'tasks' => 'list-check',
+        'list-check' => 'list-check',
         'search' => 'magnifying-glass',
         'magnifying-glass' => 'magnifying-glass',
         'user' => 'user',
@@ -122,6 +125,19 @@ class AdminIcon
             '<path d="M12 17V5" />',
             '<path d="M17 17v-6" />',
         ],
+        'book-open' => [
+            '<path d="M3 5.5A2.5 2.5 0 0 1 5.5 3H11v16H5.5A2.5 2.5 0 0 0 3 21.5z" />',
+            '<path d="M21 5.5A2.5 2.5 0 0 0 18.5 3H13v16h5.5a2.5 2.5 0 0 1 2.5 2.5z" />',
+            '<path d="M12 4v17" />',
+        ],
+        'list-check' => [
+            '<path d="m3 6 1.5 1.5L7 5" />',
+            '<path d="M10 6h11" />',
+            '<path d="m3 12 1.5 1.5L7 11" />',
+            '<path d="M10 12h11" />',
+            '<path d="m3 18 1.5 1.5L7 17" />',
+            '<path d="M10 18h11" />',
+        ],
         'headset' => [
             '<path d="M4 13v-1a8 8 0 0 1 16 0v1" />',
             '<path d="M4 13h3v5H4z" />',
@@ -160,6 +176,36 @@ class AdminIcon
             '<path d="M5 4h14a1 1 0 0 1 1 1v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a1 1 0 0 1 1-1Z" />',
         ],
     ];
+
+    public static function supports(
+        string $name
+    ): bool {
+        $name = trim($name);
+
+        if ($name === '') {
+            return false;
+        }
+
+        $icon =
+            self::MAP[$name]
+            ?? $name;
+
+        return isset(
+            self::SVG_PATHS[$icon]
+        );
+    }
+
+
+    public static function codes(): array
+    {
+        $codes =
+            array_keys(self::MAP);
+
+        sort($codes);
+
+        return $codes;
+    }
+
 
     public static function html(string $name, string $class = ''): string
     {

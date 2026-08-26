@@ -108,6 +108,17 @@ $moduleShellKey = (string) (
 
 $isModuleShell = $moduleShellKey !== '';
 
+$moduleIconCode = trim(
+    (string) (
+        $moduleShell['icon_code']
+        ?? 'dashboard'
+    )
+);
+
+if ($moduleIconCode === '') {
+    $moduleIconCode = 'dashboard';
+}
+
 $brandTitle = $isModuleShell
     ? (string) ($moduleShell['title'] ?? '')
     : (string) (
@@ -225,6 +236,16 @@ $accountNav = $themeUserId !== null
     ?></style>
 
     <style id="dynamic-navigation-style">
+        .admin-brand__module-icon {
+            height: 1.15rem;
+            width: 1.15rem;
+        }
+
+        .admin-brand__module-icon svg {
+            height: 100%;
+            width: 100%;
+        }
+
         .admin-nav__group {
             display: grid;
             gap: 3px;
@@ -519,7 +540,21 @@ $accountNav = $themeUserId !== null
                     class="admin-brand"
                     href="<?= admin_h($brandHome) ?>"
                 >
-                    <?php if (
+                    <?php if ($isModuleShell): ?>
+                        <span
+                            class="admin-brand__mark"
+                            data-module-brand-icon="<?= admin_h(
+                                $moduleIconCode
+                            ) ?>"
+                        >
+                            <?=
+                                \App\Support\AdminIcon::html(
+                                    $moduleIconCode,
+                                    'admin-brand__module-icon'
+                                )
+                            ?>
+                        </span>
+                    <?php elseif (
                         ($theme['logo_url'] ?? '') !== ''
                     ): ?>
                         <img
