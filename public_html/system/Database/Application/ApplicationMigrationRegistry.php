@@ -95,6 +95,7 @@ class ApplicationMigrationRegistry
                 'migrations' => [
                     \IPKF\Database\Migrations\CreateTicketingDomainFoundationTables::class,
                     \IPKF\Database\Migrations\CreateTicketingSupportProjectFoundation::class,
+                    \IPKF\Database\Migrations\CreateTicketingParticipantDirectoryFoundation::class,
                 ],
             ],
         ];
