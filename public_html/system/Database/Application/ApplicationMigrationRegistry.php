@@ -99,6 +99,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateTicketingSupportProjectFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingParticipantDirectoryFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingProjectOrganizationScopeFoundation::class,
+                    \IPKF\Database\Migrations\CreateTicketingDynamicSupportTopologyFoundation::class,
                 ],
             ],
         ];
