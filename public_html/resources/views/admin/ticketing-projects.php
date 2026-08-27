@@ -232,6 +232,14 @@ ob_start();
                                 -5
                             )
                             . '/topology';
+
+                        $routingUrl =
+                            substr(
+                                $editUrl,
+                                0,
+                                -5
+                            )
+                            . '/routing';
                         ?>
 
                         <tr>
@@ -316,6 +324,13 @@ ob_start();
                                     href="<?= ticketing_h($topologyUrl) ?>"
                                 >
                                     ساختار پشتیبانی
+                                </a>
+
+                                <a
+                                    class="admin-button admin-button--soft admin-button--compact"
+                                    href="<?= ticketing_h($routingUrl) ?>"
+                                >
+                                    موضوعات و مسیریابی
                                 </a>
                             </td>
                         </tr>

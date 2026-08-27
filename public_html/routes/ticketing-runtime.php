@@ -1735,6 +1735,425 @@ $router->post(
 );
 
 
+
+/*
+ * ---------------------------------------------------------
+ * Topic / Routing Administration
+ * ---------------------------------------------------------
+ */
+$router->get(
+    '/admin/ticketing/projects/{public_reference}/routing',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $reference =
+            trim(
+                (string) $request->route(
+                    'public_reference',
+                    ''
+                )
+            );
+
+        $path =
+            '/admin/ticketing/projects/'
+            . $reference
+            . '/routing';
+
+        $context =
+            $adminGuard(
+                $response,
+                $path
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        try {
+            $page =
+                (
+                    new \App\Services\Ticketing\SupportTopicRoutingAdminService()
+                )->page(
+                    $reference
+                );
+
+            if ($page === null) {
+                return $adminRender(
+                    $response,
+                    'placeholder',
+                    [
+                        'title' =>
+                            'موضوعات و مسیریابی',
+
+                        'context' =>
+                            $context,
+
+                        'message' =>
+                            'پروژه مورد نظر پیدا نشد.',
+                    ],
+                    404
+                );
+            }
+
+            return $adminRender(
+                $response,
+                'ticketing-routing',
+                [
+                    'title' =>
+                        'موضوعات و مسیریابی',
+
+                    'context' =>
+                        $context,
+
+                    'page' =>
+                        $page,
+
+                    'status' =>
+                        trim(
+                            (string) $request->input(
+                                'status',
+                                ''
+                            )
+                        ),
+
+                    'errors' =>
+                        [],
+                ]
+            );
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'support_routing_index',
+                    [
+                        'user_id' =>
+                            (int) $context['user_id'],
+
+                        'project_reference' =>
+                            $reference,
+                    ]
+                );
+
+            return $adminRender(
+                $response,
+                'placeholder',
+                [
+                    'title' =>
+                        'موضوعات و مسیریابی',
+
+                    'context' =>
+                        $context,
+
+                    'message' =>
+                        'تنظیمات مسیریابی در دسترس نیست. کد پیگیری: '
+                        . $incident,
+                ],
+                503
+            );
+        }
+    }
+);
+
+
+$router->post(
+    '/admin/ticketing/projects/{public_reference}/routing',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $reference =
+            trim(
+                (string) $request->route(
+                    'public_reference',
+                    ''
+                )
+            );
+
+        $path =
+            '/admin/ticketing/projects/'
+            . $reference
+            . '/routing';
+
+        $context =
+            $adminGuard(
+                $response,
+                $path
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $csrf =
+            new \IPKF\Security\Csrf();
+
+        if (
+            !$csrf->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            return $adminRender(
+                $response,
+                'placeholder',
+                [
+                    'title' =>
+                        'موضوعات و مسیریابی',
+
+                    'context' =>
+                        $context,
+
+                    'message' =>
+                        'اعتبار فرم منقضی شده است.',
+                ],
+                419
+            );
+        }
+
+        $action =
+            trim(
+                (string) $request->input(
+                    'action',
+                    ''
+                )
+            );
+
+        $input = [
+            'title' =>
+                $request->input(
+                    'title',
+                    ''
+                ),
+
+            'code' =>
+                $request->input(
+                    'code',
+                    ''
+                ),
+
+            'description' =>
+                $request->input(
+                    'description',
+                    ''
+                ),
+
+            'service_id' =>
+                $request->input(
+                    'service_id',
+                    0
+                ),
+
+            'parent_topic_id' =>
+                $request->input(
+                    'parent_topic_id',
+                    0
+                ),
+
+            'is_selectable' =>
+                $request->input(
+                    'is_selectable',
+                    0
+                ),
+
+            'is_default' =>
+                $request->input(
+                    'is_default',
+                    0
+                ),
+
+            'topic_id' =>
+                $request->input(
+                    'topic_id',
+                    0
+                ),
+
+            'scope_type_code' =>
+                $request->input(
+                    'scope_type_code',
+                    'all'
+                ),
+
+            'scope_reference' =>
+                $request->input(
+                    'scope_reference',
+                    ''
+                ),
+
+            'target_layer_id' =>
+                $request->input(
+                    'target_layer_id',
+                    0
+                ),
+
+            'target_node_id' =>
+                $request->input(
+                    'target_node_id',
+                    0
+                ),
+
+            'target_queue_id' =>
+                $request->input(
+                    'target_queue_id',
+                    0
+                ),
+
+            'target_team_id' =>
+                $request->input(
+                    'target_team_id',
+                    0
+                ),
+
+            'fixed_project_member_id' =>
+                $request->input(
+                    'fixed_project_member_id',
+                    0
+                ),
+
+            'assignment_mode_code' =>
+                $request->input(
+                    'assignment_mode_code',
+                    'inherit'
+                ),
+
+            'priority' =>
+                $request->input(
+                    'priority',
+                    100
+                ),
+
+            'sort_order' =>
+                $request->input(
+                    'sort_order',
+                    0
+                ),
+        ];
+
+        try {
+            $service =
+                new \App\Services\Ticketing\SupportTopicRoutingAdminService();
+
+            $result =
+                $service->mutate(
+                    $reference,
+                    $action,
+                    $input
+                );
+
+            if (!empty($result['not_found'])) {
+                return $adminRender(
+                    $response,
+                    'placeholder',
+                    [
+                        'title' =>
+                            'موضوعات و مسیریابی',
+
+                        'context' =>
+                            $context,
+
+                        'message' =>
+                            'پروژه مورد نظر پیدا نشد.',
+                    ],
+                    404
+                );
+            }
+
+            if (empty($result['ok'])) {
+
+                $page =
+                    $service->page(
+                        $reference
+                    );
+
+                return $adminRender(
+                    $response,
+                    'ticketing-routing',
+                    [
+                        'title' =>
+                            'موضوعات و مسیریابی',
+
+                        'context' =>
+                            $context,
+
+                        'page' =>
+                            $page ?? [],
+
+                        'status' =>
+                            '',
+
+                        'errors' =>
+                            $result['errors']
+                            ?? [
+                                'عملیات انجام نشد.',
+                            ],
+                    ],
+                    422
+                );
+            }
+
+            return $response->redirect(
+                '/admin/ticketing/projects/'
+                . rawurlencode($reference)
+                . '/routing?status='
+                . rawurlencode(
+                    (string) (
+                        $result['status']
+                        ?? 'updated'
+                    )
+                )
+            );
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'support_routing_mutate',
+                    [
+                        'user_id' =>
+                            (int) $context['user_id'],
+
+                        'project_reference' =>
+                            $reference,
+
+                        'action' =>
+                            $action,
+                    ]
+                );
+
+            return $adminRender(
+                $response,
+                'placeholder',
+                [
+                    'title' =>
+                        'موضوعات و مسیریابی',
+
+                    'context' =>
+                        $context,
+
+                    'message' =>
+                        'عملیات مسیریابی انجام نشد. کد پیگیری: '
+                        . $incident,
+                ],
+                503
+            );
+        }
+    }
+);
+
+
 /*
  * ---------------------------------------------------------
  * My Tickets

@@ -58,6 +58,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\ExposeTicketingModuleShellNavigation::class,
                     \IPKF\Database\Migrations\EnableTicketingProjectManagement::class,
                     \IPKF\Database\Migrations\EnableTicketingTopologyManagementRoutes::class,
+                    \IPKF\Database\Migrations\EnableTicketingTopicRoutingManagementRoutes::class,
                     \IPKF\Database\Migrations\EnableTicketingParticipantDirectoryNavigation::class,
                     \IPKF\Database\Migrations\ExtendAdminNavigationCoreFeatureMetadata::class,
                     \IPKF\Database\Migrations\CreateSecureMessageExtensionTables::class,
@@ -101,6 +102,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateTicketingParticipantDirectoryFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingProjectOrganizationScopeFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingDynamicSupportTopologyFoundation::class,
+                    \IPKF\Database\Migrations\CreateTicketingDynamicTopicRoutingFoundation::class,
                 ],
             ],
         ];
