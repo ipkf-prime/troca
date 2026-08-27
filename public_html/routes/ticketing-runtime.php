@@ -830,6 +830,455 @@ $router->post(
 
 /*
  * ---------------------------------------------------------
+ * Participant Directory
+ * ---------------------------------------------------------
+ */
+$router->get(
+    '/admin/ticketing/participants',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/ticketing/participants'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $filters = [
+            'q' =>
+                trim(
+                    (string) $request->input(
+                        'q',
+                        ''
+                    )
+                ),
+
+            'origin' =>
+                trim(
+                    (string) $request->input(
+                        'origin',
+                        ''
+                    )
+                ),
+
+            'state' =>
+                trim(
+                    (string) $request->input(
+                        'state',
+                        ''
+                    )
+                ),
+
+            'core_q' =>
+                trim(
+                    (string) $request->input(
+                        'core_q',
+                        ''
+                    )
+                ),
+        ];
+
+        try {
+
+            $directory =
+                (
+                    new \App\Services\Ticketing\ParticipantDirectoryService()
+                )->page(
+                    $filters
+                );
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'participant_directory_index',
+                    [
+                        'user_id' =>
+                            (int) $context['user_id'],
+                    ]
+                );
+
+            return $adminRender(
+                $response,
+                'placeholder',
+                [
+                    'title' =>
+                        'مخاطبان تیکتینگ',
+
+                    'context' =>
+                        $context,
+
+                    'message' =>
+                        'فهرست مخاطبان در دسترس نیست. کد پیگیری: '
+                        . $incident,
+                ],
+                503
+            );
+        }
+
+        $status =
+            trim(
+                (string) $request->input(
+                    'status',
+                    ''
+                )
+            );
+
+        $noticeMap = [
+            'core-added' =>
+                'کاربر سامانه به فهرست مخاطبان تیکتینگ اضافه شد.',
+
+            'manual-added' =>
+                'مخاطب جدید با موفقیت ثبت شد.',
+        ];
+
+        return $adminRender(
+            $response,
+            'ticketing-participants',
+            [
+                'title' =>
+                    'مخاطبان تیکتینگ',
+
+                'context' =>
+                    $context,
+
+                'directory' =>
+                    $directory,
+
+                'errors' =>
+                    [],
+
+                'manual_form' =>
+                    [],
+
+                'notice' =>
+                    $noticeMap[$status]
+                    ?? '',
+            ]
+        );
+    }
+);
+
+
+$router->post(
+    '/admin/ticketing/participants/core',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/ticketing/participants/core'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $csrf =
+            new \IPKF\Security\Csrf();
+
+        if (
+            !$csrf->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            return $adminRender(
+                $response,
+                'placeholder',
+                [
+                    'title' =>
+                        'مخاطبان تیکتینگ',
+
+                    'context' =>
+                        $context,
+
+                    'message' =>
+                        'اعتبار فرم منقضی شده است. صفحه را دوباره بارگذاری کنید.',
+                ],
+                419
+            );
+        }
+
+        $service =
+            new \App\Services\Ticketing\ParticipantDirectoryService();
+
+        try {
+
+            $result =
+                $service->addCoreUser(
+                    (int) $request->input(
+                        'user_id',
+                        0
+                    ),
+                    (int) $context['user_id']
+                );
+
+            if (empty($result['ok'])) {
+
+                $directory =
+                    $service->page();
+
+                return $adminRender(
+                    $response,
+                    'ticketing-participants',
+                    [
+                        'title' =>
+                            'مخاطبان تیکتینگ',
+
+                        'context' =>
+                            $context,
+
+                        'directory' =>
+                            $directory,
+
+                        'errors' => [
+                            (string) (
+                                $result['error']
+                                ?? 'افزودن کاربر انجام نشد.'
+                            ),
+                        ],
+
+                        'manual_form' =>
+                            [],
+
+                        'notice' =>
+                            '',
+                    ],
+                    422
+                );
+            }
+
+            return $response->redirect(
+                '/admin/ticketing/participants'
+                . '?status=core-added'
+            );
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'participant_core_add',
+                    [
+                        'user_id' =>
+                            (int) $context['user_id'],
+
+                        'target_user_id' =>
+                            (int) $request->input(
+                                'user_id',
+                                0
+                            ),
+                    ]
+                );
+
+            return $adminRender(
+                $response,
+                'placeholder',
+                [
+                    'title' =>
+                        'افزودن کاربر تیکتینگ',
+
+                    'context' =>
+                        $context,
+
+                    'message' =>
+                        'افزودن کاربر انجام نشد. کد پیگیری: '
+                        . $incident,
+                ],
+                503
+            );
+        }
+    }
+);
+
+
+$router->post(
+    '/admin/ticketing/participants/manual',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/ticketing/participants/manual'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $csrf =
+            new \IPKF\Security\Csrf();
+
+        if (
+            !$csrf->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            return $adminRender(
+                $response,
+                'placeholder',
+                [
+                    'title' =>
+                        'مخاطبان تیکتینگ',
+
+                    'context' =>
+                        $context,
+
+                    'message' =>
+                        'اعتبار فرم منقضی شده است. صفحه را دوباره بارگذاری کنید.',
+                ],
+                419
+            );
+        }
+
+        $input = [
+            'full_name' =>
+                $request->input(
+                    'full_name',
+                    ''
+                ),
+
+            'email' =>
+                $request->input(
+                    'email',
+                    ''
+                ),
+
+            'mobile' =>
+                $request->input(
+                    'mobile',
+                    ''
+                ),
+
+            'organization_name' =>
+                $request->input(
+                    'organization_name',
+                    ''
+                ),
+
+            'external_reference' =>
+                $request->input(
+                    'external_reference',
+                    ''
+                ),
+        ];
+
+        $service =
+            new \App\Services\Ticketing\ParticipantDirectoryService();
+
+        try {
+
+            $result =
+                $service->addManual(
+                    $input,
+                    (int) $context['user_id']
+                );
+
+            if (empty($result['ok'])) {
+
+                $directory =
+                    $service->page();
+
+                return $adminRender(
+                    $response,
+                    'ticketing-participants',
+                    [
+                        'title' =>
+                            'مخاطبان تیکتینگ',
+
+                        'context' =>
+                            $context,
+
+                        'directory' =>
+                            $directory,
+
+                        'errors' =>
+                            array_values(
+                                $result['errors']
+                                ?? [
+                                    'ثبت مخاطب انجام نشد.',
+                                ]
+                            ),
+
+                        'manual_form' =>
+                            $result['form']
+                            ?? $input,
+
+                        'notice' =>
+                            '',
+                    ],
+                    422
+                );
+            }
+
+            return $response->redirect(
+                '/admin/ticketing/participants'
+                . '?status=manual-added'
+            );
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'participant_manual_add',
+                    [
+                        'user_id' =>
+                            (int) $context['user_id'],
+                    ]
+                );
+
+            return $adminRender(
+                $response,
+                'placeholder',
+                [
+                    'title' =>
+                        'ثبت مخاطب تیکتینگ',
+
+                    'context' =>
+                        $context,
+
+                    'message' =>
+                        'ثبت مخاطب انجام نشد. کد پیگیری: '
+                        . $incident,
+                ],
+                503
+            );
+        }
+    }
+);
+
+
+/*
+ * ---------------------------------------------------------
  * My Tickets
  * ---------------------------------------------------------
  */

@@ -77,12 +77,23 @@ ob_start();
             </p>
         </div>
 
-        <a
-            class="admin-button"
-            href="/admin/ticketing/projects/create"
-        >
-            پروژه جدید
-        </a>
+        <div class="admin-form-actions">
+
+            <a
+                class="admin-button admin-button--soft"
+                href="/admin/ticketing/participants"
+            >
+                مخاطبان تیکتینگ
+            </a>
+
+            <a
+                class="admin-button"
+                href="/admin/ticketing/projects/create"
+            >
+                پروژه جدید
+            </a>
+
+        </div>
     </div>
 
 

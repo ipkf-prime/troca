@@ -56,6 +56,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\ExposeTicketingNavigation::class,
                     \IPKF\Database\Migrations\ExposeTicketingModuleShellNavigation::class,
                     \IPKF\Database\Migrations\EnableTicketingProjectManagement::class,
+                    \IPKF\Database\Migrations\EnableTicketingParticipantDirectoryNavigation::class,
                     \IPKF\Database\Migrations\ExtendAdminNavigationCoreFeatureMetadata::class,
                     \IPKF\Database\Migrations\CreateSecureMessageExtensionTables::class,
                     \IPKF\Database\Migrations\ExtendNotificationProviderManagement::class,
