@@ -1277,6 +1277,464 @@ $router->post(
 );
 
 
+
+/*
+ * ---------------------------------------------------------
+ * Support Topology Administration
+ * ---------------------------------------------------------
+ */
+$router->get(
+    '/admin/ticketing/projects/{public_reference}/topology',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $reference =
+            trim(
+                (string) $request->route(
+                    'public_reference',
+                    ''
+                )
+            );
+
+        $path =
+            '/admin/ticketing/projects/'
+            . $reference
+            . '/topology';
+
+        $context =
+            $adminGuard(
+                $response,
+                $path
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        try {
+            $page =
+                (
+                    new \App\Services\Ticketing\SupportTopologyAdminService()
+                )->page(
+                    $reference
+                );
+
+            if ($page === null) {
+                return $adminRender(
+                    $response,
+                    'placeholder',
+                    [
+                        'title' =>
+                            'ساختار پشتیبانی',
+
+                        'context' =>
+                            $context,
+
+                        'message' =>
+                            'پروژه مورد نظر پیدا نشد.',
+                    ],
+                    404
+                );
+            }
+
+            return $adminRender(
+                $response,
+                'ticketing-topology',
+                [
+                    'title' =>
+                        'ساختار پشتیبانی',
+
+                    'context' =>
+                        $context,
+
+                    'page' =>
+                        $page,
+
+                    'status' =>
+                        trim(
+                            (string) $request->input(
+                                'status',
+                                ''
+                            )
+                        ),
+
+                    'errors' =>
+                        [],
+                ]
+            );
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'support_topology_index',
+                    [
+                        'user_id' =>
+                            (int) $context['user_id'],
+
+                        'project_reference' =>
+                            $reference,
+                    ]
+                );
+
+            return $adminRender(
+                $response,
+                'placeholder',
+                [
+                    'title' =>
+                        'ساختار پشتیبانی',
+
+                    'context' =>
+                        $context,
+
+                    'message' =>
+                        'ساختار پشتیبانی در دسترس نیست. کد پیگیری: '
+                        . $incident,
+                ],
+                503
+            );
+        }
+    }
+);
+
+
+$router->post(
+    '/admin/ticketing/projects/{public_reference}/topology',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $reference =
+            trim(
+                (string) $request->route(
+                    'public_reference',
+                    ''
+                )
+            );
+
+        $path =
+            '/admin/ticketing/projects/'
+            . $reference
+            . '/topology';
+
+        $context =
+            $adminGuard(
+                $response,
+                $path
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $csrf =
+            new \IPKF\Security\Csrf();
+
+        if (
+            !$csrf->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            return $adminRender(
+                $response,
+                'placeholder',
+                [
+                    'title' =>
+                        'ساختار پشتیبانی',
+
+                    'context' =>
+                        $context,
+
+                    'message' =>
+                        'اعتبار فرم منقضی شده است. صفحه را دوباره بارگذاری کنید.',
+                ],
+                419
+            );
+        }
+
+        $action =
+            trim(
+                (string) $request->input(
+                    'action',
+                    ''
+                )
+            );
+
+        $input = [
+            'code' =>
+                $request->input('code', ''),
+
+            'title' =>
+                $request->input('title', ''),
+
+            'description' =>
+                $request->input('description', ''),
+
+            'rank_order' =>
+                $request->input('rank_order', 0),
+
+            'layer_id' =>
+                $request->input('layer_id', 0),
+
+            'parent_node_id' =>
+                $request->input('parent_node_id', 0),
+
+            'child_node_id' =>
+                $request->input('child_node_id', 0),
+
+            'node_id' =>
+                $request->input('node_id', 0),
+
+            'team_id' =>
+                $request->input('team_id', 0),
+
+            'queue_id' =>
+                $request->input('queue_id', 0),
+
+            'project_member_id' =>
+                $request->input('project_member_id', 0),
+
+            'staff_role_code' =>
+                $request->input(
+                    'staff_role_code',
+                    'agent'
+                ),
+
+            'workload_weight' =>
+                $request->input(
+                    'workload_weight',
+                    1
+                ),
+
+            'assignment_mode_code' =>
+                $request->input(
+                    'assignment_mode_code',
+                    'manual'
+                ),
+
+            'max_open_per_agent' =>
+                $request->input(
+                    'max_open_per_agent',
+                    ''
+                ),
+
+            'core_organization_reference' =>
+                $request->input(
+                    'core_organization_reference',
+                    ''
+                ),
+
+            'scope_type_code' =>
+                $request->input(
+                    'scope_type_code',
+                    ''
+                ),
+
+            'scope_reference' =>
+                $request->input(
+                    'scope_reference',
+                    ''
+                ),
+
+            'sort_order' =>
+                $request->input(
+                    'sort_order',
+                    0
+                ),
+
+            'can_observe_descendants' =>
+                $request->input(
+                    'can_observe_descendants',
+                    0
+                ),
+
+            'can_assist_descendants' =>
+                $request->input(
+                    'can_assist_descendants',
+                    0
+                ),
+
+            'can_takeover_descendants' =>
+                $request->input(
+                    'can_takeover_descendants',
+                    0
+                ),
+
+            'can_transfer_downward' =>
+                $request->input(
+                    'can_transfer_downward',
+                    0
+                ),
+
+            'is_entry_layer' =>
+                $request->input(
+                    'is_entry_layer',
+                    0
+                ),
+
+            'is_terminal_layer' =>
+                $request->input(
+                    'is_terminal_layer',
+                    0
+                ),
+
+            'is_intake_node' =>
+                $request->input(
+                    'is_intake_node',
+                    0
+                ),
+
+            'is_primary_path' =>
+                $request->input(
+                    'is_primary_path',
+                    0
+                ),
+
+            'allow_escalation' =>
+                $request->input(
+                    'allow_escalation',
+                    0
+                ),
+
+            'allow_downward_transfer' =>
+                $request->input(
+                    'allow_downward_transfer',
+                    0
+                ),
+
+            'is_default' =>
+                $request->input(
+                    'is_default',
+                    0
+                ),
+        ];
+
+        try {
+            $service =
+                new \App\Services\Ticketing\SupportTopologyAdminService();
+
+            $result =
+                $service->mutate(
+                    $reference,
+                    $action,
+                    $input
+                );
+
+            if (!empty($result['not_found'])) {
+                return $adminRender(
+                    $response,
+                    'placeholder',
+                    [
+                        'title' =>
+                            'ساختار پشتیبانی',
+
+                        'context' =>
+                            $context,
+
+                        'message' =>
+                            'پروژه مورد نظر پیدا نشد.',
+                    ],
+                    404
+                );
+            }
+
+            if (empty($result['ok'])) {
+
+                $page =
+                    $service->page(
+                        $reference
+                    );
+
+                return $adminRender(
+                    $response,
+                    'ticketing-topology',
+                    [
+                        'title' =>
+                            'ساختار پشتیبانی',
+
+                        'context' =>
+                            $context,
+
+                        'page' =>
+                            $page ?? [],
+
+                        'status' =>
+                            '',
+
+                        'errors' =>
+                            $result['errors']
+                            ?? [
+                                'عملیات انجام نشد.',
+                            ],
+                    ],
+                    422
+                );
+            }
+
+            return $response->redirect(
+                '/admin/ticketing/projects/'
+                . rawurlencode($reference)
+                . '/topology?status='
+                . rawurlencode(
+                    (string) (
+                        $result['status']
+                        ?? 'updated'
+                    )
+                )
+            );
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'support_topology_mutate',
+                    [
+                        'user_id' =>
+                            (int) $context['user_id'],
+
+                        'project_reference' =>
+                            $reference,
+
+                        'action' =>
+                            $action,
+                    ]
+                );
+
+            return $adminRender(
+                $response,
+                'placeholder',
+                [
+                    'title' =>
+                        'ساختار پشتیبانی',
+
+                    'context' =>
+                        $context,
+
+                    'message' =>
+                        'عملیات ساختار پشتیبانی انجام نشد. کد پیگیری: '
+                        . $incident,
+                ],
+                503
+            );
+        }
+    }
+);
+
+
 /*
  * ---------------------------------------------------------
  * My Tickets

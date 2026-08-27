@@ -224,6 +224,14 @@ ob_start();
                                 ]
                             )
                             . '/edit';
+
+                        $topologyUrl =
+                            substr(
+                                $editUrl,
+                                0,
+                                -5
+                            )
+                            . '/topology';
                         ?>
 
                         <tr>
@@ -301,6 +309,13 @@ ob_start();
                                     href="<?= ticketing_h($editUrl) ?>"
                                 >
                                     ویرایش
+                                </a>
+
+                                <a
+                                    class="admin-button admin-button--soft admin-button--compact"
+                                    href="<?= ticketing_h($topologyUrl) ?>"
+                                >
+                                    ساختار پشتیبانی
                                 </a>
                             </td>
                         </tr>
