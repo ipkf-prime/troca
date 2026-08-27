@@ -8,3 +8,7 @@
 app/Services/AdminPanelService.php
 app/Services/DynamicModuleDashboardService.php
 system/Support/ModuleRuntimeConfig.php
+system/Support/Version.php
+resources/views/admin/layout.php
+routes/web.php
+system/Installer/Installer.php

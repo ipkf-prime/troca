@@ -23,7 +23,7 @@ class Installer
     {
         return [
             'installer' => 'IPKF Installer',
-            'version' => Version::CURRENT,
+            'version' => Version::current(),
             'installed' => $this->state->installed(),
             'checks' => array_merge(
                 $this->requirements->check(),

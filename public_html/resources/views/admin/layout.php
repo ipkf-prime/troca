@@ -88,7 +88,7 @@ $currentPath = parse_url(
 
 $year = \App\Support\AdminFormat::digits(date('Y'));
 $runtimeVersion = \App\Support\AdminFormat::digits(
-    \IPKF\Support\Version::CURRENT
+    \IPKF\Support\Version::current()
 );
 
 $themeAssets = $themeService->assetUrls();

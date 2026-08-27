@@ -25,6 +25,49 @@ RUNTIME_PARENT="${IPKF_RUNTIME_PARENT:-/home/troca}"
 
 MANIFEST="$ROOT/scripts/ipkf-platform-shared-runtime-files.txt"
 
+
+# ---------------------------------------------------------
+# Build identity.
+#
+# A release branch such as:
+# v0.7.0-ticketing-foundation-dev
+# resolves automatically to:
+# 0.7.0
+# ---------------------------------------------------------
+BUILD_BRANCH="$(
+    git -C "$ROOT" branch --show-current
+)"
+
+BUILD_COMMIT="$(
+    git -C "$ROOT" rev-parse HEAD
+)"
+
+BUILD_VERSION="${IPKF_BUILD_VERSION:-}"
+
+if [ -z "$BUILD_VERSION" ]; then
+
+    if [[ "$BUILD_BRANCH" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)(-|$) ]]; then
+        BUILD_VERSION="${BASH_REMATCH[1]}"
+    else
+        echo \
+            "ABORT: branch has no semantic version prefix: $BUILD_BRANCH" \
+            >&2
+        exit 1
+    fi
+fi
+
+if ! [[ "$BUILD_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([+-][A-Za-z0-9.-]+)?$ ]]; then
+    echo \
+        "ABORT: invalid build version: $BUILD_VERSION" \
+        >&2
+    exit 1
+fi
+
+echo "BUILD_BRANCH=$BUILD_BRANCH"
+echo "BUILD_VERSION=$BUILD_VERSION"
+echo "BUILD_COMMIT=$BUILD_COMMIT"
+
+
 test -d "$SOURCE"
 test -f "$CORE_RUNTIME/bootstrap/app.php"
 test -f "$MANIFEST"
@@ -378,6 +421,54 @@ if [ "$MODE" = "sync" ]; then
 
         done < "$FILES"
 
+
+        mkdir -p \
+            "$runtime_root/storage"
+
+        metadata="$runtime_root/storage/runtime-build.json"
+
+        BUILD_VERSION="$BUILD_VERSION" \
+        BUILD_BRANCH="$BUILD_BRANCH" \
+        BUILD_COMMIT="$BUILD_COMMIT" \
+        METADATA="$metadata" \
+        php -r '
+            $data = [
+                "version" =>
+                    getenv("BUILD_VERSION"),
+                "branch" =>
+                    getenv("BUILD_BRANCH"),
+                "commit" =>
+                    getenv("BUILD_COMMIT"),
+                "generated_at" =>
+                    gmdate("c"),
+            ];
+
+            $json =
+                json_encode(
+                    $data,
+                    JSON_PRETTY_PRINT
+                    | JSON_UNESCAPED_SLASHES
+                );
+
+            if (!is_string($json)) {
+                exit(2);
+            }
+
+            if (
+                file_put_contents(
+                    getenv("METADATA"),
+                    $json . PHP_EOL
+                ) === false
+            ) {
+                exit(3);
+            }
+        '
+
+        echo \
+            "BUILD_METADATA=SYNCED" \
+            "|$module_key" \
+            "|$BUILD_VERSION"
+
     done < "$TARGETS"
 fi
 
@@ -427,8 +518,53 @@ do
     done < "$FILES"
 
 
-    # Runtime-level autoload contract.
-    RUNTIME_ROOT="$runtime_root" php \
+    metadata="$runtime_root/storage/runtime-build.json"
+
+    if [ ! -f "$metadata" ]; then
+        echo \
+            "ABORT: build metadata missing: $runtime_root" \
+            >&2
+        exit 1
+    fi
+
+    actual_version="$(
+        METADATA="$metadata" php -r '
+            $data =
+                json_decode(
+                    file_get_contents(
+                        getenv("METADATA")
+                    ),
+                    true
+                );
+
+            echo
+                is_array($data)
+                    ? (
+                        $data["version"]
+                        ?? ""
+                    )
+                    : "";
+        '
+    )"
+
+    if [ "$actual_version" != "$BUILD_VERSION" ]; then
+        echo \
+            "ABORT: runtime version drift: $runtime_root" \
+            >&2
+        exit 1
+    fi
+
+    echo \
+        "VERSION_METADATA=PASS" \
+        "|$module_key" \
+        "|$actual_version"
+
+
+    # Runtime-level autoload + build-version contract.
+    RUNTIME_ROOT="$runtime_root" \
+    EXPECTED_BUILD_VERSION="$BUILD_VERSION" \
+    php \
+\
         -d display_errors=1 \
         -d log_errors=0 <<'PHP'
 <?php
@@ -444,6 +580,28 @@ require BASE_PATH . '/bootstrap/app.php';
 
 restore_error_handler();
 restore_exception_handler();
+
+$actualVersion =
+    \IPKF\Support\Version::current();
+
+$expectedVersion =
+    getenv(
+        'EXPECTED_BUILD_VERSION'
+    );
+
+if ($actualVersion !== $expectedVersion) {
+    throw new RuntimeException(
+        'Runtime version mismatch: '
+        . $actualVersion
+        . ' != '
+        . $expectedVersion
+    );
+}
+
+echo
+    'VERSION='
+    . $actualVersion
+    . PHP_EOL;
 
 $class =
     \App\Services\DynamicModuleDashboardService::class;
@@ -519,6 +677,9 @@ echo "IPKF PLATFORM DYNAMIC RUNTIME GATE PASS"
 echo "MODE=$MODE"
 echo "TARGET_COUNT=$TARGET_COUNT"
 echo "RUNTIME SOURCE=application_modules"
+echo "BUILD_BRANCH=$BUILD_BRANCH"
+echo "BUILD_VERSION=$BUILD_VERSION"
+echo "BUILD_COMMIT=$BUILD_COMMIT"
 echo "MODULE LIST HARDCODED=NO"
 echo "PARITY=PASS"
 echo "AUTOLOAD=PASS"

@@ -136,7 +136,7 @@ class AdminPanelService extends BaseService
             ],
             'module_shell' => $moduleShellContext,
             'dashboard_modules' => $this->dashboardModules($userId),
-            'version' => Version::CURRENT,
+            'version' => Version::current(),
         ];
     }
 

@@ -23,7 +23,7 @@ $router->get('/health', function ($request, $response) {
     return $response->json([
         'status' => 'ok',
         'framework' => 'IPKF',
-        'version' => \IPKF\Support\Version::CURRENT,
+        'version' => \IPKF\Support\Version::current(),
     ]);
 });
 
