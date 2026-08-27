@@ -31,6 +31,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateExternalOrganizationCorrespondenceDirectory::class,
                     \IPKF\Database\Migrations\AddStructuredExternalOrganizationPhoneFields::class,
                     \IPKF\Database\Migrations\CreateDynamicOrganizationCoreTables::class,
+                    \IPKF\Database\Migrations\CreateOrganizationCatalogMembershipFoundation::class,
                     \IPKF\Database\Migrations\CreateDynamicGeographyTables::class,
                     \IPKF\Database\Migrations\CreateMultiSourceCodingGeographyTables::class,
                     \IPKF\Database\Migrations\CreateMinistryGeographyImportMetadata::class,
@@ -97,6 +98,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateTicketingDomainFoundationTables::class,
                     \IPKF\Database\Migrations\CreateTicketingSupportProjectFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingParticipantDirectoryFoundation::class,
+                    \IPKF\Database\Migrations\CreateTicketingProjectOrganizationScopeFoundation::class,
                 ],
             ],
         ];
