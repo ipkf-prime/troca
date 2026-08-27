@@ -863,78 +863,112 @@ final class TicketCreateRoutingRepository
         int $teamId,
         ?int $maxOpenPerAgent
     ): ?array {
+        /*
+         * Aggregate first, then filter/order in the outer query.
+         *
+         * MariaDB does not reliably allow an aggregate alias
+         * such as open_ticket_count to be reused inside another
+         * expression in the same SELECT/HAVING scope.
+         */
         $statement =
             $this->db->prepare("
                 SELECT
-                    tm.project_member_id,
-
-                    tm.workload_weight,
-
-                    pm.user_reference,
-                    pm.display_name_snapshot,
-
-                    SUM(
-                        CASE
-                            WHEN st.is_closed = 0
-                            THEN 1
-                            ELSE 0
-                        END
-                    ) AS open_ticket_count
+                    candidate.project_member_id,
+                    candidate.workload_weight,
+                    candidate.user_reference,
+                    candidate.display_name_snapshot,
+                    candidate.open_ticket_count
 
                 FROM
-                    ticketing_support_team_members tm
+                (
+                    SELECT
+                        tm.project_member_id,
+                        tm.workload_weight,
 
-                INNER JOIN
-                    ticketing_support_project_members pm
-                    ON pm.id =
-                        tm.project_member_id
-                   AND pm.left_at IS NULL
-                   AND pm.user_reference IS NOT NULL
-                   AND pm.user_reference <> ''
+                        pm.user_reference,
+                        pm.display_name_snapshot,
 
-                LEFT JOIN
-                    ticketing_tickets tk
-                    ON tk.current_assignee_project_member_id =
-                        pm.id
-                   AND tk.archived_at IS NULL
+                        SUM(
+                            CASE
+                                WHEN st.is_closed = 0
+                                THEN 1
+                                ELSE 0
+                            END
+                        ) AS open_ticket_count
 
-                LEFT JOIN
-                    ticketing_statuses st
-                    ON st.code = tk.status_code
+                    FROM
+                        ticketing_support_team_members tm
 
-                WHERE tm.team_id = ?
-                  AND tm.status = 'active'
-                  AND tm.left_at IS NULL
-                  AND tm.staff_role_code IN
-                      (
-                          'agent',
-                          'supervisor',
-                          'manager'
-                      )
+                    INNER JOIN
+                        ticketing_support_project_members pm
+                        ON pm.id =
+                            tm.project_member_id
 
-                GROUP BY
-                    tm.project_member_id,
-                    tm.workload_weight,
-                    pm.user_reference,
-                    pm.display_name_snapshot
+                       AND pm.left_at IS NULL
 
-                HAVING
+                       AND pm.user_reference
+                            IS NOT NULL
+
+                       AND pm.user_reference <> ''
+
+                    LEFT JOIN
+                        ticketing_tickets tk
+
+                        ON
+                            tk.current_assignee_project_member_id
+                            =
+                            pm.id
+
+                       AND tk.archived_at IS NULL
+
+                    LEFT JOIN
+                        ticketing_statuses st
+
+                        ON st.code =
+                            tk.status_code
+
+                    WHERE tm.team_id = ?
+
+                      AND tm.status =
+                            'active'
+
+                      AND tm.left_at
+                            IS NULL
+
+                      AND tm.staff_role_code IN
+                          (
+                              'agent',
+                              'supervisor',
+                              'manager'
+                          )
+
+                    GROUP BY
+                        tm.project_member_id,
+                        tm.workload_weight,
+                        pm.user_reference,
+                        pm.display_name_snapshot
+                ) candidate
+
+                WHERE
                     ? IS NULL
-                    OR open_ticket_count < ?
+
+                    OR candidate.open_ticket_count
+                        < ?
 
                 ORDER BY
                     (
-                        open_ticket_count
+                        candidate.open_ticket_count
                         /
                         CASE
-                            WHEN tm.workload_weight > 0
-                            THEN tm.workload_weight
+                            WHEN candidate.workload_weight > 0
+                            THEN candidate.workload_weight
                             ELSE 1
                         END
                     ) ASC,
 
-                    open_ticket_count ASC,
-                    tm.project_member_id ASC
+                    candidate.open_ticket_count ASC,
+
+                    candidate.project_member_id ASC
 
                 LIMIT 1
             ");
