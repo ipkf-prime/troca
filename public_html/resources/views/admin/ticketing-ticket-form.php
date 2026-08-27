@@ -117,6 +117,82 @@ ob_start();
 
             <div class="admin-form-grid">
 
+                <label>
+                    <span>
+                        پروژه پشتیبانی
+                    </span>
+
+                    <select
+                        name="support_project_id"
+                        id="ticket-support-project"
+                        required
+                    >
+                        <?php foreach (
+                            $options['projects']
+                            ?? []
+                            as $id => $project
+                        ): ?>
+                            <option
+                                value="<?= ticketing_h($id) ?>"
+                                <?= (string) (
+                                    $form[
+                                        'support_project_id'
+                                    ]
+                                    ?? ''
+                                ) === (string) $id
+                                    ? ' selected'
+                                    : '' ?>
+                            >
+                                <?= ticketing_h(
+                                    $project['title']
+                                    ?? ''
+                                ) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+
+
+                <label>
+                    <span>
+                        سرویس
+                    </span>
+
+                    <select
+                        name="support_service_id"
+                        id="ticket-support-service"
+                        required
+                    >
+                        <?php foreach (
+                            $options['services']
+                            ?? []
+                            as $id => $service
+                        ): ?>
+                            <option
+                                value="<?= ticketing_h($id) ?>"
+                                data-project="<?= ticketing_h(
+                                    $service['project_id']
+                                    ?? ''
+                                ) ?>"
+                                <?= (string) (
+                                    $form[
+                                        'support_service_id'
+                                    ]
+                                    ?? ''
+                                ) === (string) $id
+                                    ? ' selected'
+                                    : '' ?>
+                            >
+                                <?= ticketing_h(
+                                    $service['title']
+                                    ?? ''
+                                ) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+
+
                 <label class="admin-form-grid__wide">
                     <span>
                         عنوان تیکت
@@ -246,6 +322,73 @@ ob_start();
     </section>
 
 </div>
+
+<script>
+(function () {
+    const project =
+        document.getElementById(
+            'ticket-support-project'
+        );
+
+    const service =
+        document.getElementById(
+            'ticket-support-service'
+        );
+
+    if (!project || !service) {
+        return;
+    }
+
+    function syncServices() {
+        const projectId =
+            String(project.value);
+
+        let firstVisible = null;
+        let selectedVisible = false;
+
+        Array.from(
+            service.options
+        ).forEach(function (option) {
+            const visible =
+                String(
+                    option.dataset.project
+                    || ''
+                ) === projectId;
+
+            option.hidden =
+                !visible;
+
+            option.disabled =
+                !visible;
+
+            if (visible && firstVisible === null) {
+                firstVisible = option;
+            }
+
+            if (
+                visible
+                && option.selected
+            ) {
+                selectedVisible = true;
+            }
+        });
+
+        if (
+            !selectedVisible
+            && firstVisible
+        ) {
+            firstVisible.selected = true;
+        }
+    }
+
+    project.addEventListener(
+        'change',
+        syncServices
+    );
+
+    syncServices();
+})();
+</script>
 
 <?php
 $content =

@@ -1875,7 +1875,10 @@ $router->get(
         try {
             $page = (
                 new \App\Services\Ticketing\TicketService()
-            )->form();
+            )->form(
+                [],
+                (int) $context['user_id']
+            );
 
         } catch (\Throwable $exception) {
 
@@ -1985,6 +1988,18 @@ $router->post(
                                 'category_id',
                                 ''
                             ),
+
+                        'support_project_id' =>
+                            $request->input(
+                                'support_project_id',
+                                ''
+                            ),
+
+                        'support_service_id' =>
+                            $request->input(
+                                'support_service_id',
+                                ''
+                            ),
                     ],
                     (int) $context['user_id'],
                     $context
@@ -1995,7 +2010,8 @@ $router->post(
                 $page =
                     $service->form(
                         $result['form']
-                        ?? []
+                        ?? [],
+                        (int) $context['user_id']
                     );
 
                 return $adminRender(

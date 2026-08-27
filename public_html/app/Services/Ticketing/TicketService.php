@@ -3,15 +3,20 @@
 namespace App\Services\Ticketing;
 
 use App\Repositories\TicketRepository;
+use App\Repositories\TicketCreateRoutingRepository;
 use App\Services\BaseService;
 
 class TicketService extends BaseService
 {
     public function __construct(
-        private ?TicketRepository $tickets = null
+        private ?TicketRepository $tickets = null,
+        private ?TicketCreateRoutingRepository $creation = null
     ) {
         $this->tickets ??=
             new TicketRepository();
+
+        $this->creation ??=
+            new TicketCreateRoutingRepository();
     }
 
 
@@ -183,7 +188,7 @@ class TicketService extends BaseService
                 'status' => $status,
                 'priority' => $priority,
 
-                'requester_user_reference' =>
+                'viewer_user_reference' =>
                     $this->userReference(
                         $userId
                     ),
@@ -216,7 +221,8 @@ class TicketService extends BaseService
 
 
     public function form(
-        array $form = []
+        array $form = [],
+        ?int $userId = null
     ): array {
         $priorities =
             $this->tickets->priorities();
@@ -262,6 +268,72 @@ class TicketService extends BaseService
                 );
         }
 
+        $projectOptions = [];
+        $serviceOptions = [];
+
+        if (
+            $userId !== null
+            && $userId > 0
+        ) {
+            $createOptions =
+                $this->creation->optionsForUser(
+                    $this->userReference(
+                        $userId
+                    )
+                );
+
+            $projectOptions =
+                $createOptions['projects']
+                ?? [];
+
+            $serviceOptions =
+                $createOptions['services']
+                ?? [];
+        }
+
+        $defaultProjectId =
+            $projectOptions !== []
+                ? (int) array_key_first(
+                    $projectOptions
+                )
+                : null;
+
+        $defaultServiceId = null;
+
+        if ($defaultProjectId !== null) {
+            foreach (
+                $serviceOptions
+                as $serviceId => $service
+            ) {
+                if (
+                    (int) (
+                        $service['project_id']
+                        ?? 0
+                    ) !== $defaultProjectId
+                ) {
+                    continue;
+                }
+
+                if (
+                    $defaultServiceId === null
+                    || !empty(
+                        $service['is_default']
+                    )
+                ) {
+                    $defaultServiceId =
+                        (int) $serviceId;
+                }
+
+                if (
+                    !empty(
+                        $service['is_default']
+                    )
+                ) {
+                    break;
+                }
+            }
+        }
+
         return [
             'form' =>
                 array_merge(
@@ -273,6 +345,14 @@ class TicketService extends BaseService
                         'category_id' =>
                             $defaultCategoryId
                             ?? '',
+
+                        'support_project_id' =>
+                            $defaultProjectId
+                            ?? '',
+
+                        'support_service_id' =>
+                            $defaultServiceId
+                            ?? '',
                     ],
                     $form
                 ),
@@ -283,6 +363,12 @@ class TicketService extends BaseService
 
                 'categories' =>
                     $categoryOptions,
+
+                'projects' =>
+                    $projectOptions,
+
+                'services' =>
+                    $serviceOptions,
             ],
         ];
     }
@@ -321,6 +407,18 @@ class TicketService extends BaseService
             'category_id' =>
                 (int) (
                     $input['category_id']
+                    ?? 0
+                ),
+
+            'support_project_id' =>
+                (int) (
+                    $input['support_project_id']
+                    ?? 0
+                ),
+
+            'support_service_id' =>
+                (int) (
+                    $input['support_service_id']
                     ?? 0
                 ),
         ];
@@ -407,6 +505,35 @@ class TicketService extends BaseService
         }
 
 
+        $actorReference =
+            $this->userReference(
+                $userId
+            );
+
+        $selection =
+            null;
+
+        if (
+            $form['support_project_id'] <= 0
+            || $form['support_service_id'] <= 0
+        ) {
+            $errors['support_project_id'] =
+                'پروژه و سرویس پشتیبانی الزامی است.';
+        } else {
+            $selection =
+                $this->creation->selectionForUser(
+                    $actorReference,
+                    $form['support_project_id'],
+                    $form['support_service_id']
+                );
+
+            if ($selection === null) {
+                $errors['support_project_id'] =
+                    'پروژه یا سرویس برای حساب شما مجاز نیست.';
+            }
+        }
+
+
         if ($errors !== []) {
             return [
                 'ok' => false,
@@ -416,9 +543,6 @@ class TicketService extends BaseService
         }
 
 
-        $actorReference =
-            'user:' . $userId;
-
         $actorName =
             $this->actorDisplayName(
                 $context,
@@ -427,14 +551,20 @@ class TicketService extends BaseService
 
 
         $created =
-            $this->tickets->create([
+            $this->creation->create([
                 'public_reference' =>
                     $this->reference('TKT'),
 
                 'message_reference' =>
                     $this->reference('TMSG'),
 
-                'event_reference' =>
+                'created_event_reference' =>
+                    $this->reference('TEVT'),
+
+                'routing_event_reference' =>
+                    $this->reference('TEVT'),
+
+                'assignment_event_reference' =>
                     $this->reference('TEVT'),
 
                 'priority_code' =>
@@ -442,6 +572,12 @@ class TicketService extends BaseService
 
                 'category_id' =>
                     $form['category_id'],
+
+                'support_project_id' =>
+                    $form['support_project_id'],
+
+                'support_service_id' =>
+                    $form['support_service_id'],
 
                 'subject' =>
                     $form['subject'],
@@ -452,22 +588,10 @@ class TicketService extends BaseService
                 'requester_user_reference' =>
                     $actorReference,
 
-                'requester_person_reference' =>
-                    null,
-
-                'requester_display_name_snapshot' =>
-                    $actorName,
-
                 'requester_email_snapshot' =>
                     null,
 
                 'requester_mobile_snapshot' =>
-                    null,
-
-                'requester_organization_reference' =>
-                    null,
-
-                'requester_organization_snapshot' =>
                     null,
 
                 'actor_user_reference' =>

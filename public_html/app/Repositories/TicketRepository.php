@@ -232,6 +232,15 @@ class TicketRepository
             )
         );
 
+        $viewerUserReference = trim(
+            (string) (
+                $filters[
+                    'viewer_user_reference'
+                ]
+                ?? ''
+            )
+        );
+
         if ($q !== '') {
             $where[] = "(
                 t.public_reference LIKE ?
@@ -265,6 +274,29 @@ class TicketRepository
 
             $parameters[] =
                 $requesterUserReference;
+        }
+
+
+        if ($viewerUserReference !== '') {
+            $where[] = "(
+                t.requester_user_reference = ?
+
+                OR EXISTS
+                (
+                    SELECT 1
+                    FROM ticketing_assignments va
+                    WHERE va.ticket_id = t.id
+                      AND va.assignee_kind = 'user'
+                      AND va.assignee_reference = ?
+                      AND va.unassigned_at IS NULL
+                )
+            )";
+
+            $parameters[] =
+                $viewerUserReference;
+
+            $parameters[] =
+                $viewerUserReference;
         }
 
         $limit = max(
@@ -348,7 +380,7 @@ class TicketRepository
 
     public function findByReference(
         string $publicReference,
-        ?string $requesterUserReference = null
+        ?string $viewerUserReference = null
     ): ?array {
         $statement = $this->db->prepare("
             SELECT
@@ -409,22 +441,34 @@ class TicketRepository
 
               AND (
                     ? IS NULL
+
                     OR t.requester_user_reference = ?
+
+                    OR EXISTS
+                    (
+                        SELECT 1
+                        FROM ticketing_assignments va
+                        WHERE va.ticket_id = t.id
+                          AND va.assignee_kind = 'user'
+                          AND va.assignee_reference = ?
+                          AND va.unassigned_at IS NULL
+                    )
               )
 
             LIMIT 1
         ");
 
-        $requester =
-            $requesterUserReference === null
-            || trim($requesterUserReference) === ''
+        $viewer =
+            $viewerUserReference === null
+            || trim($viewerUserReference) === ''
                 ? null
-                : trim($requesterUserReference);
+                : trim($viewerUserReference);
 
         $statement->execute([
             trim($publicReference),
-            $requester,
-            $requester,
+            $viewer,
+            $viewer,
+            $viewer,
         ]);
 
         $ticket =
