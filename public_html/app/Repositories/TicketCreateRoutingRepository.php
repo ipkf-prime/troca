@@ -222,8 +222,8 @@ final class TicketCreateRoutingRepository
 
 
     public function create(
-        array $data
-    ): array {
+        array $data,
+        array $attachments = []): array {
         $this->db->beginTransaction();
 
         try {
@@ -518,6 +518,10 @@ final class TicketCreateRoutingRepository
                 $data['body'],
             ]);
 
+            $messageId =
+                (int) $this->db->lastInsertId();
+
+
 
             $this->event(
                 $ticketId,
@@ -718,6 +722,12 @@ final class TicketCreateRoutingRepository
             }
 
 
+            $this->persistInitialAttachments(
+                $ticketId,
+                $messageId,
+                $attachments
+            );
+
             $this->db->commit();
 
             return [
@@ -774,6 +784,10 @@ final class TicketCreateRoutingRepository
             ) {
                 $this->db->rollBack();
             }
+
+            $this->cleanupInitialAttachmentFiles(
+                $attachments
+            );
 
             throw $exception;
         }
@@ -988,6 +1002,226 @@ final class TicketCreateRoutingRepository
             is_array($row)
                 ? $row
                 : null;
+    }
+
+
+    private function persistInitialAttachments(
+        int $ticketId,
+        int $messageId,
+        array $attachments
+    ): void {
+        if ($attachments === []) {
+            return;
+        }
+
+        $statement =
+            $this->db->prepare("
+                INSERT INTO ticketing_attachments
+                (
+                    public_reference,
+                    ticket_id,
+                    message_id,
+                    storage_disk,
+                    storage_key,
+                    original_name,
+                    mime_type,
+                    size_bytes,
+                    checksum_sha256,
+                    scan_status_code,
+                    uploaded_by_user_reference,
+                    deleted_at,
+                    created_at
+                )
+                VALUES
+                (
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    NULL,
+                    UTC_TIMESTAMP()
+                )
+            ");
+
+        foreach ($attachments as $attachment) {
+
+            $reference =
+                trim(
+                    (string) (
+                        $attachment[
+                            'public_reference'
+                        ]
+                        ?? ''
+                    )
+                );
+
+            $storageDisk =
+                trim(
+                    (string) (
+                        $attachment[
+                            'storage_disk'
+                        ]
+                        ?? ''
+                    )
+                );
+
+            $storageKey =
+                trim(
+                    (string) (
+                        $attachment[
+                            'storage_key'
+                        ]
+                        ?? ''
+                    )
+                );
+
+            $originalName =
+                trim(
+                    (string) (
+                        $attachment[
+                            'original_name'
+                        ]
+                        ?? ''
+                    )
+                );
+
+            $mimeType =
+                trim(
+                    (string) (
+                        $attachment[
+                            'mime_type'
+                        ]
+                        ?? ''
+                    )
+                );
+
+            $sizeBytes =
+                (int) (
+                    $attachment[
+                        'size_bytes'
+                    ]
+                    ?? 0
+                );
+
+            $checksum =
+                strtolower(
+                    trim(
+                        (string) (
+                            $attachment[
+                                'checksum_sha256'
+                            ]
+                            ?? ''
+                        )
+                    )
+                );
+
+            $scanStatus =
+                trim(
+                    (string) (
+                        $attachment[
+                            'scan_status_code'
+                        ]
+                        ?? 'pending'
+                    )
+                );
+
+            $uploadedBy =
+                trim(
+                    (string) (
+                        $attachment[
+                            'uploaded_by_user_reference'
+                        ]
+                        ?? ''
+                    )
+                );
+
+            if (
+                preg_match(
+                    '/^TKA-[A-F0-9]{24}$/',
+                    $reference
+                ) !== 1
+
+                || $storageDisk
+                    !== 'ticketing_private'
+
+                || $storageKey === ''
+
+                || substr(
+                    $storageKey,
+                    0,
+                    1
+                ) === '/'
+
+                || strpos(
+                    $storageKey,
+                    '..'
+                ) !== false
+
+                || $originalName === ''
+
+                || $mimeType === ''
+
+                || $sizeBytes < 1
+
+                || preg_match(
+                    '/^[a-f0-9]{64}$/',
+                    $checksum
+                ) !== 1
+
+                || $scanStatus !== 'pending'
+            ) {
+                throw new \RuntimeException(
+                    'ticket_attachment_contract_invalid'
+                );
+            }
+
+            $statement->execute([
+                $reference,
+                $ticketId,
+                $messageId,
+                $storageDisk,
+                $storageKey,
+                $originalName,
+                $mimeType,
+                $sizeBytes,
+                $checksum,
+                $scanStatus,
+
+                $uploadedBy !== ''
+                    ? $uploadedBy
+                    : null,
+            ]);
+        }
+    }
+
+
+    private function cleanupInitialAttachmentFiles(
+        array $attachments
+    ): void {
+        foreach ($attachments as $attachment) {
+
+            $path =
+                (string) (
+                    $attachment[
+                        'absolute_path'
+                    ]
+                    ?? ''
+                );
+
+            if (
+                $path !== ''
+                && is_file($path)
+            ) {
+                @unlink($path);
+            }
+        }
     }
 
 

@@ -377,8 +377,8 @@ class TicketService extends BaseService
     public function create(
         array $input,
         int $userId,
-        array $context = []
-    ): array {
+        array $context = [],
+        array $files = []): array {
         $form = [
             'subject' =>
                 trim(
@@ -551,6 +551,37 @@ class TicketService extends BaseService
 
 
         $created =
+        $attachmentUpload =
+            new TicketAttachmentUploadService();
+
+        try {
+            $preparedAttachments =
+                $attachmentUpload->prepare(
+                    is_array($files)
+                        ? $files
+                        : [],
+
+                    'user:' . $userId
+                );
+
+        } catch (\InvalidArgumentException $exception) {
+
+            return [
+                'ok' =>
+                    false,
+
+                'errors' => [
+                    'attachments' =>
+                        $attachmentUpload->errorMessage(
+                            $exception->getMessage()
+                        ),
+                ],
+
+                'form' =>
+                    $form,
+            ];
+        }
+
             $this->creation->create([
                 'public_reference' =>
                     $this->reference('TKT'),
@@ -596,7 +627,8 @@ class TicketService extends BaseService
 
                 'actor_user_reference' =>
                     $actorReference,
-            ]);
+            ],
+                $preparedAttachments);
 
         return [
             'ok' => true,

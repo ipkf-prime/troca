@@ -2003,7 +2003,8 @@ $router->post(
                     ],
                     (int) $context['user_id'],
                     $context
-                );
+                ,
+                    $_FILES['attachments'] ?? []);
 
             if (empty($result['ok'])) {
 

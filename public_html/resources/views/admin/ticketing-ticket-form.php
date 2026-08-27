@@ -103,7 +103,7 @@ ob_start();
             class="ticketing-create-form"
             method="post"
             action="/admin/ticketing/tickets"
-        >
+         enctype="multipart/form-data">
             <input
                 type="hidden"
                 name="_token"
@@ -299,7 +299,34 @@ ob_start();
             </div>
 
 
-            <div class="admin-form-actions">
+
+    <section class="ticketing-form-section">
+        <header>
+            <h3>پیوست‌ها</h3>
+            <p>
+                فایل‌های مرتبط با درخواست را می‌توانید
+                همراه تیکت ارسال کنید.
+            </p>
+        </header>
+
+        <label>
+            <span>فایل‌های پیوست</span>
+
+            <input
+                type="file"
+                name="attachments[]"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png,.webp,.txt,.log,.csv,.doc,.docx,.xls,.xlsx,.zip"
+            >
+
+            <small class="admin-muted">
+                حداکثر ۵ فایل؛ هر فایل حداکثر ۱۰ مگابایت
+                و مجموع فایل‌ها حداکثر ۲۵ مگابایت.
+            </small>
+        </label>
+    </section>
+
+<div class="admin-form-actions">
 
                 <button
                     class="admin-button"
