@@ -270,6 +270,7 @@ class TicketService extends BaseService
 
         $projectOptions = [];
         $serviceOptions = [];
+        $topicOptions = [];
 
         if (
             $userId !== null
@@ -288,6 +289,10 @@ class TicketService extends BaseService
 
             $serviceOptions =
                 $createOptions['services']
+                ?? [];
+
+            $topicOptions =
+                $createOptions['topics']
                 ?? [];
         }
 
@@ -334,6 +339,59 @@ class TicketService extends BaseService
             }
         }
 
+        $defaultTopicId =
+            null;
+
+        if (
+            $defaultProjectId !== null
+            && $defaultServiceId !== null
+        ) {
+            foreach (
+                $topicOptions
+                as $topicId => $topic
+            ) {
+                if (
+                    (int) (
+                        $topic['project_id']
+                        ?? 0
+                    ) !== $defaultProjectId
+                ) {
+                    continue;
+                }
+
+                $topicServiceId =
+                    $topic['service_id']
+                    ?? null;
+
+                if (
+                    $topicServiceId !== null
+                    && (int) $topicServiceId
+                        !== $defaultServiceId
+                ) {
+                    continue;
+                }
+
+                if (
+                    $defaultTopicId === null
+                    || !empty(
+                        $topic['is_default']
+                    )
+                ) {
+                    $defaultTopicId =
+                        (int) $topicId;
+                }
+
+                if (
+                    !empty(
+                        $topic['is_default']
+                    )
+                ) {
+                    break;
+                }
+            }
+        }
+
+
         return [
             'form' =>
                 array_merge(
@@ -353,6 +411,10 @@ class TicketService extends BaseService
                         'support_service_id' =>
                             $defaultServiceId
                             ?? '',
+
+                        'support_topic_id' =>
+                            $defaultTopicId
+                            ?? '',
                     ],
                     $form
                 ),
@@ -369,6 +431,9 @@ class TicketService extends BaseService
 
                 'services' =>
                     $serviceOptions,
+
+                'topics' =>
+                    $topicOptions,
             ],
         ];
     }
@@ -419,6 +484,12 @@ class TicketService extends BaseService
             'support_service_id' =>
                 (int) (
                     $input['support_service_id']
+                    ?? 0
+                ),
+
+            'support_topic_id' =>
+                (int) (
+                    $input['support_topic_id']
                     ?? 0
                 ),
         ];
@@ -534,6 +605,60 @@ class TicketService extends BaseService
         }
 
 
+        if (
+            $form['support_project_id'] > 0
+            && $form['support_service_id'] > 0
+            && $selection !== null
+        ) {
+            $topicRequired =
+                $this->creation
+                    ->hasSelectableTopics(
+                        $actorReference,
+                        $form[
+                            'support_project_id'
+                        ],
+                        $form[
+                            'support_service_id'
+                        ]
+                    );
+
+            if (
+                $topicRequired
+                && $form[
+                    'support_topic_id'
+                ] <= 0
+            ) {
+                $errors[
+                    'support_topic_id'
+                ] =
+                    'موضوع پشتیبانی را انتخاب کنید.';
+
+            } elseif (
+                $form[
+                    'support_topic_id'
+                ] > 0
+                && $this->creation
+                    ->topicForSelection(
+                        $actorReference,
+                        $form[
+                            'support_project_id'
+                        ],
+                        $form[
+                            'support_service_id'
+                        ],
+                        $form[
+                            'support_topic_id'
+                        ]
+                    ) === null
+            ) {
+                $errors[
+                    'support_topic_id'
+                ] =
+                    'موضوع پشتیبانی انتخاب‌شده معتبر نیست.';
+            }
+        }
+
+
         if ($errors !== []) {
             return [
                 'ok' => false,
@@ -609,6 +734,9 @@ class TicketService extends BaseService
 
                 'support_service_id' =>
                     $form['support_service_id'],
+
+                'support_topic_id' =>
+                    $form['support_topic_id'],
 
                 'subject' =>
                     $form['subject'],

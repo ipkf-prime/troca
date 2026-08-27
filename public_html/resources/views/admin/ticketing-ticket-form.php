@@ -193,6 +193,69 @@ ob_start();
                 </label>
 
 
+                <label>
+                    <span>
+                        موضوع پشتیبانی
+                    </span>
+
+                    <select
+                        name="support_topic_id"
+                        id="ticket-support-topic"
+                    >
+                        <option value="">
+                            بدون موضوع
+                        </option>
+
+                        <?php foreach (
+                            $options['topics']
+                            ?? []
+                            as $id => $topic
+                        ): ?>
+                            <option
+                                value="<?= ticketing_h($id) ?>"
+                                data-project="<?= ticketing_h(
+                                    $topic['project_id']
+                                    ?? ''
+                                ) ?>"
+                                data-service="<?= ticketing_h(
+                                    $topic['service_id']
+                                    ?? ''
+                                ) ?>"
+                                <?= (string) (
+                                    $form[
+                                        'support_topic_id'
+                                    ]
+                                    ?? ''
+                                ) === (string) $id
+                                    ? ' selected'
+                                    : '' ?>
+                            >
+                                <?php if (
+                                    !empty(
+                                        $topic[
+                                            'parent_title'
+                                        ]
+                                    )
+                                ): ?>
+                                    <?= ticketing_h(
+                                        $topic[
+                                            'parent_title'
+                                        ]
+                                    ) ?>
+                                    ←
+                                <?php endif; ?>
+
+                                <?= ticketing_h(
+                                    $topic['title']
+                                    ?? ''
+                                ) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+
+
+
                 <label class="admin-form-grid__wide">
                     <span>
                         عنوان تیکت
@@ -414,6 +477,128 @@ ob_start();
     );
 
     syncServices();
+})();
+</script>
+
+
+<script>
+(function () {
+    const project =
+        document.getElementById(
+            'ticket-support-project'
+        );
+
+    const service =
+        document.getElementById(
+            'ticket-support-service'
+        );
+
+    const topic =
+        document.getElementById(
+            'ticket-support-topic'
+        );
+
+    if (
+        !project
+        || !service
+        || !topic
+    ) {
+        return;
+    }
+
+    function syncTopics() {
+        const projectId =
+            String(project.value || '');
+
+        const serviceId =
+            String(service.value || '');
+
+        let firstVisible = null;
+        let selectedVisible = false;
+        let visibleCount = 0;
+
+        Array.from(
+            topic.options
+        ).forEach(function (option) {
+            if (!option.value) {
+                option.hidden = false;
+                option.disabled = false;
+                return;
+            }
+
+            const optionProject =
+                String(
+                    option.dataset.project
+                    || ''
+                );
+
+            const optionService =
+                String(
+                    option.dataset.service
+                    || ''
+                );
+
+            const visible =
+                optionProject === projectId
+                && (
+                    optionService === ''
+                    || optionService === serviceId
+                );
+
+            option.hidden =
+                !visible;
+
+            option.disabled =
+                !visible;
+
+            if (visible) {
+                visibleCount += 1;
+
+                if (firstVisible === null) {
+                    firstVisible = option;
+                }
+
+                if (option.selected) {
+                    selectedVisible = true;
+                }
+            }
+        });
+
+        if (
+            visibleCount > 0
+            && !selectedVisible
+            && firstVisible
+        ) {
+            firstVisible.selected = true;
+        }
+
+        if (visibleCount === 0) {
+            topic.value = '';
+        }
+
+        topic.required =
+            visibleCount > 0;
+    }
+
+    project.addEventListener(
+        'change',
+        function () {
+            window.setTimeout(
+                syncTopics,
+                0
+            );
+        }
+    );
+
+    service.addEventListener(
+        'change',
+        syncTopics
+    );
+
+    window.setTimeout(
+        syncTopics,
+        0
+    );
 })();
 </script>
 

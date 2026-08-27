@@ -139,13 +139,238 @@ final class TicketCreateRoutingRepository
             ];
         }
 
+        $topics =
+            $this->selectableTopicsForUser(
+                $userReference
+            );
+
         return [
             'projects' =>
                 $projects,
 
             'services' =>
                 $services,
+
+            'topics' =>
+                $topics,
         ];
+    }
+
+
+    public function hasSelectableTopics(
+        string $userReference,
+        int $projectId,
+        int $serviceId
+    ): bool {
+        $statement =
+            $this->db->prepare("
+                SELECT COUNT(*)
+
+                FROM ticketing_support_topics tp
+
+                INNER JOIN
+                    ticketing_support_project_members pm
+                    ON pm.project_id = tp.project_id
+                   AND pm.user_reference = ?
+                   AND pm.left_at IS NULL
+
+                WHERE tp.project_id = ?
+                  AND tp.status = 'active'
+                  AND tp.is_selectable = 1
+
+                  AND (
+                        tp.service_id IS NULL
+                        OR tp.service_id = ?
+                  )
+            ");
+
+        $statement->execute([
+            trim($userReference),
+            $projectId,
+            $serviceId,
+        ]);
+
+        return
+            (int) $statement->fetchColumn()
+            > 0;
+    }
+
+
+    public function topicForSelection(
+        string $userReference,
+        int $projectId,
+        int $serviceId,
+        int $topicId
+    ): ?array {
+        $statement =
+            $this->db->prepare("
+                SELECT
+                    tp.id,
+                    tp.public_reference,
+                    tp.project_id,
+                    tp.service_id,
+                    tp.parent_topic_id,
+                    tp.code,
+                    tp.title,
+                    tp.is_default
+
+                FROM ticketing_support_topics tp
+
+                INNER JOIN
+                    ticketing_support_project_members pm
+                    ON pm.project_id = tp.project_id
+                   AND pm.user_reference = ?
+                   AND pm.left_at IS NULL
+
+                WHERE tp.id = ?
+                  AND tp.project_id = ?
+                  AND tp.status = 'active'
+                  AND tp.is_selectable = 1
+
+                  AND (
+                        tp.service_id IS NULL
+                        OR tp.service_id = ?
+                  )
+
+                LIMIT 1
+            ");
+
+        $statement->execute([
+            trim($userReference),
+            $topicId,
+            $projectId,
+            $serviceId,
+        ]);
+
+        $row =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        return
+            is_array($row)
+                ? $row
+                : null;
+    }
+
+
+    private function selectableTopicsForUser(
+        string $userReference
+    ): array {
+        $statement =
+            $this->db->prepare("
+                SELECT DISTINCT
+                    tp.id,
+                    tp.public_reference
+                        AS reference,
+                    tp.project_id,
+                    tp.service_id,
+                    tp.parent_topic_id,
+                    tp.code,
+                    tp.title,
+                    tp.is_default,
+                    tp.sort_order,
+
+                    parent.title
+                        AS parent_title
+
+                FROM ticketing_support_topics tp
+
+                INNER JOIN
+                    ticketing_support_project_members pm
+                    ON pm.project_id = tp.project_id
+                   AND pm.user_reference = ?
+                   AND pm.left_at IS NULL
+
+                INNER JOIN
+                    ticketing_support_projects p
+                    ON p.id = tp.project_id
+                   AND p.is_active = 1
+                   AND p.archived_at IS NULL
+
+                LEFT JOIN
+                    ticketing_support_topics parent
+                    ON parent.id =
+                        tp.parent_topic_id
+
+                WHERE tp.status = 'active'
+                  AND tp.is_selectable = 1
+
+                ORDER BY
+                    tp.project_id,
+                    tp.service_id,
+                    tp.sort_order,
+                    tp.title,
+                    tp.id
+            ");
+
+        $statement->execute([
+            trim($userReference),
+        ]);
+
+        $rows =
+            $statement->fetchAll(
+                PDO::FETCH_ASSOC
+            ) ?: [];
+
+        $topics = [];
+
+        foreach ($rows as $row) {
+            $topics[
+                (int) $row['id']
+            ] = [
+                'id' =>
+                    (int) $row['id'],
+
+                'reference' =>
+                    (string) $row[
+                        'reference'
+                    ],
+
+                'project_id' =>
+                    (int) $row[
+                        'project_id'
+                    ],
+
+                'service_id' =>
+                    $row['service_id']
+                    !== null
+                        ? (int) $row[
+                            'service_id'
+                        ]
+                        : null,
+
+                'parent_topic_id' =>
+                    $row[
+                        'parent_topic_id'
+                    ] !== null
+                        ? (int) $row[
+                            'parent_topic_id'
+                        ]
+                        : null,
+
+                'code' =>
+                    (string) $row['code'],
+
+                'title' =>
+                    (string) $row['title'],
+
+                'parent_title' =>
+                    $row['parent_title']
+                    !== null
+                        ? (string) $row[
+                            'parent_title'
+                        ]
+                        : null,
+
+                'is_default' =>
+                    (int) $row[
+                        'is_default'
+                    ],
+            ];
+        }
+
+        return $topics;
     }
 
 
@@ -252,33 +477,163 @@ final class TicketCreateRoutingRepository
             }
 
 
-            $route =
-                $this->intakeRoute(
+            $topicId =
+                (int) (
+                    $data[
+                        'support_topic_id'
+                    ]
+                    ?? 0
+                );
+
+            $topic =
+                null;
+
+            $topicsRequired =
+                $this->hasSelectableTopics(
+                    (string) $data[
+                        'requester_user_reference'
+                    ],
+
                     (int) $selection[
                         'project_id'
+                    ],
+
+                    (int) $selection[
+                        'service_id'
                     ]
                 );
 
-            if ($route === null) {
+            if (
+                $topicsRequired
+                && $topicId <= 0
+            ) {
                 throw new RuntimeException(
-                    'No operational intake route exists for this support project.'
+                    'A support topic is required for this project/service.'
                 );
             }
 
+            if ($topicId > 0) {
+                $topic =
+                    $this->topicForSelection(
+                        (string) $data[
+                            'requester_user_reference'
+                        ],
+
+                        (int) $selection[
+                            'project_id'
+                        ],
+
+                        (int) $selection[
+                            'service_id'
+                        ],
+
+                        $topicId
+                    );
+
+                if ($topic === null) {
+                    throw new RuntimeException(
+                        'Support topic is no longer valid.'
+                    );
+                }
+            }
+
+            $route =
+                $this->resolveRoute(
+                    (int) $selection[
+                        'project_id'
+                    ],
+
+                    (int) $selection[
+                        'service_id'
+                    ],
+
+                    $topic !== null
+                        ? (int) $topic['id']
+                        : null,
+
+                    trim(
+                        (string) (
+                            $selection[
+                                'organization_reference'
+                            ]
+                            ?? ''
+                        )
+                    )
+                );
+
+            if ($route === null) {
+                $route =
+                    $this->intakeRoute(
+                        (int) $selection[
+                            'project_id'
+                        ]
+                    );
+
+                if ($route !== null) {
+                    $route[
+                        'routing_rule_id'
+                    ] = null;
+
+                    $route[
+                        'routing_rule_reference'
+                    ] = null;
+
+                    $route[
+                        'fixed_project_member_id'
+                    ] = null;
+                }
+            }
+
+            if ($route === null) {
+                throw new RuntimeException(
+                    'No operational support route exists for this project.'
+                );
+            }
+
+
+            $assignmentMode =
+                strtolower(
+                    trim(
+                        (string) (
+                            $route[
+                                'assignment_mode_code'
+                            ]
+                            ?? 'manual'
+                        )
+                    )
+                );
 
             $assignee =
                 null;
 
             if (
-                (string) $route[
-                    'assignment_mode_code'
-                ] === 'least_loaded'
+                $assignmentMode
+                === 'fixed'
+            ) {
+                $assignee =
+                    $this->fixedAssignee(
+                        (int) $route[
+                            'team_id'
+                        ],
+
+                        (int) (
+                            $route[
+                                'fixed_project_member_id'
+                            ]
+                            ?? 0
+                        )
+                    );
+
+            } elseif (
+                $assignmentMode
+                === 'least_loaded'
             ) {
                 $assignee =
                     $this->leastLoadedAssignee(
                         (int) $route[
                             'team_id'
                         ],
+
                         isset(
                             $route[
                                 'max_open_per_agent'
@@ -291,6 +646,17 @@ final class TicketCreateRoutingRepository
                                 'max_open_per_agent'
                             ]
                             : null
+                    );
+
+            } elseif (
+                $assignmentMode
+                === 'round_robin'
+            ) {
+                $assignee =
+                    $this->roundRobinAssignee(
+                        (int) $route[
+                            'team_id'
+                        ]
                     );
             }
 
@@ -305,6 +671,10 @@ final class TicketCreateRoutingRepository
                         support_service_id,
                         support_project_title_snapshot,
                         support_service_title_snapshot,
+
+                        support_topic_id,
+                        support_topic_title_snapshot,
+                        matched_routing_rule_id,
 
                         requester_participant_id,
 
@@ -343,6 +713,8 @@ final class TicketCreateRoutingRepository
                         ?,
 
                         ?, ?, ?, ?,
+
+                        ?, ?, ?,
 
                         ?,
 
@@ -386,6 +758,26 @@ final class TicketCreateRoutingRepository
                 (string) $selection[
                     'service_title'
                 ],
+
+                $topic !== null
+                    ? (int) $topic['id']
+                    : null,
+
+                $topic !== null
+                    ? (string) $topic[
+                        'title'
+                    ]
+                    : null,
+
+                !empty(
+                    $route[
+                        'routing_rule_id'
+                    ]
+                )
+                    ? (int) $route[
+                        'routing_rule_id'
+                    ]
+                    : null,
 
                 !empty(
                     $selection[
@@ -599,9 +991,31 @@ final class TicketCreateRoutingRepository
                         ],
 
                     'assignment_mode_code' =>
-                        (string) $route[
-                            'assignment_mode_code'
-                        ],
+                        $assignmentMode,
+
+                    'support_topic_id' =>
+                        $topic !== null
+                            ? (int) $topic[
+                                'id'
+                            ]
+                            : null,
+
+                    'routing_rule_id' =>
+                        !empty(
+                            $route[
+                                'routing_rule_id'
+                            ]
+                        )
+                            ? (int) $route[
+                                'routing_rule_id'
+                            ]
+                            : null,
+
+                    'routing_rule_reference' =>
+                        $route[
+                            'routing_rule_reference'
+                        ]
+                        ?? null,
                 ]
             );
 
@@ -650,8 +1064,8 @@ final class TicketCreateRoutingRepository
                             ?,
                             ?,
 
-                            'least_loaded',
-                            'automatic-intake-routing'
+                            ?,
+                            ?
                         )
                     ");
 
@@ -681,6 +1095,19 @@ final class TicketCreateRoutingRepository
                     (int) $route[
                         'team_id'
                     ],
+
+                    $assignmentMode,
+
+                    !empty(
+                        $route[
+                            'routing_rule_reference'
+                        ]
+                    )
+                        ? 'routing-rule:'
+                            . (string) $route[
+                                'routing_rule_reference'
+                            ]
+                        : 'automatic-intake-routing',
                 ]);
 
 
@@ -716,7 +1143,18 @@ final class TicketCreateRoutingRepository
                             ],
 
                         'assignment_mode_code' =>
-                            'least_loaded',
+                            $assignmentMode,
+
+                        'routing_rule_id' =>
+                            !empty(
+                                $route[
+                                    'routing_rule_id'
+                                ]
+                            )
+                                ? (int) $route[
+                                    'routing_rule_id'
+                                ]
+                                : null,
                     ]
                 );
             }
@@ -794,6 +1232,237 @@ final class TicketCreateRoutingRepository
     }
 
 
+    private function resolveRoute(
+        int $projectId,
+        int $serviceId,
+        ?int $topicId,
+        string $organizationReference
+    ): ?array {
+        $statement =
+            $this->db->prepare("
+                SELECT
+                    r.id
+                        AS routing_rule_id,
+
+                    r.public_reference
+                        AS routing_rule_reference,
+
+                    r.assignment_mode_code
+                        AS rule_assignment_mode_code,
+
+                    r.fixed_project_member_id,
+
+                    l.id AS layer_id,
+                    n.id AS node_id,
+
+                    q.id AS queue_id,
+                    q.assignment_mode_code
+                        AS queue_assignment_mode_code,
+                    q.max_open_per_agent,
+
+                    t.id AS team_id
+
+                FROM
+                    ticketing_support_routing_rules r
+
+                INNER JOIN
+                    ticketing_support_layers l
+                    ON l.id =
+                        r.target_layer_id
+                   AND l.project_id =
+                        r.project_id
+                   AND l.status = 'active'
+
+                INNER JOIN
+                    ticketing_support_nodes n
+                    ON n.id =
+                        r.target_node_id
+                   AND n.project_id =
+                        r.project_id
+                   AND n.layer_id = l.id
+                   AND n.status = 'active'
+
+                INNER JOIN
+                    ticketing_support_queues q
+                    ON q.id =
+                        r.target_queue_id
+                   AND q.project_id =
+                        r.project_id
+                   AND q.node_id = n.id
+                   AND q.status = 'active'
+
+                INNER JOIN
+                    ticketing_support_teams t
+                    ON t.id =
+                        r.target_team_id
+                   AND t.project_id =
+                        r.project_id
+                   AND t.status = 'active'
+
+                INNER JOIN
+                    ticketing_support_team_nodes tn
+                    ON tn.team_id = t.id
+                   AND tn.node_id = n.id
+                   AND tn.status = 'active'
+
+                INNER JOIN
+                    ticketing_support_team_queues tq
+                    ON tq.team_id = t.id
+                   AND tq.queue_id = q.id
+                   AND tq.status = 'active'
+
+                WHERE r.project_id = ?
+                  AND r.status = 'active'
+
+                  AND (
+                        r.service_id IS NULL
+                        OR r.service_id = ?
+                  )
+
+                  AND (
+                        r.topic_id IS NULL
+                        OR r.topic_id = ?
+                  )
+
+                  AND (
+                        r.scope_type_code = 'all'
+
+                        OR (
+                            r.scope_type_code =
+                                'organization'
+
+                            AND ? <> ''
+
+                            AND r.scope_reference = ?
+                        )
+                  )
+
+                ORDER BY
+
+                    CASE
+                        WHEN
+                            r.scope_type_code =
+                                'organization'
+                            AND r.scope_reference = ?
+                            AND ? <> ''
+                        THEN 2
+
+                        WHEN
+                            r.scope_type_code = 'all'
+                        THEN 1
+
+                        ELSE 0
+                    END DESC,
+
+                    CASE
+                        WHEN
+                            r.topic_id = ?
+                            AND ? > 0
+                        THEN 2
+
+                        WHEN r.topic_id IS NULL
+                        THEN 1
+
+                        ELSE 0
+                    END DESC,
+
+                    CASE
+                        WHEN r.service_id = ?
+                        THEN 2
+
+                        WHEN r.service_id IS NULL
+                        THEN 1
+
+                        ELSE 0
+                    END DESC,
+
+                    r.priority DESC,
+                    r.sort_order ASC,
+                    r.id ASC
+
+                LIMIT 1
+            ");
+
+        $topicValue =
+            $topicId !== null
+                ? $topicId
+                : 0;
+
+        $statement->execute([
+            $projectId,
+            $serviceId,
+            $topicValue,
+
+            $organizationReference,
+            $organizationReference,
+
+            $organizationReference,
+            $organizationReference,
+
+            $topicValue,
+            $topicValue,
+
+            $serviceId,
+        ]);
+
+        $row =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        if (!is_array($row)) {
+            return null;
+        }
+
+        $mode =
+            strtolower(
+                trim(
+                    (string) (
+                        $row[
+                            'rule_assignment_mode_code'
+                        ]
+                        ?? 'inherit'
+                    )
+                )
+            );
+
+        if ($mode === 'inherit') {
+            $mode =
+                strtolower(
+                    trim(
+                        (string) (
+                            $row[
+                                'queue_assignment_mode_code'
+                            ]
+                            ?? 'manual'
+                        )
+                    )
+                );
+        }
+
+        if (
+            !in_array(
+                $mode,
+                [
+                    'manual',
+                    'least_loaded',
+                    'round_robin',
+                    'fixed',
+                ],
+                true
+            )
+        ) {
+            $mode = 'manual';
+        }
+
+        $row[
+            'assignment_mode_code'
+        ] = $mode;
+
+        return $row;
+    }
+
+
     private function intakeRoute(
         int $projectId
     ): ?array {
@@ -859,6 +1528,170 @@ final class TicketCreateRoutingRepository
 
         $statement->execute([
             $projectId,
+        ]);
+
+        $row =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        return
+            is_array($row)
+                ? $row
+                : null;
+    }
+
+
+    private function fixedAssignee(
+        int $teamId,
+        int $projectMemberId
+    ): ?array {
+        if ($projectMemberId <= 0) {
+            return null;
+        }
+
+        $statement =
+            $this->db->prepare("
+                SELECT
+                    tm.project_member_id,
+
+                    pm.user_reference,
+                    pm.display_name_snapshot
+
+                FROM
+                    ticketing_support_team_members tm
+
+                INNER JOIN
+                    ticketing_support_project_members pm
+                    ON pm.id =
+                        tm.project_member_id
+
+                   AND pm.left_at IS NULL
+
+                   AND pm.user_reference
+                        IS NOT NULL
+
+                   AND pm.user_reference <> ''
+
+                WHERE tm.team_id = ?
+                  AND tm.project_member_id = ?
+                  AND tm.status = 'active'
+                  AND tm.left_at IS NULL
+
+                LIMIT 1
+            ");
+
+        $statement->execute([
+            $teamId,
+            $projectMemberId,
+        ]);
+
+        $row =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        return
+            is_array($row)
+                ? $row
+                : null;
+    }
+
+
+    private function roundRobinAssignee(
+        int $teamId
+    ): ?array {
+        /*
+         * Durable stateless round-robin:
+         *
+         * choose the active team member with the
+         * fewest historical assignments in this team;
+         * ties go to the least-recently assigned member
+         * and then stable project-member id.
+         */
+        $statement =
+            $this->db->prepare("
+                SELECT
+                    candidate.project_member_id,
+                    candidate.user_reference,
+                    candidate.display_name_snapshot,
+                    candidate.assignment_count,
+                    candidate.last_assigned_at
+
+                FROM
+                (
+                    SELECT
+                        tm.project_member_id,
+
+                        pm.user_reference,
+                        pm.display_name_snapshot,
+
+                        COUNT(a.id)
+                            AS assignment_count,
+
+                        MAX(a.assigned_at)
+                            AS last_assigned_at
+
+                    FROM
+                        ticketing_support_team_members tm
+
+                    INNER JOIN
+                        ticketing_support_project_members pm
+                        ON pm.id =
+                            tm.project_member_id
+
+                       AND pm.left_at IS NULL
+
+                       AND pm.user_reference
+                            IS NOT NULL
+
+                       AND pm.user_reference <> ''
+
+                    LEFT JOIN
+                        ticketing_assignments a
+                        ON a.project_member_id =
+                            tm.project_member_id
+
+                       AND a.support_team_id =
+                            tm.team_id
+
+                    WHERE tm.team_id = ?
+                      AND tm.status = 'active'
+                      AND tm.left_at IS NULL
+
+                      AND tm.staff_role_code IN
+                          (
+                              'agent',
+                              'supervisor',
+                              'manager'
+                          )
+
+                    GROUP BY
+                        tm.project_member_id,
+                        pm.user_reference,
+                        pm.display_name_snapshot
+                ) candidate
+
+                ORDER BY
+                    candidate.assignment_count ASC,
+
+                    CASE
+                        WHEN
+                            candidate.last_assigned_at
+                            IS NULL
+                        THEN 0
+                        ELSE 1
+                    END ASC,
+
+                    candidate.last_assigned_at ASC,
+
+                    candidate.project_member_id ASC
+
+                LIMIT 1
+            ");
+
+        $statement->execute([
+            $teamId,
         ]);
 
         $row =
