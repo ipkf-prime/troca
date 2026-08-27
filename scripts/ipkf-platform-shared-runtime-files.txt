@@ -1,0 +1,10 @@
+# IPKF shared runtime closure.
+#
+# These files must be identical on Core and every active
+# application-module runtime discovered from application_modules.
+#
+# Do NOT add runtime hostnames or module names here.
+
+app/Services/AdminPanelService.php
+app/Services/DynamicModuleDashboardService.php
+system/Support/ModuleRuntimeConfig.php
