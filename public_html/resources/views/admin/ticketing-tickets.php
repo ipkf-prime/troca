@@ -721,16 +721,9 @@ ob_start();
                             </td>
 
 
-                            <td dir="ltr">
+                            <td>
                                 <?= ticketing_h(
-                                    \App\Support\AdminFormat::digits(
-                                        (string) (
-                                            $ticket[
-                                                'ticket_number'
-                                            ]
-                                            ?? ''
-                                        )
-                                    )
+                                    \App\Support\TicketingDisplay::ticketNumberFromRow($ticket)
                                 ) ?>
                             </td>
 

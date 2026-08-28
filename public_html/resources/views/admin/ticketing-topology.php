@@ -786,7 +786,16 @@ ob_start();
                             <td><?= ticketing_h($queue['title']) ?></td>
                             <td><?= ticketing_h($queue['node_title']) ?></td>
                             <td><?= ticketing_h($queue['layer_title']) ?></td>
-                            <td dir="ltr"><?= ticketing_h($queue['assignment_mode_code']) ?></td>
+                            <td><?= ticketing_h(
+                                \App\Support\TicketingDisplay::assignmentModeTitle(
+                                    (string) (
+                                        $queue[
+                                            'assignment_mode_code'
+                                        ]
+                                        ?? ''
+                                    )
+                                )
+                            ) ?></td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
@@ -950,7 +959,16 @@ ob_start();
                         <tr>
                             <td><?= ticketing_h($member['member_name']) ?></td>
                             <td><?= ticketing_h($member['team_title']) ?></td>
-                            <td dir="ltr"><?= ticketing_h($member['staff_role_code']) ?></td>
+                            <td><?= ticketing_h(
+                                \App\Support\TicketingDisplay::staffRoleTitle(
+                                    (string) (
+                                        $member[
+                                            'staff_role_code'
+                                        ]
+                                        ?? ''
+                                    )
+                                )
+                            ) ?></td>
                             <td><?= (int) $member['can_assign'] ? 'بله' : '—' ?></td>
                             <td><?= (int) $member['can_assist'] ? 'بله' : '—' ?></td>
                             <td><?= (int) $member['can_takeover'] ? 'بله' : '—' ?></td>

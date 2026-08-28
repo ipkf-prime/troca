@@ -65,14 +65,7 @@ ob_start();
 
     <span>
         <?= ticketing_h(
-            \App\Support\AdminFormat::digits(
-                (string) (
-                    $ticket[
-                        'ticket_number'
-                    ]
-                    ?? ''
-                )
-            )
+            \App\Support\TicketingDisplay::ticketNumberFromRow($ticket)
         ) ?>
     </span>
 </nav>
@@ -95,14 +88,7 @@ ob_start();
         <div>
             <div class="admin-muted">
                 <?= ticketing_h(
-                    \App\Support\AdminFormat::digits(
-                        (string) (
-                            $ticket[
-                                'ticket_number'
-                            ]
-                            ?? ''
-                        )
-                    )
+                    \App\Support\TicketingDisplay::ticketNumberFromRow($ticket)
                 ) ?>
             </div>
 
@@ -401,10 +387,9 @@ ob_start();
                         <tr>
                             <td>
                                 <?= ticketing_h(
-                                    $eventLabels[
+                                    \App\Support\TicketingDisplay::eventTitle(
                                         $eventCode
-                                    ]
-                                    ?? $eventCode
+                                    )
                                 ) ?>
                             </td>
 
@@ -419,10 +404,14 @@ ob_start();
 
                             <td>
                                 <?= ticketing_h(
-                                    $event[
-                                        'resulting_status_code'
-                                    ]
-                                    ?? '—'
+                                    \App\Support\TicketingDisplay::statusTitle(
+                                        (string) (
+                                            $event[
+                                                'resulting_status_code'
+                                            ]
+                                            ?? ''
+                                        )
+                                    )
                                 ) ?>
                             </td>
 

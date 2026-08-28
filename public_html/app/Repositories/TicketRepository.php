@@ -285,29 +285,133 @@ class TicketRepository
 
 
         if ($q !== '') {
-            $where[] = "(
-                t.public_reference LIKE ?
-                OR t.subject LIKE ?
-                OR t.requester_display_name_snapshot LIKE ?
-                OR t.requester_organization_snapshot LIKE ?
-                OR t.source_reference LIKE ?
-                OR CAST(t.id AS CHAR) LIKE ?
-                OR sp.title LIKE ?
-                OR tp.title LIKE ?
-                OR sl.title LIKE ?
-                OR st.title LIKE ?
-                OR apm.display_name_snapshot LIKE ?
-            )";
+            $latinQ =
+                strtr(
+                    $q,
+                    [
+                        '۰' => '0',
+                        '۱' => '1',
+                        '۲' => '2',
+                        '۳' => '3',
+                        '۴' => '4',
+                        '۵' => '5',
+                        '۶' => '6',
+                        '۷' => '7',
+                        '۸' => '8',
+                        '۹' => '9',
 
-            $needle =
-                '%'
-                . $q
-                . '%';
+                        '٠' => '0',
+                        '١' => '1',
+                        '٢' => '2',
+                        '٣' => '3',
+                        '٤' => '4',
+                        '٥' => '5',
+                        '٦' => '6',
+                        '٧' => '7',
+                        '٨' => '8',
+                        '٩' => '9',
+                    ]
+                );
 
-            for ($i = 0; $i < 11; $i++) {
-                $parameters[] =
-                    $needle;
+            $latinUpper =
+                strtoupper($latinQ);
+
+            $searchClauses = [
+                't.ticket_number LIKE ?',
+                't.public_reference LIKE ?',
+                't.subject LIKE ?',
+                't.requester_display_name_snapshot LIKE ?',
+                't.requester_organization_snapshot LIKE ?',
+                't.source_reference LIKE ?',
+                'CAST(t.id AS CHAR) LIKE ?',
+            ];
+
+            $parameters[] =
+                '%' . $latinUpper . '%';
+
+            $parameters[] =
+                '%' . $latinUpper . '%';
+
+            $parameters[] =
+                '%' . $q . '%';
+
+            $parameters[] =
+                '%' . $q . '%';
+
+            $parameters[] =
+                '%' . $q . '%';
+
+            $parameters[] =
+                '%' . $latinUpper . '%';
+
+            $parameters[] =
+                '%' . $latinQ . '%';
+
+
+            if (
+                preg_match(
+                    '/^(.*?)(?:[-\s]+)?0*(\d{1,18})$/u',
+                    trim($latinQ),
+                    $ticketMatch
+                ) === 1
+            ) {
+                $ticketSequence =
+                    (int) $ticketMatch[2];
+
+                $displayPrefix =
+                    trim(
+                        (string) $ticketMatch[1],
+                        " \t\n\r\0\x0B-–—"
+                    );
+
+                if ($ticketSequence > 0) {
+
+                    if ($displayPrefix !== '') {
+                        $searchClauses[] =
+                            '(
+                                t.support_project_title_snapshot
+                                    LIKE ?
+                                AND
+                                CAST(
+                                    SUBSTRING_INDEX(
+                                        t.ticket_number,
+                                        \'-\',
+                                        -1
+                                    )
+                                    AS UNSIGNED
+                                ) = ?
+                            )';
+
+                        $parameters[] =
+                            '%' . $displayPrefix . '%';
+
+                        $parameters[] =
+                            $ticketSequence;
+                    }
+
+                    $searchClauses[] =
+                        'CAST(
+                            SUBSTRING_INDEX(
+                                t.ticket_number,
+                                \'-\',
+                                -1
+                            )
+                            AS UNSIGNED
+                        ) = ?';
+
+                    $parameters[] =
+                        $ticketSequence;
+                }
             }
+
+
+            $where[] =
+                '('
+                . implode(
+                    ' OR ',
+                    $searchClauses
+                )
+                . ')';
         }
 
 
