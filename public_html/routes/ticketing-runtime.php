@@ -2654,3 +2654,405 @@ $router->get(
         );
     }
 );
+
+
+/*
+ * ============================================================================
+ * ticketing_staff_operations_a7
+ * Staff cartable / Take Over / Transfer / Escalation
+ * ============================================================================
+ */
+
+$router->get(
+    '/admin/ticketing/staff',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/ticketing/staff'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+
+        try {
+
+            $service =
+                new \App\Services\Ticketing\TicketStaffOperationsService();
+
+            $page =
+                $service->page(
+                    (int) $context['user_id'],
+                    $context,
+                    [
+                        'scope' =>
+                            $request->input(
+                                'scope',
+                                'all'
+                            ),
+
+                        'q' =>
+                            $request->input(
+                                'q',
+                                ''
+                            ),
+                    ]
+                );
+
+
+            return $adminRender(
+                $response,
+                'ticketing-staff',
+                [
+                    'title' =>
+                        'کارتابل پشتیبانی',
+
+                    'context' =>
+                        $context,
+
+                    'page' =>
+                        $page,
+
+                    'status' =>
+                        $request->input(
+                            'status',
+                            ''
+                        ),
+                ]
+            );
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'ticket_staff_cartable',
+                    [
+                        'user_id' =>
+                            (int) $context[
+                                'user_id'
+                            ],
+                    ]
+                );
+
+            return $adminRender(
+                $response,
+                'placeholder',
+                [
+                    'title' =>
+                        'کارتابل پشتیبانی',
+
+                    'context' =>
+                        $context,
+
+                    'message' =>
+                        'کارتابل پشتیبانی در دسترس نیست. '
+                        . 'کد خطا: '
+                        . $incident,
+                ],
+                503
+            );
+        }
+    }
+);
+
+
+$router->post(
+    '/admin/ticketing/staff/{public_reference}/takeover',
+    function (
+        $request,
+        $response,
+        $publicReference
+    ) use (
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/ticketing/staff/'
+                . $publicReference
+                . '/takeover'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+
+        $csrf =
+            new \IPKF\Security\Csrf();
+
+        if (
+            !$csrf->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            return $response->redirect(
+                '/admin/ticketing/staff'
+                . '?status=csrf'
+            );
+        }
+
+
+        try {
+
+            $service =
+                new \App\Services\Ticketing\TicketStaffOperationsService();
+
+            $result =
+                $service->takeOver(
+                    (string) $publicReference,
+                    (int) $context['user_id'],
+                    $context
+                );
+
+
+            return $response->redirect(
+                '/admin/ticketing/staff'
+                . '?status='
+                . rawurlencode(
+                    (string) (
+                        $result['status']
+                        ?? 'operation-failed'
+                    )
+                )
+            );
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'ticket_takeover',
+                    [
+                        'user_id' =>
+                            (int) $context[
+                                'user_id'
+                            ],
+
+                        'ticket_reference' =>
+                            (string) $publicReference,
+                    ]
+                );
+
+            return $response->redirect(
+                '/admin/ticketing/staff'
+                . '?status=operation-failed'
+                . '&error='
+                . rawurlencode(
+                    $incident
+                )
+            );
+        }
+    }
+);
+
+
+$router->post(
+    '/admin/ticketing/staff/{public_reference}/transfer',
+    function (
+        $request,
+        $response,
+        $publicReference
+    ) use (
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/ticketing/staff/'
+                . $publicReference
+                . '/transfer'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+
+        $csrf =
+            new \IPKF\Security\Csrf();
+
+        if (
+            !$csrf->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            return $response->redirect(
+                '/admin/ticketing/staff'
+                . '?status=csrf'
+            );
+        }
+
+
+        try {
+
+            $service =
+                new \App\Services\Ticketing\TicketStaffOperationsService();
+
+            $result =
+                $service->transfer(
+                    (string) $publicReference,
+
+                    (int) $request->input(
+                        'target_member_id',
+                        0
+                    ),
+
+                    (int) $context['user_id'],
+
+                    $context
+                );
+
+
+            return $response->redirect(
+                '/admin/ticketing/staff'
+                . '?status='
+                . rawurlencode(
+                    (string) (
+                        $result['status']
+                        ?? 'operation-failed'
+                    )
+                )
+            );
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'ticket_transfer',
+                    [
+                        'user_id' =>
+                            (int) $context[
+                                'user_id'
+                            ],
+
+                        'ticket_reference' =>
+                            (string) $publicReference,
+                    ]
+                );
+
+            return $response->redirect(
+                '/admin/ticketing/staff'
+                . '?status=operation-failed'
+                . '&error='
+                . rawurlencode(
+                    $incident
+                )
+            );
+        }
+    }
+);
+
+
+$router->post(
+    '/admin/ticketing/staff/{public_reference}/escalate',
+    function (
+        $request,
+        $response,
+        $publicReference
+    ) use (
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/ticketing/staff/'
+                . $publicReference
+                . '/escalate'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+
+        $csrf =
+            new \IPKF\Security\Csrf();
+
+        if (
+            !$csrf->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            return $response->redirect(
+                '/admin/ticketing/staff'
+                . '?status=csrf'
+            );
+        }
+
+
+        try {
+
+            $service =
+                new \App\Services\Ticketing\TicketStaffOperationsService();
+
+            $result =
+                $service->escalate(
+                    (string) $publicReference,
+                    (int) $context['user_id'],
+                    $context
+                );
+
+
+            return $response->redirect(
+                '/admin/ticketing/staff'
+                . '?status='
+                . rawurlencode(
+                    (string) (
+                        $result['status']
+                        ?? 'operation-failed'
+                    )
+                )
+            );
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'ticket_escalate',
+                    [
+                        'user_id' =>
+                            (int) $context[
+                                'user_id'
+                            ],
+
+                        'ticket_reference' =>
+                            (string) $publicReference,
+                    ]
+                );
+
+            return $response->redirect(
+                '/admin/ticketing/staff'
+                . '?status=operation-failed'
+                . '&error='
+                . rawurlencode(
+                    $incident
+                )
+            );
+        }
+    }
+);
