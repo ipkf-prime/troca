@@ -134,35 +134,73 @@ class TicketService extends BaseService
         int $userId,
         array $filters = []
     ): array {
-        $q = $this->limitString(
+        $viewer =
+            $this->userReference(
+                $userId
+            );
+
+        $q =
+            $this->limitString(
+                trim(
+                    (string) (
+                        $filters['q']
+                        ?? ''
+                    )
+                ),
+                120
+            );
+
+        $status =
             trim(
                 (string) (
-                    $filters['q']
+                    $filters['status']
                     ?? ''
                 )
-            ),
-            120
-        );
+            );
 
-        $status = trim(
-            (string) (
-                $filters['status']
-                ?? ''
-            )
-        );
+        $priority =
+            trim(
+                (string) (
+                    $filters['priority']
+                    ?? ''
+                )
+            );
 
-        $priority = trim(
-            (string) (
-                $filters['priority']
-                ?? ''
-            )
-        );
+        $projectReference =
+            trim(
+                (string) (
+                    $filters[
+                        'project_reference'
+                    ]
+                    ?? ''
+                )
+            );
+
+        $layerId =
+            max(
+                0,
+                (int) (
+                    $filters['layer_id']
+                    ?? 0
+                )
+            );
+
+        $assigneeId =
+            max(
+                0,
+                (int) (
+                    $filters['assignee_id']
+                    ?? 0
+                )
+            );
+
 
         $statuses =
             $this->statusMap();
 
         $priorities =
             $this->priorityMap();
+
 
         if (
             $status !== ''
@@ -173,6 +211,7 @@ class TicketService extends BaseService
             $status = '';
         }
 
+
         if (
             $priority !== ''
             && !isset(
@@ -182,40 +221,326 @@ class TicketService extends BaseService
             $priority = '';
         }
 
+
+        $projectTabs =
+            $this->tickets
+                ->viewerProjectTabs(
+                    $viewer
+                );
+
+        $projectMap = [];
+
+        foreach (
+            $projectTabs
+            as $project
+        ) {
+            $projectMap[
+                (string) (
+                    $project[
+                        'public_reference'
+                    ]
+                    ?? ''
+                )
+            ] =
+                $project;
+        }
+
+
+        if (
+            $projectReference !== ''
+            && !isset(
+                $projectMap[
+                    $projectReference
+                ]
+            )
+        ) {
+            $projectReference = '';
+        }
+
+
+        $layerRows =
+            $this->tickets
+                ->viewerLayers(
+                    $viewer
+                );
+
+        $layerOptions = [];
+
+        foreach ($layerRows as $layer) {
+            $id =
+                (int) (
+                    $layer['id']
+                    ?? 0
+                );
+
+            if ($id > 0) {
+                $layerOptions[$id] =
+                    (string) (
+                        $layer['title']
+                        ?? ''
+                    );
+            }
+        }
+
+
+        if (
+            $layerId > 0
+            && !isset(
+                $layerOptions[$layerId]
+            )
+        ) {
+            $layerId = 0;
+        }
+
+
+        $assigneeRows =
+            $this->tickets
+                ->viewerAssignees(
+                    $viewer
+                );
+
+        $assigneeOptions = [];
+
+        foreach (
+            $assigneeRows
+            as $assignee
+        ) {
+            $id =
+                (int) (
+                    $assignee['id']
+                    ?? 0
+                );
+
+            if ($id > 0) {
+                $assigneeOptions[$id] =
+                    (string) (
+                        $assignee[
+                            'display_name_snapshot'
+                        ]
+                        ?? ''
+                    );
+            }
+        }
+
+
+        if (
+            $assigneeId > 0
+            && !isset(
+                $assigneeOptions[
+                    $assigneeId
+                ]
+            )
+        ) {
+            $assigneeId = 0;
+        }
+
+
+        $sortOptions = [
+            'last_activity' =>
+                'آخرین فعالیت',
+
+            'created_at' =>
+                'تاریخ ثبت',
+
+            'priority' =>
+                'اولویت',
+
+            'status' =>
+                'وضعیت',
+
+            'project' =>
+                'پروژه',
+
+            'stage' =>
+                'مرحله جاری',
+
+            'assignee' =>
+                'کارشناس جاری',
+
+            'subject' =>
+                'عنوان',
+        ];
+
+
+        $sort1 =
+            trim(
+                (string) (
+                    $filters['sort1']
+                    ?? 'last_activity'
+                )
+            );
+
+        $sort2 =
+            trim(
+                (string) (
+                    $filters['sort2']
+                    ?? 'created_at'
+                )
+            );
+
+        if (!isset(
+            $sortOptions[$sort1]
+        )) {
+            $sort1 =
+                'last_activity';
+        }
+
+        if (!isset(
+            $sortOptions[$sort2]
+        )) {
+            $sort2 =
+                'created_at';
+        }
+
+        if ($sort2 === $sort1) {
+            $sort2 =
+                $sort1 === 'created_at'
+                    ? 'last_activity'
+                    : 'created_at';
+        }
+
+
+        $dir1 =
+            strtolower(
+                trim(
+                    (string) (
+                        $filters['dir1']
+                        ?? 'desc'
+                    )
+                )
+            );
+
+        $dir2 =
+            strtolower(
+                trim(
+                    (string) (
+                        $filters['dir2']
+                        ?? 'desc'
+                    )
+                )
+            );
+
+        if (!in_array(
+            $dir1,
+            ['asc', 'desc'],
+            true
+        )) {
+            $dir1 =
+                'desc';
+        }
+
+        if (!in_array(
+            $dir2,
+            ['asc', 'desc'],
+            true
+        )) {
+            $dir2 =
+                'desc';
+        }
+
+
         $rows =
             $this->tickets->index([
-                'q' => $q,
-                'status' => $status,
-                'priority' => $priority,
+                'q' =>
+                    $q,
+
+                'status' =>
+                    $status,
+
+                'priority' =>
+                    $priority,
+
+                'project_reference' =>
+                    $projectReference,
+
+                'layer_id' =>
+                    $layerId,
+
+                'assignee_id' =>
+                    $assigneeId,
+
+                'sort1' =>
+                    $sort1,
+
+                'dir1' =>
+                    $dir1,
+
+                'sort2' =>
+                    $sort2,
+
+                'dir2' =>
+                    $dir2,
 
                 'viewer_user_reference' =>
-                    $this->userReference(
-                        $userId
-                    ),
+                    $viewer,
             ]);
+
 
         return [
             'items' =>
                 array_map(
                     fn (array $ticket): array =>
-                        $this->present($ticket),
+                        array_merge(
+                            $ticket,
+                            $this->present(
+                                $ticket
+                            )
+                        ),
                     $rows
                 ),
 
             'total' =>
-                count($rows),
+                count(
+                    $rows
+                ),
 
-            'q' => $q,
+            'q' =>
+                $q,
 
-            'status' => $status,
+            'status' =>
+                $status,
 
-            'priority' => $priority,
+            'priority' =>
+                $priority,
+
+            'project_reference' =>
+                $projectReference,
+
+            'layer_id' =>
+                $layerId,
+
+            'assignee_id' =>
+                $assigneeId,
+
+            'sort1' =>
+                $sort1,
+
+            'dir1' =>
+                $dir1,
+
+            'sort2' =>
+                $sort2,
+
+            'dir2' =>
+                $dir2,
 
             'status_options' =>
                 $statuses,
 
             'priority_options' =>
                 $priorities,
+
+            'project_tabs' =>
+                $projectTabs,
+
+            'layer_options' =>
+                $layerOptions,
+
+            'assignee_options' =>
+                $assigneeOptions,
+
+            'sort_options' =>
+                $sortOptions,
         ];
     }
 

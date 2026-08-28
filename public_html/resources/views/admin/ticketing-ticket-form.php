@@ -26,6 +26,12 @@ $errors =
     $errors
     ?? [];
 
+$initialTab =
+    isset($errors['body'])
+    || isset($errors['attachments'])
+        ? 'ticket-detail'
+        : 'ticket-info';
+
 ob_start();
 ?>
 
@@ -97,7 +103,33 @@ ob_start();
     <?php endif; ?>
 
 
-    <section class="admin-section ticketing-form-section">
+        <nav
+        class="admin-tabs ticketing-form-tabs"
+        data-admin-tabs
+        role="tablist"
+        aria-label="بخش‌های ثبت تیکت"
+    >
+        <button
+            class="admin-tab is-active"
+            type="button"
+            data-admin-tab="ticket-info"
+            role="tab"
+        >
+            اطلاعات تیکت
+        </button>
+
+        <button
+            class="admin-tab"
+            type="button"
+            data-admin-tab="ticket-detail"
+            role="tab"
+        >
+            شرح و پیوست
+        </button>
+    </nav>
+
+
+<section class="admin-tab-panel is-active admin-section ticketing-form-section" data-admin-tab-panel="ticket-info">
 
         <form
             class="ticketing-create-form"
@@ -155,7 +187,7 @@ ob_start();
 
                 <label>
                     <span>
-                        سرویس
+                        زیرسامانه
                     </span>
 
                     <select
@@ -342,7 +374,16 @@ ob_start();
                 </label>
 
 
-                <label class="admin-form-grid__wide">
+
+
+            </div>
+
+
+
+    <section class="admin-tab-panel ticketing-form-section" data-admin-tab-panel="ticket-detail" hidden>
+
+        <div class="admin-form-grid ticketing-details-grid">
+<label class="admin-form-grid__wide">
                     <span>
                         شرح درخواست
                     </span>
@@ -358,12 +399,9 @@ ob_start();
                         ?? ''
                     ) ?></textarea>
                 </label>
-
-            </div>
-
+        </div>
 
 
-    <section class="ticketing-form-section">
         <header>
             <h3>پیوست‌ها</h3>
             <p>
@@ -599,6 +637,33 @@ ob_start();
         syncTopics,
         0
     );
+})();
+</script>
+
+
+<script>
+(function () {
+    const initial =
+        <?= json_encode(
+            $initialTab,
+            JSON_UNESCAPED_UNICODE
+            | JSON_UNESCAPED_SLASHES
+        ) ?>;
+
+    if (!initial) {
+        return;
+    }
+
+    window.setTimeout(function () {
+        const button =
+            document.querySelector(
+                '[data-admin-tab="' + initial + '"]'
+            );
+
+        if (button) {
+            button.click();
+        }
+    }, 0);
 })();
 </script>
 

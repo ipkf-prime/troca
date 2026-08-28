@@ -294,3 +294,334 @@
         grid-column: auto;
     }
 }
+
+
+/*
+ * =====================================================================
+ * Ticketing UX consolidation v2
+ * =====================================================================
+ */
+
+.ticketing-shell .ticketing-page-head h1 {
+    font-size: 1.18rem;
+    line-height: 1.45;
+    margin: 0;
+}
+
+.ticketing-shell .ticketing-page-head p {
+    font-size: .82rem;
+    line-height: 1.65;
+    margin: 3px 0 0;
+}
+
+.ticketing-shell .admin-section > h2 {
+    font-size: 1rem;
+    line-height: 1.55;
+    margin-top: 0;
+}
+
+.ticketing-shell .ticketing-form-section h3 {
+    font-size: .95rem;
+}
+
+.ticketing-shell .ticketing-management-tabs,
+.ticketing-shell .ticketing-form-tabs {
+    margin: 0 0 12px;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.ticketing-shell .ticketing-topology-tabs {
+    flex-wrap: nowrap;
+}
+
+.ticketing-shell
+.ticketing-topology-tabs
+.admin-tab {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+
+/* Project tabs */
+
+.ticketing-project-tabs {
+    align-items: center;
+    display: flex;
+    gap: 6px;
+    margin: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 2px 0 8px;
+}
+
+.ticketing-project-tab {
+    align-items: center;
+    border: 1px solid var(--admin-border, #d9e0e7);
+    border-radius: 8px;
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: .82rem;
+    gap: 7px;
+    min-height: 34px;
+    padding: 5px 10px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.ticketing-project-tab b {
+    border-radius: 999px;
+    font-size: .72rem;
+    min-width: 22px;
+    padding: 1px 6px;
+    text-align: center;
+}
+
+.ticketing-project-tab.is-active {
+    font-weight: 700;
+}
+
+.ticketing-project-more {
+    flex: 0 0 auto;
+    position: relative;
+}
+
+.ticketing-project-more > summary {
+    cursor: pointer;
+    font-size: .8rem;
+    padding: 7px 9px;
+    white-space: nowrap;
+}
+
+.ticketing-project-more__menu {
+    background: var(--admin-surface, #fff);
+    border: 1px solid var(--admin-border, #d9e0e7);
+    border-radius: 8px;
+    display: grid;
+    gap: 3px;
+    min-width: 220px;
+    padding: 6px;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 30;
+}
+
+.ticketing-project-more__menu a {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+    padding: 7px 8px;
+    text-decoration: none;
+}
+
+
+/* Filters */
+
+.ticketing-filter-section {
+    padding: 14px 15px;
+}
+
+.ticketing-filter-form {
+    display: grid;
+    gap: 12px;
+}
+
+.ticketing-filter-grid {
+    display: grid;
+    gap: 10px;
+    grid-template-columns:
+        minmax(220px, 1.6fr)
+        repeat(4, minmax(135px, 1fr));
+}
+
+.ticketing-filter-grid label,
+.ticketing-sort-grid label {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+.ticketing-filter-grid label > span,
+.ticketing-sort-grid label > span {
+    font-size: .76rem;
+    font-weight: 600;
+}
+
+.ticketing-sort-details > summary {
+    cursor: pointer;
+    font-size: .78rem;
+    font-weight: 600;
+    width: max-content;
+}
+
+.ticketing-sort-grid {
+    display: grid;
+    gap: 10px;
+    grid-template-columns:
+        repeat(4, minmax(130px, 1fr));
+    margin-top: 10px;
+    max-width: 760px;
+}
+
+.ticketing-filter-actions {
+    align-items: center;
+    gap: 10px;
+    margin-top: 2px;
+}
+
+.ticketing-result-count {
+    margin-inline-start: auto;
+}
+
+
+/* Project grid */
+
+.ticketing-project-grid {
+    margin-top: 14px;
+}
+
+.ticketing-project-grid .admin-table {
+    font-size: .82rem;
+    min-width: 1040px;
+}
+
+.ticketing-project-grid th,
+.ticketing-project-grid td {
+    padding-block: 9px;
+    vertical-align: middle;
+}
+
+.ticketing-title-cell,
+.ticketing-stage-cell {
+    min-width: 170px;
+}
+
+.ticketing-title-cell strong,
+.ticketing-stage-cell strong {
+    display: block;
+}
+
+.ticketing-title-cell small,
+.ticketing-stage-cell small,
+.ticketing-route-summary small {
+    display: block;
+    font-size: .72rem;
+    margin-top: 3px;
+    opacity: .74;
+}
+
+
+/* Ticket current route */
+
+.ticketing-route-summary {
+    display: grid;
+    gap: 8px;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+    margin: 0;
+    padding: 12px 14px;
+}
+
+.ticketing-route-summary__item {
+    border-inline-end:
+        1px solid var(--admin-border, #d9e0e7);
+
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+    padding: 2px 10px;
+}
+
+.ticketing-route-summary__item:last-child {
+    border-inline-end: 0;
+}
+
+.ticketing-route-summary__item > span {
+    font-size: .72rem;
+    opacity: .72;
+}
+
+.ticketing-route-summary__item > strong {
+    font-size: .86rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+/* Create form */
+
+.ticketing-shell
+.ticketing-create-form
+.ticketing-form-section {
+    margin: 0;
+    padding: 15px 16px;
+}
+
+.ticketing-shell
+.ticketing-create-form
+.ticketing-details-grid {
+    margin-bottom: 14px;
+}
+
+.ticketing-shell
+.ticketing-create-form
+> .admin-form-actions {
+    gap: 10px;
+    margin-top: 14px;
+}
+
+
+/* Management tables */
+
+.ticketing-shell
+.ticketing-routing-table,
+.ticketing-shell
+.ticketing-topology-table {
+    margin-top: 14px;
+}
+
+.ticketing-shell
+.ticketing-routing-table table,
+.ticketing-shell
+.ticketing-topology-table table {
+    font-size: .81rem;
+}
+
+
+/* Responsive */
+
+@media (max-width: 1280px) {
+    .ticketing-filter-grid {
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .ticketing-filter-grid,
+    .ticketing-sort-grid,
+    .ticketing-route-summary {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .ticketing-route-summary__item {
+        border-inline-end: 0;
+    }
+}
+
+@media (max-width: 680px) {
+    .ticketing-filter-grid,
+    .ticketing-sort-grid,
+    .ticketing-route-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .ticketing-result-count {
+        margin-inline-start: 0;
+    }
+}

@@ -205,7 +205,65 @@ ob_start();
     </div>
 
 
-    <section
+        <section class="admin-section ticketing-route-summary">
+
+        <div class="ticketing-route-summary__item">
+            <span>پروژه</span>
+
+            <strong>
+                <?= ticketing_h(
+                    $ticket['project_title']
+                    ?? '—'
+                ) ?>
+            </strong>
+        </div>
+
+        <div class="ticketing-route-summary__item">
+            <span>موضوع</span>
+
+            <strong>
+                <?= ticketing_h(
+                    $ticket['topic_title']
+                    ?? '—'
+                ) ?>
+            </strong>
+        </div>
+
+        <div class="ticketing-route-summary__item">
+            <span>مرحله جاری</span>
+
+            <strong>
+                <?= ticketing_h(
+                    $ticket['layer_title']
+                    ?? 'در انتظار مسیریابی'
+                ) ?>
+            </strong>
+
+            <?php if (!empty($ticket['team_title'])): ?>
+                <small>
+                    <?= ticketing_h(
+                        $ticket['team_title']
+                    ) ?>
+                </small>
+            <?php endif; ?>
+        </div>
+
+        <div class="ticketing-route-summary__item">
+            <span>کارشناس جاری</span>
+
+            <strong>
+                <?= ticketing_h(
+                    !empty($ticket['assignee_name'])
+                        ? $ticket['assignee_name']
+                        : 'در انتظار تخصیص'
+                ) ?>
+            </strong>
+        </div>
+
+    </section>
+
+
+<section
         class="admin-section ticketing-conversation"
     >
         <div class="admin-page-header">

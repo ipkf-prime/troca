@@ -160,8 +160,34 @@ ob_start();
     <?php endif; ?>
 
 
-    <section class="admin-section">
-        <h2>۱. موضوعات پشتیبانی</h2>
+        <nav
+        class="admin-tabs ticketing-management-tabs"
+        data-admin-tabs
+        role="tablist"
+        aria-label="مدیریت موضوعات و مسیریابی"
+    >
+        <button
+            class="admin-tab is-active"
+            type="button"
+            data-admin-tab="routing-topics"
+            role="tab"
+        >
+            موضوعات
+        </button>
+
+        <button
+            class="admin-tab"
+            type="button"
+            data-admin-tab="routing-rules"
+            role="tab"
+        >
+            قوانین مسیریابی
+        </button>
+    </nav>
+
+
+<section class="admin-tab-panel is-active admin-section" data-admin-tab-panel="routing-topics">
+        <h2>موضوعات پشتیبانی</h2>
 
         <form method="post" action="<?= ticketing_h($action) ?>">
 
@@ -201,10 +227,10 @@ ob_start();
                 </label>
 
                 <label>
-                    <span>سرویس</span>
+                    <span>زیرسامانه</span>
                     <select name="service_id">
                         <option value="0">
-                            همه سرویس‌های پروژه
+                            همه زیرسامانه‌های پروژه
                         </option>
 
                         <?php foreach ($services as $service): ?>
@@ -293,7 +319,7 @@ ob_start();
                     <tr>
                         <th>عنوان</th>
                         <th>والد</th>
-                        <th>سرویس</th>
+                        <th>زیرسامانه</th>
                         <th>کد</th>
                         <th>انتخاب</th>
                         <th>پیش‌فرض</th>
@@ -350,8 +376,8 @@ ob_start();
     </section>
 
 
-    <section class="admin-section">
-        <h2>۲. قوانین مسیریابی</h2>
+    <section class="admin-tab-panel admin-section" data-admin-tab-panel="routing-rules" hidden>
+        <h2>قوانین مسیریابی</h2>
 
         <?php if (
             $layers !== []
@@ -387,10 +413,10 @@ ob_start();
                     </label>
 
                     <label>
-                        <span>سرویس</span>
+                        <span>زیرسامانه</span>
                         <select name="service_id">
                             <option value="0">
-                                همه سرویس‌ها
+                                همه زیرسامانه‌ها
                             </option>
 
                             <?php foreach ($services as $service): ?>
@@ -429,7 +455,7 @@ ob_start();
                     </label>
 
                     <label>
-                        <span>Scope</span>
+                        <span>دامنه</span>
                         <select name="scope_type_code">
                             <option value="all">
                                 همه
@@ -442,7 +468,7 @@ ob_start();
                     </label>
 
                     <label>
-                        <span>Scope Reference</span>
+                        <span>مرجع دامنه</span>
                         <input
                             type="text"
                             name="scope_reference"
@@ -538,7 +564,7 @@ ob_start();
                             </option>
 
                             <option value="round_robin">
-                                Round Robin
+                                گردشی
                             </option>
 
                             <option value="manual">
@@ -577,7 +603,7 @@ ob_start();
                     </label>
 
                     <label>
-                        <span>اولویت Rule</span>
+                        <span>اولویت قانون</span>
                         <input
                             type="number"
                             name="priority"
@@ -625,10 +651,10 @@ ob_start();
                     <tr>
                         <th>قانون</th>
                         <th>موضوع</th>
-                        <th>Scope</th>
+                        <th>دامنه</th>
                         <th>مقصد</th>
                         <th>تیم</th>
-                        <th>Assignment</th>
+                        <th>نحوه تخصیص</th>
                         <th>اولویت</th>
                     </tr>
                     </thead>
@@ -745,6 +771,42 @@ ob_start();
     min-width: 900px;
 }
 </style>
+
+
+<script>
+(function () {
+    const labels = {
+        all: 'همه',
+        organization: 'سازمان',
+        inherit: 'از تنظیمات صف',
+        manual: 'دستی',
+        least_loaded: 'کم‌بارترین کارشناس',
+        round_robin: 'گردشی',
+        fixed: 'کارشناس ثابت'
+    };
+
+    document
+        .querySelectorAll(
+            '.ticketing-page td, .ticketing-page option'
+        )
+        .forEach(function (element) {
+            const value =
+                String(
+                    element.textContent || ''
+                ).trim();
+
+            if (
+                Object.prototype.hasOwnProperty.call(
+                    labels,
+                    value
+                )
+            ) {
+                element.textContent =
+                    labels[value];
+            }
+        });
+})();
+</script>
 
 <?php
 

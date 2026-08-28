@@ -194,8 +194,25 @@ ob_start();
     <?php endif; ?>
 
 
-    <section class="admin-section">
-        <h2>۱. لایه‌های پشتیبانی</h2>
+        <nav
+        class="admin-tabs ticketing-management-tabs ticketing-topology-tabs"
+        data-admin-tabs
+        role="tablist"
+        aria-label="بخش‌های ساختار پشتیبانی"
+    >
+        <button class="admin-tab is-active" type="button" data-admin-tab="topology-layers" role="tab">لایه‌ها</button>
+        <button class="admin-tab" type="button" data-admin-tab="topology-nodes" role="tab">گره‌ها</button>
+        <button class="admin-tab" type="button" data-admin-tab="topology-relations" role="tab">ارتباطات</button>
+        <button class="admin-tab" type="button" data-admin-tab="topology-teams" role="tab">تیم‌ها</button>
+        <button class="admin-tab" type="button" data-admin-tab="topology-team-nodes" role="tab">تیم / گره</button>
+        <button class="admin-tab" type="button" data-admin-tab="topology-queues" role="tab">صف‌ها</button>
+        <button class="admin-tab" type="button" data-admin-tab="topology-team-queues" role="tab">تیم / صف</button>
+        <button class="admin-tab" type="button" data-admin-tab="topology-members" role="tab">کارشناسان</button>
+    </nav>
+
+
+<section class="admin-tab-panel is-active admin-section" data-admin-tab-panel="topology-layers">
+        <h2>لایه‌های پشتیبانی</h2>
 
         <form method="post" action="<?= ticketing_h($action) ?>">
             <input type="hidden" name="_token" value="<?= ticketing_h($csrf) ?>">
@@ -262,7 +279,7 @@ ob_start();
 
                 <label>
                     <input type="checkbox" name="can_takeover_descendants" value="1">
-                    Take Over زیرلایه‌ها
+                    در اختیار گرفتن زیرلایه‌ها
                 </label>
 
                 <label>
@@ -284,9 +301,9 @@ ob_start();
                         <th>رتبه</th>
                         <th>عنوان</th>
                         <th>کد</th>
-                        <th>Observe</th>
-                        <th>Assist</th>
-                        <th>Take Over</th>
+                        <th>مشاهده</th>
+                        <th>همکاری</th>
+                        <th>در اختیار گرفتن</th>
                         <th>Down</th>
                     </tr>
                     </thead>
@@ -309,8 +326,8 @@ ob_start();
     </section>
 
 
-    <section class="admin-section">
-        <h2>۲. گره‌های پشتیبانی</h2>
+    <section class="admin-tab-panel admin-section" data-admin-tab-panel="topology-nodes" hidden>
+        <h2>گره‌های پشتیبانی</h2>
 
         <?php if ($layers === []): ?>
             <div class="admin-muted">
@@ -360,7 +377,7 @@ ob_start();
                     </label>
 
                     <label>
-                        <span>نوع Scope</span>
+                        <span>نوع دامنه</span>
                         <input
                             type="text"
                             name="scope_type_code"
@@ -371,7 +388,7 @@ ob_start();
                     </label>
 
                     <label>
-                        <span>شناسه Scope</span>
+                        <span>شناسه دامنه</span>
                         <input
                             type="text"
                             name="scope_reference"
@@ -381,7 +398,7 @@ ob_start();
                     </label>
 
                     <label>
-                        <span>Core Organization Reference</span>
+                        <span>شناسه مرجع سازمان</span>
                         <input
                             type="text"
                             name="core_organization_reference"
@@ -393,7 +410,7 @@ ob_start();
 
                 <label>
                     <input type="checkbox" name="is_intake_node" value="1">
-                    گره Intake
+                    گره ورودی
                 </label>
 
                 <br><br>
@@ -413,8 +430,8 @@ ob_start();
                         <th>لایه</th>
                         <th>عنوان</th>
                         <th>کد</th>
-                        <th>Scope</th>
-                        <th>Intake</th>
+                        <th>دامنه</th>
+                        <th>ورودی</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -450,8 +467,8 @@ ob_start();
     </section>
 
 
-    <section class="admin-section">
-        <h2>۳. ارتباط بین گره‌ها</h2>
+    <section class="admin-tab-panel admin-section" data-admin-tab-panel="topology-relations" hidden>
+        <h2>ارتباط بین گره‌ها</h2>
 
         <?php if (count($nodes) < 2): ?>
             <div class="admin-muted">
@@ -513,7 +530,7 @@ ob_start();
                             value="1"
                             checked
                         >
-                        Escalation مجاز
+                        ارجاع به لایه بالاتر مجاز
                     </label>
 
                     <label>
@@ -541,8 +558,8 @@ ob_start();
                     <tr>
                         <th>سطح بالاتر</th>
                         <th>سطح پایین‌تر</th>
-                        <th>Escalation</th>
-                        <th>Downward</th>
+                        <th>ارجاع بالاتر</th>
+                        <th>انتقال پایین‌دست</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -573,8 +590,8 @@ ob_start();
     </section>
 
 
-    <section class="admin-section">
-        <h2>۴. تیم‌های پشتیبانی</h2>
+    <section class="admin-tab-panel admin-section" data-admin-tab-panel="topology-teams" hidden>
+        <h2>تیم‌های پشتیبانی</h2>
 
         <form method="post" action="<?= ticketing_h($action) ?>">
             <input type="hidden" name="_token" value="<?= ticketing_h($csrf) ?>">
@@ -620,8 +637,8 @@ ob_start();
     </section>
 
 
-    <section class="admin-section">
-        <h2>۵. اتصال تیم به گره</h2>
+    <section class="admin-tab-panel admin-section" data-admin-tab-panel="topology-team-nodes" hidden>
+        <h2>اتصال تیم به گره</h2>
 
         <?php if ($teams !== [] && $nodes !== []): ?>
             <form method="post" action="<?= ticketing_h($action) ?>">
@@ -685,8 +702,8 @@ ob_start();
     </section>
 
 
-    <section class="admin-section">
-        <h2>۶. صف‌های پشتیبانی</h2>
+    <section class="admin-tab-panel admin-section" data-admin-tab-panel="topology-queues" hidden>
+        <h2>صف‌های پشتیبانی</h2>
 
         <?php if ($nodes !== []): ?>
             <form method="post" action="<?= ticketing_h($action) ?>">
@@ -720,11 +737,11 @@ ob_start();
                     </label>
 
                     <label>
-                        <span>روش Assignment</span>
+                        <span>روش تخصیص</span>
                         <select name="assignment_mode_code">
                             <option value="manual">دستی</option>
                             <option value="least_loaded">کم‌بارترین کارشناس</option>
-                            <option value="round_robin">Round Robin</option>
+                            <option value="round_robin">گردشی</option>
                             <option value="rule_based">Rule Based</option>
                         </select>
                     </label>
@@ -779,8 +796,8 @@ ob_start();
     </section>
 
 
-    <section class="admin-section">
-        <h2>۷. اتصال تیم به صف</h2>
+    <section class="admin-tab-panel admin-section" data-admin-tab-panel="topology-team-queues" hidden>
+        <h2>اتصال تیم به صف</h2>
 
         <?php if ($teams !== [] && $queues !== []): ?>
             <form method="post" action="<?= ticketing_h($action) ?>">
@@ -846,8 +863,8 @@ ob_start();
     </section>
 
 
-    <section class="admin-section">
-        <h2>۸. کارشناسان تیم</h2>
+    <section class="admin-tab-panel admin-section" data-admin-tab-panel="topology-members" hidden>
+        <h2>کارشناسان تیم</h2>
 
         <?php if (
             $teams !== []
@@ -888,7 +905,7 @@ ob_start();
                             <option value="agent">Agent</option>
                             <option value="supervisor">Supervisor</option>
                             <option value="manager">Manager</option>
-                            <option value="observer">Observer</option>
+                            <option value="observer">ناظر</option>
                         </select>
                     </label>
 
@@ -923,8 +940,8 @@ ob_start();
                         <th>تیم</th>
                         <th>نقش</th>
                         <th>Assign</th>
-                        <th>Assist</th>
-                        <th>Take Over</th>
+                        <th>همکاری</th>
+                        <th>در اختیار گرفتن</th>
                         <th>Transfer</th>
                     </tr>
                     </thead>
@@ -971,6 +988,58 @@ ob_start();
     min-width: 720px;
 }
 </style>
+
+
+<script>
+(function () {
+    const labels = {
+        all: 'همه',
+        organization: 'سازمان',
+
+        support: 'پشتیبانی',
+        intake: 'ورودی',
+        management: 'مدیریتی',
+
+        manual: 'دستی',
+        least_loaded: 'کم‌بارترین کارشناس',
+        round_robin: 'گردشی',
+
+        agent: 'کارشناس',
+        supervisor: 'سرپرست',
+        manager: 'مدیر',
+        observer: 'ناظر',
+
+        Observe: 'مشاهده',
+        Assist: 'همکاری',
+        'Take Over': 'در اختیار گرفتن',
+        Escalation: 'ارجاع بالاتر',
+        Downward: 'انتقال پایین‌دست'
+    };
+
+    document
+        .querySelectorAll(
+            '.ticketing-page td, '
+            + '.ticketing-page th, '
+            + '.ticketing-page option'
+        )
+        .forEach(function (element) {
+            const value =
+                String(
+                    element.textContent || ''
+                ).trim();
+
+            if (
+                Object.prototype.hasOwnProperty.call(
+                    labels,
+                    value
+                )
+            ) {
+                element.textContent =
+                    labels[value];
+            }
+        });
+})();
+</script>
 
 <?php
 

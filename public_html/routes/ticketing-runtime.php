@@ -2180,27 +2180,63 @@ $router->get(
 
         $filters = [
             'q' =>
-                trim(
-                    (string) $request->input(
-                        'q',
-                        ''
-                    )
+                $request->input(
+                    'q',
+                    ''
                 ),
 
             'status' =>
-                trim(
-                    (string) $request->input(
-                        'status',
-                        ''
-                    )
+                $request->input(
+                    'status',
+                    ''
                 ),
 
             'priority' =>
-                trim(
-                    (string) $request->input(
-                        'priority',
-                        ''
-                    )
+                $request->input(
+                    'priority',
+                    ''
+                ),
+
+            'project_reference' =>
+                $request->input(
+                    'project',
+                    ''
+                ),
+
+            'layer_id' =>
+                $request->input(
+                    'layer',
+                    0
+                ),
+
+            'assignee_id' =>
+                $request->input(
+                    'assignee',
+                    0
+                ),
+
+            'sort1' =>
+                $request->input(
+                    'sort1',
+                    'last_activity'
+                ),
+
+            'dir1' =>
+                $request->input(
+                    'dir1',
+                    'desc'
+                ),
+
+            'sort2' =>
+                $request->input(
+                    'sort2',
+                    'created_at'
+                ),
+
+            'dir2' =>
+                $request->input(
+                    'dir2',
+                    'desc'
                 ),
         ];
 
@@ -2417,6 +2453,13 @@ $router->post(
                         'support_service_id' =>
                             $request->input(
                                 'support_service_id',
+                                ''
+                            ),
+
+
+                        'support_topic_id' =>
+                            $request->input(
+                                'support_topic_id',
                                 ''
                             ),
                     ],
