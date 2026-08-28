@@ -443,6 +443,230 @@ ob_start();
 
 </div>
 
+
+<?php
+/* ticketing_lifecycle_a8d1 */
+
+$lifecycleTicket =
+    is_array($ticket ?? null)
+        ? $ticket
+        : (
+            is_array(
+                $page['ticket']
+                ?? null
+            )
+                ? $page['ticket']
+                : []
+        );
+
+$lifecycleReference =
+    trim(
+        (string) (
+            $lifecycleTicket[
+                'public_reference'
+            ]
+            ?? ''
+        )
+    );
+
+$lifecycleStatus =
+    trim(
+        (string) (
+            $lifecycleTicket[
+                'status_code'
+            ]
+            ?? ''
+        )
+    );
+
+$lifecycleUserId =
+    (int) (
+        $context['user_id']
+        ?? 0
+    );
+
+$lifecycleCanReply = false;
+
+if ($lifecycleUserId > 0) {
+    try {
+        $lifecycleCanReply =
+            (
+                new \App\Services\AuthorizationService()
+            )->hasPermission(
+                $lifecycleUserId,
+                'ticketing.ticket.reply'
+            );
+    } catch (\Throwable) {
+        $lifecycleCanReply = false;
+    }
+}
+
+$lifecycleClosed =
+    in_array(
+        $lifecycleStatus,
+        [
+            'resolved',
+            'closed',
+            'cancelled',
+        ],
+        true
+    );
+
+$lifecycleH =
+    static function (
+        mixed $value
+    ): string {
+        return htmlspecialchars(
+            (string) (
+                $value
+                ?? ''
+            ),
+            ENT_QUOTES
+            | ENT_SUBSTITUTE,
+            'UTF-8',
+            false
+        );
+    };
+
+$lifecycleStatusMessage =
+    [
+        'reply_sent' =>
+            [
+                'success',
+                'پاسخ کارشناس ثبت شد و تیکت در انتظار پاسخ درخواست‌کننده قرار گرفت.',
+            ],
+
+        'reply_empty' =>
+            [
+                'danger',
+                'متن پاسخ نمی‌تواند خالی باشد.',
+            ],
+
+        'reply_too_long' =>
+            [
+                'danger',
+                'متن پاسخ از حداکثر طول مجاز بیشتر است.',
+            ],
+
+        'reply_closed' =>
+            [
+                'danger',
+                'برای تیکت بسته یا خاتمه‌یافته امکان ثبت پاسخ وجود ندارد.',
+            ],
+
+        'reply_forbidden' =>
+            [
+                'danger',
+                'برای ثبت پاسخ در این پروژه دسترسی لازم وجود ندارد.',
+            ],
+
+        'reply_invalid_csrf' =>
+            [
+                'danger',
+                'نشست فرم معتبر نیست. صفحه را تازه‌سازی و دوباره تلاش کنید.',
+            ],
+
+        'reply_failed' =>
+            [
+                'danger',
+                'ثبت پاسخ انجام نشد. دوباره تلاش کنید.',
+            ],
+    ][
+        trim(
+            (string) (
+                $_GET['status']
+                ?? ''
+            )
+        )
+    ]
+    ?? null;
+?>
+
+<?php if (
+    is_array($lifecycleStatusMessage)
+): ?>
+    <section class="admin-section">
+        <div
+            class="admin-alert admin-alert--<?= $lifecycleH(
+                $lifecycleStatusMessage[0]
+            ) ?>"
+            role="status"
+        >
+            <?= $lifecycleH(
+                $lifecycleStatusMessage[1]
+            ) ?>
+        </div>
+    </section>
+<?php endif; ?>
+
+<?php if (
+    $lifecycleCanReply
+    && !$lifecycleClosed
+    && $lifecycleReference !== ''
+): ?>
+    <?php
+    $lifecycleCsrf =
+        (
+            new \IPKF\Security\Csrf()
+        )->token();
+    ?>
+
+    <section
+        class="admin-section ticketing-staff-reply"
+        data-ticketing-staff-reply
+    >
+        <div class="admin-section__header">
+            <div>
+                <h3>پاسخ کارشناس</h3>
+                <p class="admin-muted">
+                    پاسخ عمومی برای درخواست‌کننده ثبت می‌شود و وضعیت تیکت به «در انتظار پاسخ درخواست‌کننده» تغییر می‌کند.
+                </p>
+            </div>
+        </div>
+
+        <form
+            method="post"
+            action="<?= $lifecycleH(
+                '/admin/ticketing/tickets/'
+                . rawurlencode(
+                    $lifecycleReference
+                )
+                . '/reply'
+            ) ?>"
+            data-ticketing-staff-reply-form
+        >
+            <input
+                type="hidden"
+                name="_token"
+                value="<?= $lifecycleH(
+                    $lifecycleCsrf
+                ) ?>"
+            >
+
+            <label>
+                <span>متن پاسخ</span>
+
+                <textarea
+                    name="body"
+                    rows="5"
+                    maxlength="20000"
+                    required
+                    placeholder="پاسخ کارشناس را وارد کنید..."
+                ></textarea>
+            </label>
+
+            <div class="admin-form-actions">
+                <button
+                    class="admin-button"
+                    type="submit"
+                >
+                    ثبت پاسخ
+                </button>
+            </div>
+        </form>
+    </section>
+<?php endif; ?>
+
 <?php
 $content =
     ob_get_clean()

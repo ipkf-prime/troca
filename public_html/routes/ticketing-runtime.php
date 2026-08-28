@@ -3077,3 +3077,175 @@ $router->post(
         }
     }
 );
+
+
+/*
+ * ticketing_lifecycle_a8d1
+ *
+ * Public staff reply.
+ * SLA lifecycle is intentionally NOT invoked here.
+ * The existing external SLA scheduler reconciles:
+ * - first_response_at
+ * - waiting_requester pause
+ */
+$router->post(
+    '/admin/ticketing/tickets/{public_reference}/reply',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/ticketing/tickets/{public_reference}/reply'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $publicReference =
+            trim(
+                (string) $request->route(
+                    'public_reference',
+                    ''
+                )
+            );
+
+        if ($publicReference === '') {
+            return $response->redirect(
+                '/admin/ticketing/tickets'
+                . '?status=ticket_not_found'
+            );
+        }
+
+        $detailUrl =
+            '/admin/ticketing/tickets/'
+            . rawurlencode(
+                $publicReference
+            );
+
+        $csrf =
+            new \IPKF\Security\Csrf();
+
+        if (
+            !$csrf->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            return $response->redirect(
+                $detailUrl
+                . '?status=reply_invalid_csrf'
+            );
+        }
+
+        try {
+            $result =
+                (
+                    new \App\Services\Ticketing\TicketLifecycleService()
+                )->staffReply(
+                    $publicReference,
+                    (string) $request->input(
+                        'body',
+                        ''
+                    ),
+                    (int) (
+                        $context['user_id']
+                        ?? 0
+                    ),
+                    $context
+                );
+
+            if (
+                !empty(
+                    $result['ok']
+                )
+            ) {
+                return $response->redirect(
+                    $detailUrl
+                    . '?status=reply_sent'
+                );
+            }
+
+            if (
+                !empty(
+                    $result['not_found']
+                )
+            ) {
+                return $response->redirect(
+                    '/admin/ticketing/tickets'
+                    . '?status=ticket_not_found'
+                );
+            }
+
+            $status =
+                trim(
+                    (string) (
+                        $result['status']
+                        ?? 'reply_failed'
+                    )
+                );
+
+            $allowedStatuses = [
+                'reply_empty',
+                'reply_too_long',
+                'reply_closed',
+                'reply_forbidden',
+                'reply_invalid',
+            ];
+
+            if (
+                !in_array(
+                    $status,
+                    $allowedStatuses,
+                    true
+                )
+            ) {
+                $status =
+                    'reply_failed';
+            }
+
+            return $response->redirect(
+                $detailUrl
+                . '?status='
+                . rawurlencode(
+                    $status
+                )
+            );
+        } catch (\Throwable $exception) {
+            error_log(
+                'IPKF_TICKETING_LIFECYCLE '
+                . json_encode(
+                    [
+                        'operation' =>
+                            'staff_reply',
+
+                        'ticket' =>
+                            $publicReference,
+
+                        'exception' =>
+                            get_class(
+                                $exception
+                            ),
+
+                        'message' =>
+                            $exception
+                                ->getMessage(),
+                    ],
+                    JSON_UNESCAPED_UNICODE
+                    | JSON_UNESCAPED_SLASHES
+                )
+            );
+
+            return $response->redirect(
+                $detailUrl
+                . '?status=reply_failed'
+            );
+        }
+    }
+);

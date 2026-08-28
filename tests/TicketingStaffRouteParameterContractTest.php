@@ -105,39 +105,75 @@ $a7 =
     );
 
 
-$expect(
-    !preg_match(
-        '/function\s*\(\s*'
-        . '\$request\s*,\s*'
-        . '\$response\s*,\s*'
-        . '\$publicReference\s*\)/',
-        $a7
-    ),
-    'Staff operation callbacks must not require a third route argument.'
-);
-
-
-$expect(
-    substr_count(
-        $a7,
-        '$request->route('
-    ) === 3,
-    'Take Over, Transfer and Escalate must read public_reference from Request::route().'
-);
-
-
+/*
+ * Scope the A7 contract to the three A7 operation
+ * callbacks themselves.
+ *
+ * Later Ticketing routes are allowed to use
+ * Request::route() without changing this count.
+ */
 foreach ([
     '/admin/ticketing/staff/{public_reference}/takeover',
     '/admin/ticketing/staff/{public_reference}/transfer',
     '/admin/ticketing/staff/{public_reference}/escalate',
 ] as $route) {
 
-    $expect(
-        str_contains(
+    $literal =
+        "'{$route}'";
+
+    $routePosition =
+        strpos(
             $a7,
-            "'{$route}'"
-        ),
+            $literal
+        );
+
+    $expect(
+        $routePosition !== false,
         'Missing staff operation route: '
+        . $route
+    );
+
+    $nextRouter =
+        strpos(
+            $a7,
+            '$router->',
+            (int) $routePosition
+            + strlen($literal)
+        );
+
+    $routeBlock =
+        $nextRouter === false
+            ? substr(
+                $a7,
+                (int) $routePosition
+            )
+            : substr(
+                $a7,
+                (int) $routePosition,
+                $nextRouter
+                - (int) $routePosition
+            );
+
+    $expect(
+        !preg_match(
+            '/function\s*\(\s*'
+            . '\$request\s*,\s*'
+            . '\$response\s*,\s*'
+            . '\$publicReference\s*\)/',
+            $routeBlock
+        ),
+        'Staff operation callback must not require '
+        . 'a third route argument: '
+        . $route
+    );
+
+    $expect(
+        substr_count(
+            $routeBlock,
+            '$request->route('
+        ) === 1,
+        'Staff operation must read public_reference '
+        . 'exactly once from Request::route(): '
         . $route
     );
 }
