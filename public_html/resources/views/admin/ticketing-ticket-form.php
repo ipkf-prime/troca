@@ -664,6 +664,50 @@ ob_start();
             button.click();
         }
     }, 0);
+
+
+    const form =
+        document.querySelector(
+            '.ticketing-create-form'
+        );
+
+    if (form) {
+        form.addEventListener(
+            'invalid',
+            function (event) {
+                const field =
+                    event.target;
+
+                if (!field || !field.name) {
+                    return;
+                }
+
+                const detailFields = [
+                    'body',
+                    'attachments[]'
+                ];
+
+                const targetTab =
+                    detailFields.indexOf(
+                        field.name
+                    ) >= 0
+                        ? 'ticket-detail'
+                        : 'ticket-info';
+
+                const button =
+                    document.querySelector(
+                        '[data-admin-tab="'
+                        + targetTab
+                        + '"]'
+                    );
+
+                if (button) {
+                    button.click();
+                }
+            },
+            true
+        );
+    }
 })();
 </script>
 

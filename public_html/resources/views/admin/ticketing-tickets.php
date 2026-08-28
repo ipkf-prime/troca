@@ -354,7 +354,7 @@ ob_start();
     <?php endif; ?>
 
 
-    <section class="admin-section ticketing-filter-section ticketing-filter-toolbar">
+    <section class="admin-section ticketing-filter-section">
 
         <form
             method="get"
@@ -373,7 +373,7 @@ ob_start();
             <?php endif; ?>
 
 
-            <div class="ticketing-filter-grid ticketing-filter-row">
+            <div class="ticketing-filter-grid">
 
                 <label>
                     <span>جستجو</span>
@@ -724,7 +724,12 @@ ob_start();
                             <td dir="ltr">
                                 <?= ticketing_h(
                                     \App\Support\AdminFormat::digits(
-                                        $reference
+                                        (string) (
+                                            $ticket[
+                                                'ticket_number'
+                                            ]
+                                            ?? ''
+                                        )
                                     )
                                 ) ?>
                             </td>
@@ -837,14 +842,15 @@ ob_start();
 
                             <td>
                                 <?= ticketing_h(
-                                    \App\Support\AdminFormat::digits(
+                                    \App\Support\AdminFormat::jalaliDateTime(
                                         (string) (
                                             $ticket[
                                                 'last_activity_at'
                                             ]
-                                            ?? '—'
+                                            ?? ''
                                         )
                                     )
+                                    ?: '—'
                                 ) ?>
                             </td>
 

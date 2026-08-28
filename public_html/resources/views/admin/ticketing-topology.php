@@ -304,7 +304,7 @@ ob_start();
                         <th>مشاهده</th>
                         <th>همکاری</th>
                         <th>در اختیار گرفتن</th>
-                        <th>Down</th>
+                        <th>انتقال پایین‌دست</th>
                     </tr>
                     </thead>
                     <tbody>

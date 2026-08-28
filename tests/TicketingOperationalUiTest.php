@@ -280,8 +280,8 @@ foreach ([
 
 foreach ([
     'ticketing-list-page',
-    'ticketing-filter-toolbar',
-    'ticketing-filter-row',
+    'ticketing-filter-section',
+    'ticketing-filter-grid',
     'status_options',
     'priority_options',
 ] as $needle) {
