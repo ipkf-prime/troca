@@ -22,13 +22,28 @@ restore_exception_handler();
 
 
 $apply = false;
-$limit = 100;
+$limit = 200;
+
+$runtimeOnly = false;
+$enrollOnly = false;
 
 
 foreach ($argv as $argument) {
 
     if ($argument === '--apply') {
         $apply = true;
+        continue;
+    }
+
+
+    if ($argument === '--runtime-only') {
+        $runtimeOnly = true;
+        continue;
+    }
+
+
+    if ($argument === '--enroll-only') {
+        $enrollOnly = true;
         continue;
     }
 
@@ -43,7 +58,7 @@ foreach ($argv as $argument) {
             max(
                 1,
                 min(
-                    500,
+                    1000,
                     (int) substr(
                         $argument,
                         8
@@ -54,66 +69,157 @@ foreach ($argv as $argument) {
 }
 
 
-$service =
-    new \App\Services\Ticketing\TicketingSlaService();
-
-
-$result =
-    $service->initializeEligible(
-        $limit,
-        $apply
+if (
+    $runtimeOnly
+    &&
+    $enrollOnly
+) {
+    fwrite(
+        STDERR,
+        "runtime-only and enroll-only are mutually exclusive.\n"
     );
+
+    exit(2);
+}
+
+
+$mode =
+    $apply
+        ? 'APPLY'
+        : 'DRY_RUN';
 
 
 echo
     'MODE='
-    . (
-        $apply
-            ? 'APPLY'
-            : 'DRY_RUN'
-    )
+    . $mode
     . PHP_EOL;
 
 
-foreach ([
-    'scanned',
-    'eligible',
-    'initialized',
-    'skipped',
-] as $field) {
+if (!$runtimeOnly) {
+
+    $enrollment =
+        (
+            new \App\Services\Ticketing\TicketingSlaService()
+        )->initializeEligible(
+            $limit,
+            $apply
+        );
+
 
     echo
-        strtoupper($field)
-        . '='
+        'ENROLL_SCANNED='
         . (int) (
-            $result[$field]
+            $enrollment[
+                'scanned'
+            ]
             ?? 0
         )
         . PHP_EOL;
-}
-
-
-foreach (
-    $result['items']
-        ?? []
-    as $item
-) {
 
     echo
-        'ITEM='
-        . json_encode(
-            $item,
-            JSON_UNESCAPED_UNICODE
-            | JSON_UNESCAPED_SLASHES
+        'ENROLL_ELIGIBLE='
+        . (int) (
+            $enrollment[
+                'eligible'
+            ]
+            ?? 0
         )
         . PHP_EOL;
+
+    echo
+        'ENROLL_INITIALIZED='
+        . (int) (
+            $enrollment[
+                'initialized'
+            ]
+            ?? 0
+        )
+        . PHP_EOL;
+
+    echo
+        'ENROLL_SKIPPED='
+        . (int) (
+            $enrollment[
+                'skipped'
+            ]
+            ?? 0
+        )
+        . PHP_EOL;
+
+
+    foreach (
+        $enrollment['items']
+            ?? []
+        as $item
+    ) {
+
+        echo
+            'ENROLL_ITEM='
+            . json_encode(
+                $item,
+                JSON_UNESCAPED_UNICODE
+                | JSON_UNESCAPED_SLASHES
+            )
+            . PHP_EOL;
+    }
 }
 
 
-/*
- * A8A intentionally performs only SLA enrollment.
- *
- * Breach processing, pause/resume and automatic graph
- * escalation are enabled in A8B after browser/DB E2E.
- */
-echo "AUTO_ESCALATION=A8B\n";
+if (!$enrollOnly) {
+
+    $runtime =
+        (
+            new \App\Services\Ticketing\TicketingSlaRuntimeService()
+        )->process(
+            $limit,
+            $apply
+        );
+
+
+    foreach ([
+        'scanned',
+        'paused',
+        'resumed',
+        'response_met',
+        'response_breached',
+        'resolution_met',
+        'resolution_breached',
+        'auto_escalated',
+        'auto_escalation_blocked',
+        'completed',
+    ] as $field) {
+
+        echo
+            'RUNTIME_'
+            . strtoupper(
+                $field
+            )
+            . '='
+            . (int) (
+                $runtime[$field]
+                ?? 0
+            )
+            . PHP_EOL;
+    }
+
+
+    foreach (
+        $runtime['items']
+            ?? []
+        as $item
+    ) {
+
+        echo
+            'RUNTIME_ITEM='
+            . json_encode(
+                $item,
+                JSON_UNESCAPED_UNICODE
+                | JSON_UNESCAPED_SLASHES
+            )
+            . PHP_EOL;
+    }
+}
+
+
+echo "AUTO_ESCALATION=ENABLED\n";
+echo "CRON=NOT_ENABLED\n";

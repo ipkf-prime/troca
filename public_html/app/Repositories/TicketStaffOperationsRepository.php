@@ -822,6 +822,36 @@ final class TicketStaffOperationsRepository
         string $actorUserReference,
         string $actorDisplayName
     ): void {
+        $this->executeEscalation(
+            $publicReference,
+            $actorUserReference,
+            $actorDisplayName,
+            true,
+            'manual-escalation'
+        );
+    }
+
+
+    public function escalateSystem(
+        string $publicReference
+    ): void {
+        $this->executeEscalation(
+            trim($publicReference),
+            'system:ticketing-sla',
+            'موتور SLA تیکتینگ',
+            false,
+            'sla-auto-escalation'
+        );
+    }
+
+
+    private function executeEscalation(
+        string $publicReference,
+        string $actorUserReference,
+        string $actorDisplayName,
+        bool $authorizeActor,
+        string $assignmentReason
+    ): void {
         $this->db->beginTransaction();
 
         try {
@@ -836,47 +866,51 @@ final class TicketStaffOperationsRepository
             );
 
 
-            $memberships =
-                $this->actorMemberships(
-                    $actorUserReference,
-                    (int) $ticket[
-                        'support_project_id'
-                    ]
-                );
-
-
-            $actorMembership =
-                $this->membershipForTeam(
-                    $memberships,
-                    (int) (
-                        $ticket[
-                            'current_support_team_id'
+            if ($authorizeActor) {
+                $memberships =
+                    $this->actorMemberships(
+                        $actorUserReference,
+                        (int) $ticket[
+                            'support_project_id'
                         ]
-                        ?? 0
-                    )
-                );
+                    );
 
 
-            if (
-                !is_array($actorMembership)
-                ||
-                (
-                    empty(
-                        $actorMembership[
-                            'can_transfer'
-                        ]
+                $actorMembership =
+                    $this->membershipForTeam(
+                        $memberships,
+                        (int) (
+                            $ticket[
+                                'current_support_team_id'
+                            ]
+                            ?? 0
+                        )
+                    );
+
+
+                if (
+                    !is_array($actorMembership)
+                    ||
+                    (
+                        empty(
+                            $actorMembership[
+                                'can_transfer'
+                            ]
+                        )
+                        &&
+                        empty(
+                            $actorMembership[
+                                'can_takeover'
+                            ]
+                        )
                     )
-                    &&
-                    empty(
-                        $actorMembership[
-                            'can_takeover'
-                        ]
-                    )
-                )
-            ) {
-                throw new DomainException(
-                    'not_allowed'
-                );
+                ) {
+                    throw new DomainException(
+                        'not_allowed'
+                    );
+                }
+
+
             }
 
 
@@ -1035,7 +1069,7 @@ final class TicketStaffOperationsRepository
                 $target,
                 $actorUserReference,
                 'escalation',
-                'manual-escalation'
+                $assignmentReason
             );
 
 

@@ -169,7 +169,7 @@ $expect(
     &&
     str_contains(
         $worker,
-        'AUTO_ESCALATION=A8B'
+        'AUTO_ESCALATION=ENABLED'
     ),
     'Safe SLA worker contract missing.'
 );

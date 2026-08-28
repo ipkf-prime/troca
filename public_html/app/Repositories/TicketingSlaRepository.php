@@ -510,7 +510,596 @@ final class TicketingSlaRepository
     }
 
 
-    private function recordSlaEvent(
+    public function runtimeCandidates(
+        int $limit = 200
+    ): array {
+        $limit =
+            max(
+                1,
+                min(
+                    1000,
+                    $limit
+                )
+            );
+
+
+        $statement =
+            $this->db->query("
+                SELECT
+                    ss.*,
+
+                    t.public_reference
+                        AS ticket_public_reference,
+
+                    t.ticket_number,
+                    t.status_code,
+
+                    t.first_response_at,
+                    t.resolved_at,
+                    t.closed_at,
+                    t.last_activity_at,
+
+                    t.current_support_node_id,
+                    t.current_support_queue_id,
+                    t.current_support_team_id,
+                    t.current_assignee_project_member_id,
+
+                    s.is_closed
+                        AS status_is_closed,
+
+                    p.pause_statuses_json,
+                    p.breach_action_code,
+                    p.max_auto_escalations,
+                    p.escalation_repeat_minutes
+
+                FROM
+                    ticketing_ticket_sla_states ss
+
+                INNER JOIN
+                    ticketing_tickets t
+                    ON t.id =
+                        ss.ticket_id
+
+                INNER JOIN
+                    ticketing_statuses s
+                    ON s.code =
+                        t.status_code
+
+                INNER JOIN
+                    ticketing_sla_policies p
+                    ON p.id =
+                        ss.policy_id
+
+                WHERE ss.state_code IN
+                (
+                    'active',
+                    'paused',
+                    'breached'
+                )
+
+                ORDER BY
+
+                    CASE
+                        WHEN ss.state_code =
+                                'paused'
+                            THEN 0
+
+                        WHEN t.first_response_at
+                                IS NOT NULL
+                             AND ss.response_met_at
+                                IS NULL
+                            THEN 0
+
+                        WHEN t.resolved_at
+                                IS NOT NULL
+                             AND ss.resolution_met_at
+                                IS NULL
+                            THEN 0
+
+                        WHEN t.closed_at
+                                IS NOT NULL
+                             AND ss.resolution_met_at
+                                IS NULL
+                            THEN 0
+
+                        WHEN s.is_closed = 1
+                             AND ss.resolution_met_at
+                                IS NULL
+                            THEN 0
+
+                        WHEN ss.next_action_at
+                                IS NOT NULL
+                             AND ss.next_action_at
+                                <= UTC_TIMESTAMP()
+                            THEN 0
+
+                        ELSE 1
+                    END,
+
+                    ss.last_calculated_at,
+                    ss.id
+
+                LIMIT {$limit}
+            ");
+
+
+        return
+            $statement->fetchAll(
+                PDO::FETCH_ASSOC
+            )
+            ?: [];
+    }
+
+
+    public function markResponseMet(
+        int $stateId,
+        string $at
+    ): bool {
+        $statement =
+            $this->db->prepare("
+                UPDATE
+                    ticketing_ticket_sla_states
+
+                SET
+                    response_met_at = ?,
+
+                    next_action_at =
+                        CASE
+                            WHEN state_code =
+                                    'paused'
+                                THEN NULL
+
+                            ELSE
+                                resolution_due_at
+                        END,
+
+                    last_calculated_at =
+                        UTC_TIMESTAMP(),
+
+                    updated_at =
+                        CURRENT_TIMESTAMP
+
+                WHERE id = ?
+                  AND response_met_at
+                        IS NULL
+            ");
+
+        $statement->execute([
+            $at,
+            $stateId,
+        ]);
+
+
+        return
+            $statement->rowCount()
+            === 1;
+    }
+
+
+    public function markResponseBreached(
+        int $stateId,
+        string $at
+    ): bool {
+        $statement =
+            $this->db->prepare("
+                UPDATE
+                    ticketing_ticket_sla_states
+
+                SET
+                    response_breached_at = ?,
+
+                    state_code =
+                        CASE
+                            WHEN state_code =
+                                    'paused'
+                                THEN 'paused'
+
+                            ELSE
+                                'breached'
+                        END,
+
+                    last_calculated_at =
+                        UTC_TIMESTAMP(),
+
+                    updated_at =
+                        CURRENT_TIMESTAMP
+
+                WHERE id = ?
+                  AND response_breached_at
+                        IS NULL
+            ");
+
+        $statement->execute([
+            $at,
+            $stateId,
+        ]);
+
+
+        return
+            $statement->rowCount()
+            === 1;
+    }
+
+
+    public function markResolutionMet(
+        int $stateId,
+        string $at
+    ): bool {
+        $statement =
+            $this->db->prepare("
+                UPDATE
+                    ticketing_ticket_sla_states
+
+                SET
+                    resolution_met_at = ?,
+
+                    state_code =
+                        'completed',
+
+                    pause_status_code =
+                        NULL,
+
+                    paused_at =
+                        NULL,
+
+                    next_action_at =
+                        NULL,
+
+                    last_calculated_at =
+                        UTC_TIMESTAMP(),
+
+                    updated_at =
+                        CURRENT_TIMESTAMP
+
+                WHERE id = ?
+                  AND resolution_met_at
+                        IS NULL
+            ");
+
+        $statement->execute([
+            $at,
+            $stateId,
+        ]);
+
+
+        return
+            $statement->rowCount()
+            === 1;
+    }
+
+
+    public function markResolutionBreached(
+        int $stateId,
+        string $at
+    ): bool {
+        $statement =
+            $this->db->prepare("
+                UPDATE
+                    ticketing_ticket_sla_states
+
+                SET
+                    resolution_breached_at = ?,
+
+                    state_code =
+                        CASE
+                            WHEN state_code =
+                                    'paused'
+                                THEN 'paused'
+
+                            ELSE
+                                'breached'
+                        END,
+
+                    last_calculated_at =
+                        UTC_TIMESTAMP(),
+
+                    updated_at =
+                        CURRENT_TIMESTAMP
+
+                WHERE id = ?
+                  AND resolution_breached_at
+                        IS NULL
+            ");
+
+        $statement->execute([
+            $at,
+            $stateId,
+        ]);
+
+
+        return
+            $statement->rowCount()
+            === 1;
+    }
+
+
+    public function pauseState(
+        int $stateId,
+        string $statusCode,
+        string $pausedAt
+    ): bool {
+        $statement =
+            $this->db->prepare("
+                UPDATE
+                    ticketing_ticket_sla_states
+
+                SET
+                    state_code =
+                        'paused',
+
+                    pause_status_code = ?,
+
+                    paused_at = ?,
+
+                    next_action_at =
+                        NULL,
+
+                    last_calculated_at =
+                        UTC_TIMESTAMP(),
+
+                    updated_at =
+                        CURRENT_TIMESTAMP
+
+                WHERE id = ?
+                  AND paused_at
+                        IS NULL
+
+                  AND resolution_met_at
+                        IS NULL
+            ");
+
+        $statement->execute([
+            $statusCode,
+            $pausedAt,
+            $stateId,
+        ]);
+
+
+        return
+            $statement->rowCount()
+            === 1;
+    }
+
+
+    public function resumeState(
+        int $stateId,
+        string $responseDueAt,
+        string $resolutionDueAt,
+        int $pauseBusinessMinutes,
+        ?string $nextActionAt
+    ): bool {
+        $statement =
+            $this->db->prepare("
+                UPDATE
+                    ticketing_ticket_sla_states
+
+                SET
+                    response_due_at =
+                        CASE
+                            WHEN response_met_at
+                                    IS NULL
+                                THEN ?
+
+                            ELSE
+                                response_due_at
+                        END,
+
+                    resolution_due_at =
+                        CASE
+                            WHEN resolution_met_at
+                                    IS NULL
+                                THEN ?
+
+                            ELSE
+                                resolution_due_at
+                        END,
+
+                    accumulated_pause_business_minutes =
+                        accumulated_pause_business_minutes
+                        + ?,
+
+                    pause_status_code =
+                        NULL,
+
+                    paused_at =
+                        NULL,
+
+                    state_code =
+                        CASE
+                            WHEN resolution_breached_at
+                                    IS NOT NULL
+                                THEN 'breached'
+
+                            WHEN response_breached_at
+                                    IS NOT NULL
+                                 AND response_met_at
+                                    IS NULL
+                                THEN 'breached'
+
+                            ELSE
+                                'active'
+                        END,
+
+                    next_action_at = ?,
+
+                    last_calculated_at =
+                        UTC_TIMESTAMP(),
+
+                    updated_at =
+                        CURRENT_TIMESTAMP
+
+                WHERE id = ?
+                  AND paused_at
+                        IS NOT NULL
+
+                  AND resolution_met_at
+                        IS NULL
+            ");
+
+        $statement->execute([
+            $responseDueAt,
+            $resolutionDueAt,
+            max(
+                0,
+                $pauseBusinessMinutes
+            ),
+            $nextActionAt,
+            $stateId,
+        ]);
+
+
+        return
+            $statement->rowCount()
+            === 1;
+    }
+
+
+    public function markAutoEscalated(
+        int $stateId,
+        ?int $nodeId,
+        ?string $nextActionAt,
+        string $at
+    ): bool {
+        $statement =
+            $this->db->prepare("
+                UPDATE
+                    ticketing_ticket_sla_states
+
+                SET
+                    auto_escalation_count =
+                        auto_escalation_count
+                        + 1,
+
+                    last_auto_escalated_at =
+                        ?,
+
+                    last_escalation_node_id =
+                        ?,
+
+                    next_action_at =
+                        ?,
+
+                    state_code =
+                        'breached',
+
+                    last_calculated_at =
+                        UTC_TIMESTAMP(),
+
+                    updated_at =
+                        CURRENT_TIMESTAMP
+
+                WHERE id = ?
+                  AND resolution_met_at
+                        IS NULL
+            ");
+
+        $statement->execute([
+            $at,
+            $nodeId,
+            $nextActionAt,
+            $stateId,
+        ]);
+
+
+        return
+            $statement->rowCount()
+            === 1;
+    }
+
+
+    public function scheduleNextAction(
+        int $stateId,
+        ?string $nextActionAt
+    ): void {
+        $statement =
+            $this->db->prepare("
+                UPDATE
+                    ticketing_ticket_sla_states
+
+                SET
+                    next_action_at = ?,
+
+                    last_calculated_at =
+                        UTC_TIMESTAMP(),
+
+                    updated_at =
+                        CURRENT_TIMESTAMP
+
+                WHERE id = ?
+            ");
+
+        $statement->execute([
+            $nextActionAt,
+            $stateId,
+        ]);
+    }
+
+
+    public function touchState(
+        int $stateId
+    ): void {
+        $statement =
+            $this->db->prepare("
+                UPDATE
+                    ticketing_ticket_sla_states
+
+                SET
+                    last_calculated_at =
+                        UTC_TIMESTAMP(),
+
+                    updated_at =
+                        CURRENT_TIMESTAMP
+
+                WHERE id = ?
+            ");
+
+        $statement->execute([
+            $stateId,
+        ]);
+    }
+
+
+    public function currentTicketRouting(
+        int $ticketId
+    ): ?array {
+        $statement =
+            $this->db->prepare("
+                SELECT
+                    id,
+                    public_reference,
+                    ticket_number,
+
+                    current_support_node_id,
+                    current_support_queue_id,
+                    current_support_team_id,
+                    current_assignee_project_member_id
+
+                FROM ticketing_tickets
+
+                WHERE id = ?
+
+                LIMIT 1
+            ");
+
+        $statement->execute([
+            $ticketId,
+        ]);
+
+
+        $row =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+
+        return
+            is_array($row)
+                ? $row
+                : null;
+    }
+
+
+    public function recordSlaEvent(
         int $ticketId,
         ?int $stateId,
         string $eventCode,
