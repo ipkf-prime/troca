@@ -732,3 +732,26 @@
     background: #f1f5f3;
     color: #52675d;
 }
+
+
+/*
+ * =====================================================================
+ * Ticketing active tab panel visibility v1
+ * =====================================================================
+ *
+ * Ticketing management/create pages use the common admin tab controller.
+ * Some panels also carry the HTML hidden attribute from server rendering.
+ * The active tab state is authoritative inside Ticketing.
+ */
+
+.ticketing-shell .admin-tab-panel {
+    display: none !important;
+}
+
+.ticketing-shell .admin-tab-panel.is-active {
+    display: block !important;
+}
+
+.ticketing-shell .admin-tab-panel.is-active[hidden] {
+    display: block !important;
+}
