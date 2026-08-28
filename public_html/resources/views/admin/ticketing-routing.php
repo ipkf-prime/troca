@@ -808,6 +808,156 @@ ob_start();
 })();
 </script>
 
+
+<script>
+/*
+ * Ticketing explicit tab controller v1
+ */
+(function () {
+    function activateTab(nav, key) {
+        if (!nav || !key) {
+            return;
+        }
+
+        const page =
+            nav.closest('.ticketing-page')
+            || document;
+
+        const buttons =
+            nav.querySelectorAll(
+                '[data-admin-tab]'
+            );
+
+        buttons.forEach(function (button) {
+            const buttonKey =
+                button.getAttribute(
+                    'data-admin-tab'
+                );
+
+            const active =
+                buttonKey === key;
+
+            button.classList.toggle(
+                'is-active',
+                active
+            );
+
+            button.setAttribute(
+                'aria-selected',
+                active
+                    ? 'true'
+                    : 'false'
+            );
+        });
+
+
+        const panels =
+            page.querySelectorAll(
+                '[data-admin-tab-panel]'
+            );
+
+        panels.forEach(function (panel) {
+            const panelKey =
+                panel.getAttribute(
+                    'data-admin-tab-panel'
+                );
+
+            const active =
+                panelKey === key;
+
+            panel.classList.toggle(
+                'is-active',
+                active
+            );
+
+            if (active) {
+                panel.removeAttribute(
+                    'hidden'
+                );
+            } else {
+                panel.setAttribute(
+                    'hidden',
+                    ''
+                );
+            }
+        });
+    }
+
+
+    document
+        .querySelectorAll(
+            '[data-admin-tabs]'
+        )
+        .forEach(function (nav) {
+
+            const buttons =
+                nav.querySelectorAll(
+                    '[data-admin-tab]'
+                );
+
+            buttons.forEach(function (button) {
+
+                button.addEventListener(
+                    'click',
+                    function () {
+                        activateTab(
+                            nav,
+                            button.getAttribute(
+                                'data-admin-tab'
+                            )
+                        );
+                    }
+                );
+            });
+
+
+            let initial =
+                nav.querySelector(
+                    '[data-admin-tab].is-active'
+                );
+
+            if (!initial) {
+                initial =
+                    nav.querySelector(
+                        '[data-admin-tab]'
+                    );
+            }
+
+            if (initial) {
+                activateTab(
+                    nav,
+                    initial.getAttribute(
+                        'data-admin-tab'
+                    )
+                );
+            }
+        });
+
+
+    window.ticketingActivateTab =
+        function (key) {
+            document
+                .querySelectorAll(
+                    '[data-admin-tabs]'
+                )
+                .forEach(function (nav) {
+                    if (
+                        nav.querySelector(
+                            '[data-admin-tab="'
+                            + key
+                            + '"]'
+                        )
+                    ) {
+                        activateTab(
+                            nav,
+                            key
+                        );
+                    }
+                });
+        };
+})();
+</script>
+
 <?php
 
 $content =
