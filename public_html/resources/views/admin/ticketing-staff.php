@@ -358,9 +358,6 @@ ob_start();
                     تیکت
                 </strong>
 
-                <span class="admin-muted">
-                    برای هر عملیات، نشانگر را روی آیکون نگه دارید.
-                </span>
 
             </div>
 

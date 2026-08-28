@@ -849,9 +849,13 @@
 }
 
 
+.ticketing-staff-table-wrap {
+    overflow: visible;
+}
+
 .ticketing-staff-table {
     width: 100%;
-    min-width: 1020px;
+    min-width: 0;
     table-layout: fixed;
 }
 
@@ -861,35 +865,35 @@
 }
 
 .ticketing-col-number {
-    width: 108px;
+    width: 96px;
 }
 
 .ticketing-col-title {
-    width: 205px;
+    width: 185px;
 }
 
 .ticketing-col-stage {
-    width: 175px;
+    width: 158px;
 }
 
 .ticketing-col-assignee {
-    width: 145px;
+    width: 126px;
 }
 
 .ticketing-col-priority {
-    width: 70px;
+    width: 62px;
 }
 
 .ticketing-col-status {
-    width: 78px;
+    width: 68px;
 }
 
 .ticketing-col-activity {
-    width: 118px;
+    width: 104px;
 }
 
 .ticketing-col-actions {
-    width: 178px;
+    width: 148px;
 }
 
 .ticketing-ticket-number-link,
@@ -927,9 +931,9 @@
 
     flex: 0 0 auto;
 
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
 
     margin: 0;
     padding: 0;
@@ -1009,96 +1013,18 @@
 
 
 /*
- * Persian tooltip.
+ * Tooltip contract:
+ * Use the native Persian `title` attribute.
+ *
+ * The previous pseudo-element tooltip was intentionally
+ * removed because table overflow could clip it.
  */
-.ticketing-icon-action[data-tooltip]::before {
-    content: attr(data-tooltip);
-
-    position: absolute;
-    z-index: 80;
-
-    left: 50%;
-    bottom: calc(100% + 8px);
-
-    transform:
-        translateX(-50%)
-        translateY(3px);
-
-    min-width: max-content;
-    max-width: 230px;
-
-    padding: 6px 9px;
-
-    border-radius: 7px;
-
-    background: #263b31;
-
-    color: #fff;
-
-    font-size: 11px;
-    font-weight: 600;
-    line-height: 1.5;
-
-    text-align: center;
-    white-space: nowrap;
-
-    opacity: 0;
-    visibility: hidden;
-
-    pointer-events: none;
-
-    transition:
-        opacity .12s ease,
-        transform .12s ease,
-        visibility .12s ease;
-}
-
-.ticketing-icon-action[data-tooltip]::after {
-    content: "";
-
-    position: absolute;
-    z-index: 79;
-
-    left: 50%;
-    bottom: calc(100% + 3px);
-
-    transform:
-        translateX(-50%)
-        translateY(3px);
-
-    border: 5px solid transparent;
-    border-top-color: #263b31;
-
-    opacity: 0;
-    visibility: hidden;
-
-    pointer-events: none;
-
-    transition:
-        opacity .12s ease,
-        transform .12s ease,
-        visibility .12s ease;
-}
-
-.ticketing-icon-action[data-tooltip]:hover::before,
-.ticketing-icon-action[data-tooltip]:hover::after,
-.ticketing-icon-action[data-tooltip]:focus-visible::before,
-.ticketing-icon-action[data-tooltip]:focus-visible::after {
-    opacity: 1;
-    visibility: visible;
-
-    transform:
-        translateX(-50%)
-        translateY(0);
-}
-
-
 .ticketing-staff-icon-actions {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
 
-    min-height: 38px;
+    min-height: 36px;
 }
 
 .ticketing-inline-operation-form {
@@ -1137,7 +1063,7 @@
     display: grid;
     gap: 9px;
 
-    width: 295px;
+    width: 270px;
 
     padding: 12px;
 
@@ -1159,7 +1085,7 @@
     display: grid;
     grid-template-columns:
         minmax(0, 1fr)
-        36px;
+        34px;
 
     gap: 7px;
     align-items: center;
@@ -1168,7 +1094,21 @@
 .ticketing-transfer-form select {
     width: 100%;
     min-width: 0;
-    height: 38px;
+    height: 36px;
+}
+
+
+@media (max-width: 1100px) {
+
+    .ticketing-staff-table-wrap {
+        overflow-x: auto;
+        overflow-y: visible;
+    }
+
+    .ticketing-staff-table {
+        min-width: 920px;
+    }
+
 }
 
 
@@ -1191,9 +1131,7 @@
  */
 @media (prefers-reduced-motion: reduce) {
 
-    .ticketing-icon-action,
-    .ticketing-icon-action[data-tooltip]::before,
-    .ticketing-icon-action[data-tooltip]::after {
+    .ticketing-icon-action {
         transition: none;
     }
 

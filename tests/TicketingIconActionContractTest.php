@@ -100,7 +100,9 @@ foreach ([
     '$escalationTooltip',
     'اعمال جستجو',
     'بازنشانی جستجو',
-    'data-tooltip',
+    'title="مشاهده تیکت"',
+    'title="تحویل گرفتن تیکت"',
+    'title="انتقال به کارشناس دیگر"',
     'aria-label',
 ] as $marker) {
 
@@ -117,7 +119,7 @@ foreach ([
 
 foreach ([
     '.ticketing-icon-action',
-    '[data-tooltip]',
+    '.ticketing-icon-action',
     '.ticketing-transfer-menu__body',
     '.ticketing-staff-icon-actions',
 ] as $marker) {

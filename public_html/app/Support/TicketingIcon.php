@@ -17,8 +17,9 @@ final class TicketingIcon
                     . '<circle cx="12" cy="12" r="2.75"/>',
 
                 'takeover' =>
-                    '<path d="M5 5.5h14v9H9.5L5 18.5v-13Z"/>'
-                    . '<path d="M9 10.25h6"/>',
+                    '<path d="M12 3v10"/>'
+                    . '<path d="m8 9 4 4 4-4"/>'
+                    . '<path d="M5 17v2h14v-2"/>',
 
                 'transfer' =>
                     '<path d="M7 7h11"/>'
