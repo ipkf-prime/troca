@@ -384,6 +384,36 @@ final class TicketStaffOperationsService
         array $context,
         int $userId
     ): string {
+        $userReference =
+            'user:' . $userId;
+
+
+        /*
+         * Ticketing project membership is the authoritative
+         * display-name snapshot for Ticketing audit events.
+         */
+        $membershipDisplayName =
+            trim(
+                (string) (
+                    $this->repository
+                        ->displayNameForUserReference(
+                            $userReference
+                        )
+                    ?? ''
+                )
+            );
+
+
+        if ($membershipDisplayName !== '') {
+            return
+                $membershipDisplayName;
+        }
+
+
+        /*
+         * Keep Admin context as a secondary fallback for
+         * non-standard integrations.
+         */
         foreach ([
             'display_name',
             'user_display_name',
@@ -404,6 +434,11 @@ final class TicketStaffOperationsService
             }
         }
 
+
+        /*
+         * Last-resort technical fallback. This should not be
+         * reached for active Ticketing staff members.
+         */
         return
             'کاربر '
             . $userId;

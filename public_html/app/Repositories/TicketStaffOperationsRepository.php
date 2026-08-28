@@ -1120,6 +1120,69 @@ final class TicketStaffOperationsRepository
     }
 
 
+    public function displayNameForUserReference(
+        string $userReference
+    ): ?string {
+        $userReference =
+            trim(
+                $userReference
+            );
+
+        if ($userReference === '') {
+            return null;
+        }
+
+
+        $statement =
+            $this->db->prepare("
+                SELECT
+                    display_name_snapshot
+
+                FROM
+                    ticketing_support_project_members
+
+                WHERE user_reference = ?
+                  AND left_at IS NULL
+
+                  AND display_name_snapshot
+                        IS NOT NULL
+
+                  AND TRIM(
+                        display_name_snapshot
+                      ) <> ''
+
+                ORDER BY id
+
+                LIMIT 1
+            ");
+
+        $statement->execute([
+            $userReference,
+        ]);
+
+
+        $value =
+            $statement->fetchColumn();
+
+
+        if (!is_string($value)) {
+            return null;
+        }
+
+
+        $value =
+            trim(
+                $value
+            );
+
+
+        return
+            $value !== ''
+                ? $value
+                : null;
+    }
+
+
     private function actorMemberships(
         string $userReference,
         ?int $projectId = null
