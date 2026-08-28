@@ -222,4 +222,4 @@ if (!$enrollOnly) {
 
 
 echo "AUTO_ESCALATION=ENABLED\n";
-echo "CRON=NOT_ENABLED\n";
+echo "SCHEDULER=EXTERNAL\n";

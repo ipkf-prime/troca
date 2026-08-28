@@ -157,7 +157,7 @@ foreach ([
     '--enroll-only',
     'TicketingSlaRuntimeService',
     'AUTO_ESCALATION=ENABLED',
-    'CRON=NOT_ENABLED',
+    'SCHEDULER=EXTERNAL',
 ] as $marker) {
 
     $expect(
