@@ -693,3 +693,42 @@
 + .admin-form-actions {
     margin-top: 14px;
 }
+
+
+/*
+ * =====================================================================
+ * Ticketing project active tab v1
+ * =====================================================================
+ */
+
+.ticketing-project-tab {
+    transition:
+        background-color .15s ease,
+        border-color .15s ease,
+        color .15s ease,
+        box-shadow .15s ease;
+}
+
+.ticketing-project-tab:hover {
+    background: #f5faf7;
+    border-color: #b9d8c7;
+}
+
+.ticketing-project-tab.is-active {
+    background: #e8f5ed;
+    border-color: #6fba8f;
+    box-shadow:
+        inset 0 -2px 0 #258b59;
+    color: #176c43;
+    font-weight: 700;
+}
+
+.ticketing-project-tab.is-active b {
+    background: #258b59;
+    color: #ffffff;
+}
+
+.ticketing-project-tab:not(.is-active) b {
+    background: #f1f5f3;
+    color: #52675d;
+}
