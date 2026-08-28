@@ -129,13 +129,15 @@ ob_start();
     </nav>
 
 
-<section class="admin-tab-panel is-active admin-section ticketing-form-section" data-admin-tab-panel="ticket-info">
-
-        <form
+<form
             class="ticketing-create-form"
             method="post"
             action="/admin/ticketing/tickets"
          enctype="multipart/form-data">
+
+<section class="admin-tab-panel is-active admin-section ticketing-form-section" data-admin-tab-panel="ticket-info">
+
+
             <input
                 type="hidden"
                 name="_token"
@@ -380,7 +382,10 @@ ob_start();
 
 
 
-    <section class="admin-tab-panel ticketing-form-section" data-admin-tab-panel="ticket-detail" hidden>
+        </section>
+
+
+<section class="admin-tab-panel ticketing-form-section" data-admin-tab-panel="ticket-detail" hidden>
 
         <div class="admin-form-grid ticketing-details-grid">
 <label class="admin-form-grid__wide">
@@ -447,7 +452,7 @@ ob_start();
 
         </form>
 
-    </section>
+
 
 </div>
 
