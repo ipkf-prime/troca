@@ -1000,7 +1000,6 @@ class TicketService extends BaseService
             );
 
 
-        $created =
         $attachmentUpload =
             new TicketAttachmentUploadService();
 
@@ -1032,6 +1031,7 @@ class TicketService extends BaseService
             ];
         }
 
+        $created =
             $this->creation->create([
                 'public_reference' =>
                     $this->reference('TKT'),
