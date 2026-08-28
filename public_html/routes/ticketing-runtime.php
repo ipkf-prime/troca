@@ -2770,12 +2770,19 @@ $router->post(
     '/admin/ticketing/staff/{public_reference}/takeover',
     function (
         $request,
-        $response,
-        $publicReference
+        $response
     ) use (
         $adminGuard,
         $ticketingRuntimeReport
     ) {
+        $publicReference =
+            trim(
+                (string) $request->route(
+                    'public_reference',
+                    ''
+                )
+            );
+
         $context =
             $adminGuard(
                 $response,
@@ -2865,12 +2872,19 @@ $router->post(
     '/admin/ticketing/staff/{public_reference}/transfer',
     function (
         $request,
-        $response,
-        $publicReference
+        $response
     ) use (
         $adminGuard,
         $ticketingRuntimeReport
     ) {
+        $publicReference =
+            trim(
+                (string) $request->route(
+                    'public_reference',
+                    ''
+                )
+            );
+
         $context =
             $adminGuard(
                 $response,
@@ -2967,12 +2981,19 @@ $router->post(
     '/admin/ticketing/staff/{public_reference}/escalate',
     function (
         $request,
-        $response,
-        $publicReference
+        $response
     ) use (
         $adminGuard,
         $ticketingRuntimeReport
     ) {
+        $publicReference =
+            trim(
+                (string) $request->route(
+                    'public_reference',
+                    ''
+                )
+            );
+
         $context =
             $adminGuard(
                 $response,
