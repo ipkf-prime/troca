@@ -144,6 +144,24 @@ $notices = [
 ];
 
 
+$scopeTabs = [
+    'all' => [
+        'قابل رسیدگی',
+        (int) ($counts['all'] ?? 0),
+    ],
+
+    'my' => [
+        'تخصیص‌یافته به من',
+        (int) ($counts['my'] ?? 0),
+    ],
+
+    'unassigned' => [
+        'بدون کارشناس',
+        (int) ($counts['unassigned'] ?? 0),
+    ],
+];
+
+
 ob_start();
 ?>
 
@@ -169,7 +187,7 @@ ob_start();
 </nav>
 
 
-<div class="admin-page ticketing-page">
+<div class="admin-page ticketing-page ticketing-staff-page">
 
     <div class="admin-page-header ticketing-page-head">
 
@@ -219,71 +237,44 @@ ob_start();
 
     <?php else: ?>
 
-        <section class="admin-section">
+        <section class="admin-section ticketing-staff-section">
 
-            <div class="admin-tabs">
+            <div
+                class="ticketing-staff-scope-tabs"
+                aria-label="بخش‌های کارتابل"
+            >
 
-                <a
-                    class="<?= $scope === 'all'
-                        ? 'is-active'
-                        : '' ?>"
-                    href="/admin/ticketing/staff?scope=all"
-                >
-                    قابل رسیدگی
+                <?php foreach (
+                    $scopeTabs
+                    as $scopeCode => [$scopeTitle, $scopeCount]
+                ): ?>
 
-                    <span class="admin-pill">
-                        <?= ticketing_h(
-                            \App\Support\AdminFormat::digits(
-                                (string) (
-                                    $counts['all']
-                                    ?? 0
-                                )
+                    <a
+                        class="ticketing-staff-scope-tab <?= $scope === $scopeCode
+                            ? 'is-active'
+                            : '' ?>"
+                        href="/admin/ticketing/staff?scope=<?= ticketing_h(
+                            rawurlencode(
+                                $scopeCode
                             )
-                        ) ?>
-                    </span>
-                </a>
+                        ) ?>"
+                    >
+                        <span>
+                            <?= ticketing_h(
+                                $scopeTitle
+                            ) ?>
+                        </span>
 
-
-                <a
-                    class="<?= $scope === 'my'
-                        ? 'is-active'
-                        : '' ?>"
-                    href="/admin/ticketing/staff?scope=my"
-                >
-                    تخصیص‌یافته به من
-
-                    <span class="admin-pill">
-                        <?= ticketing_h(
-                            \App\Support\AdminFormat::digits(
-                                (string) (
-                                    $counts['my']
-                                    ?? 0
+                        <strong>
+                            <?= ticketing_h(
+                                \App\Support\AdminFormat::digits(
+                                    (string) $scopeCount
                                 )
-                            )
-                        ) ?>
-                    </span>
-                </a>
+                            ) ?>
+                        </strong>
+                    </a>
 
-
-                <a
-                    class="<?= $scope === 'unassigned'
-                        ? 'is-active'
-                        : '' ?>"
-                    href="/admin/ticketing/staff?scope=unassigned"
-                >
-                    بدون کارشناس
-
-                    <span class="admin-pill">
-                        <?= ticketing_h(
-                            \App\Support\AdminFormat::digits(
-                                (string) (
-                                    $counts['unassigned']
-                                    ?? 0
-                                )
-                            )
-                        ) ?>
-                    </span>
-                </a>
+                <?php endforeach; ?>
 
             </div>
 
@@ -291,15 +282,18 @@ ob_start();
             <form
                 method="get"
                 action="/admin/ticketing/staff"
-                class="ticketing-toolbar"
+                class="ticketing-staff-search"
             >
                 <input
                     type="hidden"
                     name="scope"
-                    value="<?= ticketing_h($scope) ?>"
+                    value="<?= ticketing_h(
+                        $scope
+                    ) ?>"
                 >
 
-                <label>
+                <label class="ticketing-staff-search__field">
+
                     <span>
                         جستجو
                     </span>
@@ -308,27 +302,67 @@ ob_start();
                         type="search"
                         name="q"
                         maxlength="180"
-                        value="<?= ticketing_h($q) ?>"
+                        value="<?= ticketing_h(
+                            $q
+                        ) ?>"
                         placeholder="شماره تیکت، عنوان، موضوع، درخواست‌کننده یا کارشناس"
                     >
+
                 </label>
 
-                <button
-                    class="admin-button"
-                    type="submit"
-                >
-                    اعمال
-                </button>
 
-                <a
-                    class="admin-button admin-button--soft"
-                    href="/admin/ticketing/staff?scope=<?= ticketing_h(
-                        rawurlencode($scope)
-                    ) ?>"
-                >
-                    بازنشانی
-                </a>
+                <div class="ticketing-staff-search__actions">
+
+                    <button
+                        type="submit"
+                        class="ticketing-icon-action ticketing-icon-action--primary"
+                        aria-label="اعمال جستجو"
+                        title="اعمال جستجو"
+                        data-tooltip="اعمال جستجو"
+                    >
+                        <?= \App\Support\TicketingIcon::svg(
+                            'search'
+                        ) ?>
+                    </button>
+
+
+                    <a
+                        class="ticketing-icon-action ticketing-icon-action--soft"
+                        href="/admin/ticketing/staff?scope=<?= ticketing_h(
+                            rawurlencode(
+                                $scope
+                            )
+                        ) ?>"
+                        aria-label="بازنشانی جستجو"
+                        title="بازنشانی جستجو"
+                        data-tooltip="بازنشانی جستجو"
+                    >
+                        <?= \App\Support\TicketingIcon::svg(
+                            'reset'
+                        ) ?>
+                    </a>
+
+                </div>
+
             </form>
+
+
+            <div class="ticketing-staff-list-head">
+
+                <strong>
+                    <?= ticketing_h(
+                        \App\Support\AdminFormat::digits(
+                            (string) count($items)
+                        )
+                    ) ?>
+                    تیکت
+                </strong>
+
+                <span class="admin-muted">
+                    برای هر عملیات، نشانگر را روی آیکون نگه دارید.
+                </span>
+
+            </div>
 
 
             <?php if ($items === []): ?>
@@ -339,20 +373,43 @@ ob_start();
 
             <?php else: ?>
 
-                <div class="admin-table-wrap">
+                <div class="admin-table-wrap ticketing-staff-table-wrap">
 
-                    <table class="admin-table">
+                    <table class="admin-table ticketing-staff-table">
 
                         <thead>
                         <tr>
-                            <th>شماره</th>
-                            <th>عنوان</th>
-                            <th>مرحله</th>
-                            <th>کارشناس جاری</th>
-                            <th>اولویت</th>
-                            <th>وضعیت</th>
-                            <th>آخرین فعالیت</th>
-                            <th>عملیات</th>
+                            <th class="ticketing-col-number">
+                                شماره
+                            </th>
+
+                            <th class="ticketing-col-title">
+                                عنوان و موضوع
+                            </th>
+
+                            <th class="ticketing-col-stage">
+                                مرحله و تیم
+                            </th>
+
+                            <th class="ticketing-col-assignee">
+                                کارشناس جاری
+                            </th>
+
+                            <th class="ticketing-col-priority">
+                                اولویت
+                            </th>
+
+                            <th class="ticketing-col-status">
+                                وضعیت
+                            </th>
+
+                            <th class="ticketing-col-activity">
+                                آخرین فعالیت
+                            </th>
+
+                            <th class="ticketing-col-actions">
+                                عملیات
+                            </th>
                         </tr>
                         </thead>
 
@@ -393,38 +450,95 @@ ob_start();
                                     ?? ''
                                 );
 
+                            $ticketUrl =
+                                '/admin/ticketing/tickets/'
+                                . rawurlencode(
+                                    $reference
+                                );
+
                             $baseOperationUrl =
                                 '/admin/ticketing/staff/'
                                 . rawurlencode(
                                     $reference
                                 );
+
+                            $canTakeover =
+                                !empty(
+                                    $actions[
+                                        'can_takeover'
+                                    ]
+                                );
+
+                            $canTransfer =
+                                !empty(
+                                    $actions[
+                                        'can_transfer'
+                                    ]
+                                )
+                                && $targets !== [];
+
+                            $canEscalate =
+                                !empty(
+                                    $actions[
+                                        'can_escalate'
+                                    ]
+                                );
+
+                            $escalationTarget =
+                                trim(
+                                    (string) (
+                                        $actions[
+                                            'escalation_target_title'
+                                        ]
+                                        ?? ''
+                                    )
+                                );
+
+                            $escalationTooltip =
+                                $escalationTarget !== ''
+                                    ? 'ارجاع به '
+                                        . $escalationTarget
+                                    : 'ارجاع به سطح بالاتر';
                             ?>
 
                             <tr>
 
-                                <td>
-                                    <strong>
+                                <td class="ticketing-col-number">
+
+                                    <a
+                                        class="ticketing-ticket-number-link"
+                                        href="<?= ticketing_h(
+                                            $ticketUrl
+                                        ) ?>"
+                                    >
                                         <?= ticketing_h(
                                             \App\Support\TicketingDisplay
                                                 ::ticketNumberFromRow(
                                                     $ticket
                                                 )
                                         ) ?>
-                                    </strong>
+                                    </a>
+
                                 </td>
 
 
-                                <td>
-                                    <strong>
+                                <td class="ticketing-col-title">
+
+                                    <a
+                                        class="ticketing-staff-title-link"
+                                        href="<?= ticketing_h(
+                                            $ticketUrl
+                                        ) ?>"
+                                    >
                                         <?= ticketing_h(
                                             $ticket[
                                                 'subject'
                                             ]
                                             ?? ''
                                         ) ?>
-                                    </strong>
+                                    </a>
 
-                                    <div class="admin-muted">
+                                    <div class="admin-muted ticketing-staff-subline">
                                         <?= ticketing_h(
                                             $ticket[
                                                 'support_topic_title_snapshot'
@@ -432,10 +546,12 @@ ob_start();
                                             ?? '—'
                                         ) ?>
                                     </div>
+
                                 </td>
 
 
-                                <td>
+                                <td class="ticketing-col-stage">
+
                                     <strong>
                                         <?= ticketing_h(
                                             $ticket[
@@ -445,7 +561,7 @@ ob_start();
                                         ) ?>
                                     </strong>
 
-                                    <div class="admin-muted">
+                                    <div class="admin-muted ticketing-staff-subline">
                                         <?= ticketing_h(
                                             $ticket[
                                                 'team_title'
@@ -453,30 +569,44 @@ ob_start();
                                             ?? '—'
                                         ) ?>
                                     </div>
+
                                 </td>
 
 
-                                <td>
+                                <td class="ticketing-col-assignee">
+
                                     <?= ticketing_h(
-                                        $ticket[
-                                            'assignee_name'
-                                        ]
-                                        ?? 'بدون کارشناس'
+                                        trim(
+                                            (string) (
+                                                $ticket[
+                                                    'assignee_name'
+                                                ]
+                                                ?? ''
+                                            )
+                                        ) !== ''
+                                            ? $ticket[
+                                                'assignee_name'
+                                            ]
+                                            : 'بدون کارشناس'
                                     ) ?>
+
                                 </td>
 
 
-                                <td>
+                                <td class="ticketing-col-priority">
+
                                     <?= ticketing_h(
                                         $ticket[
                                             'priority_title'
                                         ]
                                         ?? '—'
                                     ) ?>
+
                                 </td>
 
 
-                                <td>
+                                <td class="ticketing-col-status">
+
                                     <span class="admin-pill">
                                         <?= ticketing_h(
                                             $ticket[
@@ -485,10 +615,12 @@ ob_start();
                                             ?? '—'
                                         ) ?>
                                     </span>
+
                                 </td>
 
 
-                                <td>
+                                <td class="ticketing-col-activity">
+
                                     <?= ticketing_h(
                                         \App\Support\AdminFormat
                                             ::jalaliDateTime(
@@ -501,20 +633,31 @@ ob_start();
                                             )
                                         ?: '—'
                                     ) ?>
+
                                 </td>
 
 
-                                <td>
+                                <td class="ticketing-col-actions">
 
-                                    <div class="admin-form-actions">
+                                    <div class="ticketing-staff-icon-actions">
 
-                                        <?php if (
-                                            !empty(
-                                                $actions[
-                                                    'can_takeover'
-                                                ]
-                                            )
-                                        ): ?>
+
+                                        <a
+                                            class="ticketing-icon-action ticketing-icon-action--soft"
+                                            href="<?= ticketing_h(
+                                                $ticketUrl
+                                            ) ?>"
+                                            aria-label="مشاهده تیکت"
+                                            title="مشاهده تیکت"
+                                            data-tooltip="مشاهده تیکت"
+                                        >
+                                            <?= \App\Support\TicketingIcon::svg(
+                                                'view'
+                                            ) ?>
+                                        </a>
+
+
+                                        <?php if ($canTakeover): ?>
 
                                             <form
                                                 method="post"
@@ -522,6 +665,7 @@ ob_start();
                                                     $baseOperationUrl
                                                     . '/takeover'
                                                 ) ?>"
+                                                class="ticketing-inline-operation-form"
                                             >
                                                 <input
                                                     type="hidden"
@@ -532,92 +676,120 @@ ob_start();
                                                 >
 
                                                 <button
-                                                    class="admin-button admin-button--soft admin-button--compact"
                                                     type="submit"
+                                                    class="ticketing-icon-action ticketing-icon-action--takeover"
+                                                    aria-label="تحویل گرفتن تیکت"
+                                                    title="تحویل گرفتن تیکت"
+                                                    data-tooltip="تحویل گرفتن تیکت"
                                                 >
-                                                    تحویل گرفتن
+                                                    <?= \App\Support\TicketingIcon::svg(
+                                                        'takeover'
+                                                    ) ?>
                                                 </button>
                                             </form>
 
                                         <?php endif; ?>
 
 
-                                        <?php if (
-                                            !empty(
-                                                $actions[
-                                                    'can_transfer'
-                                                ]
-                                            )
-                                            && $targets !== []
-                                        ): ?>
+                                        <?php if ($canTransfer): ?>
 
-                                            <form
-                                                method="post"
-                                                action="<?= ticketing_h(
-                                                    $baseOperationUrl
-                                                    . '/transfer'
-                                                ) ?>"
+                                            <details
+                                                class="ticketing-transfer-menu"
                                             >
-                                                <input
-                                                    type="hidden"
-                                                    name="_token"
-                                                    value="<?= ticketing_h(
-                                                        $csrf
-                                                    ) ?>"
+
+                                                <summary
+                                                    class="ticketing-icon-action ticketing-icon-action--transfer"
+                                                    aria-label="انتقال به کارشناس دیگر"
+                                                    title="انتقال به کارشناس دیگر"
+                                                    data-tooltip="انتقال به کارشناس دیگر"
                                                 >
+                                                    <?= \App\Support\TicketingIcon::svg(
+                                                        'transfer'
+                                                    ) ?>
+                                                </summary>
 
-                                                <select
-                                                    name="target_member_id"
-                                                    required
-                                                >
-                                                    <option value="">
-                                                        انتقال به...
-                                                    </option>
 
-                                                    <?php foreach (
-                                                        $targets
-                                                        as $target
-                                                    ): ?>
+                                                <div class="ticketing-transfer-menu__body">
 
-                                                        <option
+                                                    <strong>
+                                                        انتقال به کارشناس
+                                                    </strong>
+
+                                                    <form
+                                                        method="post"
+                                                        action="<?= ticketing_h(
+                                                            $baseOperationUrl
+                                                            . '/transfer'
+                                                        ) ?>"
+                                                        class="ticketing-transfer-form"
+                                                    >
+                                                        <input
+                                                            type="hidden"
+                                                            name="_token"
                                                             value="<?= ticketing_h(
-                                                                (string) (
-                                                                    $target[
-                                                                        'project_member_id'
-                                                                    ]
-                                                                    ?? ''
-                                                                )
+                                                                $csrf
                                                             ) ?>"
                                                         >
-                                                            <?= ticketing_h(
-                                                                $target[
-                                                                    'display_name_snapshot'
-                                                                ]
-                                                                ?? ''
+
+                                                        <select
+                                                            name="target_member_id"
+                                                            required
+                                                            aria-label="کارشناس مقصد"
+                                                        >
+                                                            <option value="">
+                                                                کارشناس مقصد را انتخاب کنید
+                                                            </option>
+
+                                                            <?php foreach (
+                                                                $targets
+                                                                as $target
+                                                            ): ?>
+
+                                                                <option
+                                                                    value="<?= ticketing_h(
+                                                                        (string) (
+                                                                            $target[
+                                                                                'project_member_id'
+                                                                            ]
+                                                                            ?? ''
+                                                                        )
+                                                                    ) ?>"
+                                                                >
+                                                                    <?= ticketing_h(
+                                                                        $target[
+                                                                            'display_name_snapshot'
+                                                                        ]
+                                                                        ?? ''
+                                                                    ) ?>
+                                                                </option>
+
+                                                            <?php endforeach; ?>
+
+                                                        </select>
+
+
+                                                        <button
+                                                            type="submit"
+                                                            class="ticketing-icon-action ticketing-icon-action--primary"
+                                                            aria-label="تأیید انتقال"
+                                                            title="تأیید انتقال"
+                                                            data-tooltip="تأیید انتقال"
+                                                        >
+                                                            <?= \App\Support\TicketingIcon::svg(
+                                                                'confirm'
                                                             ) ?>
-                                                        </option>
+                                                        </button>
 
-                                                    <?php endforeach; ?>
-                                                </select>
+                                                    </form>
 
-                                                <button
-                                                    class="admin-button admin-button--soft admin-button--compact"
-                                                    type="submit"
-                                                >
-                                                    انتقال
-                                                </button>
-                                            </form>
+                                                </div>
+
+                                            </details>
 
                                         <?php endif; ?>
 
 
-                                        <?php if (
-                                            !empty(
-                                                $actions[
-                                                    'can_escalate'
-                                                ]
-                                            )
-                                        ): ?>
+                                        <?php if ($canEscalate): ?>
 
                                             <form
                                                 method="post"
@@ -625,7 +797,10 @@ ob_start();
                                                     $baseOperationUrl
                                                     . '/escalate'
                                                 ) ?>"
-                                                onsubmit="return confirm('تیکت به سطح بالاتر ارجاع شود؟');"
+                                                class="ticketing-inline-operation-form"
+                                                onsubmit="return confirm('<?= ticketing_h(
+                                                    $escalationTooltip
+                                                ) ?> انجام شود؟');"
                                             >
                                                 <input
                                                     type="hidden"
@@ -636,36 +811,26 @@ ob_start();
                                                 >
 
                                                 <button
-                                                    class="admin-button admin-button--soft admin-button--compact"
                                                     type="submit"
+                                                    class="ticketing-icon-action ticketing-icon-action--escalate"
+                                                    aria-label="<?= ticketing_h(
+                                                        $escalationTooltip
+                                                    ) ?>"
+                                                    title="<?= ticketing_h(
+                                                        $escalationTooltip
+                                                    ) ?>"
+                                                    data-tooltip="<?= ticketing_h(
+                                                        $escalationTooltip
+                                                    ) ?>"
                                                 >
-                                                    ارجاع به سطح بالاتر
+                                                    <?= \App\Support\TicketingIcon::svg(
+                                                        'escalate'
+                                                    ) ?>
                                                 </button>
-
-                                                <?php if (
-                                                    trim(
-                                                        (string) (
-                                                            $actions[
-                                                                'escalation_target_title'
-                                                            ]
-                                                            ?? ''
-                                                        )
-                                                    ) !== ''
-                                                ): ?>
-
-                                                    <small class="admin-muted">
-                                                        <?= ticketing_h(
-                                                            $actions[
-                                                                'escalation_target_title'
-                                                            ]
-                                                        ) ?>
-                                                    </small>
-
-                                                <?php endif; ?>
-
                                             </form>
 
                                         <?php endif; ?>
+
 
                                     </div>
 

@@ -755,3 +755,446 @@
 .ticketing-shell .admin-tab-panel.is-active[hidden] {
     display: block !important;
 }
+
+
+/* ==========================================================================
+   T3A5-A7U2 SHARED TICKETING ICON ACTION CONTRACT
+   ========================================================================== */
+
+.ticketing-staff-section {
+    display: grid;
+    gap: 16px;
+}
+
+.ticketing-staff-scope-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.ticketing-staff-scope-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    min-height: 40px;
+    padding: 7px 13px;
+
+    border: 1px solid #dce8df;
+    border-radius: 11px;
+
+    background: #fff;
+
+    color: inherit;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.ticketing-staff-scope-tab strong {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 25px;
+    height: 25px;
+    padding: 0 6px;
+
+    border-radius: 999px;
+
+    background: #edf7f0;
+
+    font-size: 12px;
+}
+
+.ticketing-staff-scope-tab.is-active {
+    border-color: #2c9560;
+    background: #eaf6ef;
+    color: #1f754b;
+}
+
+.ticketing-staff-scope-tab.is-active strong {
+    background: #fff;
+}
+
+
+.ticketing-staff-search {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: end;
+}
+
+.ticketing-staff-search__field {
+    display: grid;
+    gap: 6px;
+}
+
+.ticketing-staff-search__field > span {
+    font-weight: 700;
+}
+
+.ticketing-staff-search__actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ticketing-staff-list-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+
+.ticketing-staff-table {
+    width: 100%;
+    min-width: 1020px;
+    table-layout: fixed;
+}
+
+.ticketing-staff-table th,
+.ticketing-staff-table td {
+    vertical-align: middle;
+}
+
+.ticketing-col-number {
+    width: 108px;
+}
+
+.ticketing-col-title {
+    width: 205px;
+}
+
+.ticketing-col-stage {
+    width: 175px;
+}
+
+.ticketing-col-assignee {
+    width: 145px;
+}
+
+.ticketing-col-priority {
+    width: 70px;
+}
+
+.ticketing-col-status {
+    width: 78px;
+}
+
+.ticketing-col-activity {
+    width: 118px;
+}
+
+.ticketing-col-actions {
+    width: 178px;
+}
+
+.ticketing-ticket-number-link,
+.ticketing-staff-title-link {
+    color: inherit;
+    text-decoration: none;
+    font-weight: 800;
+}
+
+.ticketing-ticket-number-link:hover,
+.ticketing-staff-title-link:hover {
+    color: #208354;
+}
+
+.ticketing-staff-subline {
+    margin-top: 4px;
+
+    font-size: 12px;
+    line-height: 1.65;
+}
+
+
+/*
+ * Shared icon-only action.
+ *
+ * This class is intentionally generic and can be reused
+ * in every Ticketing screen.
+ */
+.ticketing-icon-action {
+    position: relative;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 auto;
+
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+
+    margin: 0;
+    padding: 0;
+
+    border: 1px solid #d8e6dd;
+    border-radius: 10px;
+
+    background: #fff;
+
+    color: #49675a;
+
+    text-decoration: none;
+
+    cursor: pointer;
+
+    appearance: none;
+
+    transition:
+        background-color .15s ease,
+        border-color .15s ease,
+        color .15s ease,
+        transform .15s ease;
+}
+
+.ticketing-icon-action:hover,
+.ticketing-icon-action:focus-visible {
+    border-color: #9dc9b0;
+    background: #edf7f1;
+    color: #1f7d50;
+}
+
+.ticketing-icon-action:active {
+    transform: translateY(1px);
+}
+
+.ticketing-icon-action:focus-visible {
+    outline: 2px solid rgba(43, 151, 95, .22);
+    outline-offset: 2px;
+}
+
+.ticketing-icon-action--primary,
+.ticketing-icon-action--escalate {
+    border-color: #2c9560;
+    background: #2c9560;
+    color: #fff;
+}
+
+.ticketing-icon-action--primary:hover,
+.ticketing-icon-action--primary:focus-visible,
+.ticketing-icon-action--escalate:hover,
+.ticketing-icon-action--escalate:focus-visible {
+    border-color: #22784c;
+    background: #22784c;
+    color: #fff;
+}
+
+.ticketing-icon-action--takeover {
+    border-color: #b9dbc7;
+    background: #eaf6ef;
+    color: #20784c;
+}
+
+.ticketing-icon-action--transfer {
+    border-color: #d0e1d7;
+    background: #f7faf8;
+    color: #3e6252;
+}
+
+.ticketing-icon-action--soft {
+    background: #f8fbf9;
+}
+
+.ticketing-action-icon {
+    display: block;
+    pointer-events: none;
+}
+
+
+/*
+ * Persian tooltip.
+ */
+.ticketing-icon-action[data-tooltip]::before {
+    content: attr(data-tooltip);
+
+    position: absolute;
+    z-index: 80;
+
+    left: 50%;
+    bottom: calc(100% + 8px);
+
+    transform:
+        translateX(-50%)
+        translateY(3px);
+
+    min-width: max-content;
+    max-width: 230px;
+
+    padding: 6px 9px;
+
+    border-radius: 7px;
+
+    background: #263b31;
+
+    color: #fff;
+
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.5;
+
+    text-align: center;
+    white-space: nowrap;
+
+    opacity: 0;
+    visibility: hidden;
+
+    pointer-events: none;
+
+    transition:
+        opacity .12s ease,
+        transform .12s ease,
+        visibility .12s ease;
+}
+
+.ticketing-icon-action[data-tooltip]::after {
+    content: "";
+
+    position: absolute;
+    z-index: 79;
+
+    left: 50%;
+    bottom: calc(100% + 3px);
+
+    transform:
+        translateX(-50%)
+        translateY(3px);
+
+    border: 5px solid transparent;
+    border-top-color: #263b31;
+
+    opacity: 0;
+    visibility: hidden;
+
+    pointer-events: none;
+
+    transition:
+        opacity .12s ease,
+        transform .12s ease,
+        visibility .12s ease;
+}
+
+.ticketing-icon-action[data-tooltip]:hover::before,
+.ticketing-icon-action[data-tooltip]:hover::after,
+.ticketing-icon-action[data-tooltip]:focus-visible::before,
+.ticketing-icon-action[data-tooltip]:focus-visible::after {
+    opacity: 1;
+    visibility: visible;
+
+    transform:
+        translateX(-50%)
+        translateY(0);
+}
+
+
+.ticketing-staff-icon-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    min-height: 38px;
+}
+
+.ticketing-inline-operation-form {
+    display: inline-flex;
+    margin: 0;
+}
+
+
+/*
+ * Transfer is the only operation that needs an extra field,
+ * therefore its selector stays hidden until the icon is opened.
+ */
+.ticketing-transfer-menu {
+    position: relative;
+
+    display: inline-flex;
+
+    margin: 0;
+}
+
+.ticketing-transfer-menu > summary {
+    list-style: none;
+}
+
+.ticketing-transfer-menu > summary::-webkit-details-marker {
+    display: none;
+}
+
+.ticketing-transfer-menu__body {
+    position: absolute;
+    z-index: 60;
+
+    top: calc(100% + 8px);
+    inset-inline-end: 0;
+
+    display: grid;
+    gap: 9px;
+
+    width: 295px;
+
+    padding: 12px;
+
+    border: 1px solid #dce8df;
+    border-radius: 12px;
+
+    background: #fff;
+
+    box-shadow:
+        0 12px 30px
+        rgba(31, 81, 58, .12);
+}
+
+.ticketing-transfer-menu__body > strong {
+    font-size: 12px;
+}
+
+.ticketing-transfer-form {
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1fr)
+        36px;
+
+    gap: 7px;
+    align-items: center;
+}
+
+.ticketing-transfer-form select {
+    width: 100%;
+    min-width: 0;
+    height: 38px;
+}
+
+
+@media (max-width: 900px) {
+
+    .ticketing-staff-search {
+        grid-template-columns: 1fr;
+    }
+
+    .ticketing-staff-list-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+}
+
+
+/*
+ * Respect users who disable animation.
+ */
+@media (prefers-reduced-motion: reduce) {
+
+    .ticketing-icon-action,
+    .ticketing-icon-action[data-tooltip]::before,
+    .ticketing-icon-action[data-tooltip]::after {
+        transition: none;
+    }
+
+}
