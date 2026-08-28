@@ -80,6 +80,63 @@ final class TicketingSlaRepository
                   AND t.current_support_node_id
                         IS NOT NULL
 
+                  /*
+                   * Do not rescan historical/open tickets
+                   * which cannot match any effective active
+                   * SLA policy.
+                   */
+                  AND EXISTS
+                  (
+                      SELECT 1
+
+                      FROM
+                          ticketing_sla_policies candidate_policy
+
+                      INNER JOIN
+                          ticketing_business_calendars candidate_calendar
+                          ON candidate_calendar.id =
+                                candidate_policy.calendar_id
+
+                         AND candidate_calendar.status =
+                                'active'
+
+                      WHERE candidate_policy.status =
+                                'active'
+
+                        AND candidate_policy.priority_code =
+                                t.priority_code
+
+                        AND candidate_policy.effective_from_at
+                                <= t.created_at
+
+                        AND
+                        (
+                            candidate_policy.effective_to_at
+                                IS NULL
+
+                            OR candidate_policy.effective_to_at
+                                > t.created_at
+                        )
+
+                        AND
+                        (
+                            candidate_policy.project_id
+                                IS NULL
+
+                            OR candidate_policy.project_id =
+                                t.support_project_id
+                        )
+
+                        AND
+                        (
+                            candidate_policy.queue_id
+                                IS NULL
+
+                            OR candidate_policy.queue_id =
+                                t.current_support_queue_id
+                        )
+                  )
+
                 ORDER BY t.id
 
                 LIMIT {$limit}
@@ -576,6 +633,113 @@ final class TicketingSlaRepository
                     'paused',
                     'breached'
                 )
+
+                  /*
+                   * Cron must receive only actionable states.
+                   *
+                   * Paused states remain observable so a status
+                   * change can resume them immediately.
+                   *
+                   * Canonical lifecycle timestamps override
+                   * scheduling and must be reconciled immediately.
+                   *
+                   * Explicit due-date predicates are intentionally
+                   * retained even when next_action_at is NULL.
+                   * This guarantees that a state which already
+                   * reached its escalation ceiling can still record
+                   * a later resolution breach.
+                   */
+                  AND
+                  (
+                      ss.state_code =
+                            'paused'
+
+                      OR
+                      (
+                          t.first_response_at
+                                IS NOT NULL
+
+                          AND ss.response_met_at
+                                IS NULL
+                      )
+
+                      OR
+                      (
+                          t.resolved_at
+                                IS NOT NULL
+
+                          AND ss.resolution_met_at
+                                IS NULL
+                      )
+
+                      OR
+                      (
+                          t.closed_at
+                                IS NOT NULL
+
+                          AND ss.resolution_met_at
+                                IS NULL
+                      )
+
+                      OR
+                      (
+                          s.is_closed = 1
+
+                          AND ss.resolution_met_at
+                                IS NULL
+                      )
+
+                      OR
+                      (
+                          ss.next_action_at
+                                IS NOT NULL
+
+                          AND ss.next_action_at
+                                <= UTC_TIMESTAMP()
+                      )
+
+                      OR
+                      (
+                          ss.response_met_at
+                                IS NULL
+
+                          AND ss.response_breached_at
+                                IS NULL
+
+                          AND ss.response_due_at
+                                <= UTC_TIMESTAMP()
+                      )
+
+                      OR
+                      (
+                          ss.resolution_met_at
+                                IS NULL
+
+                          AND ss.resolution_breached_at
+                                IS NULL
+
+                          AND ss.resolution_due_at
+                                <= UTC_TIMESTAMP()
+                      )
+
+                      OR
+                      (
+                          ss.state_code <>
+                                'paused'
+
+                          AND LOCATE(
+                              CONCAT(
+                                  '\"',
+                                  t.status_code,
+                                  '\"'
+                              ),
+                              COALESCE(
+                                  p.pause_statuses_json,
+                                  '[]'
+                              )
+                          ) > 0
+                      )
+                  )
 
                 ORDER BY
 
