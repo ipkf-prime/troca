@@ -103,6 +103,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateTicketingProjectOrganizationScopeFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingDynamicSupportTopologyFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingDynamicTopicRoutingFoundation::class,
+                    \IPKF\Database\Migrations\CreateTicketingProjectAwareTicketNumber::class,
                 ],
             ],
         ];

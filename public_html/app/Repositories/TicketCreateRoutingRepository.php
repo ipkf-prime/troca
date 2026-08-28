@@ -862,6 +862,63 @@ final class TicketCreateRoutingRepository
                 (int) $this->db->lastInsertId();
 
 
+            $ticketPrefix =
+                strtoupper(
+                    trim(
+                        (string) (
+                            $selection[
+                                'project_code'
+                            ]
+                            ?? ''
+                        )
+                    )
+                );
+
+            $ticketPrefix =
+                preg_replace(
+                    '/[^A-Z0-9]+/',
+                    '-',
+                    $ticketPrefix
+                )
+                ?? '';
+
+            $ticketPrefix =
+                trim(
+                    $ticketPrefix,
+                    '-'
+                );
+
+            if ($ticketPrefix === '') {
+                $ticketPrefix = 'TKT';
+            }
+
+            $ticketNumber =
+                substr(
+                    $ticketPrefix,
+                    0,
+                    40
+                )
+                . '-'
+                . str_pad(
+                    (string) $ticketId,
+                    6,
+                    '0',
+                    STR_PAD_LEFT
+                );
+
+            $ticketNumberUpdate =
+                $this->db->prepare("
+                    UPDATE ticketing_tickets
+                    SET ticket_number = ?
+                    WHERE id = ?
+                ");
+
+            $ticketNumberUpdate->execute([
+                $ticketNumber,
+                $ticketId,
+            ]);
+
+
             $message =
                 $this->db->prepare("
                     INSERT INTO ticketing_messages

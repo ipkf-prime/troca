@@ -515,6 +515,7 @@ class TicketRepository
                 SELECT
                     t.id,
                     t.public_reference,
+                t.ticket_number,
                     t.subject,
 
                     t.status_code,
@@ -935,6 +936,7 @@ class TicketRepository
                 SELECT
                     t.id,
                     t.public_reference,
+                t.ticket_number,
                     t.subject,
 
                     t.status_code,

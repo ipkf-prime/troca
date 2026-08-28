@@ -1090,11 +1090,6 @@ class TicketService extends BaseService
                 (string) $created[
                     'public_reference'
                 ],
-
-            'ticket_number' =>
-                $this->ticketNumber(
-                    (int) $created['id']
-                ),
         ];
     }
 
@@ -1204,10 +1199,19 @@ class TicketService extends BaseService
     private function present(
         array $ticket
     ): array {
-        $ticket['ticket_number'] =
-            $this->ticketNumber(
-                (int) $ticket['id']
-            );
+        if (
+            trim(
+                (string) (
+                    $ticket['ticket_number']
+                    ?? ''
+                )
+            ) === ''
+        ) {
+            $ticket['ticket_number'] =
+                $this->ticketNumber(
+                    (int) $ticket['id']
+                );
+        }
 
         return $ticket;
     }
