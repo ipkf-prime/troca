@@ -176,11 +176,14 @@ foreach ([
 
 
 foreach ([
-    't.ticket_number LIKE ?',
+    't.ticket_number = ?',
     "SUBSTRING_INDEX(",
     't.support_project_title_snapshot',
     "'۰' => '0'",
     "'٠' => '0'",
+    '$handledAsTicketNumber',
+    '$queryIsAscii',
+    'UPPER(t.public_reference) LIKE ?',
 ] as $marker) {
     $expect(
         str_contains(
@@ -206,6 +209,31 @@ foreach ([
         'A ticket-number view bypasses Persian display.'
     );
 }
+
+
+$expect(
+    !str_contains(
+        $repository,
+        "'t.ticket_number LIKE ?'"
+    ),
+    'Ticket number must not use unrestricted LIKE.'
+);
+
+$expect(
+    str_contains(
+        $repository,
+        '$prefixIsAscii'
+    ),
+    'Search must distinguish Persian and ASCII prefixes.'
+);
+
+$expect(
+    str_contains(
+        $repository,
+        '$canonicalCandidate'
+    ),
+    'Canonical ticket search normalization is missing.'
+);
 
 
 $expect(

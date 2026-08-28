@@ -285,6 +285,23 @@ class TicketRepository
 
 
         if ($q !== '') {
+            /*
+             * Search has two separate contracts:
+             *
+             * 1. Ticket-number search
+             *    - Persian display:
+             *      نپ-۰۰۰۰۰۵
+             *    - canonical:
+             *      NP-000005
+             *    - sequence only:
+             *      5 / 000005 / ۰۰۰۰۰۵
+             *
+             * 2. General text search.
+             *
+             * UTF-8 Persian input must never be passed
+             * to ASCII/BINARY identifier columns.
+             */
+
             $latinQ =
                 strtr(
                     $q,
@@ -313,61 +330,117 @@ class TicketRepository
                     ]
                 );
 
-            $latinUpper =
-                strtoupper($latinQ);
+            $normalizedQ =
+                trim($latinQ);
 
-            $searchClauses = [
-                't.ticket_number LIKE ?',
-                't.public_reference LIKE ?',
-                't.subject LIKE ?',
-                't.requester_display_name_snapshot LIKE ?',
-                't.requester_organization_snapshot LIKE ?',
-                't.source_reference LIKE ?',
-                'CAST(t.id AS CHAR) LIKE ?',
-            ];
-
-            $parameters[] =
-                '%' . $latinUpper . '%';
-
-            $parameters[] =
-                '%' . $latinUpper . '%';
-
-            $parameters[] =
-                '%' . $q . '%';
-
-            $parameters[] =
-                '%' . $q . '%';
-
-            $parameters[] =
-                '%' . $q . '%';
-
-            $parameters[] =
-                '%' . $latinUpper . '%';
-
-            $parameters[] =
-                '%' . $latinQ . '%';
+            $handledAsTicketNumber =
+                false;
 
 
+            /*
+             * Sequence-only search:
+             *
+             * 5
+             * 000005
+             * ۰۰۰۰۰۵
+             */
             if (
                 preg_match(
-                    '/^(.*?)(?:[-\s]+)?0*(\d{1,18})$/u',
-                    trim($latinQ),
-                    $ticketMatch
+                    '/^0*(\d{1,18})$/',
+                    $normalizedQ,
+                    $sequenceMatch
                 ) === 1
             ) {
-                $ticketSequence =
-                    (int) $ticketMatch[2];
+                $sequence =
+                    (int) $sequenceMatch[1];
 
-                $displayPrefix =
+                if ($sequence > 0) {
+                    $where[] =
+                        'CAST(
+                            SUBSTRING_INDEX(
+                                t.ticket_number,
+                                \'-\',
+                                -1
+                            )
+                            AS UNSIGNED
+                        ) = ?';
+
+                    $parameters[] =
+                        $sequence;
+
+                    $handledAsTicketNumber =
+                        true;
+                }
+            }
+
+
+            /*
+             * Prefixed ticket-number search:
+             *
+             * نپ-۰۰۰۰۰۵
+             * NP-000005
+             * NP-5
+             */
+            if (
+                !$handledAsTicketNumber
+                && preg_match(
+                    '/^(.+?)-0*(\d{1,18})$/u',
+                    $normalizedQ,
+                    $prefixedMatch
+                ) === 1
+            ) {
+                $prefix =
                     trim(
-                        (string) $ticketMatch[1],
-                        " \t\n\r\0\x0B-–—"
+                        (string) $prefixedMatch[1]
                     );
 
-                if ($ticketSequence > 0) {
+                $sequence =
+                    (int) $prefixedMatch[2];
 
-                    if ($displayPrefix !== '') {
-                        $searchClauses[] =
+                if (
+                    $prefix !== ''
+                    && $sequence > 0
+                ) {
+                    $prefixIsAscii =
+                        preg_match(
+                            '/^[\x00-\x7F]+$/D',
+                            $prefix
+                        ) === 1;
+
+
+                    if ($prefixIsAscii) {
+                        /*
+                         * Canonical project code.
+                         *
+                         * Normalize NP-5 into the immutable
+                         * canonical representation NP-000005.
+                         */
+                        $canonicalCandidate =
+                            strtoupper($prefix)
+                            . '-'
+                            . str_pad(
+                                (string) $sequence,
+                                6,
+                                '0',
+                                STR_PAD_LEFT
+                            );
+
+                        $where[] =
+                            't.ticket_number = ?';
+
+                        $parameters[] =
+                            $canonicalCandidate;
+
+                    } else {
+                        /*
+                         * Persian user-facing prefix belongs
+                         * only to the UTF-8 immutable project
+                         * title snapshot.
+                         *
+                         * It must never be compared against
+                         * ticket_number/public_reference.
+                         */
+                        $where[] =
                             '(
                                 t.support_project_title_snapshot
                                     LIKE ?
@@ -383,35 +456,83 @@ class TicketRepository
                             )';
 
                         $parameters[] =
-                            '%' . $displayPrefix . '%';
+                            '%' . $prefix . '%';
 
                         $parameters[] =
-                            $ticketSequence;
+                            $sequence;
                     }
 
-                    $searchClauses[] =
-                        'CAST(
-                            SUBSTRING_INDEX(
-                                t.ticket_number,
-                                \'-\',
-                                -1
-                            )
-                            AS UNSIGNED
-                        ) = ?';
-
-                    $parameters[] =
-                        $ticketSequence;
+                    $handledAsTicketNumber =
+                        true;
                 }
             }
 
 
-            $where[] =
-                '('
-                . implode(
-                    ' OR ',
-                    $searchClauses
-                )
-                . ')';
+            /*
+             * Normal free-text search.
+             */
+            if (!$handledAsTicketNumber) {
+
+                $searchClauses = [
+                    't.subject LIKE ?',
+                    't.requester_display_name_snapshot LIKE ?',
+                    't.requester_organization_snapshot LIKE ?',
+                    't.support_project_title_snapshot LIKE ?',
+                ];
+
+                for ($i = 0; $i < 4; $i++) {
+                    $parameters[] =
+                        '%' . $q . '%';
+                }
+
+
+                /*
+                 * ASCII technical identifiers may only be
+                 * searched when the input itself is ASCII.
+                 */
+                $queryIsAscii =
+                    preg_match(
+                        '/^[\x00-\x7F]+$/D',
+                        $normalizedQ
+                    ) === 1;
+
+                if ($queryIsAscii) {
+
+                    $asciiNeedle =
+                        '%'
+                        . strtoupper(
+                            $normalizedQ
+                        )
+                        . '%';
+
+                    $searchClauses[] =
+                        'UPPER(t.ticket_number) LIKE ?';
+
+                    $searchClauses[] =
+                        'UPPER(t.public_reference) LIKE ?';
+
+                    $searchClauses[] =
+                        'UPPER(t.source_reference) LIKE ?';
+
+                    $parameters[] =
+                        $asciiNeedle;
+
+                    $parameters[] =
+                        $asciiNeedle;
+
+                    $parameters[] =
+                        $asciiNeedle;
+                }
+
+
+                $where[] =
+                    '('
+                    . implode(
+                        ' OR ',
+                        $searchClauses
+                    )
+                    . ')';
+            }
         }
 
 
