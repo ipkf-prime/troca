@@ -396,7 +396,26 @@ class AdminPanelService extends BaseService
             (new DynamicModuleDashboardService())
                 ->cards();
 
+        /*
+         * UNIFIED_TICKETING_DASHBOARD_ENTRY_RUNTIME
+         *
+         * Ticketing has one dashboard identity:
+         * the real application module card.
+         *
+         * Staff destination requires both:
+         * - ticketing.ticket.view
+         * - active member/manager project membership
+         *
+         * Ordinary support users enter requester onboarding.
+         */
         foreach ($runtimeCards as $module) {
+
+            $moduleKey = trim(
+                (string) (
+                    $module['key']
+                    ?? ''
+                )
+            );
 
             $permission = trim(
                 (string) (
@@ -405,15 +424,113 @@ class AdminPanelService extends BaseService
                 )
             );
 
+
+            if ($moduleKey === 'ticketing') {
+
+                $requesterAllowed =
+                    (
+                        new \App\Services\AuthorizationService()
+                    )->hasPermission(
+                        $userId,
+                        'support.view'
+                    );
+
+                $ticketingPermission =
+                    (
+                        new \App\Services\AuthorizationService()
+                    )->hasPermission(
+                        $userId,
+                        'ticketing.ticket.view'
+                    );
+
+                $staffMembership =
+                    (
+                        new \App\Services\Ticketing\TicketRequesterOnboardingService()
+                    )->hasStaffMembership(
+                        $userId
+                    );
+
+                $staffAllowed =
+                    $ticketingPermission
+                    &&
+                    $staffMembership;
+
+
+                if (
+                    !$requesterAllowed
+                    &&
+                    !$staffAllowed
+                ) {
+                    continue;
+                }
+
+
+                $resolvedUrl =
+                    (string) (
+                        $module['url']
+                        ?? ''
+                    );
+
+                $resolvedPermission =
+                    $permission !== ''
+                        ? $permission
+                        : null;
+
+
+                if (!$staffAllowed) {
+                    $resolvedUrl =
+                        '/admin/support/ticketing';
+
+                    /*
+                     * Visibility has already been authorized
+                     * through support.view for requester entry.
+                     */
+                    $resolvedPermission =
+                        null;
+                }
+
+
+                $modules[] = [
+                    'key' =>
+                        $module['key'],
+
+                    'title' =>
+                        $module['title'],
+
+                    'description' =>
+                        $module['description'],
+
+                    'icon' =>
+                        $module['icon'],
+
+                    'color' =>
+                        $module['color'],
+
+                    'url' =>
+                        $resolvedUrl,
+
+                    'permission' =>
+                        $resolvedPermission,
+
+                    'sort_order' =>
+                        $module['sort'],
+                ];
+
+                continue;
+            }
+
+
             if (
                 $permission !== ''
-                && !$this->navigation->can(
+                &&
+                !$this->navigation->can(
                     $userId,
                     $permission
                 )
             ) {
                 continue;
             }
+
 
             $modules[] = [
                 'key' =>

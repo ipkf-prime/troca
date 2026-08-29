@@ -29,6 +29,10 @@ $files = [
         'public_html/app/Services/'
         . 'CoreFeatureRegistryService.php',
 
+    'panel' =>
+        'public_html/app/Services/'
+        . 'AdminPanelService.php',
+
     'web' =>
         'public_html/routes/web.php',
 
@@ -118,17 +122,34 @@ $expect(
 );
 
 $expect(
-    str_contains(
+    !str_contains(
         $content['feature'],
         'REQUESTER_TICKETING_SEPARATE_CARD_RUNTIME'
     )
     &&
-    str_contains(
+    !str_contains(
         $content['feature'],
         "'ticketing-entry'"
     ),
-    'Separate Ticketing dashboard card missing.'
+    'Synthetic Ticketing dashboard card remains.'
 );
+
+foreach ([
+    'UNIFIED_TICKETING_DASHBOARD_ENTRY_RUNTIME',
+    "'support.view'",
+    "'ticketing.ticket.view'",
+    'hasStaffMembership',
+    '/admin/support/ticketing',
+] as $marker) {
+    $expect(
+        str_contains(
+            $content['panel'],
+            $marker
+        ),
+        'Unified Ticketing dashboard contract missing: '
+        . $marker
+    );
+}
 
 $expect(
     str_contains(

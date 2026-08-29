@@ -144,7 +144,7 @@ $router->post(
                     . rawurlencode(
                         $reference
                     )
-                    . '/edit?membership_status=invalid'
+                    . '/edit?tab=membership&membership_status=invalid'
                 );
             }
 
@@ -153,7 +153,7 @@ $router->post(
                 . rawurlencode(
                     $reference
                 )
-                . '/edit?membership_status=saved'
+                . '/edit?tab=membership&membership_status=saved'
             );
 
         } catch (\Throwable $exception) {
