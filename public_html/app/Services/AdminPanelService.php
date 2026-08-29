@@ -39,7 +39,42 @@ class AdminPanelService extends BaseService
         $urls = new ApplicationUrlRegistry();
         $automationShell = $urls->isAutomationHost((string) ($_SERVER['HTTP_HOST'] ?? ''));
         $workShell = $urls->isWorkHost((string) ($_SERVER['HTTP_HOST'] ?? ''));
-        $ticketingShell = $urls->isTicketingHost((string) ($_SERVER['HTTP_HOST'] ?? ''));
+        $ticketingShell = $urls->isTicketingHost(
+            (string) ($_SERVER['HTTP_HOST'] ?? '')
+        );
+
+        /*
+         * REQUESTER_TICKETING_UNIFIED_SHELL_RUNTIME
+         *
+         * Requester pages remain Core routes, but visually and
+         * navigationally belong to the Ticketing application.
+         */
+        $requestPath =
+            parse_url(
+                (string) (
+                    $_SERVER['REQUEST_URI']
+                    ?? ''
+                ),
+                PHP_URL_PATH
+            )
+            ?: '';
+
+        $requesterTicketingShell =
+            $requestPath === '/admin/support/ticketing'
+            ||
+            str_starts_with(
+                $requestPath,
+                '/admin/support/ticketing/'
+            );
+
+        if ($requesterTicketingShell) {
+            $ticketingShell = true;
+        }
+
+        $ticketingRoot =
+            $requesterTicketingShell
+                ? '/admin/support/ticketing'
+                : '/admin/ticketing';
         $moduleShell = $automationShell || $workShell || $ticketingShell;
         $moduleShellContext = null;
 
@@ -58,7 +93,7 @@ class AdminPanelService extends BaseService
                 'ticketing',
                 'پشتیبانی و تیکتینگ تروکا',
                 'تیکت‌ها و درخواست‌های پشتیبانی',
-                '/admin/ticketing',
+                $ticketingRoot,
                 $urls->core('/admin/dashboard'),
                 [
                     'css' => [
@@ -166,6 +201,145 @@ class AdminPanelService extends BaseService
 
     public function ticketingNavigation(int $userId): array
     {
+
+        /*
+         * REQUESTER_TICKETING_UNIFIED_NAVIGATION_RUNTIME
+         *
+         * Active role decides the interface.
+         * Project membership only enables project operations.
+         */
+        $requesterInterface =
+            !$this->navigation->can(
+                $userId,
+                'ticketing.ticket.view'
+            )
+            &&
+            $this->navigation->can(
+                $userId,
+                'support.view'
+            );
+
+        if ($requesterInterface) {
+
+            $hasMembership =
+                (
+                    new \App\Services\Ticketing\TicketRequesterOnboardingService()
+                )->hasMembership(
+                    $userId
+                );
+
+            $items = [
+                [
+                    'key' =>
+                        'ticketing-dashboard',
+
+                    'title' =>
+                        'داشبورد تیکتینگ',
+
+                    'url' =>
+                        '/admin/support/ticketing',
+
+                    'icon' =>
+                        'dashboard',
+
+                    'permission' =>
+                        null,
+
+                    'active_paths' => [
+                        '/admin/support/ticketing',
+                    ],
+                ],
+
+                [
+                    'key' =>
+                        'ticketing-membership',
+
+                    'title' =>
+                        'عضویت در پروژه‌ها',
+
+                    'url' =>
+                        '/admin/support/ticketing/membership',
+
+                    'icon' =>
+                        'users',
+
+                    'permission' =>
+                        null,
+
+                    'active_paths' => [
+                        '/admin/support/ticketing/membership',
+                    ],
+                ],
+            ];
+
+
+            if ($hasMembership) {
+
+                $items[] = [
+                    'key' =>
+                        'ticketing-my-tickets',
+
+                    'title' =>
+                        'تیکت‌های من',
+
+                    'url' =>
+                        (
+                            new \IPKF\Support\ApplicationUrlRegistry()
+                        )->core(
+                            '/auth/module-sso/start'
+                            . '?return_path='
+                            . rawurlencode(
+                                '/admin/ticketing/tickets'
+                            )
+                        ),
+
+                    'icon' =>
+                        'file-lines',
+
+                    'permission' =>
+                        null,
+
+                    'active_paths' => [
+                        '/admin/ticketing/tickets',
+                    ],
+                ];
+
+
+                $items[] = [
+                    'key' =>
+                        'ticketing-create',
+
+                    'title' =>
+                        'تیکت جدید',
+
+                    'url' =>
+                        (
+                            new \IPKF\Support\ApplicationUrlRegistry()
+                        )->core(
+                            '/auth/module-sso/start'
+                            . '?return_path='
+                            . rawurlencode(
+                                '/admin/ticketing/tickets/create'
+                            )
+                        ),
+
+                    'icon' =>
+                        'circle-check',
+
+                    'permission' =>
+                        null,
+
+                    'active_paths' => [
+                        '/admin/ticketing/tickets/create',
+                    ],
+                ];
+            }
+
+
+            return $items;
+        }
+
+
         $items = [
             [
                 'key' => 'ticketing-dashboard',
