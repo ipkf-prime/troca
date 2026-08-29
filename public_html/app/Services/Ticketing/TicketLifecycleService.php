@@ -78,9 +78,17 @@ final class TicketLifecycleService
                     )
                 );
 
+            $notification =
+                (new TicketNotificationService())
+                    ->staffReplied(
+                        $result
+                    );
+
             return [
                 'ok' => true,
                 ...$result,
+                'notification' =>
+                    $notification,
             ];
         } catch (RuntimeException $exception) {
             return match (
@@ -170,9 +178,17 @@ final class TicketLifecycleService
                         'user:' . $userId
                     );
 
+            $notification =
+                (new TicketNotificationService())
+                    ->requesterReplied(
+                        $result
+                    );
+
             return [
                 'ok' => true,
                 ...$result,
+                'notification' =>
+                    $notification,
             ];
         } catch (RuntimeException $exception) {
             return match (

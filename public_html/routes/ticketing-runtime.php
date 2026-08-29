@@ -3118,6 +3118,15 @@ $router->get(
             );
         }
 
+        (
+            new \App\Services\Ticketing\TicketNotificationService()
+        )->markViewed(
+            (int) $context['user_id'],
+            (string) $request->route(
+                'public_reference'
+            )
+        );
+
         return $adminRender(
             $response,
             'ticketing-ticket-detail',

@@ -38,6 +38,11 @@ final class TicketLifecycleRepository
                     SELECT
                         tickets.id,
                         tickets.public_reference,
+                        tickets.ticket_number,
+                        tickets.subject,
+                        tickets.priority_code,
+                        tickets.requester_user_reference,
+                        tickets.requester_display_name_snapshot,
                         tickets.support_project_id,
                         tickets.status_code,
                         tickets.first_response_at,
@@ -344,6 +349,46 @@ final class TicketLifecycleRepository
                         'public_reference'
                     ],
 
+                'event_reference' =>
+                    $eventReference,
+
+                'ticket_number' =>
+                    (string) (
+                        $ticket[
+                            'ticket_number'
+                        ]
+                        ?? ''
+                    ),
+
+                'subject' =>
+                    (string) (
+                        $ticket[
+                            'subject'
+                        ]
+                        ?? ''
+                    ),
+
+                'priority_code' =>
+                    (string) (
+                        $ticket[
+                            'priority_code'
+                        ]
+                        ?? 'normal'
+                    ),
+
+                'requester_user_reference' =>
+                    (string) (
+                        $ticket[
+                            'requester_user_reference'
+                        ]
+                        ?? ''
+                    ),
+
+                'actor_user_reference' =>
+                    trim(
+                        $actorUserReference
+                    ),
+
                 'message_id' =>
                     $messageId,
 
@@ -386,6 +431,8 @@ final class TicketLifecycleRepository
                         tickets.id,
                         tickets.public_reference,
                         tickets.ticket_number,
+                        tickets.subject,
+                        tickets.priority_code,
 
                         tickets.requester_user_reference,
                         tickets.requester_display_name_snapshot,
@@ -397,10 +444,19 @@ final class TicketLifecycleRepository
                         tickets.current_support_node_id,
                         tickets.current_support_queue_id,
                         tickets.current_support_team_id,
-                        tickets.current_assignee_project_member_id
+                        tickets.current_assignee_project_member_id,
+
+                        current_assignee.user_reference
+                            AS assignee_user_reference
 
                     FROM ticketing_tickets
                         AS tickets
+
+                    LEFT JOIN
+                        ticketing_support_project_members
+                            AS current_assignee
+                      ON current_assignee.id =
+                            tickets.current_assignee_project_member_id
 
                     WHERE tickets.public_reference = ?
 
@@ -647,6 +703,44 @@ final class TicketLifecycleRepository
                     (string) $ticket[
                         'public_reference'
                     ],
+
+                'event_reference' =>
+                    $eventReference,
+
+                'ticket_number' =>
+                    (string) (
+                        $ticket[
+                            'ticket_number'
+                        ]
+                        ?? ''
+                    ),
+
+                'subject' =>
+                    (string) (
+                        $ticket[
+                            'subject'
+                        ]
+                        ?? ''
+                    ),
+
+                'priority_code' =>
+                    (string) (
+                        $ticket[
+                            'priority_code'
+                        ]
+                        ?? 'normal'
+                    ),
+
+                'assignee_user_reference' =>
+                    (string) (
+                        $ticket[
+                            'assignee_user_reference'
+                        ]
+                        ?? ''
+                    ),
+
+                'actor_user_reference' =>
+                    $actorUserReference,
 
                 'message_id' =>
                     $messageId,

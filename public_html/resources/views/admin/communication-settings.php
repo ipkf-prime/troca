@@ -2048,6 +2048,48 @@ require BASE_PATH
             </div>
 
         <?php elseif ($section === 'preferences'): ?>
+            <?php
+            /*
+             * ticketing-channel-phase
+             *
+             * Channel family and provider are separate.
+             * Only internal delivery is selectable now.
+             */
+            $ticketingChannelPhase = [
+                'in_app' => [
+                    'title' => 'پیام داخلی',
+                    'selectable' => true,
+                    'state' => 'فعال',
+                    'description' =>
+                        'نمایش اعلان داخل سامانه',
+                ],
+
+                'messenger' => [
+                    'title' => 'پیام‌رسان',
+                    'selectable' => false,
+                    'state' => 'در دست توسعه',
+                    'description' =>
+                        'سرویس‌دهنده پیام‌رسان بعداً انتخاب می‌شود.',
+                ],
+
+                'sms' => [
+                    'title' => 'پیامک',
+                    'selectable' => false,
+                    'state' => 'در دست توسعه',
+                    'description' =>
+                        'سرویس‌دهنده پیامک بعداً انتخاب می‌شود.',
+                ],
+
+                'email' => [
+                    'title' => 'ایمیل',
+                    'selectable' => false,
+                    'state' => 'در دست توسعه',
+                    'description' =>
+                        'ارسال ایمیل بعداً فعال می‌شود.',
+                ],
+            ];
+            ?>
+
             <div class="communication-preference-intro">
                 <div>
                     <strong>روش‌های دریافت اعلان</strong>
@@ -2085,23 +2127,74 @@ require BASE_PATH
                 <div class="communication-preference-grid">
                     <?php foreach ($channels as $channel): ?>
                         <?php
-                        $code = (string) $channel['code'];
-                        $checked = in_array($code, $enabled, true)
-                            || (
-                                $preferences === []
-                                && !empty($channel['is_internal'])
+                        $code =
+                            (string) $channel['code'];
+
+                        if (
+                            !isset(
+                                $ticketingChannelPhase[
+                                    $code
+                                ]
+                            )
+                        ) {
+                            continue;
+                        }
+
+                        $phase =
+                            $ticketingChannelPhase[
+                                $code
+                            ];
+
+                        $selectable =
+                            !empty(
+                                $phase[
+                                    'selectable'
+                                ]
+                            );
+
+                        $checked =
+                            $selectable
+                            && (
+                                in_array(
+                                    $code,
+                                    $enabled,
+                                    true
+                                )
+                                || (
+                                    $preferences === []
+                                    && $code === 'in_app'
+                                )
                             );
                         ?>
                         <label class="communication-preference-card">
                             <span class="communication-preference-card__main">
-                                <strong><?= admin_h($channel['title']) ?></strong>
+                                <strong>
+                                    <?= admin_h(
+                                        $phase[
+                                            'title'
+                                        ]
+                                        ?? $code
+                                    ) ?>
+                                </strong>
+
                                 <small>
-                                    <?= !empty($channel['is_internal'])
-                                        ? 'نمایش اعلان در داخل سامانه و کارتابل شما'
-                                        : 'دریافت اعلان از طریق این کانال پس از فعال‌شدن سرویس‌دهنده' ?>
+                                    <?= admin_h(
+                                        $phase[
+                                            'description'
+                                        ]
+                                        ?? ''
+                                    ) ?>
                                 </small>
-                                <span class="communication-preference-card__meta" dir="ltr">
-                                    <?= admin_h($channel['driver_code']) ?>
+
+                                <span
+                                    class="communication-preference-card__meta"
+                                >
+                                    <?= admin_h(
+                                        $phase[
+                                            'state'
+                                        ]
+                                        ?? ''
+                                    ) ?>
                                 </span>
                             </span>
                             <span class="communication-switch">
@@ -2109,7 +2202,12 @@ require BASE_PATH
                                     type="checkbox"
                                     name="channels[]"
                                     value="<?= admin_h($code) ?>"
-                                    <?= $checked ? 'checked' : '' ?>
+                                    <?= $checked
+                                        ? 'checked'
+                                        : '' ?>
+                                    <?= $selectable
+                                        ? ''
+                                        : 'disabled' ?>
                                 >
                                 <span aria-hidden="true"></span>
                             </span>

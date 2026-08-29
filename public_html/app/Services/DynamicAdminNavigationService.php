@@ -53,6 +53,134 @@ class DynamicAdminNavigationService extends BaseService
         $items = $this->items($shellKey);
         $result = [];
 
+        /*
+         * Ticketing topbar indicator is runtime metadata.
+         *
+         * Core Development and Production currently share
+         * the same Core database, therefore this item must
+         * not be persisted in admin_navigation_items yet.
+         *
+         * Identity comes from application_modules so the
+         * module title, icon, route and permission remain
+         * centrally configurable.
+         */
+        if ($shellKey === 'core') {
+
+            $ticketing =
+                (
+                    new \IPKF\Support\ModuleRuntimeConfig()
+                )->active(
+                    'ticketing'
+                );
+
+            if (is_array($ticketing)) {
+
+                $permission =
+                    trim(
+                        (string) (
+                            $ticketing[
+                                'permission_key'
+                            ]
+                            ?? ''
+                        )
+                    );
+
+                $items[] = [
+                    'id' => 0,
+                    'parent_id' => null,
+
+                    'shell_key' =>
+                        'core',
+
+                    'item_key' =>
+                        'ticketing-unread-alert',
+
+                    'item_type' =>
+                        'link',
+
+                    'placement_code' =>
+                        'topbar',
+
+                    'hide_when_badge_empty' =>
+                        0,
+
+                    'title' =>
+                        trim(
+                            (string) (
+                                $ticketing[
+                                    'display_name'
+                                ]
+                                ?? 'تیکتینگ'
+                            )
+                        ),
+
+                    'description' =>
+                        'تیکت‌ها و اعلان‌های نیازمند توجه',
+
+                    'route_path' =>
+                        trim(
+                            (string) (
+                                $ticketing[
+                                    'route_path'
+                                ]
+                                ?? '/admin/ticketing'
+                            )
+                        ),
+
+                    'target_application' =>
+                        'ticketing',
+
+                    'icon_code' =>
+                        trim(
+                            (string) (
+                                $ticketing[
+                                    'icon_code'
+                                ]
+                                ?? 'headset'
+                            )
+                        ),
+
+                    'color_code' =>
+                        trim(
+                            (string) (
+                                $ticketing[
+                                    'color_code'
+                                ]
+                                ?? ''
+                            )
+                        ),
+
+                    'permission_mode' =>
+                        'any',
+
+                    'permission_codes_json' =>
+                        $permission !== ''
+                            ? json_encode(
+                                [$permission],
+                                JSON_UNESCAPED_UNICODE
+                                | JSON_UNESCAPED_SLASHES
+                            )
+                            : '[]',
+
+                    'badge_source' =>
+                        'ticketing_unread_count',
+
+                    'active_paths_json' =>
+                        json_encode(
+                            [
+                                '/admin/ticketing',
+                                '/admin/ticketing/*',
+                            ],
+                            JSON_UNESCAPED_UNICODE
+                            | JSON_UNESCAPED_SLASHES
+                        ),
+
+                    'sort_order' =>
+                        13,
+                ];
+            }
+        }
+
         foreach ($items as $item) {
             if (
                 $item['parent_id'] !== null
