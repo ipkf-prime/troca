@@ -320,6 +320,17 @@ ob_start();
 
     </section>
 
+    <?php if ($isEdit): ?>
+
+        <?php
+        require
+            __DIR__
+            . '/partials/'
+            . 'ticketing-project-membership-config.php';
+        ?>
+
+    <?php endif; ?>
+
 </div>
 
 <?php
