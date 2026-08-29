@@ -122,6 +122,8 @@ final class TicketingDisplay
             'ticket_routed' =>
                 'تیکت مسیریابی شد',
 
+            'ticket_requester_replied' =>
+                'پاسخ درخواست‌کننده ثبت شد',
             'ticket_staff_replied' =>
                 'پاسخ کارشناس ثبت شد',
             'ticket_assigned' =>

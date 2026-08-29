@@ -372,6 +372,310 @@ final class TicketLifecycleRepository
     }
 
 
+    public function requesterReply(
+        string $publicReference,
+        string $body,
+        string $actorUserReference
+    ): array {
+        $this->db->beginTransaction();
+
+        try {
+            $ticketStatement =
+                $this->db->prepare("
+                    SELECT
+                        tickets.id,
+                        tickets.public_reference,
+                        tickets.ticket_number,
+
+                        tickets.requester_user_reference,
+                        tickets.requester_display_name_snapshot,
+
+                        tickets.status_code,
+                        tickets.first_response_at,
+
+                        tickets.current_support_layer_id,
+                        tickets.current_support_node_id,
+                        tickets.current_support_queue_id,
+                        tickets.current_support_team_id,
+                        tickets.current_assignee_project_member_id
+
+                    FROM ticketing_tickets
+                        AS tickets
+
+                    WHERE tickets.public_reference = ?
+
+                    LIMIT 1
+                    FOR UPDATE
+                ");
+
+            $ticketStatement->execute([
+                trim($publicReference),
+            ]);
+
+            $ticket =
+                $ticketStatement->fetch(
+                    PDO::FETCH_ASSOC
+                );
+
+            if (!is_array($ticket)) {
+                throw new RuntimeException(
+                    'ticket_not_found'
+                );
+            }
+
+            $actorUserReference =
+                trim($actorUserReference);
+
+            $requesterUserReference =
+                trim(
+                    (string) (
+                        $ticket[
+                            'requester_user_reference'
+                        ]
+                        ?? ''
+                    )
+                );
+
+            /*
+             * Requester authorization is ownership-based.
+             * Staff/core permissions do not grant this action.
+             */
+            if (
+                $actorUserReference === ''
+                ||
+                $requesterUserReference === ''
+                ||
+                !hash_equals(
+                    $requesterUserReference,
+                    $actorUserReference
+                )
+            ) {
+                throw new RuntimeException(
+                    'requester_reply_forbidden'
+                );
+            }
+
+            if (
+                (string) (
+                    $ticket['status_code']
+                    ?? ''
+                )
+                !== 'waiting_requester'
+            ) {
+                throw new RuntimeException(
+                    'requester_reply_not_expected'
+                );
+            }
+
+            $actorDisplayName =
+                trim(
+                    (string) (
+                        $ticket[
+                            'requester_display_name_snapshot'
+                        ]
+                        ?? ''
+                    )
+                );
+
+            if ($actorDisplayName === '') {
+                $actorDisplayName =
+                    $actorUserReference;
+            }
+
+            $messageReference =
+                $this->reference(
+                    'TMSG'
+                );
+
+            $messageStatement =
+                $this->db->prepare("
+                    INSERT INTO ticketing_messages
+                    (
+                        public_reference,
+                        ticket_id,
+                        message_kind,
+                        visibility_code,
+                        author_kind,
+                        author_user_reference,
+                        author_display_name_snapshot,
+                        body,
+                        source_code,
+                        created_at
+                    )
+                    VALUES
+                    (
+                        ?,
+                        ?,
+                        'reply',
+                        'public',
+                        'requester',
+                        ?,
+                        ?,
+                        ?,
+                        'portal',
+                        UTC_TIMESTAMP()
+                    )
+                ");
+
+            $messageStatement->execute([
+                $messageReference,
+                (int) $ticket['id'],
+                $actorUserReference,
+                $actorDisplayName,
+                $body,
+            ]);
+
+            $messageId =
+                (int) $this->db
+                    ->lastInsertId();
+
+            if ($messageId < 1) {
+                throw new RuntimeException(
+                    'requester_reply_message_insert_failed'
+                );
+            }
+
+            /*
+             * Do not touch assignment/routing.
+             * The same assigned support owner continues work.
+             */
+            $ticketUpdate =
+                $this->db->prepare("
+                    UPDATE ticketing_tickets
+
+                    SET
+                        status_code =
+                            'in_progress',
+
+                        last_activity_at =
+                            UTC_TIMESTAMP(),
+
+                        updated_by_user_reference = ?,
+                        updated_at =
+                            UTC_TIMESTAMP()
+
+                    WHERE id = ?
+                      AND status_code =
+                            'waiting_requester'
+                ");
+
+            $ticketUpdate->execute([
+                $actorUserReference,
+                (int) $ticket['id'],
+            ]);
+
+            if (
+                $ticketUpdate->rowCount()
+                !== 1
+            ) {
+                throw new RuntimeException(
+                    'requester_reply_ticket_update_failed'
+                );
+            }
+
+            $eventReference =
+                $this->reference(
+                    'TEVT'
+                );
+
+            $payload =
+                json_encode(
+                    [
+                        'message_id' =>
+                            $messageId,
+
+                        'message_reference' =>
+                            $messageReference,
+
+                        'previous_status_code' =>
+                            'waiting_requester',
+
+                        'resulting_status_code' =>
+                            'in_progress',
+
+                        'assignment_preserved' =>
+                            true,
+                    ],
+                    JSON_UNESCAPED_UNICODE
+                    | JSON_UNESCAPED_SLASHES
+                    | JSON_THROW_ON_ERROR
+                );
+
+            $eventStatement =
+                $this->db->prepare("
+                    INSERT INTO ticketing_events
+                    (
+                        public_reference,
+                        ticket_id,
+                        event_code,
+                        actor_user_reference,
+                        actor_display_name_snapshot,
+                        previous_status_code,
+                        resulting_status_code,
+                        payload_json,
+                        occurred_at
+                    )
+                    VALUES
+                    (
+                        ?,
+                        ?,
+                        'ticket_requester_replied',
+                        ?,
+                        ?,
+                        'waiting_requester',
+                        'in_progress',
+                        ?,
+                        UTC_TIMESTAMP()
+                    )
+                ");
+
+            $eventStatement->execute([
+                $eventReference,
+                (int) $ticket['id'],
+                $actorUserReference,
+                $actorDisplayName,
+                $payload,
+            ]);
+
+            $this->db->commit();
+
+            return [
+                'ticket_id' =>
+                    (int) $ticket['id'],
+
+                'public_reference' =>
+                    (string) $ticket[
+                        'public_reference'
+                    ],
+
+                'message_id' =>
+                    $messageId,
+
+                'message_reference' =>
+                    $messageReference,
+
+                'previous_status_code' =>
+                    'waiting_requester',
+
+                'resulting_status_code' =>
+                    'in_progress',
+
+                'actor_display_name' =>
+                    $actorDisplayName,
+
+                'assignment_preserved' =>
+                    true,
+            ];
+        } catch (Throwable $exception) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+
+            throw $exception;
+        }
+    }
+
+
     private function reference(
         string $prefix
     ): string {

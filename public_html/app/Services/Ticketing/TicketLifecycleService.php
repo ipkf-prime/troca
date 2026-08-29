@@ -113,6 +113,99 @@ final class TicketLifecycleService
     }
 
 
+    public function requesterReply(
+        string $publicReference,
+        string $body,
+        int $userId
+    ): array {
+        $publicReference =
+            trim($publicReference);
+
+        if (
+            $publicReference === ''
+            ||
+            $userId < 1
+        ) {
+            return [
+                'ok' => false,
+                'status' =>
+                    'requester_reply_invalid',
+            ];
+        }
+
+        /*
+         * Preserve body exactly as supplied.
+         * trim() is only used for blank validation.
+         */
+        if (trim($body) === '') {
+            return [
+                'ok' => false,
+                'status' =>
+                    'requester_reply_empty',
+            ];
+        }
+
+        $length =
+            function_exists('mb_strlen')
+                ? mb_strlen(
+                    $body,
+                    'UTF-8'
+                )
+                : strlen($body);
+
+        if ($length > 20000) {
+            return [
+                'ok' => false,
+                'status' =>
+                    'requester_reply_too_long',
+            ];
+        }
+
+        try {
+            $result =
+                $this->tickets
+                    ->requesterReply(
+                        $publicReference,
+                        $body,
+                        'user:' . $userId
+                    );
+
+            return [
+                'ok' => true,
+                ...$result,
+            ];
+        } catch (RuntimeException $exception) {
+            return match (
+                $exception->getMessage()
+            ) {
+                'ticket_not_found' => [
+                    'ok' => false,
+                    'not_found' => true,
+                    'status' =>
+                        'ticket_not_found',
+                ],
+
+                'requester_reply_forbidden'
+                    => [
+                        'ok' => false,
+                        'status' =>
+                            'requester_reply_forbidden',
+                    ],
+
+                'requester_reply_not_expected'
+                    => [
+                        'ok' => false,
+                        'status' =>
+                            'requester_reply_not_expected',
+                    ],
+
+                default =>
+                    throw $exception,
+            };
+        }
+    }
+
+
     private function contextDisplayName(
         array $context,
         int $userId

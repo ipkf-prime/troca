@@ -61,6 +61,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\EnableTicketingTopicRoutingManagementRoutes::class,
                     \IPKF\Database\Migrations\EnableTicketingStaffOperations::class,
                     \IPKF\Database\Migrations\EnableTicketingLifecycleOperations::class,
+                    \IPKF\Database\Migrations\EnableTicketingRequesterReplyOperations::class,
                     \IPKF\Database\Migrations\EnableTicketingParticipantDirectoryNavigation::class,
                     \IPKF\Database\Migrations\ExtendAdminNavigationCoreFeatureMetadata::class,
                     \IPKF\Database\Migrations\CreateSecureMessageExtensionTables::class,

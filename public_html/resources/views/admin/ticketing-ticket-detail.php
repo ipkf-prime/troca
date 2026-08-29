@@ -485,6 +485,45 @@ $lifecycleUserId =
         ?? 0
     );
 
+/*
+ * ticketing_lifecycle_a8d2
+ *
+ * Requester authorization is based on ticket ownership.
+ * Staff permissions and navigation path do not grant
+ * Requester authority on this shared Detail page.
+ */
+$lifecycleActorReference =
+    $lifecycleUserId > 0
+        ? 'user:' . $lifecycleUserId
+        : '';
+
+$lifecycleRequesterReference =
+    trim(
+        (string) (
+            $lifecycleTicket[
+                'requester_user_reference'
+            ]
+            ?? ''
+        )
+    );
+
+$lifecycleIsRequester =
+    $lifecycleActorReference !== ''
+    &&
+    $lifecycleRequesterReference !== ''
+    &&
+    hash_equals(
+        $lifecycleRequesterReference,
+        $lifecycleActorReference
+    );
+
+$lifecycleRequesterExpected =
+    $lifecycleIsRequester
+    &&
+    $lifecycleStatus ===
+        'waiting_requester';
+
+
 $lifecycleCanReply = false;
 
 if ($lifecycleUserId > 0) {
@@ -530,6 +569,48 @@ $lifecycleH =
 
 $lifecycleStatusMessage =
     [
+        'requester_reply_sent' =>
+            [
+                'success',
+                'پاسخ درخواست‌کننده ثبت شد و تیکت دوباره در حال بررسی قرار گرفت.',
+            ],
+
+        'requester_reply_empty' =>
+            [
+                'danger',
+                'متن پاسخ نمی‌تواند خالی باشد.',
+            ],
+
+        'requester_reply_too_long' =>
+            [
+                'danger',
+                'متن پاسخ از حداکثر طول مجاز بیشتر است.',
+            ],
+
+        'requester_reply_forbidden' =>
+            [
+                'danger',
+                'این تیکت متعلق به حساب کاربری شما نیست.',
+            ],
+
+        'requester_reply_not_expected' =>
+            [
+                'danger',
+                'در وضعیت فعلی، تیکت منتظر پاسخ درخواست‌کننده نیست.',
+            ],
+
+        'requester_reply_invalid_csrf' =>
+            [
+                'danger',
+                'نشست فرم معتبر نیست. صفحه را تازه‌سازی و دوباره تلاش کنید.',
+            ],
+
+        'requester_reply_failed' =>
+            [
+                'danger',
+                'ثبت پاسخ درخواست‌کننده انجام نشد. دوباره تلاش کنید.',
+            ],
+
         'reply_sent' =>
             [
                 'success',
@@ -600,7 +681,78 @@ $lifecycleStatusMessage =
 <?php endif; ?>
 
 <?php if (
+    $lifecycleRequesterExpected
+    && !$lifecycleClosed
+    && $lifecycleReference !== ''
+): ?>
+    <?php
+    $requesterReplyCsrf =
+        (
+            new \IPKF\Security\Csrf()
+        )->token();
+    ?>
+
+    <section
+        class="admin-section ticketing-requester-reply"
+        data-ticketing-requester-reply
+    >
+        <div class="admin-section__header">
+            <div>
+                <h3>پاسخ درخواست‌کننده</h3>
+
+                <p class="admin-muted">
+                    پاسخ شما برای تیم پشتیبانی ثبت می‌شود و تیکت دوباره به وضعیت «در حال بررسی» بازمی‌گردد.
+                </p>
+            </div>
+        </div>
+
+        <form
+            method="post"
+            action="<?= $lifecycleH(
+                '/admin/ticketing/tickets/'
+                . rawurlencode(
+                    $lifecycleReference
+                )
+                . '/requester-reply'
+            ) ?>"
+            data-ticketing-requester-reply-form
+        >
+            <input
+                type="hidden"
+                name="_token"
+                value="<?= $lifecycleH(
+                    $requesterReplyCsrf
+                ) ?>"
+            >
+
+            <label>
+                <span>متن پاسخ</span>
+
+                <textarea
+                    name="body"
+                    rows="5"
+                    maxlength="20000"
+                    required
+                    placeholder="پاسخ خود را وارد کنید..."
+                ></textarea>
+            </label>
+
+            <div class="admin-form-actions">
+                <button
+                    class="admin-button"
+                    type="submit"
+                >
+                    ثبت پاسخ
+                </button>
+            </div>
+        </form>
+    </section>
+<?php endif; ?>
+
+
+<?php if (
     $lifecycleCanReply
+    && !$lifecycleRequesterExpected
     && !$lifecycleClosed
     && $lifecycleReference !== ''
 ): ?>
