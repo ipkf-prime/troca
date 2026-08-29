@@ -761,8 +761,8 @@ final class SupportProjectMembershipConfigurationService
                 :membership_mode,
                 :approval_mode,
                 :form_enabled,
-                :actor,
-                :actor,
+                :created_by_user_reference,
+                    :updated_by_user_reference,
                 UTC_TIMESTAMP(),
                 UTC_TIMESTAMP()
             )
@@ -830,8 +830,11 @@ final class SupportProjectMembershipConfigurationService
                     'form_enabled'
                 ],
 
-            'actor' =>
-                $actor,
+            'created_by_user_reference' =>
+                    $actor,
+
+                'updated_by_user_reference' =>
+                    $actor,
         ]);
     }
 
@@ -893,8 +896,8 @@ final class SupportProjectMembershipConfigurationService
                     :is_required,
                     :sort_order,
                     1,
-                    :actor,
-                    :actor,
+                    :created_by_user_reference,
+                    :updated_by_user_reference,
                     UTC_TIMESTAMP(),
                     UTC_TIMESTAMP()
                 )
@@ -966,7 +969,10 @@ final class SupportProjectMembershipConfigurationService
                         'sort_order'
                     ],
 
-                'actor' =>
+                'created_by_user_reference' =>
+                    $actor,
+
+                'updated_by_user_reference' =>
                     $actor,
             ]);
         }
