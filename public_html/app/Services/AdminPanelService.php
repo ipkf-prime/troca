@@ -402,9 +402,11 @@ class AdminPanelService extends BaseService
          * Ticketing has one dashboard identity:
          * the real application module card.
          *
-         * Staff destination requires both:
-         * - ticketing.ticket.view
-         * - active member/manager project membership
+         * The ACTIVE system role / menu permission selects
+         * the Ticketing interface.
+         *
+         * Project membership never selects the interface;
+         * it only scopes projects after entering Ticketing.
          *
          * Ordinary support users enter requester onboarding.
          */
@@ -427,39 +429,33 @@ class AdminPanelService extends BaseService
 
             if ($moduleKey === 'ticketing') {
 
-                $requesterAllowed =
-                    (
-                        new \App\Services\AuthorizationService()
-                    )->hasPermission(
+                /*
+                 * AdminNavigationRbacService delegates to
+                 * AuthorizationService, whose permission lookup
+                 * is scoped by active_role_assignment_id.
+                 *
+                 * Therefore this is the same RBAC context used
+                 * by the currently active menu.
+                 */
+                $staffInterfaceAllowed =
+                    $permission !== ''
+                    &&
+                    $this->navigation->can(
+                        $userId,
+                        $permission
+                    );
+
+                $requesterInterfaceAllowed =
+                    $this->navigation->can(
                         $userId,
                         'support.view'
                     );
 
-                $ticketingPermission =
-                    (
-                        new \App\Services\AuthorizationService()
-                    )->hasPermission(
-                        $userId,
-                        'ticketing.ticket.view'
-                    );
-
-                $staffMembership =
-                    (
-                        new \App\Services\Ticketing\TicketRequesterOnboardingService()
-                    )->hasStaffMembership(
-                        $userId
-                    );
-
-                $staffAllowed =
-                    $ticketingPermission
-                    &&
-                    $staffMembership;
-
 
                 if (
-                    !$requesterAllowed
+                    !$staffInterfaceAllowed
                     &&
-                    !$staffAllowed
+                    !$requesterInterfaceAllowed
                 ) {
                     continue;
                 }
@@ -477,13 +473,24 @@ class AdminPanelService extends BaseService
                         : null;
 
 
-                if (!$staffAllowed) {
+                /*
+                 * The same Ticketing card is used for both
+                 * interfaces.
+                 *
+                 * Active staff/admin role:
+                 *     real Ticketing application.
+                 *
+                 * Active ordinary user role:
+                 *     requester onboarding.
+                 */
+                if (!$staffInterfaceAllowed) {
+
                     $resolvedUrl =
                         '/admin/support/ticketing';
 
                     /*
                      * Visibility has already been authorized
-                     * through support.view for requester entry.
+                     * by support.view in the active role.
                      */
                     $resolvedPermission =
                         null;

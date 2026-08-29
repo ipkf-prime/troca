@@ -90,7 +90,7 @@ foreach ([
     'UNIFIED_TICKETING_DASHBOARD_ENTRY_RUNTIME',
     "'support.view'",
     "'ticketing.ticket.view'",
-    'hasStaffMembership',
+    'navigation->can',
     '/admin/support/ticketing',
 ] as $marker) {
 
