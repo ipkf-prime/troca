@@ -34,41 +34,24 @@ if (!function_exists('scheduler_local_datetime')) {
         mixed $value,
         string $timezone = 'Asia/Tehran'
     ): string {
-        $value =
-            trim(
-                (string) ($value ?? '')
+        /*
+         * Use the platform-wide formatter:
+         * UTC storage -> configured display timezone
+         * -> Jalali date -> Persian digits.
+         *
+         * $timezone is retained in the local signature
+         * for presentation-call compatibility; the
+         * platform formatter owns display timezone policy.
+         */
+        $formatted =
+            \App\Support\AdminFormat::jalaliDateTime(
+                $value
             );
 
-        if ($value === '') {
-            return '—';
-        }
-
-        try {
-            $date =
-                new \DateTimeImmutable(
-                    $value,
-                    new \DateTimeZone('UTC')
-                );
-
-            return
-                scheduler_digits(
-                    $date
-                        ->setTimezone(
-                            new \DateTimeZone(
-                                $timezone
-                            )
-                        )
-                        ->format(
-                            'Y/m/d H:i:s'
-                        )
-                );
-
-        } catch (\Throwable) {
-            return
-                scheduler_digits(
-                    $value
-                );
-        }
+        return
+            $formatted !== ''
+                ? $formatted
+                : '—';
     }
 }
 
