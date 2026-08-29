@@ -109,6 +109,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateTicketingSlaFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingProjectAwareTicketNumber::class,
                     \IPKF\Database\Migrations\CreateSchedulerFoundation::class,
+                    \IPKF\Database\Migrations\CreateTicketingRequesterOnboardingFoundation::class,
                 ],
             ],
         ];

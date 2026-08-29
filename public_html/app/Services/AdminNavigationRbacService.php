@@ -93,6 +93,9 @@ class AdminNavigationRbacService extends BaseService
             '/admin/pages' => 'admin.pages.manage',
             '/admin/reports' => 'admin.reports.view',
             '/admin/support' => 'support.view',
+            '/admin/support/ticketing' => 'support.view',
+            '/admin/support/ticketing/join' => 'support.view',
+            '/admin/support/ticketing/invite' => 'support.view',
         ];
     }
 
@@ -156,9 +159,67 @@ class AdminNavigationRbacService extends BaseService
 
     public function canAccessPath(?int $userId, string $path): bool
     {
-        $permission = $this->permissionForPath($path);
+        if (
+            $userId !== null
+            &&
+            $this->isRequesterTicketingPath($path)
+            &&
+            $this->can(
+                $userId,
+                'support.view'
+            )
+        ) {
+            try {
+                if (
+                    (new \App\Services\Ticketing\TicketRequesterOnboardingService())
+                        ->hasMembership(
+                            $userId
+                        )
+                ) {
+                    return true;
+                }
+            } catch (\Throwable) {
+            }
+        }
 
-        return $permission === null || $this->can($userId, $permission);
+        $permission =
+            $this->permissionForPath($path);
+
+        return
+            $permission === null
+            ||
+            $this->can(
+                $userId,
+                $permission
+            );
+    }
+
+
+    private function isRequesterTicketingPath(
+        string $path
+    ): bool {
+        $path =
+            rtrim($path, '/')
+            ?: '/';
+
+        if (
+            in_array(
+                $path,
+                [
+                    '/admin/ticketing/tickets',
+                    '/admin/ticketing/tickets/create',
+                ],
+                true
+            )
+        ) {
+            return true;
+        }
+
+        return
+            preg_match(
+                '#^/admin/ticketing/tickets/[A-Za-z0-9_-]+$#',
+                $path
+            ) === 1;
     }
 
     public function can(?int $userId, string $permission): bool

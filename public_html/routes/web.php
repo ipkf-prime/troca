@@ -6061,6 +6061,11 @@ $router->post('/admin/profile/organizational-context', function ($request, $resp
 
 $router->get('/admin/pages', $adminPlaceholder('/admin/pages', 'صفحات داخلی', 'مدیریت صفحات داخلی هنوز فعال نشده است.'));
 $router->get('/admin/reports', $adminPlaceholder('/admin/reports', 'گزارش‌ها', 'گزارش‌های مدیریتی در نسخه‌های بعدی اضافه می‌شود.'));
+/*
+ * T7A2_REQUESTER_ROUTE_LOADER
+ */
+require BASE_PATH . '/routes/ticketing-requester.php';
+
 $router->get('/admin/support', $adminPlaceholder('/admin/support', 'راهنما و پشتیبانی سامانه', 'مسیرهای پشتیبانی و راهنمای داخلی در فاز بعدی تکمیل می‌شود.'));
 
 $router->get('/admin/navigation/debug', function ($request, $response) use ($adminGuard) {

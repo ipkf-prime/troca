@@ -25,6 +25,74 @@ class DynamicAdminNavigationService extends BaseService
         $items = $this->items($shellKey);
         $result = [];
 
+        /*
+         * REQUESTER_TICKETING_NAVIGATION_RUNTIME
+         */
+        if (
+            $shellKey === 'ticketing'
+            &&
+            $this->authorization->hasPermission(
+                $userId,
+                'support.view'
+            )
+        ) {
+            $hasMembership =
+                false;
+
+            try {
+                $hasMembership =
+                    (new \App\Services\Ticketing\TicketRequesterOnboardingService())
+                        ->hasMembership(
+                            $userId
+                        );
+            } catch (\Throwable) {
+                $hasMembership =
+                    false;
+            }
+
+            if ($hasMembership) {
+
+                foreach ($items as &$requesterItem) {
+
+                    if (
+                        !in_array(
+                            (string) (
+                                $requesterItem[
+                                    'item_key'
+                                ]
+                                ?? ''
+                            ),
+                            [
+                                'ticketing-my-tickets',
+                                'ticketing-create',
+                            ],
+                            true
+                        )
+                    ) {
+                        continue;
+                    }
+
+                    $requesterItem[
+                        'permission_mode'
+                    ] = 'any';
+
+                    $requesterItem[
+                        'permission_codes_json'
+                    ] =
+                        json_encode(
+                            [
+                                'ticketing.ticket.view',
+                                'support.view',
+                            ],
+                            JSON_UNESCAPED_UNICODE
+                            | JSON_UNESCAPED_SLASHES
+                        );
+                }
+
+                unset($requesterItem);
+            }
+        }
+
         foreach ($items as $item) {
             if (
                 $item['parent_id'] !== null

@@ -279,6 +279,43 @@ final class CoreFeatureRegistryService
             ];
         }
 
+        /*
+         * REQUESTER_TICKETING_SUPPORT_CARD_RUNTIME
+         */
+        foreach ($cards as &$card) {
+
+            if (
+                (string) (
+                    $card['key']
+                    ?? ''
+                ) !== 'support'
+            ) {
+                continue;
+            }
+
+            $card['title'] =
+                'پشتیبانی و تیکتینگ';
+
+            $card['description'] =
+                'ثبت، پیگیری و عضویت در پروژه‌های پشتیبانی';
+
+            $card['subtitle'] =
+                $card['description'];
+
+            $card['icon'] =
+                'headset';
+
+            $card['color'] =
+                '#258843';
+
+            $card['url'] =
+                $urls->core(
+                    '/admin/support/ticketing'
+                );
+        }
+
+        unset($card);
+
         return $cards;
     }
 
