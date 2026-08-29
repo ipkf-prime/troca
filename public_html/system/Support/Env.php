@@ -71,22 +71,216 @@ class Env
 
     private static function loadModuleDescriptor(string $path): void
     {
-        $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        $lines =
+            file(
+                $path,
+                FILE_IGNORE_NEW_LINES
+                | FILE_SKIP_EMPTY_LINES
+            );
+
         if ($lines === false) {
             return;
         }
 
+        $values = [];
+
         foreach ($lines as $line) {
-            if (!str_contains($line, '=') || str_starts_with(trim($line), '#')) {
+
+            if (
+                !str_contains(
+                    $line,
+                    '='
+                )
+                ||
+                str_starts_with(
+                    trim($line),
+                    '#'
+                )
+            ) {
                 continue;
             }
 
-            [$key, $value] = array_map('trim', explode('=', $line, 2));
-            if (in_array($key, ['IPKF_SHARED_ENV', 'IPKF_MODULE'], true)) {
-                $_ENV[$key] = $_SERVER[$key] = self::decodeValue($value);
+            [$key, $value] =
+                array_map(
+                    'trim',
+                    explode(
+                        '=',
+                        $line,
+                        2
+                    )
+                );
+
+            if ($key === '') {
+                continue;
+            }
+
+            $values[$key] =
+                self::decodeValue(
+                    $value
+                );
+        }
+
+
+        foreach ([
+            'IPKF_SHARED_ENV',
+            'IPKF_MODULE',
+        ] as $key) {
+
+            if (
+                array_key_exists(
+                    $key,
+                    $values
+                )
+            ) {
+                $_ENV[$key] =
+                $_SERVER[$key] =
+                    $values[$key];
             }
         }
+
+
+        $override =
+            filter_var(
+                $values[
+                    'IPKF_MODULE_RUNTIME_OVERRIDE'
+                ]
+                ?? false,
+                FILTER_VALIDATE_BOOL
+            );
+
+        if (!$override) {
+            return;
+        }
+
+
+        $module =
+            strtolower(
+                trim(
+                    (string) (
+                        $values[
+                            'IPKF_MODULE'
+                        ]
+                        ?? ''
+                    )
+                )
+            );
+
+        if (
+            $module === ''
+            ||
+            !preg_match(
+                '/^[a-z][a-z0-9_-]{1,99}$/',
+                $module
+            )
+        ) {
+            return;
+        }
+
+
+        $_ENV[
+            'IPKF_MODULE_RUNTIME_OVERRIDE'
+        ] =
+        $_SERVER[
+            'IPKF_MODULE_RUNTIME_OVERRIDE'
+        ] =
+            'true';
+
+
+        $prefix =
+            strtoupper(
+                str_replace(
+                    '-',
+                    '_',
+                    $module
+                )
+            );
+
+
+        foreach (
+            $values
+            as $key => $value
+        ) {
+
+            $runtimeIdentity =
+                in_array(
+                    $key,
+                    [
+                        'APP_ENV',
+                        'APP_DEBUG',
+                    ],
+                    true
+                );
+
+            $moduleUrl =
+                $key
+                === $prefix
+                    . '_APP_URL';
+
+            $moduleDatabase =
+                str_starts_with(
+                    $key,
+                    $prefix
+                    . '_DB_'
+                );
+
+
+            if (
+                !$runtimeIdentity
+                &&
+                !$moduleUrl
+                &&
+                !$moduleDatabase
+            ) {
+                continue;
+            }
+
+
+            $_ENV[$key] =
+            $_SERVER[$key] =
+                $value;
+        }
     }
+
+
+    public static function moduleRuntimeOverrideEnabled(
+        string $moduleKey
+    ): bool {
+        $moduleKey =
+            strtolower(
+                trim(
+                    $moduleKey
+                )
+            );
+
+        $currentModule =
+            strtolower(
+                trim(
+                    (string) self::get(
+                        'IPKF_MODULE',
+                        ''
+                    )
+                )
+            );
+
+        return
+            $moduleKey !== ''
+            &&
+            $currentModule !== ''
+            &&
+            hash_equals(
+                $currentModule,
+                $moduleKey
+            )
+            &&
+            filter_var(
+                self::get(
+                    'IPKF_MODULE_RUNTIME_OVERRIDE',
+                    false
+                ),
+                FILTER_VALIDATE_BOOL
+            );
+    }
+
 
     private static function decodeValue(string $value): string
     {

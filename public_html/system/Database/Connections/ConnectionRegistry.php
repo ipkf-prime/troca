@@ -70,19 +70,30 @@ class ConnectionRegistry
     private function moduleConfig(string $moduleKey, string $prefix): ?array
     {
         $runtime = new ModuleRuntimeConfig();
-        $module = $runtime->active($moduleKey);
-        if ($module !== null) {
-            return [
-                'driver' => 'mysql',
-                'host' => trim((string) ($module['database_host'] ?? '')),
-                'database' => trim((string) ($module['database_name'] ?? '')),
-                'username' => trim((string) ($module['database_username'] ?? '')),
-                'password' => $runtime->secret($module, "{$prefix}_DB_PASSWORD"),
-                'port' => (int) ($module['database_port'] ?? 3306),
-                'charset' => trim((string) ($module['database_charset'] ?? 'utf8mb4')) ?: 'utf8mb4',
-                'ssl_mode' => trim((string) ($module['database_ssl_mode'] ?? '')),
-                'connection_timeout' => max(1, min(60, (int) ($module['connection_timeout'] ?? 5))),
-            ];
+
+        if (
+            !Env::moduleRuntimeOverrideEnabled(
+                $moduleKey
+            )
+        ) {
+            $module =
+                $runtime->active(
+                    $moduleKey
+                );
+
+            if ($module !== null) {
+                return [
+                    'driver' => 'mysql',
+                    'host' => trim((string) ($module['database_host'] ?? '')),
+                    'database' => trim((string) ($module['database_name'] ?? '')),
+                    'username' => trim((string) ($module['database_username'] ?? '')),
+                    'password' => $runtime->secret($module, "{$prefix}_DB_PASSWORD"),
+                    'port' => (int) ($module['database_port'] ?? 3306),
+                    'charset' => trim((string) ($module['database_charset'] ?? 'utf8mb4')) ?: 'utf8mb4',
+                    'ssl_mode' => trim((string) ($module['database_ssl_mode'] ?? '')),
+                    'connection_timeout' => max(1, min(60, (int) ($module['connection_timeout'] ?? 5))),
+                ];
+            }
         }
 
         $present = false;

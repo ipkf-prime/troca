@@ -344,10 +344,33 @@ class ApplicationUrlRegistry
 
     private function moduleBaseUrl(string $moduleKey, string $fallbackKey): string
     {
-        $module = (new ModuleRuntimeConfig())->active($moduleKey);
-        $base = $module !== null
-            ? trim((string) ($module['base_url'] ?? ''))
-            : trim((string) Env::get($fallbackKey, ''));
+        $module =
+            Env::moduleRuntimeOverrideEnabled(
+                $moduleKey
+            )
+                ? null
+                : (
+                    new ModuleRuntimeConfig()
+                )->active(
+                    $moduleKey
+                );
+
+        $base =
+            $module !== null
+                ? trim(
+                    (string) (
+                        $module[
+                            'base_url'
+                        ]
+                        ?? ''
+                    )
+                )
+                : trim(
+                    (string) Env::get(
+                        $fallbackKey,
+                        ''
+                    )
+                );
 
         if ($base !== '' && filter_var($base, FILTER_VALIDATE_URL) === false) {
             return '';
