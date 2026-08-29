@@ -1136,3 +1136,138 @@
     }
 
 }
+
+/* ==========================================================================
+   ticketing_detail_a8d3
+   Reply-first detail + tabbed conversation/history + chat bubbles.
+   ========================================================================== */
+
+.ticketing-detail-workspace {
+    display: grid;
+    gap: 12px;
+}
+
+.ticketing-reply-slot:empty {
+    display: none;
+}
+
+.ticketing-reply-slot > .admin-section {
+    margin: 0;
+}
+
+.ticketing-detail-tabs {
+    margin: 0;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.ticketing-detail-panel[hidden] {
+    display: none !important;
+}
+
+.ticketing-detail-panel {
+    margin: 0;
+}
+
+.ticketing-conversation > .admin-page-header,
+.ticketing-history > .admin-page-header {
+    display: none;
+}
+
+.ticketing-conversation {
+    padding-top: 16px;
+}
+
+.ticketing-message-bubble {
+    display: block;
+    inline-size: fit-content;
+    max-inline-size: 74%;
+    margin-block: 0 12px;
+    border: 1px solid var(--admin-border, #d9e0e7);
+    border-radius: 16px;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, .04);
+}
+
+.ticketing-message-bubble .admin-card-body {
+    padding: 12px 15px;
+}
+
+.ticketing-message-bubble[
+    data-ticketing-message-author="requester"
+] {
+    margin-right: 0;
+    margin-left: auto;
+    background: #eef8f1;
+    border-color: #cfe6d6;
+}
+
+.ticketing-message-bubble[
+    data-ticketing-message-author="staff"
+] {
+    margin-right: auto;
+    margin-left: 0;
+    background: #eef4fb;
+    border-color: #cfdeef;
+}
+
+.ticketing-message-bubble[
+    data-ticketing-message-author="requester"
+]::before {
+    content: "درخواست‌کننده";
+}
+
+.ticketing-message-bubble[
+    data-ticketing-message-author="staff"
+]::before {
+    content: "کارشناس";
+}
+
+.ticketing-message-bubble[
+    data-ticketing-message-author="requester"
+]::before,
+.ticketing-message-bubble[
+    data-ticketing-message-author="staff"
+]::before {
+    display: block;
+    padding: 6px 14px 0;
+    font-size: .72rem;
+    font-weight: 700;
+    opacity: .68;
+}
+
+.ticketing-history .admin-table-wrap {
+    margin-top: 0;
+}
+
+@media (max-width: 760px) {
+    .ticketing-message-bubble {
+        max-inline-size: 92%;
+    }
+}
+
+/* ==========================================================================
+   ticketing_detail_a8d3_three_tabs
+   Presentation UX: Status / Conversation / History.
+   ========================================================================== */
+
+.ticketing-status-panel {
+    display: grid;
+    gap: 12px;
+}
+
+.ticketing-status-panel > .admin-section,
+.ticketing-status-panel > .ticketing-requester-reply,
+.ticketing-status-panel > .ticketing-staff-reply {
+    margin-block: 0;
+}
+
+.ticketing-detail-tabs {
+    position: relative;
+    z-index: 1;
+}
+
+.ticketing-detail-tabs .admin-tab {
+    white-space: nowrap;
+}

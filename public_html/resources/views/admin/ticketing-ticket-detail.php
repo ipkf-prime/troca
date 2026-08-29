@@ -87,9 +87,7 @@ ob_start();
 
         <div>
             <div class="admin-muted">
-                <?= ticketing_h(
-                    \App\Support\TicketingDisplay::ticketNumberFromRow($ticket)
-                ) ?>
+
             </div>
 
             <h1>
@@ -249,8 +247,65 @@ ob_start();
     </section>
 
 
-<section
-        class="admin-section ticketing-conversation"
+<!-- ticketing_detail_a8d3 -->
+<div
+    class="ticketing-detail-workspace"
+    data-ticketing-detail-workspace
+>
+    <div
+        class="ticketing-reply-slot"
+        data-ticketing-reply-slot
+    ></div>
+
+    <!-- ticketing_detail_a8d3_three_tabs -->
+    <nav
+        class="admin-tabs ticketing-detail-tabs"
+        data-ticketing-detail-tabs
+        role="tablist"
+        aria-label="وضعیت، سوابق گفتگو و تاریخچه تیکت"
+    >
+        <button
+            class="admin-tab is-active"
+            type="button"
+            role="tab"
+            aria-selected="true"
+            data-ticketing-detail-tab="status"
+        >
+            وضعیت
+        </button>
+
+        <button
+            class="admin-tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            data-ticketing-detail-tab="conversation"
+        >
+            سوابق گفتگو
+        </button>
+
+        <button
+            class="admin-tab"
+            type="button"
+            role="tab"
+            aria-selected="false"
+            data-ticketing-detail-tab="history"
+        >
+            تاریخچه
+        </button>
+    </nav>
+
+    <section
+        class="admin-section ticketing-status-panel ticketing-detail-panel is-active"
+        data-ticketing-detail-panel="status"
+        role="tabpanel"
+    ></section>
+
+    <section
+        class="admin-section ticketing-conversation ticketing-detail-panel"
+        data-ticketing-detail-panel="conversation"
+        role="tabpanel"
+        hidden
     >
         <div class="admin-page-header">
             <div>
@@ -272,8 +327,13 @@ ob_start();
             <?php foreach ($messages as $message): ?>
 
                 <article
-                    class="admin-card"
-                    style="margin-bottom:.75rem"
+                    class="admin-card ticketing-message-bubble"
+                    data-ticketing-message-author="<?= ticketing_h(
+                        (string) (
+                            $message['author_kind']
+                            ?? 'other'
+                        )
+                    ) ?>"
                 >
                     <div class="admin-card-body">
 
@@ -327,19 +387,17 @@ ob_start();
         <?php endif; ?>
 
 
-        <div
-            class="admin-muted"
-            style="margin-top:.75rem"
-        >
-            پاسخ به تیکت، یادداشت داخلی و
-            پیوست در مرحله عملیاتی بعدی
-            فعال می‌شود.
-        </div>
+
 
     </section>
 
 
-    <section class="admin-section ticketing-history">
+    <section
+        class="admin-section ticketing-history ticketing-detail-panel"
+        data-ticketing-detail-panel="history"
+        role="tabpanel"
+        hidden
+    >
 
         <div class="admin-page-header">
             <div>
@@ -441,8 +499,9 @@ ob_start();
 
     </section>
 
+    </div>
+    <!-- /ticketing_detail_a8d3 -->
 </div>
-
 
 <?php
 /* ticketing_lifecycle_a8d1 */
@@ -818,6 +877,164 @@ $lifecycleStatusMessage =
         </form>
     </section>
 <?php endif; ?>
+
+<script>
+(() => {
+    const root =
+        document.querySelector(
+            '[data-ticketing-detail-workspace]'
+        );
+
+    if (!root) {
+        return;
+    }
+
+    const replySlot =
+        root.querySelector(
+            '[data-ticketing-reply-slot]'
+        );
+
+    const statusPanel =
+        root.querySelector(
+            '[data-ticketing-detail-panel="status"]'
+        );
+
+    const activeReply =
+        document.querySelector(
+            '.ticketing-requester-reply,'
+            + '.ticketing-staff-reply'
+        );
+
+    /*
+     * Summary sections rendered immediately before the
+     * A8D3 workspace belong to the Status tab.
+     *
+     * Keep page header / breadcrumb / subject outside.
+     */
+    if (statusPanel) {
+        const parent =
+            root.parentElement;
+
+        if (parent) {
+            const candidates =
+                Array.from(
+                    parent.children
+                );
+
+            const rootIndex =
+                candidates.indexOf(
+                    root
+                );
+
+            if (rootIndex >= 0) {
+                candidates
+                    .slice(
+                        0,
+                        rootIndex
+                    )
+                    .filter(
+                        (element) =>
+                            element.tagName ===
+                            'SECTION'
+                    )
+                    .forEach(
+                        (section) => {
+                            statusPanel.appendChild(
+                                section
+                            );
+                        }
+                    );
+            }
+        }
+
+        if (activeReply) {
+            statusPanel.appendChild(
+                activeReply
+            );
+        }
+    }
+
+    if (replySlot) {
+        replySlot.remove();
+    }
+
+    const tabs =
+        Array.from(
+            root.querySelectorAll(
+                '[data-ticketing-detail-tab]'
+            )
+        );
+
+    const panels =
+        Array.from(
+            root.querySelectorAll(
+                '[data-ticketing-detail-panel]'
+            )
+        );
+
+    const activate =
+        (target) => {
+            tabs.forEach(
+                (tab) => {
+                    const active =
+                        tab.getAttribute(
+                            'data-ticketing-detail-tab'
+                        ) === target;
+
+                    tab.classList.toggle(
+                        'is-active',
+                        active
+                    );
+
+                    tab.setAttribute(
+                        'aria-selected',
+                        active
+                            ? 'true'
+                            : 'false'
+                    );
+                }
+            );
+
+            panels.forEach(
+                (panel) => {
+                    const active =
+                        panel.getAttribute(
+                            'data-ticketing-detail-panel'
+                        ) === target;
+
+                    panel.hidden =
+                        !active;
+
+                    panel.classList.toggle(
+                        'is-active',
+                        active
+                    );
+                }
+            );
+        };
+
+    tabs.forEach(
+        (tab) => {
+            tab.addEventListener(
+                'click',
+                (event) => {
+                    event.preventDefault();
+
+                    activate(
+                        tab.getAttribute(
+                            'data-ticketing-detail-tab'
+                        )
+                    );
+                }
+            );
+        }
+    );
+
+    activate(
+        'status'
+    );
+})();
+</script>
 
 <?php
 $content =
