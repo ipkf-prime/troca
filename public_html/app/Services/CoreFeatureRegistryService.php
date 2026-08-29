@@ -280,41 +280,100 @@ final class CoreFeatureRegistryService
         }
 
         /*
-         * REQUESTER_TICKETING_SUPPORT_CARD_RUNTIME
+         * REQUESTER_TICKETING_SEPARATE_CARD_RUNTIME
+         *
+         * Keep the original Help / Support feature intact.
+         * Ticketing is exposed as an independent entry card.
+         *
+         * Normal platform users receive the Ticketing entry
+         * when the existing support feature is visible.
+         *
+         * Existing Ticketing staff/admin users also receive
+         * the entry even if support.view is not part of their
+         * active role.
          */
-        foreach ($cards as &$card) {
+        $supportVisible =
+            false;
+
+        foreach ($cards as $existingCard) {
 
             if (
                 (string) (
-                    $card['key']
+                    $existingCard['key']
                     ?? ''
-                ) !== 'support'
+                ) === 'support'
             ) {
-                continue;
+                $supportVisible =
+                    true;
+
+                break;
             }
-
-            $card['title'] =
-                'پشتیبانی و تیکتینگ';
-
-            $card['description'] =
-                'ثبت، پیگیری و عضویت در پروژه‌های پشتیبانی';
-
-            $card['subtitle'] =
-                $card['description'];
-
-            $card['icon'] =
-                'headset';
-
-            $card['color'] =
-                '#258843';
-
-            $card['url'] =
-                $urls->core(
-                    '/admin/support/ticketing'
-                );
         }
 
-        unset($card);
+        $ticketingRoleAccess =
+            (
+                new AuthorizationService()
+            )->hasPermission(
+                $userId,
+                'ticketing.ticket.view'
+            );
+
+        if (
+            $supportVisible
+            ||
+            $ticketingRoleAccess
+        ) {
+            $ticketingExists =
+                false;
+
+            foreach ($cards as $existingCard) {
+
+                if (
+                    (string) (
+                        $existingCard['key']
+                        ?? ''
+                    ) === 'ticketing-entry'
+                ) {
+                    $ticketingExists =
+                        true;
+
+                    break;
+                }
+            }
+
+            if (!$ticketingExists) {
+                $cards[] = [
+                    'key' =>
+                        'ticketing-entry',
+
+                    'title' =>
+                        'پشتیبانی و تیکتینگ',
+
+                    'description' =>
+                        'ثبت، پیگیری و رسیدگی به درخواست‌های پشتیبانی',
+
+                    'subtitle' =>
+                        'ثبت، پیگیری و رسیدگی به درخواست‌های پشتیبانی',
+
+                    'icon' =>
+                        'headset',
+
+                    'color' =>
+                        '#258843',
+
+                    'url' =>
+                        $urls->core(
+                            '/admin/support/ticketing'
+                        ),
+
+                    'permission' =>
+                        null,
+
+                    'sort_order' =>
+                        51,
+                ];
+            }
+        }
 
         return $cards;
     }

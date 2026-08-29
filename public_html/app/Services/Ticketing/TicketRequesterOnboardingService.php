@@ -98,6 +98,48 @@ final class TicketRequesterOnboardingService
     }
 
 
+    public function hasStaffMembership(
+        int $userId
+    ): bool {
+        if ($userId < 1) {
+            return false;
+        }
+
+        $statement =
+            $this->ticketing->prepare("
+                SELECT COUNT(*)
+
+                FROM
+                    ticketing_support_project_members
+                        AS members
+
+                INNER JOIN
+                    ticketing_support_projects
+                        AS projects
+                  ON projects.id =
+                        members.project_id
+
+                WHERE
+                    members.user_reference = ?
+                    AND members.left_at IS NULL
+
+                    AND members.role_code IN
+                        ('member', 'manager')
+
+                    AND projects.is_active = 1
+                    AND projects.archived_at IS NULL
+            ");
+
+        $statement->execute([
+            'user:' . $userId,
+        ]);
+
+        return
+            (int) $statement->fetchColumn()
+            > 0;
+    }
+
+
     public function joinOpen(
         string $projectReference,
         int $userId

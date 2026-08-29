@@ -120,9 +120,30 @@ $expect(
 $expect(
     str_contains(
         $content['feature'],
-        'REQUESTER_TICKETING_SUPPORT_CARD_RUNTIME'
+        'REQUESTER_TICKETING_SEPARATE_CARD_RUNTIME'
+    )
+    &&
+    str_contains(
+        $content['feature'],
+        "'ticketing-entry'"
     ),
-    'Requester support card missing.'
+    'Separate Ticketing dashboard card missing.'
+);
+
+$expect(
+    str_contains(
+        $content['service'],
+        'hasStaffMembership'
+    ),
+    'Staff project-membership detector missing.'
+);
+
+$expect(
+    str_contains(
+        $content['routes'],
+        'T7A2_STAFF_AWARE_ENTRY'
+    ),
+    'Staff-aware Ticketing entry missing.'
 );
 
 $expect(

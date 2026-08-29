@@ -23,12 +23,53 @@ $router->get(
             return $context;
         }
 
+        /*
+         * T7A2_STAFF_AWARE_ENTRY
+         *
+         * One public Ticketing card serves both audiences:
+         *
+         * - requester -> onboarding / project membership
+         * - staff     -> Ticketing staff shell
+         *
+         * Project membership remains the scope boundary.
+         */
+        $onboarding =
+            new \App\Services\Ticketing\TicketRequesterOnboardingService();
+
+        $userId =
+            (int) $context['user_id'];
+
+        $hasTicketingPermission =
+            (
+                new \App\Services\AuthorizationService()
+            )->hasPermission(
+                $userId,
+                'ticketing.ticket.view'
+            );
+
+        if (
+            $hasTicketingPermission
+            &&
+            $onboarding->hasStaffMembership(
+                $userId
+            )
+        ) {
+            $urls =
+                new \IPKF\Support\ApplicationUrlRegistry();
+
+            return $response->redirect(
+                $urls->ticketingLaunch(
+                    '/admin/ticketing',
+                    (string) $request->host()
+                )
+            );
+        }
+
         try {
             $page =
-                (new \App\Services\Ticketing\TicketRequesterOnboardingService())
-                    ->page(
-                        (int) $context['user_id']
-                    );
+                $onboarding->page(
+                    $userId
+                );
 
         } catch (\Throwable) {
 
