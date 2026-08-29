@@ -30,6 +30,35 @@ $events =
     $detail['events']
     ?? [];
 
+$attachments =
+    is_array(
+        $detail['attachments']
+        ?? null
+    )
+        ? $detail['attachments']
+        : [];
+
+$attachmentsByMessage = [];
+
+foreach ($attachments as $attachment) {
+    $messageId =
+        (int) (
+            $attachment['message_id']
+            ?? 0
+        );
+
+    if ($messageId < 1) {
+        continue;
+    }
+
+    $attachmentsByMessage[
+        $messageId
+    ][] =
+        $attachment;
+}
+
+/* ticketing_conversation_experience_a8d5 */
+
 $status =
     (string) (
         $status
@@ -374,10 +403,208 @@ ob_start();
                                 white-space:pre-wrap;
                                 line-height:1.9;
                             "
+
+                            class="ticketing-message-body is-collapsed"
+                            data-ticketing-message-body
                         ><?= ticketing_h(
                             $message['body']
                             ?? ''
                         ) ?></div>
+
+                        <button
+                            class="ticketing-message-more"
+                            type="button"
+                            data-ticketing-message-toggle
+                            aria-expanded="false"
+                            hidden
+                        >
+                            مشاهده بیشتر
+                        </button>
+
+                        <?php
+                        $messageAttachments =
+                            $attachmentsByMessage[
+                                (int) (
+                                    $message['id']
+                                    ?? 0
+                                )
+                            ]
+                            ?? [];
+                        ?>
+
+                        <?php if (
+                            $messageAttachments !== []
+                        ): ?>
+
+                            <div
+                                class="ticketing-message-attachments"
+                            >
+                                <div
+                                    class="ticketing-message-attachments-title"
+                                >
+                                    پیوست‌ها
+                                </div>
+
+                                <?php foreach (
+                                    $messageAttachments
+                                    as $attachment
+                                ): ?>
+
+                                    <?php
+                                    $bytes =
+                                        max(
+                                            0,
+                                            (int) (
+                                                $attachment[
+                                                    'size_bytes'
+                                                ]
+                                                ?? 0
+                                            )
+                                        );
+
+                                    $kb =
+                                        max(
+                                            1,
+                                            (int) ceil(
+                                                $bytes
+                                                / 1024
+                                            )
+                                        );
+
+                                    $kbFa =
+                                        strtr(
+                                            (string) $kb,
+                                            [
+                                                '0' => '۰',
+                                                '1' => '۱',
+                                                '2' => '۲',
+                                                '3' => '۳',
+                                                '4' => '۴',
+                                                '5' => '۵',
+                                                '6' => '۶',
+                                                '7' => '۷',
+                                                '8' => '۸',
+                                                '9' => '۹',
+                                            ]
+                                        );
+                                    ?>
+
+                                    <div
+                                        class="ticketing-attachment-chip"
+                                        data-ticketing-attachment
+                                    >
+                                        <span
+                                            class="ticketing-attachment-icon"
+                                            aria-hidden="true"
+                                        >
+                                            ◇
+                                        </span>
+
+                                        <span
+                                            class="ticketing-attachment-name"
+                                            title="<?= ticketing_h(
+                                                $attachment[
+                                                    'original_name'
+                                                ]
+                                                ?? 'پیوست'
+                                            ) ?>"
+                                        >
+                                            <?= ticketing_h(
+                                                $attachment[
+                                                    'original_name'
+                                                ]
+                                                ?? 'پیوست'
+                                            ) ?>
+                                        </span>
+
+                                        <span
+                                            class="ticketing-attachment-size"
+                                        >
+                                            <?= ticketing_h(
+                                                $kbFa
+                                            ) ?>
+                                            کیلوبایت
+                                        </span>
+
+                                        <?php
+                                        $attachmentScanStatus =
+                                            (string) (
+                                                $attachment[
+                                                    'scan_status_code'
+                                                ]
+                                                ?? ''
+                                            );
+
+                                        $attachmentReady =
+                                            in_array(
+                                                $attachmentScanStatus,
+                                                [
+                                                    'clean',
+                                                    'approved',
+                                                ],
+                                                true
+                                            );
+                                        ?>
+
+                                        <?php if (
+                                            $attachmentReady
+                                        ): ?>
+
+                                            <a
+                                                class="ticketing-attachment-action"
+                                                href="<?= ticketing_h(
+                                                    '/admin/ticketing/tickets/'
+                                                    . rawurlencode(
+                                                        (string) (
+                                                            $ticket[
+                                                                'public_reference'
+                                                            ]
+                                                            ?? ''
+                                                        )
+                                                    )
+                                                    . '/attachments/'
+                                                    . rawurlencode(
+                                                        (string) (
+                                                            $attachment[
+                                                                'id'
+                                                            ]
+                                                            ?? ''
+                                                        )
+                                                    )
+                                                ) ?>"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                data-ticketing-attachment-open
+                                            >
+                                                مشاهده
+                                            </a>
+
+                                        <?php else: ?>
+
+                                            <button
+                                                class="ticketing-attachment-action"
+                                                type="button"
+                                                disabled
+                                                title="فایل هنوز از نظر امنیتی بررسی نشده است."
+                                            >
+                                                مشاهده
+                                            </button>
+
+                                            <span
+                                                class="ticketing-attachment-status"
+                                            >
+                                                در انتظار بررسی
+                                            </span>
+
+                                        <?php endif; ?>
+                                    </div>
+
+                                <?php endforeach; ?>
+
+                            </div>
+
+                        <?php endif; ?>
+
 
                     </div>
                 </article>
@@ -1033,6 +1260,240 @@ $lifecycleStatusMessage =
     activate(
         'status'
     );
+})();
+</script>
+
+<script>
+(() => {
+    const conversationPanel =
+        document.querySelector(
+            '[data-ticketing-detail-panel="conversation"]'
+        );
+
+    const initializeTicketMessages = () => {
+        /*
+         * The conversation tab is hidden by default.
+         * Never measure message height while its panel is hidden.
+         */
+        if (
+            conversationPanel
+            && conversationPanel.hidden
+        ) {
+            return;
+        }
+
+        const bodies =
+            Array.from(
+                document.querySelectorAll(
+                    '[data-ticketing-message-body]'
+                )
+            );
+
+        bodies.forEach(
+            (body) => {
+                const card =
+                    body.closest(
+                        '.ticketing-message-bubble'
+                    );
+
+                if (!card) {
+                    return;
+                }
+
+                const button =
+                    card.querySelector(
+                        '[data-ticketing-message-toggle]'
+                    );
+
+                if (!button) {
+                    return;
+                }
+
+                /*
+                 * Return to natural layout before measuring.
+                 */
+                body.classList.remove(
+                    'is-collapsed',
+                    'is-expanded'
+                );
+
+                const computed =
+                    window.getComputedStyle(
+                        body
+                    );
+
+                let lineHeight =
+                    parseFloat(
+                        computed.lineHeight
+                    );
+
+                if (
+                    !Number.isFinite(lineHeight)
+                    ||
+                    lineHeight <= 0
+                ) {
+                    lineHeight =
+                        (
+                            parseFloat(
+                                computed.fontSize
+                            )
+                            || 13
+                        )
+                        * 1.65;
+                }
+
+                const collapsedHeight =
+                    Math.ceil(
+                        lineHeight * 6
+                    );
+
+                const naturalHeight =
+                    body.scrollHeight;
+
+                const overflowing =
+                    naturalHeight
+                    > collapsedHeight + 4;
+
+                body.style.setProperty(
+                    '--ticketing-message-collapsed-height',
+                    collapsedHeight + 'px'
+                );
+
+                button.hidden =
+                    !overflowing;
+
+                if (!overflowing) {
+                    return;
+                }
+
+                body.classList.add(
+                    'is-collapsed'
+                );
+
+                /*
+                 * Bind toggle only once, even if the tab
+                 * is opened several times.
+                 */
+                if (
+                    button.dataset
+                        .ticketingMessageToggleBound
+                    === '1'
+                ) {
+                    return;
+                }
+
+                button.dataset
+                    .ticketingMessageToggleBound =
+                    '1';
+
+                button.addEventListener(
+                    'click',
+                    () => {
+                        const expanded =
+                            body.classList.contains(
+                                'is-expanded'
+                            );
+
+                        if (expanded) {
+                            body.classList.remove(
+                                'is-expanded'
+                            );
+
+                            body.classList.add(
+                                'is-collapsed'
+                            );
+
+                            button.textContent =
+                                'مشاهده بیشتر';
+
+                            button.setAttribute(
+                                'aria-expanded',
+                                'false'
+                            );
+
+                            return;
+                        }
+
+                        body.classList.remove(
+                            'is-collapsed'
+                        );
+
+                        body.classList.add(
+                            'is-expanded'
+                        );
+
+                        button.textContent =
+                            'مشاهده کمتر';
+
+                        button.setAttribute(
+                            'aria-expanded',
+                            'true'
+                        );
+                    }
+                );
+            }
+        );
+    };
+
+
+    const scheduleInitialization = () => {
+        /*
+         * Two RAFs ensure the newly visible tab
+         * has completed layout before measurement.
+         */
+        window.requestAnimationFrame(
+            () => {
+                window.requestAnimationFrame(
+                    initializeTicketMessages
+                );
+            }
+        );
+    };
+
+
+    if (conversationPanel) {
+        /*
+         * This is the key fix:
+         * recalculate immediately when the tab panel
+         * transitions from hidden to visible.
+         */
+        const observer =
+            new MutationObserver(
+                () => {
+                    if (
+                        !conversationPanel.hidden
+                    ) {
+                        scheduleInitialization();
+                    }
+                }
+            );
+
+        observer.observe(
+            conversationPanel,
+            {
+                attributes: true,
+                attributeFilter: [
+                    'hidden',
+                ],
+            }
+        );
+    }
+
+
+    if (
+        document.readyState
+        === 'loading'
+    ) {
+        document.addEventListener(
+            'DOMContentLoaded',
+            scheduleInitialization,
+            {
+                once: true,
+            }
+        );
+    } else {
+        scheduleInitialization();
+    }
 })();
 </script>
 

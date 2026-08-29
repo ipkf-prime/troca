@@ -1271,3 +1271,801 @@
 .ticketing-detail-tabs .admin-tab {
     white-space: nowrap;
 }
+
+
+/* ==========================================================================
+   ticketing_detail_a8d4_compact_typography
+   Compact presentation density for Ticket Detail only.
+   ========================================================================== */
+
+/*
+ * Main subject and utility controls.
+ */
+.ticketing-detail-page .ticketing-page-head h1 {
+    font-size: 1.05rem;
+    line-height: 1.45;
+    font-weight: 700;
+}
+
+.ticketing-detail-page .admin-button {
+    font-size: .76rem;
+    line-height: 1.45;
+}
+
+
+/*
+ * Primary status cards.
+ */
+.ticketing-detail-page .ticketing-detail-metrics .admin-card-body {
+    padding-block: 12px;
+    padding-inline: 14px;
+}
+
+.ticketing-detail-page .ticketing-detail-metrics .admin-muted {
+    font-size: .68rem;
+    line-height: 1.4;
+}
+
+.ticketing-detail-page .ticketing-detail-metrics strong {
+    font-size: .92rem;
+    line-height: 1.45;
+    font-weight: 700;
+}
+
+
+/*
+ * Three tabs.
+ */
+.ticketing-detail-page .ticketing-detail-tabs {
+    gap: 6px;
+}
+
+.ticketing-detail-page .ticketing-detail-tabs .admin-tab {
+    min-height: 32px;
+    padding: 6px 11px;
+    font-size: .74rem;
+    line-height: 1.35;
+    font-weight: 650;
+}
+
+
+/*
+ * Status panel / routing information.
+ */
+.ticketing-detail-page .ticketing-status-panel {
+    gap: 9px;
+}
+
+.ticketing-detail-page .ticketing-status-panel .admin-muted {
+    font-size: .68rem;
+    line-height: 1.45;
+}
+
+.ticketing-detail-page .ticketing-status-panel strong {
+    font-size: .82rem;
+    line-height: 1.5;
+}
+
+.ticketing-detail-page .ticketing-status-panel h2,
+.ticketing-detail-page .ticketing-status-panel h3 {
+    font-size: .91rem;
+    line-height: 1.5;
+    margin-block-end: 7px;
+}
+
+
+/*
+ * Staff/requester reply composer.
+ */
+.ticketing-detail-page
+.ticketing-status-panel
+.ticketing-requester-reply,
+.ticketing-detail-page
+.ticketing-status-panel
+.ticketing-staff-reply {
+    font-size: .78rem;
+}
+
+.ticketing-detail-page
+.ticketing-status-panel
+.ticketing-requester-reply label,
+.ticketing-detail-page
+.ticketing-status-panel
+.ticketing-staff-reply label {
+    font-size: .70rem;
+    line-height: 1.4;
+}
+
+.ticketing-detail-page
+.ticketing-status-panel
+.ticketing-requester-reply textarea,
+.ticketing-detail-page
+.ticketing-status-panel
+.ticketing-staff-reply textarea {
+    min-height: 112px;
+    padding: 9px 11px;
+    font-size: .78rem;
+    line-height: 1.65;
+}
+
+.ticketing-detail-page
+.ticketing-status-panel
+.ticketing-requester-reply .admin-button,
+.ticketing-detail-page
+.ticketing-status-panel
+.ticketing-staff-reply .admin-button {
+    padding: 6px 10px;
+    font-size: .73rem;
+}
+
+
+/*
+ * Conversation bubbles.
+ */
+.ticketing-detail-page .ticketing-message-bubble {
+    max-inline-size: 64%;
+    margin-block-end: 9px;
+    border-radius: 12px;
+    font-size: .78rem;
+    line-height: 1.65;
+}
+
+.ticketing-detail-page
+.ticketing-message-bubble
+.admin-card-body {
+    padding: 9px 11px;
+}
+
+
+/*
+ * Author name: deliberately smaller and less dominant.
+ */
+.ticketing-detail-page
+.ticketing-message-bubble
+strong {
+    font-size: .82rem;
+    line-height: 1.4;
+    font-weight: 700;
+}
+
+
+/*
+ * Date/time and secondary metadata.
+ */
+.ticketing-detail-page
+.ticketing-message-bubble
+.admin-muted,
+.ticketing-detail-page
+.ticketing-message-bubble
+small,
+.ticketing-detail-page
+.ticketing-message-bubble
+time {
+    font-size: .64rem;
+    line-height: 1.35;
+}
+
+
+/*
+ * Requester / staff role badge.
+ */
+.ticketing-detail-page
+.ticketing-message-bubble[
+    data-ticketing-message-author="requester"
+]::before,
+.ticketing-detail-page
+.ticketing-message-bubble[
+    data-ticketing-message-author="staff"
+]::before {
+    padding: 5px 11px 0;
+    font-size: .60rem;
+    line-height: 1.3;
+    font-weight: 650;
+    opacity: .62;
+}
+
+
+/*
+ * History table should feel operational, not oversized.
+ */
+.ticketing-detail-page
+.ticketing-history
+.admin-table {
+    font-size: .74rem;
+}
+
+.ticketing-detail-page
+.ticketing-history
+.admin-table th {
+    font-size: .68rem;
+    font-weight: 650;
+}
+
+.ticketing-detail-page
+.ticketing-history
+.admin-table th,
+.ticketing-detail-page
+.ticketing-history
+.admin-table td {
+    padding-block: 7px;
+}
+
+
+/*
+ * Mobile remains readable.
+ */
+@media (max-width: 760px) {
+    .ticketing-detail-page .ticketing-message-bubble {
+        max-inline-size: 88%;
+        font-size: .80rem;
+    }
+
+    .ticketing-detail-page
+    .ticketing-detail-metrics strong {
+        font-size: .88rem;
+    }
+
+    .ticketing-detail-page
+    .ticketing-detail-tabs
+    .admin-tab {
+        font-size: .72rem;
+    }
+}
+
+
+/* ==========================================================================
+   ticketing_module_compact_typography_v1
+   Unified compact typography across the complete Ticketing module.
+   ========================================================================== */
+
+/* Base */
+.ticketing-shell {
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+.ticketing-shell .ticketing-page {
+    font-size: 14px;
+}
+
+
+/* Breadcrumb */
+.ticketing-shell .admin-breadcrumb {
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+
+/* Main page headings */
+.ticketing-shell .ticketing-page-head h1 {
+    font-size: 21px;
+    line-height: 1.4;
+    font-weight: 750;
+}
+
+.ticketing-shell .ticketing-page-head p {
+    font-size: 12.5px;
+    line-height: 1.55;
+}
+
+
+/* Section headings */
+.ticketing-shell .admin-page-header h2,
+.ticketing-shell .admin-section h2,
+.ticketing-shell .admin-card h2 {
+    font-size: 17px;
+    line-height: 1.45;
+    font-weight: 700;
+}
+
+.ticketing-shell .admin-section h3,
+.ticketing-shell .admin-card h3 {
+    font-size: 15px;
+    line-height: 1.45;
+}
+
+
+/* Muted / helper / metadata */
+.ticketing-shell .admin-muted {
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+
+/* Dashboard metrics */
+.ticketing-shell .ticketing-metrics .admin-muted {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.ticketing-shell .ticketing-metric-value {
+    font-size: 22px;
+    line-height: 1.1;
+    font-weight: 750;
+}
+
+.ticketing-shell .ticketing-metrics .admin-card-body {
+    min-height: 72px;
+    padding: 10px 14px;
+}
+
+.ticketing-shell .ticketing-metrics .admin-card {
+    min-height: 74px;
+}
+
+
+/* Tables */
+.ticketing-shell .admin-table {
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.ticketing-shell .admin-table th {
+    font-size: 12px;
+    line-height: 1.4;
+    font-weight: 650;
+}
+
+.ticketing-shell .admin-table td {
+    font-size: 13px;
+}
+
+.ticketing-shell .admin-table th,
+.ticketing-shell .admin-table td {
+    padding-block: 7px;
+}
+
+
+/* Ticket titles inside tables */
+.ticketing-shell .admin-table strong {
+    font-size: 13.5px;
+    line-height: 1.45;
+    font-weight: 650;
+}
+
+
+/* Buttons */
+.ticketing-shell .admin-button,
+.ticketing-shell button.admin-button {
+    min-height: 32px;
+    padding: 6px 11px;
+    font-size: 12.5px;
+    line-height: 1.4;
+}
+
+
+/* Badges / pills / statuses */
+.ticketing-shell .admin-badge,
+.ticketing-shell .admin-status,
+.ticketing-shell [class*="badge"],
+.ticketing-shell [class*="status-pill"] {
+    font-size: 11.5px;
+    line-height: 1.35;
+}
+
+
+/* Forms */
+.ticketing-shell label {
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.ticketing-shell input,
+.ticketing-shell select,
+.ticketing-shell textarea {
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.ticketing-shell input,
+.ticketing-shell select {
+    min-height: 36px;
+}
+
+.ticketing-shell textarea {
+    padding: 9px 11px;
+}
+
+
+/* Filters */
+.ticketing-shell .ticketing-filter-section {
+    padding: 12px 14px;
+}
+
+.ticketing-shell .ticketing-filter-row {
+    gap: 8px;
+}
+
+
+/* Recent-ticket and queue sections */
+.ticketing-shell .ticketing-recent {
+    padding: 12px 14px;
+}
+
+.ticketing-shell .ticketing-queue-card {
+    padding: 12px 14px;
+}
+
+
+/* Cards generally */
+.ticketing-shell .admin-card-body {
+    font-size: 13px;
+}
+
+.ticketing-shell .admin-card-body > strong {
+    font-size: 14px;
+}
+
+
+/* Sidebar Ticketing navigation */
+.ticketing-shell .admin-sidebar a,
+.ticketing-shell .admin-sidebar button,
+.ticketing-shell .admin-nav a {
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+
+/* Ticket Detail: keep authors deliberately restrained */
+.ticketing-shell
+.ticketing-detail-page
+.ticketing-message-bubble strong {
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.ticketing-shell
+.ticketing-detail-page
+.ticketing-message-bubble {
+    font-size: 12.5px;
+}
+
+.ticketing-shell
+.ticketing-detail-page
+.ticketing-message-bubble .admin-muted {
+    font-size: 10.5px;
+}
+
+
+/* Three ticket-detail tabs */
+.ticketing-shell
+.ticketing-detail-tabs
+.admin-tab {
+    min-height: 30px;
+    padding: 5px 10px;
+    font-size: 12px;
+}
+
+
+/* Support routing/status strip */
+.ticketing-shell
+.ticketing-status-panel strong {
+    font-size: 13px;
+}
+
+.ticketing-shell
+.ticketing-status-panel .admin-muted {
+    font-size: 11px;
+}
+
+
+/* Create ticket */
+.ticketing-shell .ticketing-create-form {
+    gap: 10px;
+}
+
+.ticketing-shell .ticketing-form-section {
+    padding: 13px 15px;
+}
+
+.ticketing-shell
+.ticketing-create-form textarea {
+    min-height: 120px;
+}
+
+
+/* Compact page vertical density */
+.ticketing-shell .ticketing-page {
+    gap: 10px;
+}
+
+.ticketing-shell .ticketing-page-head {
+    gap: 9px 15px;
+    padding-bottom: 6px;
+}
+
+
+/* Mobile */
+@media (max-width: 680px) {
+    .ticketing-shell {
+        font-size: 13.5px;
+    }
+
+    .ticketing-shell .ticketing-page-head h1 {
+        font-size: 19px;
+    }
+
+    .ticketing-shell .ticketing-metric-value {
+        font-size: 20px;
+    }
+
+    .ticketing-shell .admin-table {
+        font-size: 12.5px;
+    }
+}
+
+
+/* ==========================================================================
+   ticketing_conversation_experience_a8d5
+   Long-message collapse and attachment presentation.
+   ========================================================================== */
+
+.ticketing-shell .ticketing-message-body {
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.ticketing-shell
+.ticketing-message-body.is-collapsed {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 6;
+    line-clamp: 6;
+}
+
+.ticketing-shell
+.ticketing-message-body.is-expanded {
+    display: block;
+    overflow: visible;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+}
+
+.ticketing-shell
+.ticketing-message-more {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: var(--admin-primary, #268b5b);
+    cursor: pointer;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 650;
+    margin-top: 5px;
+    padding: 2px 0;
+}
+
+.ticketing-shell
+.ticketing-message-more:hover {
+    text-decoration: underline;
+}
+
+.ticketing-shell
+.ticketing-message-more[hidden] {
+    display: none !important;
+}
+
+.ticketing-shell
+.ticketing-message-attachments {
+    border-top: 1px solid
+        var(--admin-border, #d9e0e7);
+    display: grid;
+    gap: 6px;
+    margin-top: 9px;
+    padding-top: 8px;
+}
+
+.ticketing-shell
+.ticketing-message-attachments-title {
+    color: var(--admin-text-muted);
+    font-size: 10.5px;
+    font-weight: 650;
+}
+
+.ticketing-shell
+.ticketing-attachment-chip {
+    align-items: center;
+    background: rgba(255, 255, 255, .62);
+    border: 1px solid
+        var(--admin-border, #d9e0e7);
+    border-radius: 8px;
+    display: grid;
+    gap: 6px;
+    grid-template-columns:
+        auto
+        minmax(0, 1fr)
+        auto
+        auto;
+    padding: 6px 8px;
+}
+
+.ticketing-shell
+.ticketing-attachment-icon {
+    font-size: 11px;
+    opacity: .65;
+}
+
+.ticketing-shell
+.ticketing-attachment-name {
+    font-size: 11.5px;
+    font-weight: 600;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ticketing-shell
+.ticketing-attachment-size,
+.ticketing-shell
+.ticketing-attachment-status {
+    color: var(--admin-text-muted);
+    font-size: 10px;
+    white-space: nowrap;
+}
+
+@media (max-width: 680px) {
+    .ticketing-shell
+    .ticketing-attachment-chip {
+        grid-template-columns:
+            auto
+            minmax(0, 1fr);
+    }
+
+    .ticketing-shell
+    .ticketing-attachment-size,
+    .ticketing-shell
+    .ticketing-attachment-status {
+        grid-column: 2;
+    }
+}
+
+
+/* ticketing_conversation_experience_a8d5_r4 */
+
+.ticketing-shell
+.ticketing-attachment-action {
+    appearance: none;
+    background: var(--admin-primary, #268b5b);
+    border: 1px solid
+        var(--admin-primary, #268b5b);
+    border-radius: 7px;
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-size: 10.5px;
+    font-weight: 650;
+    line-height: 1.3;
+    padding: 4px 8px;
+    white-space: nowrap;
+}
+
+.ticketing-shell
+.ticketing-attachment-action:hover:not(:disabled) {
+    filter: brightness(.96);
+}
+
+.ticketing-shell
+.ticketing-attachment-action:disabled {
+    background: transparent;
+    border-color:
+        var(--admin-border, #d9e0e7);
+    color: var(--admin-text-muted);
+    cursor: not-allowed;
+    opacity: .72;
+}
+
+.ticketing-shell
+.ticketing-message-more {
+    display: inline-flex;
+    align-items: center;
+    margin-top: 6px;
+}
+
+
+/* ==========================================================================
+   ticketing_conversation_experience_a8d5_r5
+   Reliable six-line message collapsing.
+   ========================================================================== */
+
+.ticketing-shell
+.ticketing-message-body.is-collapsed {
+    display: block !important;
+    max-height:
+        var(
+            --ticketing-message-collapsed-height,
+            8.5em
+        );
+    overflow: hidden !important;
+    position: relative;
+}
+
+.ticketing-shell
+.ticketing-message-body.is-collapsed::after {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 1.7em;
+    pointer-events: none;
+    background:
+        linear-gradient(
+            to bottom,
+            transparent,
+            var(--ticketing-message-fade, #eef8f1)
+        );
+}
+
+.ticketing-shell
+.ticketing-message-bubble[
+    data-ticketing-message-author="staff"
+]
+.ticketing-message-body.is-collapsed::after {
+    --ticketing-message-fade: #eef4fb;
+}
+
+.ticketing-shell
+.ticketing-message-bubble[
+    data-ticketing-message-author="requester"
+]
+.ticketing-message-body.is-collapsed::after {
+    --ticketing-message-fade: #eef8f1;
+}
+
+.ticketing-shell
+.ticketing-message-body.is-expanded {
+    display: block !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+.ticketing-shell
+.ticketing-message-body.is-expanded::after {
+    display: none;
+}
+
+.ticketing-shell
+.ticketing-message-more:not([hidden]) {
+    display: inline-flex !important;
+    margin-top: 7px;
+    color: var(--admin-primary, #268b5b);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+
+/*
+ * Make attachment action clearly visible even when disabled.
+ */
+.ticketing-shell
+.ticketing-attachment-action {
+    min-width: 56px;
+    text-align: center;
+}
+
+.ticketing-shell
+.ticketing-attachment-action:disabled {
+    background: #f5f7f6;
+    border-color: #cfd9d3;
+    color: #718078;
+    opacity: 1;
+}
+
+
+/* ticketing_secure_attachment_a8d6 */
+
+.ticketing-shell
+a.ticketing-attachment-action {
+    align-items: center;
+    display: inline-flex;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.ticketing-shell
+a.ticketing-attachment-action:focus-visible {
+    outline: 2px solid
+        var(--admin-primary, #268b5b);
+    outline-offset: 2px;
+}

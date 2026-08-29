@@ -1094,6 +1094,65 @@ class TicketService extends BaseService
     }
 
 
+    /*
+     * Attachment access deliberately reuses the exact Ticket Detail
+     * authorization contract. A user who cannot obtain the Detail
+     * cannot obtain its attachment.
+     */
+    public function attachmentForUser(
+        string $publicReference,
+        int $attachmentId,
+        int $userId
+    ): ?array {
+        if (
+            trim($publicReference) === ''
+            ||
+            $attachmentId < 1
+            ||
+            $userId < 1
+        ) {
+            return null;
+        }
+
+        $detail =
+            $this->detailForUser(
+                trim(
+                    $publicReference
+                ),
+                $userId
+            );
+
+        if (!is_array($detail)) {
+            return null;
+        }
+
+        $ticket =
+            is_array(
+                $detail['ticket']
+                ?? null
+            )
+                ? $detail['ticket']
+                : [];
+
+        $ticketId =
+            (int) (
+                $ticket['id']
+                ?? 0
+            );
+
+        if ($ticketId < 1) {
+            return null;
+        }
+
+        return
+            $this->tickets
+                ->attachmentForTicket(
+                    $ticketId,
+                    $attachmentId
+                );
+    }
+
+
     public function detailForUser(
         string $publicReference,
         int $userId
@@ -1118,6 +1177,11 @@ class TicketService extends BaseService
 
             'messages' =>
                 $this->tickets->messages(
+                    (int) $ticket['id']
+                ),
+
+            'attachments' =>
+                $this->tickets->attachments(
                     (int) $ticket['id']
                 ),
 
@@ -1149,6 +1213,11 @@ class TicketService extends BaseService
 
             'messages' =>
                 $this->tickets->messages(
+                    (int) $ticket['id']
+                ),
+
+            'attachments' =>
+                $this->tickets->attachments(
                     (int) $ticket['id']
                 ),
 

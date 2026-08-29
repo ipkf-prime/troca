@@ -2547,6 +2547,494 @@ $router->post(
 
 /*
  * ---------------------------------------------------------
+ * Secure Ticket Attachment
+ * ---------------------------------------------------------
+ */
+$router->get(
+    '/admin/ticketing/tickets/{public_reference}/attachments/{attachment_id}',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $reference =
+            trim(
+                (string) $request->route(
+                    'public_reference'
+                )
+            );
+
+        $attachmentId =
+            (int) $request->route(
+                'attachment_id'
+            );
+
+        /*
+         * Permission/RBAC context intentionally mirrors Ticket Detail.
+         */
+        $detailPath =
+            '/admin/ticketing/tickets/'
+            . rawurlencode(
+                $reference
+            );
+
+        $context =
+            $adminGuard(
+                $response,
+                $detailPath
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+
+        try {
+
+            $attachment =
+                (
+                    new \App\Services\Ticketing\TicketService()
+                )->attachmentForUser(
+                    $reference,
+                    $attachmentId,
+                    (int) $context['user_id']
+                );
+
+
+            if ($attachment === null) {
+                return
+                    $response
+                        ->status(404)
+                        ->header(
+                            'Content-Type',
+                            'text/plain; charset=UTF-8'
+                        )
+                        ->header(
+                            'Cache-Control',
+                            'private, no-store, max-age=0'
+                        )
+                        ->send(
+                            'پیوست موردنظر یافت نشد.'
+                        );
+            }
+
+
+            if (
+                (string) (
+                    $attachment[
+                        'storage_disk'
+                    ]
+                    ?? ''
+                )
+                !== 'ticketing_private'
+            ) {
+                throw new \RuntimeException(
+                    'Unexpected attachment storage disk.'
+                );
+            }
+
+
+            $scanStatus =
+                strtolower(
+                    trim(
+                        (string) (
+                            $attachment[
+                                'scan_status_code'
+                            ]
+                            ?? ''
+                        )
+                    )
+                );
+
+
+            if (
+                !in_array(
+                    $scanStatus,
+                    [
+                        'clean',
+                        'approved',
+                    ],
+                    true
+                )
+            ) {
+                return
+                    $response
+                        ->status(423)
+                        ->header(
+                            'Content-Type',
+                            'text/plain; charset=UTF-8'
+                        )
+                        ->header(
+                            'Cache-Control',
+                            'private, no-store, max-age=0'
+                        )
+                        ->send(
+                            'این فایل هنوز برای مشاهده تأیید نشده است.'
+                        );
+            }
+
+
+            $storageKey =
+                str_replace(
+                    '\\',
+                    '/',
+                    trim(
+                        (string) (
+                            $attachment[
+                                'storage_key'
+                            ]
+                            ?? ''
+                        )
+                    )
+                );
+
+
+            if (
+                $storageKey === ''
+                ||
+                str_contains(
+                    $storageKey,
+                    "\0"
+                )
+                ||
+                str_starts_with(
+                    $storageKey,
+                    '/'
+                )
+                ||
+                preg_match(
+                    '#(^|/)\.\.(/|$)#',
+                    $storageKey
+                )
+            ) {
+                throw new \RuntimeException(
+                    'Unsafe attachment storage key.'
+                );
+            }
+
+
+            /*
+             * Upload contract:
+             * BASE_PATH/storage/uploads/<storage_key>
+             */
+            $storageRoot =
+                realpath(
+                    BASE_PATH
+                    . '/storage/uploads'
+                );
+
+
+            if ($storageRoot === false) {
+                throw new \RuntimeException(
+                    'Private attachment storage root unavailable.'
+                );
+            }
+
+
+            $filePath =
+                realpath(
+                    $storageRoot
+                    . DIRECTORY_SEPARATOR
+                    . str_replace(
+                        '/',
+                        DIRECTORY_SEPARATOR,
+                        $storageKey
+                    )
+                );
+
+
+            if (
+                $filePath === false
+                ||
+                !is_file(
+                    $filePath
+                )
+                ||
+                !str_starts_with(
+                    $filePath,
+                    $storageRoot
+                    . DIRECTORY_SEPARATOR
+                )
+            ) {
+                return
+                    $response
+                        ->status(404)
+                        ->header(
+                            'Content-Type',
+                            'text/plain; charset=UTF-8'
+                        )
+                        ->send(
+                            'فایل پیوست در فضای ذخیره‌سازی یافت نشد.'
+                        );
+            }
+
+
+            $fileSize =
+                filesize(
+                    $filePath
+                );
+
+
+            if (
+                $fileSize === false
+                ||
+                $fileSize
+                !== (int) (
+                    $attachment[
+                        'size_bytes'
+                    ]
+                    ?? -1
+                )
+            ) {
+                throw new \RuntimeException(
+                    'Attachment size verification failed.'
+                );
+            }
+
+
+            $storedChecksum =
+                strtolower(
+                    trim(
+                        (string) (
+                            $attachment[
+                                'checksum_sha256'
+                            ]
+                            ?? ''
+                        )
+                    )
+                );
+
+
+            $actualChecksum =
+                strtolower(
+                    hash_file(
+                        'sha256',
+                        $filePath
+                    )
+                );
+
+
+            if (
+                $storedChecksum === ''
+                ||
+                !hash_equals(
+                    $storedChecksum,
+                    $actualChecksum
+                )
+            ) {
+                throw new \RuntimeException(
+                    'Attachment SHA256 verification failed.'
+                );
+            }
+
+
+            $mime =
+                strtolower(
+                    trim(
+                        (string) (
+                            $attachment[
+                                'mime_type'
+                            ]
+                            ?? ''
+                        )
+                    )
+                );
+
+
+            if (
+                preg_match(
+                    '~^[a-z0-9!#$&^_.+\-]+/[a-z0-9!#$&^_.+\-]+$~',
+                    $mime
+                ) !== 1
+            ) {
+                $mime =
+                    'application/octet-stream';
+            }
+
+
+            /*
+             * Never render active HTML/SVG inline.
+             */
+            $inlineMimeTypes = [
+                'image/png',
+                'image/jpeg',
+                'image/gif',
+                'image/webp',
+                'application/pdf',
+                'text/plain',
+            ];
+
+
+            $disposition =
+                in_array(
+                    $mime,
+                    $inlineMimeTypes,
+                    true
+                )
+                    ? 'inline'
+                    : 'attachment';
+
+
+            $originalName =
+                basename(
+                    str_replace(
+                        '\\',
+                        '/',
+                        trim(
+                            (string) (
+                                $attachment[
+                                    'original_name'
+                                ]
+                                ?? 'attachment'
+                            )
+                        )
+                    )
+                );
+
+
+            $originalName =
+                preg_replace(
+                    '/[\x00-\x1F\x7F]+/u',
+                    '',
+                    $originalName
+                )
+                ?: 'attachment';
+
+
+            $extension =
+                pathinfo(
+                    $originalName,
+                    PATHINFO_EXTENSION
+                );
+
+
+            $safeExtension =
+                preg_replace(
+                    '/[^A-Za-z0-9]+/',
+                    '',
+                    $extension
+                )
+                ?: '';
+
+
+            $fallbackName =
+                'attachment-'
+                . (int) $attachment['id']
+                . (
+                    $safeExtension !== ''
+                        ? '.'
+                            . $safeExtension
+                        : ''
+                );
+
+
+            $contentDisposition =
+                $disposition
+                . '; filename="'
+                . $fallbackName
+                . '"; filename*=UTF-8'
+                . chr(39)
+                . chr(39)
+                . rawurlencode(
+                    $originalName
+                );
+
+
+            $bytes =
+                file_get_contents(
+                    $filePath
+                );
+
+
+            if (!is_string($bytes)) {
+                throw new \RuntimeException(
+                    'Attachment cannot be read.'
+                );
+            }
+
+
+            return
+                $response
+                    ->status(200)
+                    ->header(
+                        'Content-Type',
+                        $mime
+                    )
+                    ->header(
+                        'Content-Length',
+                        (string) strlen(
+                            $bytes
+                        )
+                    )
+                    ->header(
+                        'Content-Disposition',
+                        $contentDisposition
+                    )
+                    ->header(
+                        'X-Content-Type-Options',
+                        'nosniff'
+                    )
+                    ->header(
+                        'X-Frame-Options',
+                        'SAMEORIGIN'
+                    )
+                    ->header(
+                        'Cache-Control',
+                        'private, no-store, max-age=0'
+                    )
+                    ->send(
+                        $bytes
+                    );
+
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'ticket_attachment_read',
+                    [
+                        'user_id' =>
+                            (int) (
+                                $context[
+                                    'user_id'
+                                ]
+                                ?? 0
+                            ),
+
+                        'reference' =>
+                            $reference,
+
+                        'attachment_id' =>
+                            $attachmentId,
+                    ]
+                );
+
+
+            return
+                $response
+                    ->status(500)
+                    ->header(
+                        'Content-Type',
+                        'text/plain; charset=UTF-8'
+                    )
+                    ->header(
+                        'Cache-Control',
+                        'private, no-store, max-age=0'
+                    )
+                    ->send(
+                        'نمایش پیوست انجام نشد. کد پیگیری: '
+                        . $incident
+                    );
+        }
+    }
+);
+
+
+/*
+ * ---------------------------------------------------------
  * Detail
  * ---------------------------------------------------------
  */

@@ -1389,6 +1389,111 @@ class TicketRepository
     }
 
 
+    /*
+     * ticketing_conversation_experience_a8d5
+     * Presentation-safe attachment metadata.
+     */
+    public function attachments(
+        int $ticketId
+    ): array {
+        if ($ticketId < 1) {
+            return [];
+        }
+
+        $statement =
+            $this->db->prepare("
+                SELECT
+                    id,
+                    ticket_id,
+                    message_id,
+                    original_name,
+                    mime_type,
+                    size_bytes,
+                    scan_status_code,
+                    created_at
+
+                FROM ticketing_attachments
+
+                WHERE ticket_id = ?
+                  AND deleted_at IS NULL
+
+                ORDER BY
+                    message_id,
+                    id
+            ");
+
+        $statement->execute([
+            $ticketId,
+        ]);
+
+        return
+            $statement->fetchAll(
+                \PDO::FETCH_ASSOC
+            )
+            ?: [];
+    }
+
+
+    /*
+     * Secure attachment lookup for authorized delivery.
+     *
+     * storage_key and checksum_sha256 are internal-only fields.
+     * They are deliberately absent from attachments(), which feeds
+     * the presentation View.
+     */
+    public function attachmentForTicket(
+        int $ticketId,
+        int $attachmentId
+    ): ?array {
+        if (
+            $ticketId < 1
+            ||
+            $attachmentId < 1
+        ) {
+            return null;
+        }
+
+        $statement =
+            $this->db->prepare("
+                SELECT
+                    id,
+                    ticket_id,
+                    message_id,
+                    storage_disk,
+                    storage_key,
+                    original_name,
+                    mime_type,
+                    size_bytes,
+                    checksum_sha256,
+                    scan_status_code,
+                    created_at
+
+                FROM ticketing_attachments
+
+                WHERE id = ?
+                  AND ticket_id = ?
+                  AND deleted_at IS NULL
+
+                LIMIT 1
+            ");
+
+        $statement->execute([
+            $attachmentId,
+            $ticketId,
+        ]);
+
+        $row =
+            $statement->fetch(
+                \PDO::FETCH_ASSOC
+            );
+
+        return
+            is_array($row)
+                ? $row
+                : null;
+    }
+
+
     public function events(
         int $ticketId
     ): array {
