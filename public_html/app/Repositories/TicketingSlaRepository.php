@@ -27,7 +27,8 @@ final class TicketingSlaRepository
 
 
     public function initializationCandidates(
-        int $limit = 100
+        int $limit = 100,
+        ?int $projectId = null
     ): array {
         $limit =
             max(
@@ -38,6 +39,14 @@ final class TicketingSlaRepository
                 )
             );
 
+
+
+        $projectFilter =
+            $projectId !== null
+            && $projectId > 0
+                ? 't.support_project_id = '
+                    . (int) $projectId
+                : '1 = 1';
 
         $statement =
             $this->db->query("
@@ -74,6 +83,8 @@ final class TicketingSlaRepository
                         t.id
 
                 WHERE ss.id IS NULL
+
+                  AND {$projectFilter}
 
                   AND s.is_closed = 0
 
@@ -568,7 +579,8 @@ final class TicketingSlaRepository
 
 
     public function runtimeCandidates(
-        int $limit = 200
+        int $limit = 200,
+        ?int $projectId = null
     ): array {
         $limit =
             max(
@@ -579,6 +591,14 @@ final class TicketingSlaRepository
                 )
             );
 
+
+
+        $projectFilter =
+            $projectId !== null
+            && $projectId > 0
+                ? 't.support_project_id = '
+                    . (int) $projectId
+                : '1 = 1';
 
         $statement =
             $this->db->query("
@@ -633,6 +653,8 @@ final class TicketingSlaRepository
                     'paused',
                     'breached'
                 )
+
+                  AND {$projectFilter}
 
                   /*
                    * Cron must receive only actionable states.

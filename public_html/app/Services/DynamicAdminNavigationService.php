@@ -157,10 +157,170 @@ class DynamicAdminNavigationService extends BaseService
     private function items(string $shellKey): array
     {
         try {
-            return $this->repository->items($shellKey);
+            $items =
+                $this->repository
+                    ->items($shellKey);
+
+            return
+                $this->withSystemScheduler(
+                    $items,
+                    $shellKey
+                );
+
         } catch (Throwable) {
             return [];
         }
+    }
+
+
+    private function withSystemScheduler(
+        array $items,
+        string $shellKey
+    ): array {
+        if ($shellKey !== 'core') {
+            return $items;
+        }
+
+        foreach ($items as $item) {
+            if (
+                (string) (
+                    $item['item_key']
+                    ?? ''
+                ) === 'system-scheduler'
+            ) {
+                return $items;
+            }
+        }
+
+        $parentId = null;
+
+        foreach ($items as $item) {
+
+            $itemKey =
+                (string) (
+                    $item['item_key']
+                    ?? ''
+                );
+
+            $title =
+                (string) (
+                    $item['title']
+                    ?? ''
+                );
+
+            if (
+                $title === 'مدیریت سامانه'
+                ||
+                in_array(
+                    $itemKey,
+                    [
+                        'system-management',
+                        'system-settings',
+                        'system',
+                        'admin',
+                    ],
+                    true
+                )
+            ) {
+                $candidate =
+                    (int) (
+                        $item['id']
+                        ?? 0
+                    );
+
+                if ($candidate > 0) {
+                    $parentId =
+                        $candidate;
+
+                    break;
+                }
+            }
+        }
+
+        if ($parentId === null) {
+            return $items;
+        }
+
+        /*
+         * Virtual Core navigation item.
+         *
+         * We intentionally do not write this row into
+         * the shared Core DB while Dev and Production
+         * still share that database.
+         */
+        $items[] = [
+            'id' =>
+                -900001,
+
+            'parent_id' =>
+                $parentId,
+
+            'shell_key' =>
+                'core',
+
+            'item_key' =>
+                'system-scheduler',
+
+            'item_type' =>
+                'link',
+
+            'placement_code' =>
+                'sidebar',
+
+            'hide_when_badge_empty' =>
+                0,
+
+            'title' =>
+                'مدیریت اجرای خودکار',
+
+            'description' =>
+                'مدیریت Jobها، Scopeها، زمان‌بندی و تاریخچه اجرا',
+
+            'route_path' =>
+                '/admin/system/scheduler',
+
+            'target_application' =>
+                'core',
+
+            'icon_code' =>
+                'settings',
+
+            'color_code' =>
+                null,
+
+            'permission_mode' =>
+                'any',
+
+            'permission_codes_json' =>
+                json_encode(
+                    [
+                        'access.manage',
+                    ],
+                    JSON_UNESCAPED_UNICODE
+                    | JSON_UNESCAPED_SLASHES
+                ),
+
+            'badge_source' =>
+                null,
+
+            'active_paths_json' =>
+                json_encode(
+                    [
+                        '/admin/system/scheduler',
+                        '/admin/system/scheduler/*',
+                    ],
+                    JSON_UNESCAPED_UNICODE
+                    | JSON_UNESCAPED_SLASHES
+                ),
+
+            'sort_order' =>
+                45,
+
+            'is_active' =>
+                1,
+        ];
+
+        return $items;
     }
 
     private function present(array $item, int $userId): array

@@ -34,12 +34,14 @@ final class TicketingSlaService
 
     public function initializeEligible(
         int $limit = 100,
-        bool $apply = false
+        bool $apply = false,
+        ?int $projectId = null
     ): array {
         $candidates =
             $this->repository
                 ->initializationCandidates(
-                    $limit
+                    $limit,
+                    $projectId
                 );
 
 

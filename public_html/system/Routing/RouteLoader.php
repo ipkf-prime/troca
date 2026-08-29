@@ -24,6 +24,7 @@ class RouteLoader
             BASE_PATH . '/routes/notifications.php',
             BASE_PATH . '/routes/communication-center.php',
             BASE_PATH . '/routes/work-runtime.php',
+            BASE_PATH . '/routes/system-scheduler.php',
             BASE_PATH . '/routes/ticketing-runtime.php',
         ] as $routeFile) {
             if (is_readable($routeFile)) {

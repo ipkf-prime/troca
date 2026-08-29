@@ -45,7 +45,8 @@ final class TicketingSlaRuntimeService
     public function process(
         int $limit = 200,
         bool $apply = false,
-        ?DateTimeImmutable $nowUtc = null
+        ?DateTimeImmutable $nowUtc = null,
+        ?int $projectId = null
     ): array {
         $now =
             (
@@ -66,7 +67,8 @@ final class TicketingSlaRuntimeService
         $rows =
             $this->repository
                 ->runtimeCandidates(
-                    $limit
+                    $limit,
+                    $projectId
                 );
 
 
