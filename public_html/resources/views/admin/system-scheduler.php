@@ -17,6 +17,99 @@ if (!function_exists('scheduler_h')) {
     }
 }
 
+if (!function_exists('scheduler_digits')) {
+    function scheduler_digits(
+        mixed $value
+    ): string {
+        return
+            \App\Support\AdminFormat::digits(
+                (string) ($value ?? '')
+            );
+    }
+}
+
+
+if (!function_exists('scheduler_local_datetime')) {
+    function scheduler_local_datetime(
+        mixed $value,
+        string $timezone = 'Asia/Tehran'
+    ): string {
+        $value =
+            trim(
+                (string) ($value ?? '')
+            );
+
+        if ($value === '') {
+            return '—';
+        }
+
+        try {
+            $date =
+                new \DateTimeImmutable(
+                    $value,
+                    new \DateTimeZone('UTC')
+                );
+
+            return
+                scheduler_digits(
+                    $date
+                        ->setTimezone(
+                            new \DateTimeZone(
+                                $timezone
+                            )
+                        )
+                        ->format(
+                            'Y/m/d H:i:s'
+                        )
+                );
+
+        } catch (\Throwable) {
+            return
+                scheduler_digits(
+                    $value
+                );
+        }
+    }
+}
+
+
+if (!function_exists('scheduler_scope_label')) {
+    function scheduler_scope_label(
+        mixed $value
+    ): string {
+        return
+            match (
+                strtolower(
+                    trim(
+                        (string) ($value ?? '')
+                    )
+                )
+            ) {
+                'project' =>
+                    'پروژه',
+
+                'holding' =>
+                    'هلدینگ',
+
+                'organization' =>
+                    'سازمان',
+
+                'branch' =>
+                    'شعبه',
+
+                'provider' =>
+                    'سرویس‌دهنده',
+
+                'global' =>
+                    'کل سامانه',
+
+                default =>
+                    'محدوده اجرا',
+            };
+    }
+}
+
+
 $page =
     is_array(
         $page
@@ -199,7 +292,7 @@ ob_start();
             </h2>
 
             <p class="admin-muted">
-                مدیریت متمرکز Jobها، Scopeها،
+                مدیریت متمرکز کارهای اجرایی، محدوده‌ها،
                 زمان‌بندی و تاریخچه اجرای خودکار سامانه‌ها
             </p>
         </div>
@@ -254,11 +347,6 @@ ob_start();
                     ) ?>
                 </h3>
 
-                <small class="admin-muted">
-                    <?= scheduler_h(
-                        $applicationKey
-                    ) ?>
-                </small>
             </div>
 
             <span class="admin-pill">
@@ -276,7 +364,7 @@ ob_start();
         <?php if ($bindings === []): ?>
 
             <div class="admin-empty-state">
-                Job یا Scope فعالی ثبت نشده است.
+                کار اجرایی یا محدوده فعالی ثبت نشده است.
             </div>
 
         <?php else: ?>
@@ -320,23 +408,35 @@ ob_start();
 
                                 <div class="admin-muted">
                                     <?= scheduler_h(
+                                        scheduler_scope_label(
+                                            $binding['scope_type']
+                                            ?? ''
+                                        )
+                                    ) ?>:
+
+                                    <?= scheduler_h(
                                         $binding['scope_title_snapshot']
                                         ?? ''
                                     ) ?>
 
-                                    —
+                                    <?php if (
+                                        trim(
+                                            (string) (
+                                                $binding['scope_reference']
+                                                ?? ''
+                                            )
+                                        ) !== ''
+                                    ): ?>
 
-                                    <?= scheduler_h(
-                                        $binding['scope_type']
-                                        ?? ''
-                                    ) ?>
+                                        <span>
+                                            (شناسه:
+                                            <?= scheduler_h(
+                                                $binding['scope_reference']
+                                                ?? ''
+                                            ) ?>)
+                                        </span>
 
-                                    /
-
-                                    <?= scheduler_h(
-                                        $binding['scope_reference']
-                                        ?? ''
-                                    ) ?>
+                                    <?php endif; ?>
                                 </div>
                             </div>
 
@@ -444,7 +544,7 @@ ob_start();
 
                             <label>
                                 <span>
-                                    هر چند دقیقه
+                                    دوره اجرا (دقیقه)
                                 </span>
 
                                 <input
@@ -476,26 +576,34 @@ ob_start();
 
                             <div>
                                 <small class="admin-muted">
-                                    اجرای بعدی UTC
+                                    اجرای بعدی
                                 </small>
 
                                 <div>
                                     <?= scheduler_h(
-                                        $binding['next_run_at']
-                                        ?? '—'
+                                        scheduler_local_datetime(
+                                            $binding['next_run_at']
+                                            ?? null,
+                                            $binding['timezone']
+                                            ?? 'Asia/Tehran'
+                                        )
                                     ) ?>
                                 </div>
                             </div>
 
                             <div>
                                 <small class="admin-muted">
-                                    آخرین اجرا UTC
+                                    آخرین اجرا
                                 </small>
 
                                 <div>
                                     <?= scheduler_h(
-                                        $binding['last_run_at']
-                                        ?? '—'
+                                        scheduler_local_datetime(
+                                            $binding['last_run_at']
+                                            ?? null,
+                                            $binding['timezone']
+                                            ?? 'Asia/Tehran'
+                                        )
                                     ) ?>
                                 </div>
                             </div>
@@ -526,8 +634,10 @@ ob_start();
 
                                 <div>
                                     <?= scheduler_h(
-                                        $binding['consecutive_failures']
-                                        ?? 0
+                                        scheduler_digits(
+                                            $binding['consecutive_failures']
+                                            ?? 0
+                                        )
                                     ) ?>
                                 </div>
                             </div>
@@ -548,12 +658,12 @@ ob_start();
 
                 <thead>
                     <tr>
-                        <th>Job</th>
-                        <th>Scope</th>
+                        <th>عملیات</th>
+                        <th>محدوده</th>
                         <th>نوع اجرا</th>
                         <th>وضعیت</th>
-                        <th>شروع UTC</th>
-                        <th>مدت ms</th>
+                        <th>شروع اجرا</th>
+                        <th>مدت اجرا</th>
                         <th>خطا</th>
                     </tr>
                 </thead>
@@ -615,16 +725,28 @@ ob_start();
 
                                 <td>
                                     <?= scheduler_h(
-                                        $run['started_at']
-                                        ?? ''
+                                        scheduler_local_datetime(
+                                            $run['started_at']
+                                            ?? null
+                                        )
                                     ) ?>
                                 </td>
 
                                 <td>
-                                    <?= scheduler_h(
+                                    <?php
+                                    $duration =
                                         $run['duration_ms']
-                                        ?? '—'
-                                    ) ?>
+                                        ?? null;
+                                    ?>
+
+                                    <?= $duration === null
+                                        ? '—'
+                                        : scheduler_h(
+                                            scheduler_digits(
+                                                $duration
+                                            )
+                                            . ' میلی‌ثانیه'
+                                        ) ?>
                                 </td>
 
                                 <td>
