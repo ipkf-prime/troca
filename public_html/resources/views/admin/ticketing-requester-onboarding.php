@@ -18,17 +18,22 @@ $openProjects =
         : [];
 
 $status =
-    trim((string) ($status ?? ''));
+    trim(
+        (string) ($status ?? '')
+    );
 
 $error =
-    trim((string) ($error ?? ''));
+    trim(
+        (string) ($error ?? '')
+    );
 
 $csrf =
-    (new \IPKF\Security\Csrf())->token();
+    (new \IPKF\Security\Csrf())
+        ->token();
 
-$errors = [
+$errorMessages = [
     'csrf' =>
-        'اعتبار فرم منقضی شده است.',
+        'اعتبار فرم منقضی شده است. صفحه را دوباره بارگذاری کنید.',
 
     'requester_project_not_found' =>
         'پروژه پشتیبانی پیدا نشد.',
@@ -37,7 +42,7 @@ $errors = [
         'عضویت آزاد برای این پروژه فعال نیست.',
 
     'requester_invite_invalid' =>
-        'کد عضویت معتبر نیست.',
+        'کد عضویت واردشده معتبر نیست.',
 
     'requester_invite_inactive' =>
         'این کد عضویت غیرفعال است.',
@@ -46,92 +51,420 @@ $errors = [
         'زمان استفاده از این کد هنوز شروع نشده است.',
 
     'requester_invite_expired' =>
-        'اعتبار این کد به پایان رسیده است.',
+        'اعتبار این کد عضویت به پایان رسیده است.',
 
     'requester_invite_exhausted' =>
-        'ظرفیت استفاده از این کد تکمیل شده است.',
+        'ظرفیت استفاده از این کد عضویت تکمیل شده است.',
 ];
+
+ob_start();
 ?>
 
-<div class="admin-stack">
+<style>
+.requester-onboarding {
+    display: grid;
+    gap: 1rem;
+}
 
-    <section class="admin-section">
-        <h2>پشتیبانی و تیکتینگ</h2>
+.requester-onboarding__hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
 
-        <p class="admin-muted">
-            برای ثبت و پیگیری درخواست،
-            ابتدا پروژه پشتیبانی موردنظر را انتخاب کنید.
-        </p>
+.requester-onboarding__hero-main {
+    display: flex;
+    align-items: center;
+    gap: .9rem;
+    min-width: 0;
+}
+
+.requester-onboarding__hero-icon {
+    display: grid;
+    place-items: center;
+    width: 54px;
+    height: 54px;
+    flex: 0 0 54px;
+    border-radius: 16px;
+    background: color-mix(
+        in srgb,
+        var(--admin-accent, #258843) 12%,
+        white
+    );
+    color: var(--admin-accent, #258843);
+}
+
+.requester-onboarding__hero-icon svg {
+    width: 27px;
+    height: 27px;
+}
+
+.requester-onboarding__hero h2,
+.requester-onboarding__section h3 {
+    margin: 0;
+}
+
+.requester-onboarding__hero p,
+.requester-onboarding__section p {
+    margin: .3rem 0 0;
+}
+
+.requester-onboarding__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .55rem;
+}
+
+.requester-project-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(auto-fit, minmax(270px, 1fr));
+    gap: .8rem;
+    margin-top: .85rem;
+}
+
+.requester-project-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    min-height: 178px;
+    padding: 1rem;
+    border: 1px solid
+        var(--admin-border, #dce7e1);
+    border-radius: 16px;
+    background:
+        linear-gradient(
+            145deg,
+            color-mix(
+                in srgb,
+                var(--admin-accent, #258843) 4%,
+                white
+            ),
+            white 65%
+        );
+}
+
+.requester-project-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .7rem;
+}
+
+.requester-project-card__identity {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    min-width: 0;
+}
+
+.requester-project-card__icon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border-radius: 13px;
+    color: #fff;
+    background:
+        var(--admin-accent, #258843);
+}
+
+.requester-project-card__icon svg {
+    width: 21px;
+    height: 21px;
+}
+
+.requester-project-card__title {
+    display: grid;
+    gap: .15rem;
+}
+
+.requester-project-card__title strong {
+    font-size: .96rem;
+}
+
+.requester-project-card__title small {
+    direction: ltr;
+    text-align: right;
+    color: var(--admin-muted, #708278);
+}
+
+.requester-project-card__description {
+    color: var(--admin-muted, #708278);
+    line-height: 1.9;
+    flex: 1;
+}
+
+.requester-project-card form {
+    margin-top: auto;
+}
+
+.requester-project-card .admin-button {
+    width: 100%;
+    justify-content: center;
+}
+
+.requester-membership-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .28rem .6rem;
+    border-radius: 999px;
+    background: #e9f7ef;
+    color: #18733b;
+    font-size: .76rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.requester-invite {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: .7rem;
+    align-items: end;
+    max-width: 760px;
+    margin-top: .9rem;
+}
+
+.requester-invite label {
+    display: grid;
+    gap: .38rem;
+}
+
+.requester-invite input {
+    width: 100%;
+}
+
+.requester-invite__hint {
+    display: flex;
+    gap: .45rem;
+    align-items: flex-start;
+    color: var(--admin-muted, #708278);
+    margin-top: .65rem;
+    font-size: .82rem;
+}
+
+@media (max-width: 760px) {
+    .requester-onboarding__hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .requester-invite {
+        grid-template-columns: 1fr;
+    }
+
+    .requester-invite .admin-button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+
+<div class="requester-onboarding">
+
+    <section class="admin-section requester-onboarding__hero">
+
+        <div class="requester-onboarding__hero-main">
+
+            <span class="requester-onboarding__hero-icon">
+                <?= \App\Support\AdminIcon::html(
+                    'headset'
+                ) ?>
+            </span>
+
+            <div>
+                <h2>پشتیبانی و تیکتینگ</h2>
+
+                <p class="admin-muted">
+                    برای ثبت و پیگیری درخواست،
+                    پروژه پشتیبانی موردنظر را انتخاب کنید.
+                </p>
+            </div>
+
+        </div>
+
 
         <?php if ($memberships !== []): ?>
-            <div class="admin-form-actions">
+
+            <div class="requester-onboarding__actions">
+
                 <a
                     class="admin-button admin-button--soft"
                     href="<?= admin_h(
-                        $page['my_tickets_url']
+                        $page[
+                            'my_tickets_url'
+                        ]
                         ?? '#'
                     ) ?>"
                 >
+                    <?= \App\Support\AdminIcon::html(
+                        'document'
+                    ) ?>
                     تیکت‌های من
                 </a>
 
                 <a
                     class="admin-button"
                     href="<?= admin_h(
-                        $page['create_ticket_url']
+                        $page[
+                            'create_ticket_url'
+                        ]
                         ?? '#'
                     ) ?>"
                 >
+                    <?= \App\Support\AdminIcon::html(
+                        'plus'
+                    ) ?>
                     تیکت جدید
                 </a>
+
             </div>
+
         <?php endif; ?>
+
     </section>
 
 
     <?php if ($status === 'joined'): ?>
+
         <div class="admin-alert admin-alert--success">
-            عضویت شما با موفقیت فعال شد.
+            عضویت شما در پروژه پشتیبانی با موفقیت فعال شد.
         </div>
+
     <?php elseif ($status === 'already'): ?>
+
         <div class="admin-alert admin-alert--success">
-            عضویت شما از قبل فعال بوده است.
+            عضویت شما در این پروژه از قبل فعال بوده است.
         </div>
+
     <?php endif; ?>
 
 
     <?php if ($error !== ''): ?>
+
         <div class="admin-alert admin-alert--error">
             <?= admin_h(
-                $errors[$error]
-                ?? 'عضویت انجام نشد.'
+                $errorMessages[$error]
+                ?? 'عضویت انجام نشد. دوباره تلاش کنید.'
             ) ?>
         </div>
+
     <?php endif; ?>
 
 
     <?php if ($memberships !== []): ?>
 
-        <section class="admin-section">
-            <h3>پروژه‌های پشتیبانی من</h3>
+        <section class="admin-section requester-onboarding__section">
 
-            <?php foreach ($memberships as $project): ?>
-                <div class="admin-card">
-                    <strong>
-                        <?= admin_h(
-                            $project['title']
-                            ?? ''
-                        ) ?>
-                    </strong>
+            <div class="admin-section__header">
+                <div>
+                    <h3>پروژه‌های پشتیبانی من</h3>
 
                     <p class="admin-muted">
-                        <?= admin_h(
-                            $project['description']
-                            ?? ''
-                        ) ?>
+                        در این پروژه‌ها امکان ثبت و پیگیری تیکت دارید.
                     </p>
                 </div>
-            <?php endforeach; ?>
+            </div>
+
+
+            <div class="requester-project-grid">
+
+                <?php foreach ($memberships as $project): ?>
+
+                    <article class="requester-project-card">
+
+                        <div class="requester-project-card__head">
+
+                            <div class="requester-project-card__identity">
+
+                                <span class="requester-project-card__icon">
+                                    <?= \App\Support\AdminIcon::html(
+                                        'headset'
+                                    ) ?>
+                                </span>
+
+                                <div class="requester-project-card__title">
+
+                                    <strong>
+                                        <?= admin_h(
+                                            $project[
+                                                'title'
+                                            ]
+                                            ?? ''
+                                        ) ?>
+                                    </strong>
+
+                                    <small>
+                                        <?= admin_h(
+                                            $project[
+                                                'code'
+                                            ]
+                                            ?? ''
+                                        ) ?>
+                                    </small>
+
+                                </div>
+
+                            </div>
+
+                            <span class="requester-membership-badge">
+                                عضو پروژه
+                            </span>
+
+                        </div>
+
+
+                        <div class="requester-project-card__description">
+
+                            <?= admin_h(
+                                $project[
+                                    'description'
+                                ]
+                                ?? ''
+                            ) ?>
+
+                        </div>
+
+
+                        <div class="requester-onboarding__actions">
+
+                            <a
+                                class="admin-button"
+                                href="<?= admin_h(
+                                    $page[
+                                        'create_ticket_url'
+                                    ]
+                                    ?? '#'
+                                ) ?>"
+                            >
+                                ثبت تیکت جدید
+                            </a>
+
+                            <a
+                                class="admin-button admin-button--soft"
+                                href="<?= admin_h(
+                                    $page[
+                                        'my_tickets_url'
+                                    ]
+                                    ?? '#'
+                                ) ?>"
+                            >
+                                پیگیری تیکت‌ها
+                            </a>
+
+                        </div>
+
+                    </article>
+
+                <?php endforeach; ?>
+
+            </div>
+
         </section>
 
     <?php endif; ?>
@@ -139,28 +472,74 @@ $errors = [
 
     <?php if ($openProjects !== []): ?>
 
-        <section class="admin-section">
-            <h3>پروژه‌های قابل عضویت</h3>
+        <section class="admin-section requester-onboarding__section">
 
-            <div class="admin-grid">
+            <div class="admin-section__header">
+                <div>
+                    <h3>پروژه‌های قابل عضویت</h3>
+
+                    <p class="admin-muted">
+                        پروژه موردنظر را انتخاب کنید؛
+                        عضویت شما به‌عنوان درخواست‌کننده ثبت می‌شود.
+                    </p>
+                </div>
+            </div>
+
+
+            <div class="requester-project-grid">
 
                 <?php foreach ($openProjects as $project): ?>
 
-                    <div class="admin-card">
+                    <article class="requester-project-card">
 
-                        <strong>
+                        <div class="requester-project-card__head">
+
+                            <div class="requester-project-card__identity">
+
+                                <span class="requester-project-card__icon">
+                                    <?= \App\Support\AdminIcon::html(
+                                        'headset'
+                                    ) ?>
+                                </span>
+
+                                <div class="requester-project-card__title">
+
+                                    <strong>
+                                        <?= admin_h(
+                                            $project[
+                                                'title'
+                                            ]
+                                            ?? ''
+                                        ) ?>
+                                    </strong>
+
+                                    <small>
+                                        <?= admin_h(
+                                            $project[
+                                                'code'
+                                            ]
+                                            ?? ''
+                                        ) ?>
+                                    </small>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="requester-project-card__description">
+
                             <?= admin_h(
-                                $project['title']
+                                $project[
+                                    'description'
+                                ]
                                 ?? ''
                             ) ?>
-                        </strong>
 
-                        <p class="admin-muted">
-                            <?= admin_h(
-                                $project['description']
-                                ?? ''
-                            ) ?>
-                        </p>
+                        </div>
+
 
                         <form
                             method="post"
@@ -169,31 +548,37 @@ $errors = [
                             <input
                                 type="hidden"
                                 name="_token"
-                                value="<?= admin_h($csrf) ?>"
+                                value="<?= admin_h(
+                                    $csrf
+                                ) ?>"
                             >
 
                             <input
                                 type="hidden"
                                 name="project_reference"
                                 value="<?= admin_h(
-                                    $project['public_reference']
+                                    $project[
+                                        'public_reference'
+                                    ]
                                     ?? ''
                                 ) ?>"
                             >
 
                             <button
-                                class="admin-button"
                                 type="submit"
+                                class="admin-button"
                             >
                                 عضویت در پروژه
                             </button>
+
                         </form>
 
-                    </div>
+                    </article>
 
                 <?php endforeach; ?>
 
             </div>
+
         </section>
 
     <?php endif; ?>
@@ -201,18 +586,32 @@ $errors = [
 
     <?php if (!empty($page['invite_enabled'])): ?>
 
-        <section class="admin-section">
-            <h3>کد عضویت دارید؟</h3>
+        <section class="admin-section requester-onboarding__section">
+
+            <div class="admin-section__header">
+                <div>
+                    <h3>عضویت با کد دعوت</h3>
+
+                    <p class="admin-muted">
+                        اگر مدیر پروژه برای شما کد عضویت ارسال کرده،
+                        آن را در این بخش وارد کنید.
+                    </p>
+                </div>
+            </div>
+
 
             <form
                 method="post"
                 action="/admin/support/ticketing/invite"
-                class="admin-form-grid"
+                class="requester-invite"
             >
+
                 <input
                     type="hidden"
                     name="_token"
-                    value="<?= admin_h($csrf) ?>"
+                    value="<?= admin_h(
+                        $csrf
+                    ) ?>"
                 >
 
                 <label>
@@ -224,21 +623,36 @@ $errors = [
                         dir="ltr"
                         maxlength="80"
                         autocomplete="off"
+                        placeholder="NP-XXXX-XXXX-XXXX-XXXX"
                         required
                     >
                 </label>
 
-                <div class="admin-form-actions">
-                    <button
-                        class="admin-button"
-                        type="submit"
-                    >
-                        عضویت با کد
-                    </button>
-                </div>
+
+                <button
+                    class="admin-button"
+                    type="submit"
+                >
+                    عضویت با کد
+                </button>
+
             </form>
+
+
+            <div class="requester-invite__hint">
+                کد دعوت فقط عضویت درخواست‌کننده در همان پروژه
+                را فعال می‌کند و دسترسی کارشناسی ایجاد نمی‌کند.
+            </div>
+
         </section>
 
     <?php endif; ?>
 
 </div>
+
+<?php
+
+$content =
+    ob_get_clean();
+
+require __DIR__ . '/layout.php';
