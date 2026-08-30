@@ -159,9 +159,13 @@ class DynamicAdminNavigationService extends BaseService
                         'sort_order' =>
                             30,
 
+                        /*
+                         * Keep Create out of the My Tickets active
+                         * state. Ticket detail highlighting can be
+                         * specialized independently when required.
+                         */
                         'active_paths' => [
                             '/admin/ticketing/tickets',
-                            '/admin/ticketing/tickets/*',
                         ],
 
                         'badge' =>
@@ -296,6 +300,173 @@ class DynamicAdminNavigationService extends BaseService
             );
             $result[] = $presented;
         }
+
+        /*
+         * GLOBAL_TICKETING_SIDEBAR_ENTRY_RUNTIME
+         *
+         * The Core dashboard card and the Core sidebar must
+         * expose the same Ticketing module identity.
+         *
+         * Active role selects the interface:
+         *
+         * - Staff/Admin with ticketing.ticket.view:
+         *     launch the real Ticketing application.
+         *
+         * - Ordinary user with support.view:
+         *     enter the requester Ticketing dashboard.
+         *
+         * Project membership does not decide whether the
+         * Ticketing module exists in the global sidebar.
+         */
+        if ($shellKey === 'core') {
+
+            $staffInterface =
+                $this->authorization->hasPermission(
+                    $userId,
+                    'ticketing.ticket.view'
+                );
+
+            $requesterInterface =
+                !$staffInterface
+                &&
+                $this->authorization->hasPermission(
+                    $userId,
+                    'support.view'
+                );
+
+
+            if (
+                $staffInterface
+                ||
+                $requesterInterface
+            ) {
+                $alreadyPresent = false;
+
+                foreach ($result as $existingItem) {
+
+                    if (
+                        (string) (
+                            $existingItem['key']
+                            ?? ''
+                        ) === 'ticketing'
+                    ) {
+                        $alreadyPresent = true;
+                        break;
+                    }
+                }
+
+
+                if (!$alreadyPresent) {
+
+                    $ticketingModule =
+                        (
+                            new \IPKF\Support\ModuleRuntimeConfig()
+                        )->active(
+                            'ticketing'
+                        );
+
+
+                    if (is_array($ticketingModule)) {
+
+                        $urls =
+                            new ApplicationUrlRegistry();
+
+                        $modulePath =
+                            trim(
+                                (string) (
+                                    $ticketingModule[
+                                        'route_path'
+                                    ]
+                                    ?? '/admin/ticketing'
+                                )
+                            );
+
+                        if ($modulePath === '') {
+                            $modulePath =
+                                '/admin/ticketing';
+                        }
+
+
+                        if ($staffInterface) {
+
+                            $ticketingUrl =
+                                $urls->ticketingLaunch(
+                                    $modulePath
+                                );
+
+                            $activePaths = [
+                                '/admin/ticketing',
+                                '/admin/ticketing/*',
+                            ];
+
+                        } else {
+
+                            $ticketingUrl =
+                                $urls->core(
+                                    '/admin/support/ticketing'
+                                );
+
+                            $activePaths = [
+                                '/admin/support/ticketing',
+                                '/admin/support/ticketing/*',
+                            ];
+                        }
+
+
+                        $result[] = [
+                            'key' =>
+                                'ticketing',
+
+                            'title' =>
+                                trim(
+                                    (string) (
+                                        $ticketingModule[
+                                            'display_name'
+                                        ]
+                                        ?? 'پشتیبانی و تیکتینگ'
+                                    )
+                                ),
+
+                            'description' =>
+                                'تیکت‌ها و درخواست‌های پشتیبانی',
+
+                            'url' =>
+                                $ticketingUrl,
+
+                            'icon' =>
+                                trim(
+                                    (string) (
+                                        $ticketingModule[
+                                            'icon_code'
+                                        ]
+                                        ?? 'headset'
+                                    )
+                                ),
+
+                            'color' =>
+                                trim(
+                                    (string) (
+                                        $ticketingModule[
+                                            'color_code'
+                                        ]
+                                        ?? ''
+                                    )
+                                ),
+
+                            'sort_order' =>
+                                900,
+
+                            'active_paths' =>
+                                $activePaths,
+
+                            'badge' =>
+                                '',
+                        ];
+                    }
+                }
+            }
+        }
+
 
         return $result;
     }
