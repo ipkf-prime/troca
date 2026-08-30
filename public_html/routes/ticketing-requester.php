@@ -92,6 +92,126 @@ $router->get(
 
         return $adminRender(
             $response,
+            'ticketing-requester-dashboard',
+            [
+                'title' =>
+                    'پشتیبانی و تیکتینگ',
+
+                'context' =>
+                    $context,
+
+                'page' =>
+                    $page,
+
+                'status' =>
+                    (string) $request->input(
+                        'status',
+                        ''
+                    ),
+
+                'error' =>
+                    (string) $request->input(
+                        'error',
+                        ''
+                    ),
+            ]
+        );
+    }
+);
+
+
+/*
+ * T7A2_REQUESTER_MEMBERSHIP_WORKSPACE
+ * Membership management is a distinct Ticketing submenu.
+ */
+$router->get(
+    '/admin/support/ticketing/membership',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/support/ticketing/membership'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        /*
+         * T7A2_REQUESTER_MEMBERSHIP_WORKSPACE
+         *
+         * One public Ticketing card serves both audiences:
+         *
+         * - requester -> onboarding / project membership
+         * - staff     -> Ticketing staff shell
+         *
+         * Project membership remains the scope boundary.
+         */
+        $onboarding =
+            new \App\Services\Ticketing\TicketRequesterOnboardingService();
+
+        $userId =
+            (int) $context['user_id'];
+
+        $hasTicketingPermission =
+            (
+                new \App\Services\AuthorizationService()
+            )->hasPermission(
+                $userId,
+                'ticketing.ticket.view'
+            );
+
+        if (
+            $hasTicketingPermission
+            &&
+            $onboarding->hasStaffMembership(
+                $userId
+            )
+        ) {
+            $urls =
+                new \IPKF\Support\ApplicationUrlRegistry();
+
+            return $response->redirect(
+                $urls->ticketingLaunch(
+                    '/admin/ticketing',
+                    (string) $request->host()
+                )
+            );
+        }
+
+        try {
+            $page =
+                $onboarding->page(
+                    $userId
+                );
+
+        } catch (\Throwable) {
+
+            return $adminRender(
+                $response,
+                'placeholder',
+                [
+                    'title' =>
+                        'پشتیبانی و تیکتینگ',
+
+                    'context' =>
+                        $context,
+
+                    'message' =>
+                        'امکان بارگذاری پروژه‌های پشتیبانی وجود ندارد.',
+                ],
+                503
+            );
+        }
+
+        return $adminRender(
+            $response,
             'ticketing-requester-onboarding',
             [
                 'title' =>

@@ -82,18 +82,72 @@ class ModuleSsoService extends BaseService
             )
         );
 
+        /*
+         * REQUESTER_TICKETING_SSO_BRIDGE_RUNTIME
+         *
+         * ticketing.ticket.view remains a Staff/Admin permission.
+         * It is not granted to requester roles.
+         *
+         * Requester SSO is allowed only for requester-owned
+         * Ticketing paths and only with:
+         *
+         * - support.view in the active role
+         * - at least one active Ticketing project membership
+         */
+        $moduleKeyForAccess =
+            trim(
+                (string) (
+                    $module['module_key']
+                    ?? ''
+                )
+            );
+
+        $requesterTicketingAllowed =
+            false;
+
+        if (
+            $moduleKeyForAccess === 'ticketing'
+            &&
+            $this->isRequesterTicketingReturnPath(
+                $returnPath
+            )
+            &&
+            $this->authorization->hasPermission(
+                $userId,
+                'support.view'
+            )
+        ) {
+            try {
+                $onboarding =
+                    new \App\Services\Ticketing\TicketRequesterOnboardingService();
+
+                $requesterTicketingAllowed =
+                    $onboarding->hasMembership(
+                        $userId
+                    );
+
+            } catch (\Throwable) {
+                $requesterTicketingAllowed =
+                    false;
+            }
+        }
+
         if (
             $permission !== ''
-            && !$this->authorization->hasPermission(
+            &&
+            !$this->authorization->hasPermission(
                 $userId,
                 $permission
             )
+            &&
+            !$requesterTicketingAllowed
         ) {
             return [
                 'ok' => false,
                 'error' => 'forbidden',
             ];
         }
+
 
         $moduleKey = trim(
             (string) (
@@ -192,6 +246,44 @@ class ModuleSsoService extends BaseService
                     $issued['token']
                 ),
         ];
+    }
+
+
+    private function isRequesterTicketingReturnPath(
+        string $returnPath
+    ): bool {
+        $path =
+            parse_url(
+                $returnPath,
+                PHP_URL_PATH
+            )
+            ?: '/';
+
+        $path =
+            rtrim(
+                $path,
+                '/'
+            )
+            ?: '/';
+
+        if (
+            in_array(
+                $path,
+                [
+                    '/admin/ticketing/tickets',
+                    '/admin/ticketing/tickets/create',
+                ],
+                true
+            )
+        ) {
+            return true;
+        }
+
+        return
+            preg_match(
+                '#^/admin/ticketing/tickets/[A-Za-z0-9_-]+$#',
+                $path
+            ) === 1;
     }
 
 

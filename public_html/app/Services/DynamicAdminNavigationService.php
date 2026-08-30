@@ -22,6 +22,190 @@ class DynamicAdminNavigationService extends BaseService
 
     public function navigation(int $userId, string $shellKey): array
     {
+        /*
+         * REQUESTER_TICKETING_WEB_NAVIGATION_BRIDGE_RUNTIME
+         *
+         * The actual Admin layout reads sidebar items from this
+         * DynamicAdminNavigationService.
+         *
+         * Active system role selects interface.
+         * Project membership enables project operations only.
+         */
+        if ($shellKey === 'ticketing') {
+
+            $staffInterface =
+                $this->authorization->hasPermission(
+                    $userId,
+                    'ticketing.ticket.view'
+                );
+
+            $requesterInterface =
+                !$staffInterface
+                &&
+                $this->authorization->hasPermission(
+                    $userId,
+                    'support.view'
+                );
+
+            if ($requesterInterface) {
+
+                $hasMembership = false;
+
+                try {
+                    $onboarding =
+                        new \App\Services\Ticketing\TicketRequesterOnboardingService();
+
+                    $hasMembership =
+                        $onboarding->hasMembership(
+                            $userId
+                        );
+
+                } catch (\Throwable) {
+                    $hasMembership = false;
+                }
+
+                $urls =
+                    new ApplicationUrlRegistry();
+
+                $requesterItems = [
+                    [
+                        'key' =>
+                            'ticketing-dashboard',
+
+                        'title' =>
+                            'داشبورد تیکتینگ',
+
+                        'description' =>
+                            'نمای کلی پشتیبانی و پروژه‌های من',
+
+                        'url' =>
+                            $urls->core(
+                                '/admin/support/ticketing'
+                            ),
+
+                        'icon' =>
+                            'dashboard',
+
+                        'color' =>
+                            '',
+
+                        'sort_order' =>
+                            10,
+
+                        'active_paths' => [
+                            '/admin/support/ticketing',
+                        ],
+
+                        'badge' =>
+                            '',
+                    ],
+
+                    [
+                        'key' =>
+                            'ticketing-membership',
+
+                        'title' =>
+                            'عضویت در پروژه‌ها',
+
+                        'description' =>
+                            'عضویت‌ها و پروژه‌های قابل درخواست',
+
+                        'url' =>
+                            $urls->core(
+                                '/admin/support/ticketing/membership'
+                            ),
+
+                        'icon' =>
+                            'users',
+
+                        'color' =>
+                            '',
+
+                        'sort_order' =>
+                            20,
+
+                        'active_paths' => [
+                            '/admin/support/ticketing/membership',
+                        ],
+
+                        'badge' =>
+                            '',
+                    ],
+                ];
+
+                if ($hasMembership) {
+
+                    $requesterItems[] = [
+                        'key' =>
+                            'ticketing-my-tickets',
+
+                        'title' =>
+                            'تیکت‌های من',
+
+                        'description' =>
+                            'درخواست‌ها و پیگیری‌های من',
+
+                        'url' =>
+                            $urls->ticketingLaunch(
+                                '/admin/ticketing/tickets'
+                            ),
+
+                        'icon' =>
+                            'file-lines',
+
+                        'color' =>
+                            '',
+
+                        'sort_order' =>
+                            30,
+
+                        'active_paths' => [
+                            '/admin/ticketing/tickets',
+                            '/admin/ticketing/tickets/*',
+                        ],
+
+                        'badge' =>
+                            '',
+                    ];
+
+                    $requesterItems[] = [
+                        'key' =>
+                            'ticketing-create',
+
+                        'title' =>
+                            'تیکت جدید',
+
+                        'description' =>
+                            'ثبت درخواست پشتیبانی جدید',
+
+                        'url' =>
+                            $urls->ticketingLaunch(
+                                '/admin/ticketing/tickets/create'
+                            ),
+
+                        'icon' =>
+                            'circle-check',
+
+                        'color' =>
+                            '',
+
+                        'sort_order' =>
+                            40,
+
+                        'active_paths' => [
+                            '/admin/ticketing/tickets/create',
+                        ],
+
+                        'badge' =>
+                            '',
+                    ];
+                }
+
+                return $requesterItems;
+            }
+        }
+
+
         $items = $this->items($shellKey);
         $result = [];
 

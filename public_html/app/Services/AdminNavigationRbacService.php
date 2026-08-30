@@ -94,6 +94,7 @@ class AdminNavigationRbacService extends BaseService
             '/admin/reports' => 'admin.reports.view',
             '/admin/support' => 'support.view',
             '/admin/support/ticketing' => 'support.view',
+            '/admin/support/ticketing/membership' => 'support.view',
             '/admin/support/ticketing/join' => 'support.view',
             '/admin/support/ticketing/invite' => 'support.view',
         ];
