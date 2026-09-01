@@ -8,6 +8,13 @@ use IPKF\Database\Connections\ConnectionResolver;
 use PDO;
 use RuntimeException;
 
+/*
+ * TICKETING_ROUTING_OPERATIONAL_STAFF_ROLE_FILTER
+ *
+ * Automatic routing may only select active staff project
+ * memberships. A requester row is never a routing assignee,
+ * even when stale team-member data exists.
+ */
 final class TicketCreateRoutingRepository
 {
     private PDO $db;
@@ -1624,6 +1631,7 @@ final class TicketCreateRoutingRepository
                         tm.project_member_id
 
                    AND pm.left_at IS NULL
+                   AND pm.role_code IN ('member', 'manager')
 
                    AND pm.user_reference
                         IS NOT NULL
@@ -1698,6 +1706,7 @@ final class TicketCreateRoutingRepository
                             tm.project_member_id
 
                        AND pm.left_at IS NULL
+                       AND pm.role_code IN ('member', 'manager')
 
                        AND pm.user_reference
                             IS NOT NULL
@@ -1809,6 +1818,7 @@ final class TicketCreateRoutingRepository
                             tm.project_member_id
 
                        AND pm.left_at IS NULL
+                       AND pm.role_code IN ('member', 'manager')
 
                        AND pm.user_reference
                             IS NOT NULL

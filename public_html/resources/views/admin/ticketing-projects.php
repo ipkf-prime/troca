@@ -87,6 +87,13 @@ ob_start();
             </a>
 
             <a
+                class="admin-button admin-button--soft"
+                href="/admin/ticketing/statuses"
+            >
+                عنوان وضعیت‌ها
+            </a>
+
+            <a
                 class="admin-button"
                 href="/admin/ticketing/projects/create"
             >
@@ -312,25 +319,75 @@ ob_start();
                             </td>
 
                             <td>
-                                <a
+                                <a data-project-action-icon="edit" title="ویرایش پروژه" aria-label="ویرایش پروژه" style="width:2.35rem;height:2.35rem;min-width:2.35rem;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:.7rem"
                                     class="admin-button admin-button--soft admin-button--compact"
                                     href="<?= ticketing_h($editUrl) ?>"
                                 >
-                                    ویرایش
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
                                 </a>
 
-                                <a
+
+                                <!-- TICKETING_PROJECT_ACTION_ICON_SIZE_CONTRACT -->
+<style>
+[data-project-action-icon]{
+    width:2.15rem !important;
+    height:2.15rem !important;
+    min-width:2.15rem !important;
+    max-width:2.15rem !important;
+    padding:0 !important;
+    border-radius:.62rem !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    line-height:1 !important
+}
+
+[data-project-action-icon] svg{
+    width:1rem !important;
+    height:1rem !important;
+    min-width:1rem !important;
+    max-width:1rem !important;
+    display:block !important;
+    stroke-width:1.8
+}
+
+[data-project-action-icon]:hover{
+    transform:none !important
+}
+</style>
+
+<!-- TICKETING_PROJECT_ACTIONS_ICON_UNIFICATION -->
+<!-- TICKETING_PROJECT_MEMBER_ACCESS_DIRECT_LINK -->
+                                <a data-project-action-icon="members"
+                                    class="admin-button admin-button--soft ticketing-project-member-icon"
+                                    href="<?= ticketing_h(
+                                        '/admin/ticketing/projects/'
+                                        . rawurlencode(
+                                            (string) (
+                                                $project['public_reference']
+                                                ?? ''
+                                            )
+                                        )
+                                        . '/members'
+                                    ) ?>"
+                                    title="اعضا و دسترسی‌ها"
+                                    aria-label="اعضا و دسترسی‌ها"
+                                >
+                                    <?= \App\Support\AdminIcon::html('users') ?>
+                                </a>
+
+<a data-project-action-icon="topology" title="ساختار پشتیبانی" aria-label="ساختار پشتیبانی" style="width:2.35rem;height:2.35rem;min-width:2.35rem;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:.7rem"
                                     class="admin-button admin-button--soft admin-button--compact"
                                     href="<?= ticketing_h($topologyUrl) ?>"
                                 >
-                                    ساختار پشتیبانی
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="5" rx="1"/><rect x="2" y="17" width="6" height="5" rx="1"/><rect x="16" y="17" width="6" height="5" rx="1"/><path d="M12 7v5"/><path d="M5 17v-2a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2"/></svg>
                                 </a>
 
-                                <a
+                                <a data-project-action-icon="routing" title="موضوعات و مسیریابی" aria-label="موضوعات و مسیریابی" style="width:2.35rem;height:2.35rem;min-width:2.35rem;padding:0;display:inline-flex;align-items:center;justify-content:center;border-radius:.7rem"
                                     class="admin-button admin-button--soft admin-button--compact"
                                     href="<?= ticketing_h($routingUrl) ?>"
                                 >
-                                    موضوعات و مسیریابی
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><path d="M8 6h8"/><path d="M18 8v8"/><path d="M6 8v5a5 5 0 0 0 5 5h5"/></svg>
                                 </a>
                             </td>
                         </tr>

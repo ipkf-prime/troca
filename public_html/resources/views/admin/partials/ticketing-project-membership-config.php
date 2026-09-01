@@ -90,6 +90,15 @@ $fieldTypes = [
             برای عضویت در این پروژه را مشخص کنید.
         </p>
     </div>
+
+    <!-- TICKETING_REQUESTER_MANAGER_MEMBERS_LINK -->
+    <!-- TICKETING_PROJECT_MEMBER_ACCESS_CENTER_LINK -->
+    <a
+        class="admin-button admin-button--soft"
+        href="/admin/ticketing/projects/<?= rawurlencode($reference) ?>/members"
+    >
+        اعضا و دسترسی‌ها
+    </a>
 </header>
 
 

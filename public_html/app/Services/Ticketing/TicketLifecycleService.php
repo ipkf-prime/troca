@@ -19,7 +19,8 @@ final class TicketLifecycleService
         string $publicReference,
         string $body,
         int $userId,
-        array $context = []
+        array $context = [],
+        array $files = []
     ): array {
         $publicReference =
             trim($publicReference);
@@ -66,6 +67,98 @@ final class TicketLifecycleService
         $actorReference =
             'user:' . $userId;
 
+        /*
+         * TICKETING_STAFF_REPLY_DOMAIN_OWNERSHIP_GUARD
+         *
+         * Route RBAC answers only whether staff reply is a capability.
+         * This domain guard determines whether THIS ticket is currently
+         * owned by THIS user in THIS exact support project.
+         *
+         * Every caller of staffReply() is therefore protected, not only
+         * the browser route.
+         */
+        $replyAccess =
+            (
+                new TicketStaffReplyAccessService()
+            )->evaluate(
+                $publicReference,
+                $userId
+            );
+
+        if (
+            empty(
+                $replyAccess['can_reply']
+            )
+        ) {
+            $state =
+                trim(
+                    (string) (
+                        $replyAccess['state']
+                        ?? 'reply_forbidden'
+                    )
+                );
+
+            return match ($state) {
+                'ticket_not_found' => [
+                    'ok' => false,
+                    'not_found' => true,
+                    'status' => 'ticket_not_found',
+                ],
+
+                'reply_closed' => [
+                    'ok' => false,
+                    'status' => 'reply_closed',
+                ],
+
+                'reply_waiting_requester',
+                'reply_takeover_required',
+                'reply_not_assignee',
+                'reply_assignment_invalid' => [
+                    'ok' => false,
+                    'status' => $state,
+                ],
+
+                default => [
+                    'ok' => false,
+                    'status' => 'reply_forbidden',
+                ],
+            };
+        }
+
+        /*
+         * TICKETING_REPLY_MESSAGE_ATTACHMENTS
+         *
+         * Reuse the same secure/private upload service
+         * as initial ticket creation.
+         */
+        $attachmentUpload =
+            new TicketAttachmentUploadService();
+
+        try {
+            $preparedAttachments =
+                $attachmentUpload->prepare(
+                    is_array($files)
+                        ? $files
+                        : [],
+
+                    'user:' . $userId
+                );
+
+        } catch (\InvalidArgumentException $exception) {
+            return [
+                'ok' =>
+                    false,
+
+                'status' =>
+                    'reply_invalid',
+
+                'attachment_error' =>
+                    $attachmentUpload->errorMessage(
+                        $exception->getMessage()
+                    ),
+            ];
+        }
+
         try {
             $result =
                 $this->tickets->staffReply(
@@ -75,7 +168,8 @@ final class TicketLifecycleService
                     $this->contextDisplayName(
                         $context,
                         $userId
-                    )
+                    ),
+                    $preparedAttachments
                 );
 
             $notification =
@@ -124,15 +218,15 @@ final class TicketLifecycleService
     public function requesterReply(
         string $publicReference,
         string $body,
-        int $userId
+        int $userId,
+        array $files = []
     ): array {
         $publicReference =
             trim($publicReference);
 
         if (
             $publicReference === ''
-            ||
-            $userId < 1
+            || $userId < 1
         ) {
             return [
                 'ok' => false,
@@ -141,10 +235,6 @@ final class TicketLifecycleService
             ];
         }
 
-        /*
-         * Preserve body exactly as supplied.
-         * trim() is only used for blank validation.
-         */
         if (trim($body) === '') {
             return [
                 'ok' => false,
@@ -169,13 +259,44 @@ final class TicketLifecycleService
             ];
         }
 
+        /*
+         * TICKETING_REPLY_MESSAGE_ATTACHMENTS
+         *
+         * Requester updates reuse the canonical private
+         * attachment preparation pipeline.
+         */
+        $attachmentUpload =
+            new TicketAttachmentUploadService();
+
+        try {
+            $preparedAttachments =
+                $attachmentUpload->prepare(
+                    is_array($files)
+                        ? $files
+                        : [],
+                    'user:' . $userId
+                );
+
+        } catch (\InvalidArgumentException $exception) {
+            return [
+                'ok' => false,
+                'status' =>
+                    'requester_reply_invalid',
+                'attachment_error' =>
+                    $attachmentUpload->errorMessage(
+                        $exception->getMessage()
+                    ),
+            ];
+        }
+
         try {
             $result =
                 $this->tickets
                     ->requesterReply(
                         $publicReference,
                         $body,
-                        'user:' . $userId
+                        'user:' . $userId,
+                        $preparedAttachments
                     );
 
             $notification =
@@ -190,6 +311,7 @@ final class TicketLifecycleService
                 'notification' =>
                     $notification,
             ];
+
         } catch (RuntimeException $exception) {
             return match (
                 $exception->getMessage()
@@ -208,11 +330,11 @@ final class TicketLifecycleService
                             'requester_reply_forbidden',
                     ],
 
-                'requester_reply_not_expected'
+                'requester_update_forbidden_state'
                     => [
                         'ok' => false,
                         'status' =>
-                            'requester_reply_not_expected',
+                            'requester_update_forbidden_state',
                     ],
 
                 default =>
@@ -221,6 +343,67 @@ final class TicketLifecycleService
         }
     }
 
+    public function requesterResolve(
+        string $publicReference,
+        int $userId
+    ): array {
+        $publicReference =
+            trim($publicReference);
+
+        if (
+            $publicReference === ''
+            || $userId < 1
+        ) {
+            return [
+                'ok' => false,
+                'status' =>
+                    'requester_reply_invalid',
+            ];
+        }
+
+        try {
+            $result =
+                $this->tickets
+                    ->requesterResolve(
+                        $publicReference,
+                        'user:' . $userId
+                    );
+
+            return [
+                'ok' => true,
+                ...$result,
+            ];
+
+        } catch (RuntimeException $exception) {
+            return match (
+                $exception->getMessage()
+            ) {
+                'ticket_not_found' => [
+                    'ok' => false,
+                    'not_found' => true,
+                    'status' =>
+                        'ticket_not_found',
+                ],
+
+                'requester_reply_forbidden'
+                    => [
+                        'ok' => false,
+                        'status' =>
+                            'requester_reply_forbidden',
+                    ],
+
+                'requester_resolve_forbidden_state'
+                    => [
+                        'ok' => false,
+                        'status' =>
+                            'requester_resolve_forbidden_state',
+                    ],
+
+                default =>
+                    throw $exception,
+            };
+        }
+    }
 
     private function contextDisplayName(
         array $context,

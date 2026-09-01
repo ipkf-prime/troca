@@ -15,6 +15,21 @@ ob_start();
 <?php if ($status === 'invalid'): ?><div class="admin-alert admin-alert--danger"><?= admin_h((string) ($error ?? 'اطلاعات معتبر نیست.')) ?></div><?php endif; ?>
 <?php if (!$registry['available']): ?><div class="admin-alert admin-alert--warning">جدول رجیستری موجود نیست؛ Migration را اجرا کنید.</div><?php endif; ?>
 
+<section class="admin-section">
+    <div class="admin-panel-heading">
+        <div>
+            <h3>زیرساخت عمومی فایل</h3>
+            <p>مدیریت مسیر پیوست‌های خصوصی و موتور بررسی بدافزار برای ماژول‌های سامانه</p>
+        </div>
+        <a
+            class="admin-button admin-button--soft"
+            href="/admin/settings/file-infrastructure"
+        >
+            تنظیمات فایل و آنتی‌ویروس
+        </a>
+    </div>
+</section>
+
 <section class="admin-section admin-tab-workspace">
     <nav class="admin-tabs" data-admin-tabs role="tablist" aria-label="تنظیمات ماژول">
         <button class="admin-tab is-active" type="button" data-admin-tab="general">عمومی</button>

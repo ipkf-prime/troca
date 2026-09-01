@@ -5741,6 +5741,170 @@ $router->post('/admin/settings/modules', function ($request, $response) use ($ad
     $_SESSION['admin_module_registry_error'] = (string) ($result['error'] ?? '');
     return $response->redirect('/admin/settings?status=' . (($result['ok'] ?? false) ? 'saved' : 'invalid'));
 });
+
+$router->get(
+    '/admin/settings/file-infrastructure',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/settings'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $result =
+            $_SESSION[
+                'admin_file_infrastructure_result'
+            ]
+            ?? [];
+
+        unset(
+            $_SESSION[
+                'admin_file_infrastructure_result'
+            ]
+        );
+
+        $service =
+            new \App\Services\Infrastructure\SharedFileInfrastructureSettingsService();
+
+        return $adminRender(
+            $response,
+            'file-infrastructure-settings',
+            [
+                'title' =>
+                    'زیرساخت فایل و آنتی‌ویروس',
+
+                'context' =>
+                    $context,
+
+                'fileInfrastructure' =>
+                    $service->snapshot(),
+
+                'result' =>
+                    is_array($result)
+                        ? $result
+                        : [],
+            ]
+        );
+    }
+);
+
+
+$router->post(
+    '/admin/settings/file-infrastructure',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/settings'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        if (
+            !(
+                new \IPKF\Security\Csrf()
+            )->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            $_SESSION[
+                'admin_file_infrastructure_result'
+            ] = [
+                'ok' => false,
+
+                'message' =>
+                    'نشست فرم معتبر نیست.',
+            ];
+
+            return $response->redirect(
+                '/admin/settings/file-infrastructure'
+            );
+        }
+
+        $input =
+            $request->all();
+
+        $action =
+            trim(
+                (string) (
+                    $input['action']
+                    ?? 'save'
+                )
+            );
+
+        $service =
+            new \App\Services\Infrastructure\SharedFileInfrastructureSettingsService();
+
+        $result =
+            match ($action) {
+                'test_storage' =>
+                    $service->testStorage(
+                        $input
+                    ),
+
+                'test_scanner' =>
+                    $service->testScanner(
+                        $input
+                    ),
+
+                default =>
+                    $service->save(
+                        $input
+                    ),
+            };
+
+        $result['input'] = [
+            'storage_root' =>
+                (string) (
+                    $input['storage_root']
+                    ?? ''
+                ),
+
+            'clamav_binary_path' =>
+                (string) (
+                    $input['clamav_binary_path']
+                    ?? ''
+                ),
+
+            'scan_timeout_seconds' =>
+                (int) (
+                    $input['scan_timeout_seconds']
+                    ?? 45
+                ),
+        ];
+
+        $_SESSION[
+            'admin_file_infrastructure_result'
+        ] =
+            $result;
+
+        return $response->redirect(
+            '/admin/settings/file-infrastructure'
+        );
+    }
+);
+
+
 $router->get(
     '/admin/settings/core-features',
     function (

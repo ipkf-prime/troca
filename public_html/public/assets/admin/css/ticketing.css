@@ -2069,3 +2069,946 @@ a.ticketing-attachment-action:focus-visible {
         var(--admin-primary, #268b5b);
     outline-offset: 2px;
 }
+
+
+/* ==========================================================================
+   TICKETING_SHARED_ICON_VISUAL_CONTRACT_V2
+
+   Icon-only controls are secondary controls.
+   Primary green is reserved for clear text actions.
+   ========================================================================== */
+
+
+/*
+ * One visual language for every Ticketing icon-only action.
+ *
+ * Modifiers still describe semantics in markup, but they must not turn
+ * an unexplained square icon into a primary green button.
+ */
+.ticketing-icon-action,
+.ticketing-icon-action--primary,
+.ticketing-icon-action--soft,
+.ticketing-icon-action--takeover,
+.ticketing-icon-action--transfer,
+.ticketing-icon-action--escalate {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+
+    padding: 0 !important;
+
+    border: 1px solid #d5e3da !important;
+    border-radius: 9px !important;
+
+    background: #fff !important;
+    color: #365748 !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    line-height: 1 !important;
+    box-shadow: none !important;
+}
+
+
+.ticketing-icon-action:hover,
+.ticketing-icon-action:focus-visible,
+.ticketing-icon-action--primary:hover,
+.ticketing-icon-action--primary:focus-visible,
+.ticketing-icon-action--soft:hover,
+.ticketing-icon-action--soft:focus-visible,
+.ticketing-icon-action--takeover:hover,
+.ticketing-icon-action--takeover:focus-visible,
+.ticketing-icon-action--transfer:hover,
+.ticketing-icon-action--transfer:focus-visible,
+.ticketing-icon-action--escalate:hover,
+.ticketing-icon-action--escalate:focus-visible {
+    border-color: #9fc9b1 !important;
+    background: #edf7f1 !important;
+    color: #1f754b !important;
+}
+
+
+.ticketing-icon-action svg,
+.ticketing-icon-action .ticketing-action-icon {
+    width: 16px !important;
+    height: 16px !important;
+    min-width: 16px !important;
+    max-width: 16px !important;
+
+    display: block !important;
+    pointer-events: none;
+}
+
+
+/*
+ * Staff cartable table density.
+ *
+ * The old compact widths were too aggressive:
+ * long statuses were visually entering the activity column.
+ */
+.ticketing-staff-table-wrap {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+}
+
+
+.ticketing-staff-table {
+    min-width: 1075px !important;
+    table-layout: fixed !important;
+}
+
+
+.ticketing-col-number {
+    width: 92px !important;
+}
+
+
+.ticketing-col-title {
+    width: 190px !important;
+}
+
+
+.ticketing-col-stage {
+    width: 170px !important;
+}
+
+
+.ticketing-col-assignee {
+    width: 130px !important;
+}
+
+
+.ticketing-col-priority {
+    width: 64px !important;
+}
+
+
+.ticketing-col-status {
+    width: 160px !important;
+}
+
+
+.ticketing-col-activity {
+    width: 125px !important;
+}
+
+
+.ticketing-col-actions {
+    width: 144px !important;
+}
+
+
+/*
+ * Cell-content containment.
+ */
+.ticketing-col-title,
+.ticketing-col-stage,
+.ticketing-col-assignee,
+.ticketing-col-status {
+    overflow-wrap: anywhere;
+    word-break: normal;
+}
+
+
+.ticketing-col-status {
+    text-align: center;
+}
+
+
+.ticketing-col-status .admin-pill,
+.ticketing-col-status .admin-status-badge,
+.ticketing-col-status > span {
+    max-width: 100%;
+
+    white-space: normal !important;
+    line-height: 1.45 !important;
+
+    text-align: center;
+}
+
+
+.ticketing-col-activity {
+    white-space: nowrap !important;
+    font-variant-numeric: tabular-nums;
+}
+
+
+.ticketing-staff-icon-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    min-height: 34px;
+
+    white-space: nowrap;
+}
+
+
+/*
+ * Transfer popover confirmation is icon-only as well,
+ * therefore it follows the same neutral visual contract.
+ */
+.ticketing-transfer-form
+.ticketing-icon-action--primary {
+    background: #fff !important;
+    color: #365748 !important;
+}
+
+
+/*
+ * Native title/aria-label remains the meaning carrier.
+ * Do not reintroduce pseudo-element tooltips inside table overflow.
+ */
+.ticketing-icon-action[data-tooltip]::before,
+.ticketing-icon-action[data-tooltip]::after {
+    content: none !important;
+    display: none !important;
+}
+
+
+@media (max-width: 1100px) {
+
+    .ticketing-staff-table {
+        min-width: 1075px !important;
+    }
+
+}
+
+
+/*
+ * TICKETING_CARTABLE_DENSITY_AND_LIFECYCLE_V3
+ *
+ * Final density correction from browser review:
+ * - long status badges were visually oversized
+ * - four icon actions require real content width + cell padding
+ */
+
+.ticketing-col-status .admin-pill,
+.ticketing-col-status .admin-status-badge,
+.ticketing-col-status > span {
+    font-size: .72rem !important;
+    font-weight: 700 !important;
+    line-height: 1.32 !important;
+    padding: .18rem .48rem !important;
+}
+
+
+.ticketing-staff-table {
+    min-width: 1120px !important;
+}
+
+
+.ticketing-col-actions {
+    width: 184px !important;
+    padding-inline: 6px !important;
+}
+
+
+.ticketing-staff-icon-actions {
+    width: 100% !important;
+    min-width: 151px !important;
+    max-width: none !important;
+
+    justify-content: center !important;
+    flex-wrap: nowrap !important;
+
+    overflow: visible !important;
+}
+
+
+/*
+ * Detail lifecycle action panel.
+ */
+.ticketing-lifecycle-actions {
+    margin-top: .8rem;
+}
+
+
+.ticketing-lifecycle-actions__grid {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .55rem;
+}
+
+
+.ticketing-lifecycle-actions__grid form {
+    margin: 0;
+}
+
+
+.ticketing-lifecycle-action--resolve,
+.ticketing-lifecycle-action--reopen {
+    min-width: 9rem;
+}
+
+
+.ticketing-lifecycle-action--close {
+    min-width: 7rem;
+}
+/* ==========================================================================
+   ticketing_requester_actions_r4a2r1
+   Requester action separation and resolved-update notice.
+   ========================================================================== */
+
+.ticketing-requester-reply
+[data-ticketing-requester-reply-form]
+.admin-form-actions {
+    margin-block-end: 0;
+}
+
+.ticketing-requester-reply
+[data-ticketing-requester-resolve-form] {
+    margin-block-start: 14px;
+}
+
+.ticketing-requester-reply
+[data-ticketing-requester-resolve-form]
+.admin-form-actions {
+    margin-block-start: 0;
+}
+
+.ticketing-requester-reopen-note {
+    margin-block: 10px 14px;
+}
+
+@media (max-width: 760px) {
+    .ticketing-requester-reply
+    [data-ticketing-requester-resolve-form] {
+        margin-block-start: 12px;
+    }
+}
+
+/* ==========================================================================
+   ticketing_unified_timeline_r4a2r3
+   ========================================================================== */
+
+.ticketing-shell
+.ticketing-unified-timeline {
+    display: grid;
+    gap: 12px;
+    inline-size: min(100%, 920px);
+    margin-inline: auto;
+    padding: 12px 0 18px;
+    position: relative;
+}
+
+.ticketing-shell
+.ticketing-unified-timeline::before {
+    background: var(--admin-border, #d9e0e7);
+    content: "";
+    inset-block: 18px;
+    inset-inline-start: 14px;
+    opacity: .72;
+    position: absolute;
+    width: 1px;
+}
+
+.ticketing-shell
+.ticketing-timeline-item {
+    min-width: 0;
+    position: relative;
+}
+
+.ticketing-shell
+.ticketing-timeline-item--message,
+.ticketing-shell
+.ticketing-timeline-item--event {
+    padding-inline-start: 30px;
+}
+
+.ticketing-shell
+.ticketing-timeline-item--message::before {
+    background: var(--admin-surface, #fff);
+    border: 2px solid var(--admin-primary, #268b5b);
+    border-radius: 999px;
+    content: "";
+    height: 9px;
+    inset-block-start: 24px;
+    inset-inline-start: 10px;
+    position: absolute;
+    width: 9px;
+    z-index: 2;
+}
+
+.ticketing-shell
+.ticketing-unified-timeline
+.ticketing-message-bubble {
+    border-radius: 12px;
+    inline-size: 100%;
+    margin: 0;
+    max-inline-size: none;
+}
+
+.ticketing-shell
+.ticketing-unified-timeline
+.ticketing-message-bubble[
+    data-ticketing-message-author="requester"
+],
+.ticketing-shell
+.ticketing-unified-timeline
+.ticketing-message-bubble[
+    data-ticketing-message-author="staff"
+],
+.ticketing-shell
+.ticketing-unified-timeline
+.ticketing-message-bubble[
+    data-ticketing-message-author="system"
+] {
+    margin: 0;
+    max-inline-size: none;
+}
+
+.ticketing-shell
+.ticketing-unified-timeline
+.ticketing-message-bubble
+.admin-card-body {
+    padding: 13px 15px;
+}
+
+.ticketing-shell
+.ticketing-timeline-event {
+    align-items: center;
+    color: var(--admin-text-muted, #64748b);
+    display: grid;
+    font-size: 11.5px;
+    gap: 9px;
+    grid-template-columns: auto minmax(0, 1fr);
+    line-height: 1.75;
+    min-height: 30px;
+    padding: 2px 0;
+}
+
+.ticketing-shell
+.ticketing-timeline-event__dot {
+    background: var(--admin-surface, #fff);
+    border: 1px solid var(--admin-border, #d9e0e7);
+    border-radius: 999px;
+    height: 8px;
+    margin-inline-start: -24px;
+    width: 8px;
+    z-index: 2;
+}
+
+.ticketing-shell
+.ticketing-timeline-event__content {
+    align-items: baseline;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    min-width: 0;
+}
+
+.ticketing-shell
+.ticketing-timeline-event__text {
+    color: var(--admin-text-muted, #64748b);
+    font-weight: 600;
+}
+
+.ticketing-shell
+.ticketing-timeline-event__meta {
+    color: var(--admin-text-muted, #64748b);
+    font-size: 10.5px;
+    opacity: .8;
+}
+
+.ticketing-shell
+.ticketing-history
+.admin-table-wrap,
+.ticketing-shell
+.ticketing-history
+> .admin-empty-state,
+.ticketing-shell
+.ticketing-history
+> .admin-page-header {
+    display: none;
+}
+
+.ticketing-shell
+.ticketing-details-stack {
+    display: grid;
+    gap: 12px;
+}
+
+.ticketing-shell
+.ticketing-details-heading {
+    display: grid;
+    gap: 2px;
+}
+
+.ticketing-shell
+.ticketing-details-heading h3,
+.ticketing-shell
+.ticketing-details-heading p {
+    margin: 0;
+}
+
+.ticketing-shell
+.ticketing-details-heading p {
+    color: var(--admin-text-muted, #64748b);
+    font-size: 11.5px;
+}
+
+.ticketing-shell
+.ticketing-details-metrics,
+.ticketing-shell
+.ticketing-details-route {
+    margin: 0;
+}
+
+.ticketing-shell
+.ticketing-file-picker {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    position: relative;
+}
+
+.ticketing-shell
+.ticketing-file-picker
+> input[type="file"] {
+    block-size: 1px;
+    inline-size: 1px;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    position: absolute;
+}
+
+.ticketing-shell
+.ticketing-file-picker-control {
+    align-items: center;
+    background: var(--admin-surface, #fff);
+    border: 1px solid var(--admin-border, #d9e0e7);
+    border-radius: 9px;
+    display: flex;
+    gap: 10px;
+    min-height: 38px;
+    padding: 5px 7px;
+}
+
+.ticketing-shell
+.ticketing-file-picker-state {
+    color: var(--admin-text-muted, #64748b);
+    font-size: 11.5px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+    .ticketing-shell
+    .ticketing-unified-timeline {
+        inline-size: 100%;
+        padding-block: 8px 12px;
+    }
+
+    .ticketing-shell
+    .ticketing-timeline-item--message,
+    .ticketing-shell
+    .ticketing-timeline-item--event {
+        padding-inline-start: 24px;
+    }
+
+    .ticketing-shell
+    .ticketing-unified-timeline::before {
+        inset-inline-start: 10px;
+    }
+
+    .ticketing-shell
+    .ticketing-timeline-item--message::before {
+        inset-inline-start: 6px;
+    }
+
+    .ticketing-shell
+    .ticketing-timeline-event__dot {
+        margin-inline-start: -20px;
+    }
+
+    .ticketing-shell
+    .ticketing-file-picker-control {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .ticketing-shell
+    .ticketing-file-picker-control
+    .admin-button {
+        width: 100%;
+    }
+}
+
+/* ==========================================================================
+   ticketing_timeline_polish_r4a2r4
+   Compact and readable audit runs without hiding history.
+   ========================================================================== */
+
+.ticketing-shell
+.ticketing-timeline-event {
+    background:
+        color-mix(
+            in srgb,
+            var(--admin-surface, #fff) 88%,
+            var(--admin-border, #d9e0e7)
+        );
+    border:
+        1px solid
+        color-mix(
+            in srgb,
+            var(--admin-border, #d9e0e7) 68%,
+            transparent
+        );
+    border-radius: 8px;
+    font-size: 12px;
+    min-height: 34px;
+    padding: 5px 9px;
+}
+
+.ticketing-shell
+.ticketing-timeline-event__text {
+    line-height: 1.8;
+}
+
+.ticketing-shell
+.ticketing-timeline-event__meta {
+    font-size: 10.5px;
+    white-space: nowrap;
+}
+
+.ticketing-shell
+.ticketing-timeline-item--event {
+    padding-block: 1px;
+}
+
+.ticketing-shell
+.ticketing-timeline-event-group {
+    border:
+        1px dashed
+        var(--admin-border, #d9e0e7);
+    border-radius: 9px;
+    inline-size: calc(100% - 30px);
+    margin-inline-start: 30px;
+    overflow: hidden;
+}
+
+.ticketing-shell
+.ticketing-timeline-event-group__summary {
+    align-items: center;
+    color:
+        var(
+            --admin-text-muted,
+            #64748b
+        );
+    cursor: pointer;
+    display: flex;
+    font-size: 11.5px;
+    font-weight: 700;
+    justify-content: center;
+    list-style: none;
+    min-height: 34px;
+    padding: 5px 10px;
+    user-select: none;
+}
+
+.ticketing-shell
+.ticketing-timeline-event-group__summary::-webkit-details-marker {
+    display: none;
+}
+
+.ticketing-shell
+.ticketing-timeline-event-group__summary::before {
+    content: "＋";
+    font-size: 13px;
+    margin-inline-end: 6px;
+}
+
+.ticketing-shell
+.ticketing-timeline-event-group[open]
+.ticketing-timeline-event-group__summary::before {
+    content: "−";
+}
+
+.ticketing-shell
+.ticketing-timeline-event-group__body {
+    border-block-start:
+        1px dashed
+        var(--admin-border, #d9e0e7);
+    display: grid;
+    gap: 5px;
+    padding: 7px;
+}
+
+.ticketing-shell
+.ticketing-timeline-event-group__body
+.ticketing-timeline-item--event {
+    padding-inline-start: 0;
+}
+
+.ticketing-shell
+.ticketing-details-host
+.ticketing-route-summary {
+    margin: 0;
+}
+
+.ticketing-shell
+.ticketing-details-host
+.ticketing-detail-metrics {
+    display: none;
+}
+
+@media (max-width: 760px) {
+    .ticketing-shell
+    .ticketing-timeline-event-group {
+        inline-size: calc(100% - 24px);
+        margin-inline-start: 24px;
+    }
+
+    .ticketing-shell
+    .ticketing-timeline-event__content {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .ticketing-shell
+    .ticketing-timeline-event__meta {
+        white-space: normal;
+    }
+}
+
+/* TICKETING_PRIORITY_GOVERNANCE_STYLES */
+.ticketing-priority-governance {
+    display: grid;
+    gap: .85rem;
+}
+
+.ticketing-priority-current {
+    align-items: center;
+    border: 1px solid var(--admin-border);
+    border-radius: 999px;
+    display: inline-flex;
+    min-height: 2rem;
+    padding: .25rem .7rem;
+}
+
+.ticketing-priority-form {
+    display: grid;
+    gap: .7rem;
+    grid-template-columns: minmax(12rem, .35fr) minmax(0, 1fr);
+}
+
+.ticketing-priority-form label {
+    display: grid;
+    gap: .35rem;
+}
+
+.ticketing-priority-form__reason,
+.ticketing-priority-form .admin-form-actions {
+    grid-column: 1 / -1;
+}
+
+.ticketing-priority-history {
+    border-top: 1px solid var(--admin-border);
+    display: grid;
+    gap: .55rem;
+    padding-top: .8rem;
+}
+
+.ticketing-priority-history__item {
+    background: var(--admin-surface-muted);
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    display: grid;
+    gap: .4rem;
+    padding: .65rem .75rem;
+}
+
+.ticketing-priority-history__item > div {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .45rem;
+    justify-content: space-between;
+}
+
+.ticketing-priority-history__item small {
+    color: var(--admin-text-muted);
+}
+
+.ticketing-priority-history__item p {
+    margin: 0;
+}
+
+@media (max-width: 760px) {
+    .ticketing-priority-form {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==========================================================================
+   TICKETING_REAL_TICKET_DETAILS_SPACING
+   Separate the ticket metrics from the project/routing summary.
+   ========================================================================== */
+
+.ticketing-details-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.ticketing-details-panel > .ticketing-details-heading,
+.ticketing-details-panel > .ticketing-detail-metrics.ticketing-details-metrics-block,
+.ticketing-details-panel > .ticketing-details-summary-block {
+    margin: 0;
+}
+
+.ticketing-details-panel > .ticketing-details-summary-block {
+    width: 100%;
+}
+
+/* ==========================================================================
+   TICKETING_REAL_TICKET_DETAILS_UNIFIED_CARDS
+   Present routing/project details with the same card language as metrics.
+   ========================================================================== */
+
+.ticketing-details-panel
+> .ticketing-details-summary-block.ticketing-route-summary {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    display: grid;
+    gap: 18px;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+    overflow: visible;
+    padding: 0;
+}
+
+.ticketing-details-panel
+> .ticketing-details-summary-block.ticketing-route-summary
+> .ticketing-route-summary__item {
+    align-content: center;
+    background:
+        var(
+            --admin-surface,
+            #fff
+        );
+    border:
+        1px solid
+        var(
+            --admin-border,
+            #d9e0e7
+        );
+    border-radius: 16px;
+    display: grid;
+    gap: 7px;
+    min-height: 112px;
+    min-width: 0;
+    padding: 18px 20px;
+}
+
+.ticketing-details-panel
+> .ticketing-details-summary-block.ticketing-route-summary
+> .ticketing-route-summary__item:last-child {
+    border:
+        1px solid
+        var(
+            --admin-border,
+            #d9e0e7
+        );
+}
+
+.ticketing-details-panel
+> .ticketing-details-summary-block.ticketing-route-summary
+> .ticketing-route-summary__item
+> span {
+    font-size: .78rem;
+    opacity: .72;
+}
+
+.ticketing-details-panel
+> .ticketing-details-summary-block.ticketing-route-summary
+> .ticketing-route-summary__item
+> strong {
+    font-size: .95rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ticketing-details-panel
+> .ticketing-details-summary-block.ticketing-route-summary
+> .ticketing-route-summary__item
+> small {
+    margin-top: 0;
+}
+
+@media (max-width: 900px) {
+    .ticketing-details-panel
+    > .ticketing-details-summary-block.ticketing-route-summary {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 680px) {
+    .ticketing-details-panel
+    > .ticketing-details-summary-block.ticketing-route-summary {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==========================================================================
+   TICKETING_REAL_TICKET_DETAILS_EQUAL_HEIGHT
+   Keep both detail rows visually identical.
+   ========================================================================== */
+
+.ticketing-details-panel
+.ticketing-detail-metrics
+> *,
+
+.ticketing-details-panel
+> .ticketing-details-summary-block.ticketing-route-summary
+> .ticketing-route-summary__item {
+    box-sizing: border-box;
+    height: 112px;
+    min-height: 112px;
+    max-height: 112px;
+}
+
+.ticketing-details-panel
+> .ticketing-details-summary-block.ticketing-route-summary
+> .ticketing-route-summary__item {
+    align-content: center;
+    padding-block: 14px;
+}
+
+/*
+ * The optional stage/team helper line must remain inside the
+ * fixed-height card instead of increasing the grid row height.
+ */
+.ticketing-details-panel
+> .ticketing-details-summary-block.ticketing-route-summary
+> .ticketing-route-summary__item
+> small {
+    line-height: 1.35;
+}
+
+/* Mobile cards may grow naturally if wrapping is required. */
+@media (max-width: 680px) {
+    .ticketing-details-panel
+    .ticketing-detail-metrics
+    > *,
+
+    .ticketing-details-panel
+    > .ticketing-details-summary-block.ticketing-route-summary
+    > .ticketing-route-summary__item {
+        height: auto;
+        max-height: none;
+        min-height: 112px;
+    }
+}

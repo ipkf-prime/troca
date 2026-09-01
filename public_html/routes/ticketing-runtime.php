@@ -2159,6 +2159,223 @@ $router->post(
  * My Tickets
  * ---------------------------------------------------------
  */
+
+/*
+ * ---------------------------------------------------------
+ * TICKETING_STATUS_TITLE_MANAGEMENT
+ * ---------------------------------------------------------
+ */
+$router->get(
+    '/admin/ticketing/statuses',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/ticketing/statuses'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        try {
+            $service =
+                new \App\Services\Ticketing\TicketStatusTitleManagementService();
+
+            $page =
+                $service->page();
+
+            return $adminRender(
+                $response,
+                'ticketing-statuses',
+                [
+                    'title' =>
+                        'عنوان وضعیت‌های تیکتینگ',
+
+                    'context' =>
+                        $context,
+
+                    'page' =>
+                        $page,
+
+                    'status' =>
+                        trim(
+                            (string) $request->input(
+                                'status',
+                                ''
+                            )
+                        ),
+                ]
+            );
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'ticket_status_title_index',
+                    [
+                        'user_id' =>
+                            (int) (
+                                $context['user_id']
+                                ?? 0
+                            ),
+                    ]
+                );
+
+            return $adminRender(
+                $response,
+                'placeholder',
+                [
+                    'title' =>
+                        'عنوان وضعیت‌های تیکتینگ',
+
+                    'context' =>
+                        $context,
+
+                    'message' =>
+                        'فهرست وضعیت‌ها در دسترس نیست. کد خطا: '
+                        . $incident,
+                ],
+                503
+            );
+        }
+    }
+);
+
+
+$router->post(
+    '/admin/ticketing/statuses',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/ticketing/statuses'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $csrf =
+            new \IPKF\Security\Csrf();
+
+        if (
+            !$csrf->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            return $response->redirect(
+                '/admin/ticketing/statuses'
+                . '?status=status_title_invalid_csrf'
+            );
+        }
+
+        try {
+            $service =
+                new \App\Services\Ticketing\TicketStatusTitleManagementService();
+
+            $result =
+                $service->updateTitle(
+                    (string) $request->input(
+                        'code',
+                        ''
+                    ),
+
+                    (string) $request->input(
+                        'title',
+                        ''
+                    )
+                );
+
+            $status =
+                trim(
+                    (string) (
+                        $result['status']
+                        ?? 'status_title_failed'
+                    )
+                );
+
+            $allowed = [
+                'status_title_updated',
+                'status_title_required',
+                'status_title_too_long',
+                'status_title_persian_required',
+                'status_title_invalid',
+                'status_title_not_found',
+            ];
+
+            if (
+                !in_array(
+                    $status,
+                    $allowed,
+                    true
+                )
+            ) {
+                $status =
+                    'status_title_failed';
+            }
+
+            return $response->redirect(
+                '/admin/ticketing/statuses'
+                . '?status='
+                . rawurlencode(
+                    $status
+                )
+            );
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'ticket_status_title_update',
+                    [
+                        'user_id' =>
+                            (int) (
+                                $context['user_id']
+                                ?? 0
+                            ),
+
+                        'status_code' =>
+                            trim(
+                                (string) $request->input(
+                                    'code',
+                                    ''
+                                )
+                            ),
+                    ]
+                );
+
+            error_log(
+                'IPKF_TICKETING_STATUS_TITLE '
+                . $incident
+            );
+
+            return $response->redirect(
+                '/admin/ticketing/statuses'
+                . '?status=status_title_failed'
+            );
+        }
+    }
+);
+
 $router->get(
     '/admin/ticketing/tickets',
     function (
@@ -2218,7 +2435,7 @@ $router->get(
             'sort1' =>
                 $request->input(
                     'sort1',
-                    'last_activity'
+                    'priority'
                 ),
 
             'dir1' =>
@@ -2230,7 +2447,7 @@ $router->get(
             'sort2' =>
                 $request->input(
                     'sort2',
-                    'created_at'
+                    'last_activity'
                 ),
 
             'dir2' =>
@@ -3641,6 +3858,69 @@ $router->post(
             );
         }
 
+        /*
+         * TICKETING_STAFF_REPLY_POST_OWNERSHIP_GUARD
+         *
+         * Permission alone cannot authorize a reply.
+         *
+         * The current assignee must resolve to this exact user
+         * inside this exact support project and the lifecycle turn
+         * must belong to staff.
+         */
+        $replyAccess =
+            (
+                new \App\Services\Ticketing\TicketStaffReplyAccessService()
+            )->evaluate(
+                $publicReference,
+                (int) (
+                    $context['user_id']
+                    ?? 0
+                )
+            );
+
+        if (
+            empty(
+                $replyAccess['can_reply']
+            )
+        ) {
+            $replyAccessState =
+                trim(
+                    (string) (
+                        $replyAccess['state']
+                        ?? 'reply_forbidden'
+                    )
+                );
+
+            $safeReplyAccessStates = [
+                'reply_waiting_requester',
+                'reply_takeover_required',
+                'reply_not_assignee',
+                'reply_assignment_invalid',
+                'reply_closed',
+                'reply_invalid',
+            ];
+
+            if (
+                !in_array(
+                    $replyAccessState,
+                    $safeReplyAccessStates,
+                    true
+                )
+            ) {
+                $replyAccessState =
+                    'reply_forbidden';
+            }
+
+            return
+                $response->redirect(
+                    $detailUrl
+                    . '?status='
+                    . rawurlencode(
+                        $replyAccessState
+                    )
+                );
+        }
+
         try {
             $result =
                 (
@@ -3655,7 +3935,13 @@ $router->post(
                         $context['user_id']
                         ?? 0
                     ),
-                    $context
+                    $context,
+                      is_array(
+                          $_FILES['attachments']
+                          ?? null
+                      )
+                          ? $_FILES['attachments']
+                          : []
                 );
 
             if (
@@ -3765,6 +4051,129 @@ require
  * - The active SLA scheduler reconciles the status
  *   transition and resumes the paused SLA state.
  */
+/*
+ * TICKETING_PRIORITY_GOVERNANCE_ROUTE
+ *
+ * Coarse RBAC intentionally reuses the existing staff-reply
+ * permission contract. Exact project/team operational access
+ * is enforced again inside TicketPriorityManagementRepository.
+ */
+$router->post(
+    '/admin/ticketing/tickets/{public_reference}/priority',
+    function ($request, $response) use ($adminGuard) {
+        $context = $adminGuard(
+            $response,
+            '/admin/ticketing/tickets/{public_reference}/reply'
+        );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $publicReference = trim(
+            (string) $request->route(
+                'public_reference',
+                ''
+            )
+        );
+
+        $detailUrl =
+            '/admin/ticketing/tickets/'
+            . rawurlencode($publicReference);
+
+        $csrf = new \IPKF\Security\Csrf();
+
+        if (
+            !$csrf->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            return $response->redirect(
+                $detailUrl
+                . '?priority_notice=priority_invalid_csrf'
+            );
+        }
+
+        try {
+            $result =
+                (
+                    new \App\Services\Ticketing\TicketPriorityManagementService()
+                )->change(
+                    $publicReference,
+                    (int) (
+                        $context['user_id']
+                        ?? 0
+                    ),
+                    (string) $request->input(
+                        'priority_code',
+                        ''
+                    ),
+                    (string) $request->input(
+                        'priority_reason',
+                        ''
+                    )
+                );
+
+            if (!empty($result['not_found'])) {
+                return $response->redirect(
+                    '/admin/ticketing/tickets'
+                    . '?status=ticket_not_found'
+                );
+            }
+
+            $status = trim(
+                (string) (
+                    $result['status']
+                    ?? 'priority_failed'
+                )
+            );
+
+            $allowed = [
+                'priority_changed',
+                'priority_unchanged',
+                'priority_invalid',
+                'priority_reason_invalid',
+                'priority_forbidden',
+                'priority_failed',
+            ];
+
+            if (!in_array($status, $allowed, true)) {
+                $status = 'priority_failed';
+            }
+
+            return $response->redirect(
+                $detailUrl
+                . '?priority_notice='
+                . rawurlencode($status)
+            );
+
+        } catch (\Throwable $exception) {
+            error_log(
+                'IPKF_TICKETING_PRIORITY '
+                . json_encode(
+                    [
+                        'ticket_reference' =>
+                            $publicReference,
+                        'exception' =>
+                            get_class($exception),
+                    ],
+                    JSON_UNESCAPED_UNICODE
+                    | JSON_UNESCAPED_SLASHES
+                )
+            );
+
+            return $response->redirect(
+                $detailUrl
+                . '?priority_notice=priority_failed'
+            );
+        }
+    }
+);
+
+
 $router->post(
     '/admin/ticketing/tickets/{public_reference}/requester-reply',
     function (
@@ -3821,26 +4230,59 @@ $router->post(
             );
         }
 
+        $intent =
+            trim(
+                (string) $request->input(
+                    'intent',
+                    'update'
+                )
+            );
+
         try {
-            $result =
-                (
-                    new \App\Services\Ticketing\TicketLifecycleService()
-                )->requesterReply(
-                    $publicReference,
-                    (string) $request->input(
-                        'body',
-                        ''
-                    ),
-                    (int) (
-                        $context['user_id']
-                        ?? 0
-                    )
-                );
+            $lifecycle =
+                new \App\Services\Ticketing\TicketLifecycleService();
+
+            if ($intent === 'resolve') {
+                $result =
+                    $lifecycle->requesterResolve(
+                        $publicReference,
+                        (int) (
+                            $context['user_id']
+                            ?? 0
+                        )
+                    );
+
+                $successStatus =
+                    'requester_resolved';
+
+            } else {
+                $intent = 'update';
+
+                $result =
+                    $lifecycle->requesterReply(
+                        $publicReference,
+                        (string) $request->input(
+                            'body',
+                            ''
+                        ),
+                        (int) (
+                            $context['user_id']
+                            ?? 0
+                        ),
+                        $_FILES['attachments'] ?? []
+                    );
+
+                $successStatus =
+                    'requester_reply_sent';
+            }
 
             if (!empty($result['ok'])) {
                 return $response->redirect(
                     $detailUrl
-                    . '?status=requester_reply_sent'
+                    . '?status='
+                    . rawurlencode(
+                        $successStatus
+                    )
                 );
             }
 
@@ -3863,7 +4305,8 @@ $router->post(
                 'requester_reply_empty',
                 'requester_reply_too_long',
                 'requester_reply_forbidden',
-                'requester_reply_not_expected',
+                'requester_update_forbidden_state',
+                'requester_resolve_forbidden_state',
                 'requester_reply_invalid',
             ];
 
@@ -3885,25 +4328,20 @@ $router->post(
                     $status
                 )
             );
+
         } catch (\Throwable $exception) {
             error_log(
                 'IPKF_TICKETING_LIFECYCLE '
                 . json_encode(
                     [
                         'operation' =>
-                            'requester_reply',
-
-                        'ticket' =>
+                            $intent === 'resolve'
+                                ? 'requester_resolve'
+                                : 'requester_update',
+                        'ticket_reference' =>
                             $publicReference,
-
                         'exception' =>
-                            get_class(
-                                $exception
-                            ),
-
-                        'message' =>
-                            $exception
-                                ->getMessage(),
+                            get_class($exception),
                     ],
                     JSON_UNESCAPED_UNICODE
                     | JSON_UNESCAPED_SLASHES
@@ -3917,3 +4355,220 @@ $router->post(
         }
     }
 );
+
+
+
+
+/*
+ * TICKETING_RESOLVE_CLOSE_REOPEN_RUNTIME
+ *
+ * Lifecycle completion routes.
+ * RBAC is only the outer coarse gate;
+ * TicketLifecycleTransitionRepository re-validates
+ * project role, requester identity and exact ownership.
+ */
+foreach (
+    [
+        'resolve',
+        'close',
+        'reopen',
+    ]
+    as $ticketLifecycleAction
+) {
+    $router->post(
+        '/admin/ticketing/tickets/{public_reference}/'
+        . $ticketLifecycleAction,
+
+        function (
+            $request,
+            $response
+        ) use (
+            $adminGuard,
+            $ticketLifecycleAction
+        ) {
+            $routePattern =
+                '/admin/ticketing/tickets/{public_reference}/'
+                . $ticketLifecycleAction;
+
+            $context =
+                $adminGuard(
+                    $response,
+                    $routePattern
+                );
+
+            if (!is_array($context)) {
+                return $context;
+            }
+
+            $publicReference =
+                trim(
+                    (string) $request->route(
+                        'public_reference',
+                        ''
+                    )
+                );
+
+            if ($publicReference === '') {
+                return
+                    $response->redirect(
+                        '/admin/ticketing/tickets'
+                        . '?status=ticket_not_found'
+                    );
+            }
+
+            $detailUrl =
+                '/admin/ticketing/tickets/'
+                . rawurlencode(
+                    $publicReference
+                );
+
+            $csrf =
+                new \IPKF\Security\Csrf();
+
+            if (
+                !$csrf->check(
+                    (string) $request->input(
+                        '_token',
+                        ''
+                    )
+                )
+            ) {
+                return
+                    $response->redirect(
+                        $detailUrl
+                        . '?status=lifecycle_invalid_csrf'
+                    );
+            }
+
+            try {
+                $result =
+                    (
+                        new \App\Services\Ticketing\TicketLifecycleTransitionService()
+                    )->transition(
+                        $publicReference,
+                        $ticketLifecycleAction,
+                        (int) (
+                            $context['user_id']
+                            ?? 0
+                        ),
+                        $context
+                    );
+
+                if (
+                    !empty(
+                        $result['ok']
+                    )
+                ) {
+                    $successMap = [
+                        'resolve' =>
+                            'ticket_resolved',
+
+                        'close' =>
+                            'ticket_closed',
+
+                        'reopen' =>
+                            'ticket_reopened',
+                    ];
+
+                    return
+                        $response->redirect(
+                            $detailUrl
+                            . '?status='
+                            . rawurlencode(
+                                (string) (
+                                    $successMap[
+                                        $ticketLifecycleAction
+                                    ]
+                                    ?? 'lifecycle_failed'
+                                )
+                            )
+                        );
+                }
+
+                if (
+                    !empty(
+                        $result['not_found']
+                    )
+                ) {
+                    return
+                        $response->redirect(
+                            '/admin/ticketing/tickets'
+                            . '?status=ticket_not_found'
+                        );
+                }
+
+                $status =
+                    trim(
+                        (string) (
+                            $result['status']
+                            ?? 'lifecycle_failed'
+                        )
+                    );
+
+                $allowed = [
+                    'lifecycle_invalid',
+                    'lifecycle_invalid_action',
+                    'lifecycle_owner_required',
+                    'lifecycle_waiting_requester',
+                    'lifecycle_invalid_state',
+                    'lifecycle_resolve_first',
+                    'lifecycle_close_forbidden',
+                    'lifecycle_reopen_invalid_state',
+                    'lifecycle_reopen_forbidden',
+                    'lifecycle_transition_conflict',
+                ];
+
+                if (
+                    !in_array(
+                        $status,
+                        $allowed,
+                        true
+                    )
+                ) {
+                    $status =
+                        'lifecycle_failed';
+                }
+
+                return
+                    $response->redirect(
+                        $detailUrl
+                        . '?status='
+                        . rawurlencode(
+                            $status
+                        )
+                    );
+
+            } catch (\Throwable $exception) {
+                error_log(
+                    'IPKF_TICKETING_LIFECYCLE_TRANSITION '
+                    . json_encode(
+                        [
+                            'operation' =>
+                                $ticketLifecycleAction,
+
+                            'ticket' =>
+                                $publicReference,
+
+                            'exception' =>
+                                get_class(
+                                    $exception
+                                ),
+
+                            'message' =>
+                                $exception
+                                    ->getMessage(),
+                        ],
+                        JSON_UNESCAPED_UNICODE
+                        | JSON_UNESCAPED_SLASHES
+                    )
+                );
+
+                return
+                    $response->redirect(
+                        $detailUrl
+                        . '?status=lifecycle_failed'
+                    );
+            }
+        }
+    );
+}

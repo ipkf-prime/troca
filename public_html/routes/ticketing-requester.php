@@ -378,3 +378,100 @@ $router->post(
         );
     }
 );
+
+/*
+ * TICKETING_REQUESTER_SELF_LEAVE_ROUTE
+ */
+$router->post(
+    '/admin/support/ticketing/leave',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard
+    ) {
+
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/support/ticketing/membership'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        if (
+            !(
+                new \IPKF\Security\Csrf()
+            )->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            return
+                $response->redirect(
+                    '/admin/support/ticketing/membership'
+                    . '?error=csrf'
+                );
+        }
+
+        try {
+
+            $result =
+                (
+                    new \App\Services\Ticketing\TicketRequesterOnboardingService()
+                )->leave(
+                    (string) $request->input(
+                        'project_reference',
+                        ''
+                    ),
+                    (int) $context['user_id']
+                );
+
+        } catch (\Throwable) {
+
+            return
+                $response->redirect(
+                    '/admin/support/ticketing/membership'
+                    . '?error=requester_leave_failed'
+                );
+        }
+
+        if (
+            ($result['ok'] ?? false)
+            === true
+        ) {
+            return
+                $response->redirect(
+                    '/admin/support/ticketing/membership'
+                    . '?status=left'
+                );
+        }
+
+        $error =
+            trim(
+                (string) (
+                    $result['error']
+                    ?? $result['state']
+                    ?? 'requester_leave_failed'
+                )
+            );
+
+        if ($error === '') {
+            $error =
+                'requester_leave_failed';
+        }
+
+        return
+            $response->redirect(
+                '/admin/support/ticketing/membership'
+                . '?error='
+                . rawurlencode(
+                    $error
+                )
+            );
+    }
+);

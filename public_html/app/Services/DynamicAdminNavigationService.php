@@ -164,9 +164,64 @@ class DynamicAdminNavigationService extends BaseService
                          * state. Ticket detail highlighting can be
                          * specialized independently when required.
                          */
-                        'active_paths' => [
-                            '/admin/ticketing/tickets',
-                        ],
+                        /*
+                         * TICKETING_REQUESTER_DETAIL_NAVIGATION_ACTIVE
+                         *
+                         * Exact requester ticket details activate
+                         * My Tickets. Create remains exclusive to
+                         * New Ticket. No generic tickets/* wildcard.
+                         */
+                        'active_paths' =>
+                            (
+                                static function (): array {
+                                    $requestPath =
+                                        parse_url(
+                                            (string) (
+                                                $_SERVER[
+                                                    'REQUEST_URI'
+                                                ]
+                                                ?? ''
+                                            ),
+                                            PHP_URL_PATH
+                                        );
+
+                                    $requestPath =
+                                        is_string(
+                                            $requestPath
+                                        )
+                                            ? rtrim(
+                                                $requestPath,
+                                                '/'
+                                            )
+                                            : '';
+
+                                    $detailPath =
+                                        (
+                                            $requestPath !==
+                                                '/admin/ticketing/tickets/create'
+                                            &&
+                                            preg_match(
+                                                '#^/admin/ticketing/tickets/[A-Za-z0-9_-]+$#',
+                                                $requestPath
+                                            ) === 1
+                                        )
+                                            ? $requestPath
+                                            : '';
+
+                                    return array_values(
+                                        array_filter(
+                                            [
+                                                '/admin/ticketing/tickets',
+                                                $detailPath,
+                                            ],
+                                            static fn (
+                                                string $path
+                                            ): bool =>
+                                                $path !== ''
+                                        )
+                                    );
+                                }
+                            )(),
 
                         'badge' =>
                             '',
@@ -278,6 +333,41 @@ class DynamicAdminNavigationService extends BaseService
                 }
 
                 unset($requesterItem);
+
+            } else {
+
+                /*
+                 * TICKETING_POST_LEAVE_NAVIGATION_GUARD
+                 *
+                 * Ticket operations are meaningful only while
+                 * the requester has at least one active project
+                 * membership.
+                 *
+                 * Dashboard and membership workspace remain
+                 * available for rejoining a support project.
+                 */
+                $items =
+                    array_values(
+                        array_filter(
+                            $items,
+                            static fn (
+                                array $requesterItem
+                            ): bool =>
+                                !in_array(
+                                    (string) (
+                                        $requesterItem[
+                                            'item_key'
+                                        ]
+                                        ?? ''
+                                    ),
+                                    [
+                                        'ticketing-my-tickets',
+                                        'ticketing-create',
+                                    ],
+                                    true
+                                )
+                        )
+                    );
             }
         }
 

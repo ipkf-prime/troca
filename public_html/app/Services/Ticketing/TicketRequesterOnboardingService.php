@@ -559,14 +559,24 @@ final class TicketRequesterOnboardingService
     }
 
 
+    /**
+     * TICKETING_PARTICIPANT_LINKAGE_RUNTIME
+     *
+     * A Core user taking part in Ticketing must have one canonical
+     * ticketing_participants identity. Project memberships and requester
+     * tickets are linked to that identity in addition to the legacy
+     * user_reference snapshot.
+     */
     private function ensureMembership(
         int $projectId,
         int $userId
     ): array {
         $user =
-            $this->coreUser($userId);
+            $this->coreUser(
+                $userId
+            );
 
-        if ($user === null) {
+        if (!is_array($user)) {
             throw new \RuntimeException(
                 'requester_user_not_found'
             );
@@ -575,12 +585,26 @@ final class TicketRequesterOnboardingService
         $reference =
             'user:' . $userId;
 
+        $participantId =
+            $this->ensureParticipantForCoreUser(
+                $userId,
+                $user
+            );
+
         $q =
             $this->ticketing->prepare("
-                SELECT id, role_code, left_at
-                FROM ticketing_support_project_members
+                SELECT
+                    id,
+                    participant_id,
+                    role_code,
+                    left_at
+
+                FROM
+                    ticketing_support_project_members
+
                 WHERE project_id = ?
                   AND user_reference = ?
+
                 LIMIT 1
                 FOR UPDATE
             ");
@@ -591,14 +615,83 @@ final class TicketRequesterOnboardingService
         ]);
 
         $member =
-            $q->fetch(PDO::FETCH_ASSOC);
+            $q->fetch(
+                \PDO::FETCH_ASSOC
+            );
 
         if (is_array($member)) {
+            $memberId =
+                (int) $member['id'];
+
+            $linkedParticipantId =
+                (int) (
+                    $member['participant_id']
+                    ?? 0
+                );
+
+            if (
+                $linkedParticipantId > 0
+                &&
+                $linkedParticipantId !== $participantId
+            ) {
+                throw new \RuntimeException(
+                    'requester_participant_link_conflict'
+                );
+            }
+
+            if ($linkedParticipantId < 1) {
+                $conflict =
+                    $this->ticketing->prepare("
+                        SELECT id
+
+                        FROM
+                            ticketing_support_project_members
+
+                        WHERE project_id = ?
+                          AND participant_id = ?
+                          AND id <> ?
+
+                        LIMIT 1
+                        FOR UPDATE
+                    ");
+
+                $conflict->execute([
+                    $projectId,
+                    $participantId,
+                    $memberId,
+                ]);
+
+                if ($conflict->fetchColumn() !== false) {
+                    throw new \RuntimeException(
+                        'requester_participant_membership_conflict'
+                    );
+                }
+
+                $link =
+                    $this->ticketing->prepare("
+                        UPDATE
+                            ticketing_support_project_members
+
+                        SET
+                            participant_id = ?,
+                            updated_by_user_reference = ?,
+                            updated_at = UTC_TIMESTAMP()
+
+                        WHERE id = ?
+                          AND participant_id IS NULL
+                    ");
+
+                $link->execute([
+                    $participantId,
+                    $reference,
+                    $memberId,
+                ]);
+            }
 
             if (empty($member['left_at'])) {
                 return [
                     'id' =>
-                        (int) $member['id'],
+                        $memberId,
 
                     'state' =>
                         'already_active',
@@ -611,7 +704,10 @@ final class TicketRequesterOnboardingService
             $role =
                 in_array(
                     (string) $member['role_code'],
-                    ['manager', 'member'],
+                    [
+                        'manager',
+                        'member',
+                    ],
                     true
                 )
                     ? (string) $member['role_code']
@@ -619,27 +715,32 @@ final class TicketRequesterOnboardingService
 
             $update =
                 $this->ticketing->prepare("
-                    UPDATE ticketing_support_project_members
+                    UPDATE
+                        ticketing_support_project_members
+
                     SET
+                        participant_id = ?,
                         display_name_snapshot = ?,
                         role_code = ?,
                         joined_at = UTC_TIMESTAMP(),
                         left_at = NULL,
                         updated_by_user_reference = ?,
                         updated_at = UTC_TIMESTAMP()
+
                     WHERE id = ?
                 ");
 
             $update->execute([
+                $participantId,
                 (string) $user['display_name'],
                 $role,
                 $reference,
-                (int) $member['id'],
+                $memberId,
             ]);
 
             return [
                 'id' =>
-                    (int) $member['id'],
+                    $memberId,
 
                 'state' =>
                     'reactivated',
@@ -651,7 +752,8 @@ final class TicketRequesterOnboardingService
 
         $insert =
             $this->ticketing->prepare("
-                INSERT INTO ticketing_support_project_members
+                INSERT INTO
+                    ticketing_support_project_members
                 (
                     project_id,
                     participant_id,
@@ -669,7 +771,7 @@ final class TicketRequesterOnboardingService
                 VALUES
                 (
                     ?,
-                    NULL,
+                    ?,
                     ?,
                     NULL,
                     ?,
@@ -685,6 +787,7 @@ final class TicketRequesterOnboardingService
 
         $insert->execute([
             $projectId,
+            $participantId,
             $reference,
             (string) $user['display_name'],
             $reference,
@@ -701,6 +804,219 @@ final class TicketRequesterOnboardingService
             'role_code' =>
                 'requester',
         ];
+    }
+
+
+    private function ensureParticipantForCoreUser(
+        int $userId,
+        array $user
+    ): int {
+        if ($userId < 1) {
+            throw new \RuntimeException(
+                'requester_user_not_found'
+            );
+        }
+
+        $reference =
+            'user:' . $userId;
+
+        $displayName =
+            trim(
+                (string) (
+                    $user['display_name']
+                    ?? ''
+                )
+            );
+
+        if ($displayName === '') {
+            $displayName =
+                'کاربر ' . $userId;
+        }
+
+        $participantReference =
+            'TPR-'
+            . strtoupper(
+                bin2hex(
+                    random_bytes(10)
+                )
+            );
+
+        $statement =
+            $this->ticketing->prepare("
+                INSERT INTO
+                    ticketing_participants
+                (
+                    public_reference,
+                    origin_code,
+                    core_user_reference,
+                    full_name,
+                    account_state,
+                    linked_at,
+                    created_by_user_reference,
+                    updated_by_user_reference,
+                    created_at,
+                    updated_at
+                )
+                VALUES
+                (
+                    ?,
+                    'core',
+                    ?,
+                    ?,
+                    'linked',
+                    UTC_TIMESTAMP(),
+                    ?,
+                    ?,
+                    UTC_TIMESTAMP(),
+                    UTC_TIMESTAMP()
+                )
+
+                ON DUPLICATE KEY UPDATE
+                    id = LAST_INSERT_ID(id),
+                    full_name = VALUES(full_name),
+                    linked_at = COALESCE(
+                        linked_at,
+                        UTC_TIMESTAMP()
+                    ),
+                    updated_by_user_reference =
+                        VALUES(
+                            updated_by_user_reference
+                        ),
+                    updated_at = UTC_TIMESTAMP()
+            ");
+
+        $statement->execute([
+            $participantReference,
+            $reference,
+            $displayName,
+            $reference,
+            $reference,
+        ]);
+
+        $participantId =
+            (int) $this->ticketing->lastInsertId();
+
+        if ($participantId < 1) {
+            $lookup =
+                $this->ticketing->prepare("
+                    SELECT id
+
+                    FROM ticketing_participants
+
+                    WHERE core_user_reference = ?
+
+                    LIMIT 1
+                    FOR UPDATE
+                ");
+
+            $lookup->execute([
+                $reference,
+            ]);
+
+            $participantId =
+                (int) (
+                    $lookup->fetchColumn()
+                    ?: 0
+                );
+        }
+
+        if ($participantId < 1) {
+            throw new \RuntimeException(
+                'requester_participant_unavailable'
+            );
+        }
+
+        $participant =
+            $this->ticketing->prepare("
+                SELECT
+                    id,
+                    disabled_at,
+                    archived_at
+
+                FROM ticketing_participants
+
+                WHERE id = ?
+
+                LIMIT 1
+                FOR UPDATE
+            ");
+
+        $participant->execute([
+            $participantId,
+        ]);
+
+        $participantRow =
+            $participant->fetch(
+                \PDO::FETCH_ASSOC
+            );
+
+        if (
+            !is_array($participantRow)
+            ||
+            !empty(
+                $participantRow[
+                    'disabled_at'
+                ]
+            )
+            ||
+            !empty(
+                $participantRow[
+                    'archived_at'
+                ]
+            )
+        ) {
+            throw new \RuntimeException(
+                'requester_participant_inactive'
+            );
+        }
+
+        /*
+         * Reject an already-linked requester ticket that points to a
+         * different participant. Null legacy values are safe to backfill.
+         */
+        $ticketConflict =
+            $this->ticketing->prepare("
+                SELECT id
+
+                FROM ticketing_tickets
+
+                WHERE requester_user_reference = ?
+                  AND requester_participant_id IS NOT NULL
+                  AND requester_participant_id <> ?
+
+                LIMIT 1
+                FOR UPDATE
+            ");
+
+        $ticketConflict->execute([
+            $reference,
+            $participantId,
+        ]);
+
+        if ($ticketConflict->fetchColumn() !== false) {
+            throw new \RuntimeException(
+                'requester_ticket_participant_conflict'
+            );
+        }
+
+        $ticketLink =
+            $this->ticketing->prepare("
+                UPDATE ticketing_tickets
+
+                SET
+                    requester_participant_id = ?,
+                    updated_at = UTC_TIMESTAMP()
+
+                WHERE requester_user_reference = ?
+                  AND requester_participant_id IS NULL
+            ");
+
+        $ticketLink->execute([
+            $participantId,
+            $reference,
+        ]);
+
+        return $participantId;
     }
 
 
@@ -735,6 +1051,632 @@ final class TicketRequesterOnboardingService
                 : null;
     }
 
+
+    /*
+     * REQUESTER_PROJECT_SELF_LEAVE_RUNTIME
+     *
+     * Requesters may leave their own project only while
+     * they have no ticket whose canonical status is open.
+     *
+     * Membership is never deleted. left_at is the lifecycle
+     * boundary so history and future reactivation are preserved.
+     */
+    public function leave(
+        string $projectReference,
+        int $userId
+    ): array {
+
+        $projectReference =
+            trim(
+                $projectReference
+            );
+
+        if (
+            $projectReference === ''
+            ||
+            $userId < 1
+        ) {
+            return [
+                'ok' => false,
+                'state' =>
+                    'requester_membership_not_found',
+                'error' =>
+                    'requester_membership_not_found',
+            ];
+        }
+
+        $userReference =
+            'user:' . $userId;
+
+        $projectStatement =
+            $this->ticketing->prepare("
+                SELECT
+                    id,
+                    public_reference,
+                    code,
+                    title
+
+                FROM ticketing_support_projects
+
+                WHERE public_reference = ?
+
+                LIMIT 1
+            ");
+
+        $projectStatement->execute([
+            $projectReference,
+        ]);
+
+        $project =
+            $projectStatement->fetch(
+                \PDO::FETCH_ASSOC
+            );
+
+        if (!is_array($project)) {
+            return [
+                'ok' => false,
+                'state' =>
+                    'requester_project_not_found',
+                'error' =>
+                    'requester_project_not_found',
+            ];
+        }
+
+        $this->ticketing
+            ->beginTransaction();
+
+        try {
+
+            $memberStatement =
+                $this->ticketing->prepare("
+                    SELECT
+                        id,
+                        project_id,
+                        participant_id,
+                        user_reference,
+                        role_code,
+                        left_at
+
+                    FROM
+                        ticketing_support_project_members
+
+                    WHERE project_id = ?
+                      AND user_reference = ?
+                      AND left_at IS NULL
+
+                    LIMIT 1
+
+                    FOR UPDATE
+                ");
+
+            $memberStatement->execute([
+                (int) $project['id'],
+                $userReference,
+            ]);
+
+            $member =
+                $memberStatement->fetch(
+                    \PDO::FETCH_ASSOC
+                );
+
+            if (!is_array($member)) {
+
+                $this->ticketing
+                    ->rollBack();
+
+                return [
+                    'ok' => false,
+                    'state' =>
+                        'requester_membership_not_found',
+                    'error' =>
+                        'requester_membership_not_found',
+                ];
+            }
+
+            if (
+                (string) (
+                    $member['role_code']
+                    ?? ''
+                ) !== 'requester'
+            ) {
+                $this->ticketing
+                    ->rollBack();
+
+                return [
+                    'ok' => false,
+                    'state' =>
+                        'requester_self_leave_forbidden',
+                    'error' =>
+                        'requester_self_leave_forbidden',
+                ];
+            }
+
+            if (
+                $this->requesterHasOpenTickets(
+                    $member
+                )
+            ) {
+                $this->ticketing
+                    ->rollBack();
+
+                return [
+                    'ok' => false,
+                    'state' =>
+                        'requester_open_tickets',
+                    'error' =>
+                        'requester_open_tickets',
+                ];
+            }
+
+            $leave =
+                $this->ticketing->prepare("
+                    UPDATE
+                        ticketing_support_project_members
+
+                    SET
+                        left_at = UTC_TIMESTAMP(),
+                        updated_by_user_reference = ?,
+                        updated_at = UTC_TIMESTAMP()
+
+                    WHERE id = ?
+                      AND left_at IS NULL
+                ");
+
+            $leave->execute([
+                $userReference,
+                (int) $member['id'],
+            ]);
+
+            if ($leave->rowCount() !== 1) {
+                throw new \RuntimeException(
+                    'requester_leave_conflict'
+                );
+            }
+
+            $this->ticketing
+                ->commit();
+
+            return [
+                'ok' => true,
+                'state' =>
+                    'requester_left',
+                'project_reference' =>
+                    (string) $project[
+                        'public_reference'
+                    ],
+            ];
+
+        } catch (\Throwable $exception) {
+
+            if (
+                $this->ticketing
+                    ->inTransaction()
+            ) {
+                $this->ticketing
+                    ->rollBack();
+            }
+
+            throw $exception;
+        }
+    }
+
+
+    /*
+     * TICKETING_REQUESTER_MANAGER_REVOKE_RUNTIME
+     *
+     * This lifecycle slice deliberately manages requester
+     * memberships only. Staff/manager membership lifecycle
+     * remains separate because those memberships may own
+     * assignments, queues or operational responsibilities.
+     */
+    public function requesterMembersForManager(
+        string $projectReference
+    ): array {
+
+        $projectReference =
+            trim(
+                $projectReference
+            );
+
+        $projectStatement =
+            $this->ticketing->prepare("
+                SELECT
+                    id,
+                    public_reference,
+                    code,
+                    title
+
+                FROM ticketing_support_projects
+
+                WHERE public_reference = ?
+
+                LIMIT 1
+            ");
+
+        $projectStatement->execute([
+            $projectReference,
+        ]);
+
+        $project =
+            $projectStatement->fetch(
+                \PDO::FETCH_ASSOC
+            );
+
+        if (!is_array($project)) {
+            return [
+                'ok' => false,
+                'project' => null,
+                'members' => [],
+            ];
+        }
+
+        $statement =
+            $this->ticketing->prepare("
+                SELECT
+                    members.id,
+                    members.project_id,
+                    members.participant_id,
+                    members.user_reference,
+                    members.person_reference,
+                    members.display_name_snapshot,
+                    members.role_code,
+                    members.joined_at,
+                    members.left_at,
+
+                    (
+                        SELECT COUNT(*)
+
+                        FROM
+                            ticketing_tickets
+                                AS tickets
+
+                        INNER JOIN
+                            ticketing_statuses
+                                AS statuses
+                          ON statuses.code =
+                                tickets.status_code
+
+                        WHERE
+                            tickets.support_project_id =
+                                members.project_id
+
+                            AND statuses.is_closed = 0
+
+                            AND
+                            (
+                                (
+                                    members.participant_id
+                                        IS NOT NULL
+
+                                    AND
+                                    tickets.requester_participant_id =
+                                        members.participant_id
+                                )
+
+                                OR
+
+                                (
+                                    members.user_reference
+                                        IS NOT NULL
+
+                                    AND
+                                    tickets.requester_user_reference =
+                                        members.user_reference
+                                )
+                            )
+                    ) AS open_ticket_count
+
+                FROM
+                    ticketing_support_project_members
+                        AS members
+
+                WHERE
+                    members.project_id = ?
+
+                    AND members.role_code =
+                        'requester'
+
+                    AND members.left_at
+                        IS NULL
+
+                ORDER BY
+                    members.display_name_snapshot,
+                    members.id
+            ");
+
+        $statement->execute([
+            (int) $project['id'],
+        ]);
+
+        return [
+            'ok' => true,
+            'project' => $project,
+
+            'members' =>
+                $statement->fetchAll(
+                    \PDO::FETCH_ASSOC
+                ) ?: [],
+        ];
+    }
+
+
+    public function revokeRequester(
+        string $projectReference,
+        int $memberId,
+        int $actorUserId = 0
+    ): array {
+
+        $projectReference =
+            trim(
+                $projectReference
+            );
+
+        if (
+            $projectReference === ''
+            ||
+            $memberId < 1
+        ) {
+            return [
+                'ok' => false,
+                'state' =>
+                    'requester_membership_not_found',
+            ];
+        }
+
+        $projectStatement =
+            $this->ticketing->prepare("
+                SELECT id
+                FROM ticketing_support_projects
+                WHERE public_reference = ?
+                LIMIT 1
+            ");
+
+        $projectStatement->execute([
+            $projectReference,
+        ]);
+
+        $projectId =
+            (int) (
+                $projectStatement
+                    ->fetchColumn()
+                ?: 0
+            );
+
+        if ($projectId < 1) {
+            return [
+                'ok' => false,
+                'state' =>
+                    'requester_project_not_found',
+            ];
+        }
+
+        $this->ticketing
+            ->beginTransaction();
+
+        try {
+
+            $memberStatement =
+                $this->ticketing->prepare("
+                    SELECT
+                        id,
+                        project_id,
+                        participant_id,
+                        user_reference,
+                        role_code,
+                        left_at
+
+                    FROM
+                        ticketing_support_project_members
+
+                    WHERE id = ?
+                      AND project_id = ?
+                      AND left_at IS NULL
+
+                    LIMIT 1
+
+                    FOR UPDATE
+                ");
+
+            $memberStatement->execute([
+                $memberId,
+                $projectId,
+            ]);
+
+            $member =
+                $memberStatement->fetch(
+                    \PDO::FETCH_ASSOC
+                );
+
+            if (!is_array($member)) {
+
+                $this->ticketing
+                    ->rollBack();
+
+                return [
+                    'ok' => false,
+                    'state' =>
+                        'requester_membership_not_found',
+                ];
+            }
+
+            if (
+                (string) (
+                    $member['role_code']
+                    ?? ''
+                ) !== 'requester'
+            ) {
+                $this->ticketing
+                    ->rollBack();
+
+                return [
+                    'ok' => false,
+                    'state' =>
+                        'requester_revoke_forbidden',
+                ];
+            }
+
+            if (
+                $this->requesterHasOpenTickets(
+                    $member
+                )
+            ) {
+                $this->ticketing
+                    ->rollBack();
+
+                return [
+                    'ok' => false,
+                    'state' =>
+                        'requester_open_tickets',
+                ];
+            }
+
+            $actorReference =
+                $actorUserId > 0
+                    ? 'user:' . $actorUserId
+                    : null;
+
+            $statement =
+                $this->ticketing->prepare("
+                    UPDATE
+                        ticketing_support_project_members
+
+                    SET
+                        left_at = UTC_TIMESTAMP(),
+                        updated_by_user_reference = ?,
+                        updated_at = UTC_TIMESTAMP()
+
+                    WHERE id = ?
+                      AND project_id = ?
+                      AND role_code = 'requester'
+                      AND left_at IS NULL
+                ");
+
+            $statement->execute([
+                $actorReference,
+                $memberId,
+                $projectId,
+            ]);
+
+            if ($statement->rowCount() !== 1) {
+                throw new \RuntimeException(
+                    'requester_revoke_conflict'
+                );
+            }
+
+            $this->ticketing
+                ->commit();
+
+            return [
+                'ok' => true,
+                'state' =>
+                    'requester_revoked',
+            ];
+
+        } catch (\Throwable $exception) {
+
+            if (
+                $this->ticketing
+                    ->inTransaction()
+            ) {
+                $this->ticketing
+                    ->rollBack();
+            }
+
+            throw $exception;
+        }
+    }
+
+
+    private function requesterHasOpenTickets(
+        array $member
+    ): bool {
+
+        $participantId =
+            (int) (
+                $member[
+                    'participant_id'
+                ]
+                ?? 0
+            );
+
+        $userReference =
+            trim(
+                (string) (
+                    $member[
+                        'user_reference'
+                    ]
+                    ?? ''
+                )
+            );
+
+        $identitySql = [];
+        $bindings = [
+            (int) $member['project_id'],
+        ];
+
+        if ($participantId > 0) {
+            $identitySql[] =
+                'tickets.requester_participant_id = ?';
+
+            $bindings[] =
+                $participantId;
+        }
+
+        if ($userReference !== '') {
+            $identitySql[] =
+                'tickets.requester_user_reference = ?';
+
+            $bindings[] =
+                $userReference;
+        }
+
+        if ($identitySql === []) {
+            return false;
+        }
+
+        $statement =
+            $this->ticketing->prepare("
+                SELECT
+                    tickets.id
+
+                FROM
+                    ticketing_tickets
+                        AS tickets
+
+                INNER JOIN
+                    ticketing_statuses
+                        AS statuses
+                  ON statuses.code =
+                        tickets.status_code
+
+                WHERE
+                    tickets.support_project_id = ?
+
+                    AND statuses.is_closed = 0
+
+                    AND
+                    (
+                        "
+                        . implode(
+                            ' OR ',
+                            $identitySql
+                        )
+                        . "
+                    )
+
+                LIMIT 1
+
+                FOR UPDATE
+            ");
+
+        $statement->execute(
+            $bindings
+        );
+
+        return
+            $statement->fetchColumn()
+            !== false;
+    }
 
     private function memberships(
         string $reference

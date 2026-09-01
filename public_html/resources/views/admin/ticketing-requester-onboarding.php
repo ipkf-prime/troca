@@ -55,6 +55,18 @@ $errorMessages = [
 
     'requester_invite_exhausted' =>
         'ظرفیت استفاده از کد عضویت تکمیل شده است.',
+
+    'requester_membership_not_found' =>
+        'عضویت فعال موردنظر پیدا نشد.',
+
+    'requester_self_leave_forbidden' =>
+        'لغو عضویت این نقش از این بخش مجاز نیست.',
+
+    'requester_open_tickets' =>
+        'تا زمانی که در این پروژه تیکت باز دارید، لغو عضویت امکان‌پذیر نیست.',
+
+    'requester_leave_failed' =>
+        'لغو عضویت انجام نشد.',
 ];
 
 ob_start();
@@ -246,6 +258,21 @@ ob_start();
     white-space: nowrap;
 }
 
+/* TICKETING_REQUESTER_SELF_LEAVE_UI */
+
+.ticketing-project-row__actions .ticketing-leave-button {
+    color: #fff;
+    border-color: #b42318;
+    background: #c43227;
+}
+
+.ticketing-project-row__actions .ticketing-leave-button:hover,
+.ticketing-project-row__actions .ticketing-leave-button:focus {
+    color: #fff;
+    border-color: #8f1d15;
+    background: #a8241b;
+}
+
 @media (max-width: 720px) {
     .ticketing-project-row {
         grid-template-columns: 1fr;
@@ -284,6 +311,10 @@ ob_start();
     <?php elseif ($status === 'already'): ?>
         <div class="admin-alert admin-alert--success">
             عضویت شما از قبل فعال بوده است.
+        </div>
+    <?php elseif ($status === 'left'): ?>
+        <div class="admin-alert admin-alert--success">
+            عضویت شما در پروژه با موفقیت لغو شد.
         </div>
     <?php endif; ?>
 
@@ -397,6 +428,47 @@ ob_start();
                             >
                                 تیکت جدید
                             </a>
+
+                            <?php if (
+                                (string) (
+                                    $project['role_code']
+                                    ?? ''
+                                ) === 'requester'
+                            ): ?>
+
+                                <form
+                                    method="post"
+                                    action="/admin/support/ticketing/leave"
+                                    onsubmit="return confirm('عضویت شما در این پروژه لغو شود؟');"
+                                >
+                                    <input
+                                        type="hidden"
+                                        name="_token"
+                                        value="<?= admin_h(
+                                            $csrf
+                                        ) ?>"
+                                    >
+
+                                    <input
+                                        type="hidden"
+                                        name="project_reference"
+                                        value="<?= admin_h(
+                                            $project[
+                                                'public_reference'
+                                            ]
+                                            ?? ''
+                                        ) ?>"
+                                    >
+
+                                    <button
+                                        type="submit"
+                                        class="admin-button admin-button--soft ticketing-leave-button"
+                                    >
+                                        لغو عضویت
+                                    </button>
+                                </form>
+
+                            <?php endif; ?>
 
                         </div>
 

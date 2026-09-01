@@ -9,6 +9,13 @@ use IPKF\Database\Connections\ConnectionResolver;
 use PDO;
 use Throwable;
 
+/*
+ * TICKETING_OPERATIONAL_PROJECT_ROLE_FILTER
+ *
+ * Team staff_role_code is necessary but not sufficient.
+ * The linked project membership must also be an active
+ * member/manager membership of the same support project.
+ */
 final class TicketStaffOperationsRepository
 {
     private PDO $db;
@@ -43,6 +50,7 @@ final class TicketStaffOperationsRepository
 
                 WHERE pm.user_reference = ?
                   AND pm.left_at IS NULL
+                  AND pm.role_code IN ('member', 'manager')
 
                   AND tm.status = 'active'
                   AND tm.left_at IS NULL
@@ -329,10 +337,10 @@ final class TicketStaffOperationsRepository
                     ) . "
 
                 ORDER BY
-                    t.last_activity_at DESC,
-                    t.id DESC
-
-                LIMIT 200
+                pr.severity DESC,
+                t.last_activity_at DESC,
+                t.id DESC
+            LIMIT 200
             ");
 
         $statement->execute(
@@ -1224,6 +1232,7 @@ final class TicketStaffOperationsRepository
         $where = [
             'pm.user_reference = ?',
             'pm.left_at IS NULL',
+            'pm.role_code IN (\'member\', \'manager\')',
             "tm.status = 'active'",
             'tm.left_at IS NULL',
             "t.status = 'active'",
@@ -1917,6 +1926,7 @@ final class TicketStaffOperationsRepository
                   AND tm.left_at IS NULL
 
                   AND pm.left_at IS NULL
+                  AND pm.role_code IN ('member', 'manager')
 
                   AND pm.user_reference
                         IS NOT NULL
@@ -1998,6 +2008,7 @@ final class TicketStaffOperationsRepository
                   AND tm.left_at IS NULL
 
                   AND pm.left_at IS NULL
+                  AND pm.role_code IN ('member', 'manager')
 
                   AND pm.user_reference
                         IS NOT NULL
@@ -2220,6 +2231,7 @@ final class TicketStaffOperationsRepository
                   AND tm.left_at IS NULL
 
                   AND pm.left_at IS NULL
+                  AND pm.role_code IN ('member', 'manager')
 
                   AND pm.user_reference
                         IS NOT NULL

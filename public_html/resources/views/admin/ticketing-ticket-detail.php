@@ -66,9 +66,18 @@ $status =
     );
 
 $eventLabels = [
+        'ticket_priority_changed' => 'تغییر اولویت',
     'ticket_created' =>
         'تیکت ثبت شد',
 ];
+
+$eventLabels[
+    'ticket_requester_updated'
+] = 'توضیح درخواست‌کننده';
+
+$eventLabels[
+    'ticket_requester_resolved'
+] = 'حل‌شدن توسط درخواست‌کننده';
 
 ob_start();
 ?>
@@ -291,7 +300,7 @@ ob_start();
         class="admin-tabs ticketing-detail-tabs"
         data-ticketing-detail-tabs
         role="tablist"
-        aria-label="وضعیت، سوابق گفتگو و تاریخچه تیکت"
+        aria-label="پاسخ و عملیات، تاریخچه و جزئیات تیکت"
     >
         <button
             class="admin-tab is-active"
@@ -300,7 +309,7 @@ ob_start();
             aria-selected="true"
             data-ticketing-detail-tab="status"
         >
-            وضعیت
+            پاسخ و عملیات
         </button>
 
         <button
@@ -310,7 +319,7 @@ ob_start();
             aria-selected="false"
             data-ticketing-detail-tab="conversation"
         >
-            سوابق گفتگو
+            تاریخچه
         </button>
 
         <button
@@ -320,7 +329,7 @@ ob_start();
             aria-selected="false"
             data-ticketing-detail-tab="history"
         >
-            تاریخچه
+            جزئیات
         </button>
     </nav>
 
@@ -336,6 +345,14 @@ ob_start();
         role="tabpanel"
         hidden
     >
+
+        <!-- ticketing_unified_timeline_r4a2r3 -->
+        <div
+            class="ticketing-unified-timeline"
+            data-ticketing-unified-timeline
+            aria-label="تاریخچه یکپارچه تیکت"
+        ></div>
+
         <div class="admin-page-header">
             <div>
                 <h2>
@@ -357,6 +374,13 @@ ob_start();
 
                 <article
                     class="admin-card ticketing-message-bubble"
+                    data-ticketing-timeline-kind="message"
+                    data-ticketing-timeline-time="<?= ticketing_h(
+                        (string) (
+                            $message['created_at']
+                            ?? ''
+                        )
+                    ) ?>"
                     data-ticketing-message-author="<?= ticketing_h(
                         (string) (
                             $message['author_kind']
@@ -626,6 +650,12 @@ ob_start();
         hidden
     >
 
+        <div
+            class="ticketing-details-host"
+            data-ticketing-details-host
+        ></div>
+
+
         <div class="admin-page-header">
             <div>
                 <h2>
@@ -669,7 +699,43 @@ ob_start();
                             );
                         ?>
 
-                        <tr>
+                        <tr
+                            data-ticketing-event-source
+                            data-ticketing-timeline-kind="event"
+                            data-ticketing-event-code="<?= ticketing_h(
+                                $eventCode
+                            ) ?>"
+                            data-ticketing-timeline-time="<?= ticketing_h(
+                                (string) (
+                                    $event['occurred_at']
+                                    ?? ''
+                                )
+                            ) ?>"
+                            data-ticketing-event-actor="<?= ticketing_h(
+                                (string) (
+                                    $event[
+                                        'actor_display_name_snapshot'
+                                    ]
+                                    ?? ''
+                                )
+                            ) ?>"
+                            data-ticketing-event-previous="<?= ticketing_h(
+                                (string) (
+                                    $event[
+                                        'previous_status_code'
+                                    ]
+                                    ?? ''
+                                )
+                            ) ?>"
+                            data-ticketing-event-result="<?= ticketing_h(
+                                (string) (
+                                    $event[
+                                        'resulting_status_code'
+                                    ]
+                                    ?? ''
+                                )
+                            ) ?>"
+                        >
                             <td>
                                 <?= ticketing_h(
                                     \App\Support\TicketingDisplay::eventTitle(
@@ -826,6 +892,91 @@ if ($lifecycleUserId > 0) {
     }
 }
 
+/*
+ * TICKETING_STAFF_REPLY_UI_OWNERSHIP_GUARD
+ *
+ * ticketing.ticket.reply is only the coarse permission.
+ * Exact project + exact current assignee + lifecycle turn
+ * decide whether the reply form is rendered.
+ */
+$lifecycleStaffReplyAccess = [
+    'can_reply' => false,
+    'state' => 'reply_forbidden',
+];
+
+if (
+    $lifecycleCanReply
+    &&
+    !$lifecycleIsRequester
+    &&
+    $lifecycleReference !== ''
+) {
+    try {
+        $lifecycleStaffReplyAccess =
+            (
+                new \App\Services\Ticketing\TicketStaffReplyAccessService()
+            )->evaluate(
+                $lifecycleReference,
+                $lifecycleUserId
+            );
+    } catch (\Throwable) {
+        $lifecycleStaffReplyAccess = [
+            'can_reply' => false,
+            'state' => 'reply_forbidden',
+        ];
+    }
+}
+
+$lifecycleStaffOwnsReply =
+    !empty(
+        $lifecycleStaffReplyAccess[
+            'can_reply'
+        ]
+    );
+
+$lifecycleStaffReplyState =
+    trim(
+        (string) (
+            $lifecycleStaffReplyAccess[
+                'state'
+            ]
+            ?? 'reply_forbidden'
+        )
+    );
+
+/*
+ * TICKETING_DETAIL_RESOLVE_CLOSE_REOPEN_CAPABILITIES
+ */
+$lifecycleTransitionCapabilities = [
+    'found' => false,
+    'can_resolve' => false,
+    'can_close' => false,
+    'can_reopen' => false,
+];
+
+if (
+    $lifecycleReference !== ''
+    &&
+    $lifecycleUserId > 0
+) {
+    try {
+        $lifecycleTransitionCapabilities =
+            (
+                new \App\Services\Ticketing\TicketLifecycleTransitionService()
+            )->capabilities(
+                $lifecycleReference,
+                $lifecycleUserId
+            );
+    } catch (\Throwable) {
+        $lifecycleTransitionCapabilities = [
+            'found' => false,
+            'can_resolve' => false,
+            'can_close' => false,
+            'can_reopen' => false,
+        ];
+    }
+}
+
 $lifecycleClosed =
     in_array(
         $lifecycleStatus,
@@ -853,12 +1004,210 @@ $lifecycleH =
         );
     };
 
+/*
+ * TICKETING_PRIORITY_GOVERNANCE
+ *
+ * Priority correction is independent from lifecycle ownership.
+ * The service combines ticketing.ticket.reply with exact active
+ * project/team operational membership before allowing changes.
+ */
+$priorityGovernance = [
+    'found' => false,
+    'can_change' => false,
+    'ticket' => [],
+    'priorities' => [],
+    'history' => [],
+];
+
+if (
+    $lifecycleReference !== ''
+    && $lifecycleUserId > 0
+) {
+    try {
+        $priorityGovernance =
+            (
+                new \App\Services\Ticketing\TicketPriorityManagementService()
+            )->panel(
+                $lifecycleReference,
+                $lifecycleUserId
+            );
+    } catch (\Throwable) {
+        $priorityGovernance = [
+            'found' => false,
+            'can_change' => false,
+            'ticket' => [],
+            'priorities' => [],
+            'history' => [],
+        ];
+    }
+}
+
+$priorityGovernanceTicket =
+    is_array(
+        $priorityGovernance['ticket']
+        ?? null
+    )
+        ? $priorityGovernance['ticket']
+        : [];
+
+$priorityGovernancePriorities =
+    is_array(
+        $priorityGovernance['priorities']
+        ?? null
+    )
+        ? $priorityGovernance['priorities']
+        : [];
+
+$priorityGovernanceHistory =
+    is_array(
+        $priorityGovernance['history']
+        ?? null
+    )
+        ? $priorityGovernance['history']
+        : [];
+
+$priorityGovernanceCanChange =
+    !empty(
+        $priorityGovernance['can_change']
+    );
+
+$priorityGovernanceCurrentCode = trim(
+    (string) (
+        $priorityGovernanceTicket['priority_code']
+        ?? $lifecycleTicket['priority_code']
+        ?? ''
+    )
+);
+
+$priorityGovernanceCurrentTitle = trim(
+    (string) (
+        $priorityGovernanceTicket['priority_title']
+        ?? $lifecycleTicket['priority_title']
+        ?? $priorityGovernanceCurrentCode
+    )
+);
+
+$priorityNotice = trim(
+    (string) (
+        $_GET['priority_notice']
+        ?? ''
+    )
+);
+
+$priorityNoticeMap = [
+    'priority_changed' => [
+        'success',
+        'اولویت تیکت تغییر کرد و دلیل آن در تاریخچه ثبت شد.',
+    ],
+    'priority_unchanged' => [
+        'info',
+        'اولویت انتخاب‌شده با اولویت فعلی یکسان است.',
+    ],
+    'priority_invalid' => [
+        'danger',
+        'اولویت انتخاب‌شده معتبر نیست.',
+    ],
+    'priority_reason_invalid' => [
+        'danger',
+        'برای تغییر اولویت، دلیل معتبر حداقل سه‌حرفی وارد کنید.',
+    ],
+    'priority_forbidden' => [
+        'danger',
+        'برای اصلاح اولویت این تیکت دسترسی عملیاتی لازم را ندارید.',
+    ],
+    'priority_invalid_csrf' => [
+        'danger',
+        'اعتبار فرم منقضی شده است. صفحه را تازه‌سازی و دوباره اقدام کنید.',
+    ],
+    'priority_failed' => [
+        'danger',
+        'تغییر اولویت انجام نشد. دوباره تلاش کنید.',
+    ],
+];
+
 $lifecycleStatusMessage =
     [
+        'ticket_resolved' =>
+            [
+                'success',
+                'تیکت با موفقیت به وضعیت «حل‌شده» منتقل شد.',
+            ],
+
+        'ticket_closed' =>
+            [
+                'success',
+                'تیکت با موفقیت بسته شد.',
+            ],
+
+        'ticket_reopened' =>
+            [
+                'success',
+                'تیکت بازگشایی شد و برای ادامه رسیدگی به وضعیت «در حال بررسی» برگشت.',
+            ],
+
+        'lifecycle_invalid_csrf' =>
+            [
+                'danger',
+                'اعتبار فرم منقضی شده است. صفحه را تازه‌سازی و دوباره اقدام کنید.',
+            ],
+
+        'lifecycle_owner_required' =>
+            [
+                'danger',
+                'فقط کارشناس فعلی که تیکت در اختیار اوست می‌تواند تیکت را حل‌شده اعلام کند.',
+            ],
+
+        'lifecycle_waiting_requester' =>
+            [
+                'danger',
+                'تا قبل از پاسخ درخواست‌کننده، امکان حل‌شده کردن تیکت وجود ندارد.',
+            ],
+
+        'lifecycle_invalid_state' =>
+            [
+                'danger',
+                'این اقدام با وضعیت فعلی تیکت سازگار نیست.',
+            ],
+
+        'lifecycle_resolve_first' =>
+            [
+                'danger',
+                'برای بستن تیکت، ابتدا باید تیکت به وضعیت «حل‌شده» منتقل شود.',
+            ],
+
+        'lifecycle_close_forbidden' =>
+            [
+                'danger',
+                'بستن این تیکت فقط برای کارشناس فعلی یا مدیر پروژه مجاز است.',
+            ],
+
+        'lifecycle_reopen_invalid_state' =>
+            [
+                'danger',
+                'فقط تیکت بسته‌شده قابل بازگشایی است.',
+            ],
+
+        'lifecycle_reopen_forbidden' =>
+            [
+                'danger',
+                'بازگشایی این تیکت فقط برای درخواست‌کننده همان تیکت یا مدیر پروژه مجاز است.',
+            ],
+
+        'lifecycle_transition_conflict' =>
+            [
+                'danger',
+                'وضعیت تیکت هم‌زمان تغییر کرده است. صفحه را تازه‌سازی و دوباره بررسی کنید.',
+            ],
+
+        'lifecycle_failed' =>
+            [
+                'danger',
+                'تغییر وضعیت تیکت انجام نشد.',
+            ],
         'requester_reply_sent' =>
             [
                 'success',
-                'پاسخ درخواست‌کننده ثبت شد و تیکت دوباره در حال بررسی قرار گرفت.',
+                'پاسخ درخواست‌کننده ثبت شد و تیکت برای ادامه رسیدگی کارشناس در وضعیت «در حال بررسی» قرار گرفت.',
             ],
 
         'requester_reply_empty' =>
@@ -927,6 +1276,29 @@ $lifecycleStatusMessage =
                 'برای ثبت پاسخ در این پروژه دسترسی لازم وجود ندارد.',
             ],
 
+        'reply_waiting_requester' =>
+            [
+                'info',
+                'این تیکت در انتظار پاسخ درخواست‌کننده است. در حال حاضر نوبت اقدام کارشناس نیست.',
+            ],
+
+        'reply_takeover_required' =>
+            [
+                'warning',
+                'این تیکت هنوز در اختیار کارشناس مشخصی نیست. ابتدا آن را از کارتابل در اختیار بگیرید.',
+            ],
+
+        'reply_not_assignee' =>
+            [
+                'warning',
+                'این تیکت در اختیار شما نیست. برای پاسخ ابتدا باید مالکیت عملیاتی تیکت را در کارتابل دریافت کنید.',
+            ],
+
+        'reply_assignment_invalid' =>
+            [
+                'danger',
+                'تخصیص عملیاتی تیکت معتبر نیست. نقش پروژه یا عضویت تیم کارشناس باید توسط مدیر بررسی شود.',
+            ],
         'reply_invalid_csrf' =>
             [
                 'danger',
@@ -966,11 +1338,574 @@ $lifecycleStatusMessage =
     </section>
 <?php endif; ?>
 
-<?php if (
-    $lifecycleRequesterExpected
-    && !$lifecycleClosed
+<?php
+$lifecycleRequesterStatusCode =
+    trim(
+        (string) (
+            $ticket['status_code']
+            ?? ''
+        )
+    );
+
+$lifecycleRequesterCanUpdate =
+    $lifecycleIsRequester
     && $lifecycleReference !== ''
-): ?>
+    && in_array(
+        $lifecycleRequesterStatusCode,
+        [
+            'new',
+            'in_progress',
+            'waiting_requester',
+            'waiting_internal',
+            'resolved',
+        ],
+        true
+    );
+?>
+
+<?php if (!empty($priorityGovernance['found'])): ?>
+    <section
+        class="admin-section ticketing-priority-governance"
+        data-ticketing-priority-governance
+    >
+        <div class="admin-section__header">
+            <div>
+                <h3>اولویت تیکت</h3>
+                <p class="admin-muted">
+                    اولویت فعلی و سوابق اصلاح آن در این بخش نگهداری می‌شود.
+                </p>
+            </div>
+
+            <strong class="ticketing-priority-current">
+                <?= $lifecycleH(
+                    $priorityGovernanceCurrentTitle
+                    !== ''
+                        ? $priorityGovernanceCurrentTitle
+                        : '—'
+                ) ?>
+            </strong>
+        </div>
+
+        <?php if (
+            $priorityNotice !== ''
+            && isset($priorityNoticeMap[$priorityNotice])
+        ): ?>
+            <?php
+            $priorityNoticeRow =
+                $priorityNoticeMap[$priorityNotice];
+            ?>
+            <div
+                class="admin-alert admin-alert--<?= $lifecycleH(
+                    (string) $priorityNoticeRow[0]
+                ) ?>"
+                role="status"
+            >
+                <?= $lifecycleH(
+                    (string) $priorityNoticeRow[1]
+                ) ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($priorityGovernanceCanChange): ?>
+            <?php
+            $priorityCsrf =
+                (new \IPKF\Security\Csrf())->token();
+            ?>
+
+            <form
+                method="post"
+                action="<?= $lifecycleH(
+                    '/admin/ticketing/tickets/'
+                    . rawurlencode($lifecycleReference)
+                    . '/priority'
+                ) ?>"
+                class="ticketing-priority-form"
+                data-ticketing-priority-form
+            >
+                <input
+                    type="hidden"
+                    name="_token"
+                    value="<?= $lifecycleH($priorityCsrf) ?>"
+                >
+
+                <label>
+                    <span>اولویت جدید</span>
+                    <select
+                        name="priority_code"
+                        required
+                    >
+                        <?php foreach (
+                            $priorityGovernancePriorities
+                            as $priorityOption
+                        ): ?>
+                            <?php
+                            $priorityOptionCode = trim(
+                                (string) (
+                                    $priorityOption['code']
+                                    ?? ''
+                                )
+                            );
+                            ?>
+                            <option
+                                value="<?= $lifecycleH(
+                                    $priorityOptionCode
+                                ) ?>"
+                                <?= $priorityOptionCode ===
+                                    $priorityGovernanceCurrentCode
+                                        ? 'selected'
+                                        : '' ?>
+                            >
+                                <?= $lifecycleH(
+                                    (string) (
+                                        $priorityOption['title']
+                                        ?? $priorityOptionCode
+                                    )
+                                ) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+
+                <label class="ticketing-priority-form__reason">
+                    <span>دلیل تغییر</span>
+                    <textarea
+                        name="priority_reason"
+                        rows="3"
+                        minlength="3"
+                        maxlength="1000"
+                        required
+                        placeholder="دلیل اصلاح اولویت را ثبت کنید..."
+                    ></textarea>
+                </label>
+
+                <div class="admin-form-actions">
+                    <button
+                        class="admin-button"
+                        type="submit"
+                    >
+                        ثبت تغییر اولویت
+                    </button>
+                </div>
+            </form>
+        <?php endif; ?>
+
+        <?php if ($priorityGovernanceHistory !== []): ?>
+            <div class="ticketing-priority-history">
+                <h4>تاریخچه تغییر اولویت</h4>
+
+                <?php foreach (
+                    $priorityGovernanceHistory
+                    as $priorityHistoryRow
+                ): ?>
+                    <article
+                        class="ticketing-priority-history__item"
+                    >
+                        <div>
+                            <strong>
+                                <?= $lifecycleH(
+                                    (string) (
+                                        $priorityHistoryRow[
+                                            'old_priority_title'
+                                        ]
+                                        ?? $priorityHistoryRow[
+                                            'old_priority_code'
+                                        ]
+                                        ?? '—'
+                                    )
+                                ) ?>
+                                ←
+                                <?= $lifecycleH(
+                                    (string) (
+                                        $priorityHistoryRow[
+                                            'new_priority_title'
+                                        ]
+                                        ?? $priorityHistoryRow[
+                                            'new_priority_code'
+                                        ]
+                                        ?? '—'
+                                    )
+                                ) ?>
+                            </strong>
+
+                            <small>
+                                <?= $lifecycleH(
+                                    (string) (
+                                        $priorityHistoryRow[
+                                            'actor_display_name'
+                                        ]
+                                        ?? $priorityHistoryRow[
+                                            'actor_user_reference'
+                                        ]
+                                        ?? '—'
+                                    )
+                                ) ?>
+                                ·
+                                <?= $lifecycleH(
+                                    \App\Support\AdminFormat::jalaliDateTime(
+                                        (string) (
+                                            $priorityHistoryRow[
+                                                'occurred_at'
+                                            ]
+                                            ?? ''
+                                        )
+                                    )
+                                    ?: '—'
+                                ) ?>
+                            </small>
+                        </div>
+
+                        <p>
+                            <?= $lifecycleH(
+                                (string) (
+                                    $priorityHistoryRow['reason']
+                                    ?? '—'
+                                )
+                            ) ?>
+                        </p>
+
+                        <?php if (!empty(
+                            $priorityHistoryRow[
+                                'sla_recalculation_required'
+                            ]
+                        )): ?>
+                            <span class="admin-pill">
+                                نیازمند بازبینی SLA
+                            </span>
+                        <?php endif; ?>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </section>
+<?php endif; ?>
+
+<script data-ticketing-priority-relocate>
+(() => {
+    /*
+     * TICKETING_DETAIL_TAB_SCOPE_RECONCILIATION_V2
+     *
+     * Canonical ownership:
+     *
+     * Details:
+     *   - four ticket metrics
+     *   - canonical generated routing / ownership detail
+     *
+     * Response and Operations:
+     *   - active reply
+     *   - priority correction
+     *   - lifecycle actions
+     *
+     * History:
+     *   - unified timeline
+     *   - priority-change history
+     */
+
+    const workspace =
+        document.querySelector(
+            '[data-ticketing-detail-workspace]'
+        );
+
+    if (!workspace) {
+        return;
+    }
+
+    const priorityPanel =
+        document.querySelector(
+            '[data-ticketing-priority-governance]'
+        );
+
+    const detailMetrics =
+        document.querySelector(
+            '.ticketing-detail-metrics'
+        );
+
+    /*
+     * Capture the old server-rendered SECTION summary before
+     * the legacy runtime can relocate it.
+     *
+     * The Details host later builds the canonical equivalent,
+     * therefore these captured sections are browser duplicates.
+     */
+    let legacySummarySections = [];
+
+    const workspaceParent =
+        workspace.parentElement;
+
+    if (workspaceParent) {
+
+        const siblings =
+            Array.from(
+                workspaceParent.children
+            );
+
+        const workspaceIndex =
+            siblings.indexOf(
+                workspace
+            );
+
+        if (workspaceIndex >= 0) {
+
+            legacySummarySections =
+                siblings
+                    .slice(
+                        0,
+                        workspaceIndex
+                    )
+                    .filter(
+                        (element) =>
+                            element.tagName ===
+                            'SECTION'
+                    );
+        }
+    }
+
+    const reconcile =
+        () => {
+
+            const tabs =
+                Array.from(
+                    workspace.querySelectorAll(
+                        '[data-ticketing-detail-tab]'
+                    )
+                );
+
+            const panels =
+                Array.from(
+                    workspace.querySelectorAll(
+                        '[data-ticketing-detail-panel]'
+                    )
+                );
+
+            const normalizedText =
+                (element) =>
+                    (
+                        element
+                        && element.textContent
+                            ? element.textContent
+                            : ''
+                    )
+                        .replace(
+                            /\s+/gu,
+                            ' '
+                        )
+                        .trim();
+
+            const panelByLabel =
+                (label) => {
+
+                    const tab =
+                        tabs.find(
+                            (candidate) =>
+                                normalizedText(
+                                    candidate
+                                ) === label
+                        );
+
+                    if (!tab) {
+                        return null;
+                    }
+
+                    const key =
+                        tab.getAttribute(
+                            'data-ticketing-detail-tab'
+                        );
+
+                    if (!key) {
+                        return null;
+                    }
+
+                    return (
+                        panels.find(
+                            (candidate) =>
+                                candidate.getAttribute(
+                                    'data-ticketing-detail-panel'
+                                ) === key
+                        )
+                        || null
+                    );
+                };
+
+            const detailsPanel =
+                panelByLabel(
+                    'جزئیات'
+                );
+
+            const operationsPanel =
+                panelByLabel(
+                    'پاسخ و عملیات'
+                );
+
+            const historyPanel =
+                panelByLabel(
+                    'تاریخچه'
+                );
+
+            /*
+             * Lifecycle markup occurs later in the HTML than
+             * this script; resolve it only after parsing.
+             */
+            const lifecycleActions =
+                document.querySelector(
+                    '[data-ticketing-lifecycle-actions]'
+                );
+
+            /*
+             * TICKETING_REAL_TICKET_DETAILS
+             *
+             * The server-rendered summary is the authoritative
+             * ticket detail presentation. It already contains
+             * project, subject, current stage/team and current
+             * assignee.
+             *
+             * Do not replace that useful information with the
+             * old routing-only generated placeholder.
+             */
+            const generatedDetailsHost =
+                workspace.querySelector(
+                    '[data-ticketing-details-host]'
+                );
+
+            if (generatedDetailsHost) {
+                generatedDetailsHost.remove();
+            }
+
+            if (detailsPanel) {
+
+                detailsPanel.classList.add(
+                    'ticketing-details-panel'
+                );
+
+                const detailsHeading =
+                    document.createElement(
+                        'header'
+                    );
+
+                detailsHeading.className =
+                    'ticketing-details-heading';
+
+                const detailsTitle =
+                    document.createElement(
+                        'h3'
+                    );
+
+                detailsTitle.textContent =
+                    'مشخصات تیکت';
+
+                const detailsDescription =
+                    document.createElement(
+                        'p'
+                    );
+
+                detailsDescription.textContent =
+                    'وضعیت، اولویت، دسته، زمان ثبت، پروژه، موضوع و اطلاعات جاری رسیدگی';
+
+                detailsHeading.appendChild(
+                    detailsTitle
+                );
+
+                detailsHeading.appendChild(
+                    detailsDescription
+                );
+
+                detailsPanel.append(
+                    detailsHeading
+                );
+
+                if (detailMetrics) {
+
+                    detailMetrics.classList.add(
+                        'ticketing-details-metrics-block'
+                    );
+
+                    detailsPanel.append(
+                        detailMetrics
+                    );
+                }
+
+                legacySummarySections.forEach(
+                    (section) => {
+
+                        section.classList.add(
+                            'ticketing-details-summary-block'
+                        );
+
+                        detailsPanel.append(
+                            section
+                        );
+                    }
+                );
+            }
+
+            /*
+             * Priority form/control belongs to Operations.
+             * Its audit history is detached to History.
+             */
+            const priorityHistory =
+                priorityPanel
+                    ? priorityPanel.querySelector(
+                        '.ticketing-priority-history'
+                    )
+                    : null;
+
+            if (
+                operationsPanel
+                && priorityPanel
+            ) {
+                operationsPanel.append(
+                    priorityPanel
+                );
+            }
+
+            /*
+             * Lifecycle actions belong only to Operations.
+             */
+            if (
+                operationsPanel
+                && lifecycleActions
+            ) {
+                operationsPanel.append(
+                    lifecycleActions
+                );
+            }
+
+            /*
+             * Priority audit belongs only to History.
+             */
+            if (
+                historyPanel
+                && priorityHistory
+            ) {
+                historyPanel.append(
+                    priorityHistory
+                );
+            }
+
+            workspace.setAttribute(
+                'data-ticketing-tab-scope-reconciled',
+                'v2'
+            );
+        };
+
+    if (
+        document.readyState ===
+        'loading'
+    ) {
+        document.addEventListener(
+            'DOMContentLoaded',
+            reconcile,
+            {
+                once: true,
+            }
+        );
+
+        return;
+    }
+
+    reconcile();
+})();
+</script>
+
+<?php if ($lifecycleRequesterCanUpdate): ?>
     <?php
     $requesterReplyCsrf =
         (
@@ -984,16 +1919,32 @@ $lifecycleStatusMessage =
     >
         <div class="admin-section__header">
             <div>
-                <h3>پاسخ درخواست‌کننده</h3>
+                <h3>افزودن توضیح</h3>
 
                 <p class="admin-muted">
-                    پاسخ شما برای تیم پشتیبانی ثبت می‌شود و تیکت دوباره به وضعیت «در حال بررسی» بازمی‌گردد.
+                    تا پیش از بسته‌شدن یا لغو تیکت می‌توانید توضیح یا فایل تکمیلی اضافه کنید. مسیر ارجاع و کارشناس فعلی حفظ می‌شود.
                 </p>
+
+                <?php if (
+                    $lifecycleRequesterStatusCode
+                    === 'resolved'
+                ): ?>
+                    <!-- ticketing_requester_actions_r4a2r1 -->
+                    <div
+                        class="admin-alert admin-alert--info ticketing-requester-reopen-note"
+                        data-ticketing-requester-reopen-note
+                    >
+                        این تیکت حل‌شده است. با ثبت توضیح جدید،
+                        تیکت دوباره به وضعیت «در حال بررسی»
+                        برمی‌گردد و رسیدگی ادامه پیدا می‌کند.
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
 
         <form
             method="post"
+            enctype="multipart/form-data"
             action="<?= $lifecycleH(
                 '/admin/ticketing/tickets/'
                 . rawurlencode(
@@ -1011,16 +1962,36 @@ $lifecycleStatusMessage =
                 ) ?>"
             >
 
+            <input
+                type="hidden"
+                name="intent"
+                value="update"
+            >
+
             <label>
-                <span>متن پاسخ</span>
+                <span>توضیح تکمیلی</span>
 
                 <textarea
                     name="body"
                     rows="5"
                     maxlength="20000"
                     required
-                    placeholder="پاسخ خود را وارد کنید..."
+                    placeholder="توضیح خود را وارد کنید..."
                 ></textarea>
+            </label>
+
+            <label>
+                <span>پیوست</span>
+
+                <input
+                    type="file"
+                    name="attachments[]"
+                    multiple
+                >
+
+                <small class="admin-muted">
+                    فایل‌های انتخاب‌شده با همان کنترل امن پیوست تیکت ذخیره می‌شوند.
+                </small>
             </label>
 
             <div class="admin-form-actions">
@@ -1028,17 +1999,113 @@ $lifecycleStatusMessage =
                     class="admin-button"
                     type="submit"
                 >
-                    ثبت پاسخ
+                    ثبت توضیح
                 </button>
             </div>
         </form>
+
+        <?php if (
+            $lifecycleRequesterStatusCode
+            !== 'resolved'
+        ): ?>
+            <form
+                method="post"
+                action="<?= $lifecycleH(
+                    '/admin/ticketing/tickets/'
+                    . rawurlencode(
+                        $lifecycleReference
+                    )
+                    . '/requester-reply'
+                ) ?>"
+                data-ticketing-requester-resolve-form
+                onsubmit="return confirm('مشکل شما حل شده و تیکت به وضعیت حل‌شده منتقل شود؟');"
+            >
+                <input
+                    type="hidden"
+                    name="_token"
+                    value="<?= $lifecycleH(
+                        $requesterReplyCsrf
+                    ) ?>"
+                >
+
+                <input
+                    type="hidden"
+                    name="intent"
+                    value="resolve"
+                >
+
+                <div class="admin-form-actions">
+                    <button
+                        class="admin-button admin-button--soft"
+                        type="submit"
+                    >
+                        مشکلم حل شد
+                    </button>
+                </div>
+            </form>
+        <?php endif; ?>
     </section>
 <?php endif; ?>
 
 
 <?php if (
     $lifecycleCanReply
-    && !$lifecycleRequesterExpected
+    &&
+    !$lifecycleIsRequester
+    &&
+    !$lifecycleClosed
+    &&
+    !$lifecycleStaffOwnsReply
+    &&
+    $lifecycleReference !== ''
+): ?>
+
+    <section
+        class="admin-section ticketing-staff-reply-ownership"
+        data-ticketing-staff-reply-ownership
+    >
+
+        <?php if (
+            $lifecycleStaffReplyState ===
+            'reply_waiting_requester'
+        ): ?>
+
+            <div class="admin-alert admin-alert--info">
+                تیکت در انتظار پاسخ درخواست‌کننده است. پس از پاسخ درخواست‌کننده، رسیدگی توسط کارشناس فعلی ادامه پیدا می‌کند.
+            </div>
+
+        <?php elseif (
+            $lifecycleStaffReplyState ===
+            'reply_assignment_invalid'
+        ): ?>
+
+            <div class="admin-alert admin-alert--danger">
+                تخصیص عملیاتی این تیکت معتبر نیست. نقش پروژه یا عضویت تیم کارشناس باید بررسی شود.
+                تا اصلاح تخصیص، پاسخ کارشناس مجاز نیست.
+            </div>
+
+        <?php else: ?>
+
+            <div class="admin-alert admin-alert--warning">
+                این تیکت در اختیار شما نیست.
+                برای پاسخ ابتدا باید آن را در کارتابل پشتیبانی در اختیار بگیرید.
+
+                <a
+                    class="admin-button admin-button--soft"
+                    href="/admin/ticketing/staff"
+                >
+                    رفتن به کارتابل پشتیبانی
+                </a>
+            </div>
+
+        <?php endif; ?>
+
+    </section>
+
+<?php endif; ?>
+
+<?php if (
+    $lifecycleStaffOwnsReply
     && !$lifecycleClosed
     && $lifecycleReference !== ''
 ): ?>
@@ -1064,6 +2131,7 @@ $lifecycleStatusMessage =
 
         <form
             method="post"
+            enctype="multipart/form-data"
             action="<?= $lifecycleH(
                 '/admin/ticketing/tickets/'
                 . rawurlencode(
@@ -1093,6 +2161,23 @@ $lifecycleStatusMessage =
                 ></textarea>
             </label>
 
+            <label>
+                <span>
+                    پیوست‌ها (اختیاری)
+                </span>
+
+                <input
+                    type="file"
+                    name="attachments[]"
+                    multiple
+                >
+
+                <small class="admin-muted">
+                    حداکثر ۵ فایل؛ هر فایل حداکثر ۱۰ مگابایت
+                    و مجموع فایل‌ها حداکثر ۲۵ مگابایت.
+                </small>
+            </label>
+
             <div class="admin-form-actions">
                 <button
                     class="admin-button"
@@ -1103,6 +2188,172 @@ $lifecycleStatusMessage =
             </div>
         </form>
     </section>
+<?php endif; ?>
+
+<?php if (
+    !empty(
+        $lifecycleTransitionCapabilities[
+            'can_resolve'
+        ]
+    )
+    ||
+    !empty(
+        $lifecycleTransitionCapabilities[
+            'can_close'
+        ]
+    )
+    ||
+    !empty(
+        $lifecycleTransitionCapabilities[
+            'can_reopen'
+        ]
+    )
+): ?>
+    <?php
+    /*
+     * Lifecycle transition CSRF is deliberately independent
+     * from the staff/requester reply composers.
+     *
+     * A resolved ticket may expose Close while no reply form
+     * exists on the page.
+     */
+    $lifecycleActionCsrf =
+        (
+            new \IPKF\Security\Csrf()
+        )->token();
+    ?>
+
+
+    <section
+        class="admin-section ticketing-lifecycle-actions"
+        data-ticketing-lifecycle-actions
+    >
+        <div class="admin-section__header">
+            <div>
+                <h3>اقدامات تیکت</h3>
+                <p class="admin-muted">
+                    اقدامات نهایی چرخه تیکت بر اساس وضعیت، مالک فعلی و نقش پروژه نمایش داده می‌شوند.
+                </p>
+            </div>
+        </div>
+
+        <div class="ticketing-lifecycle-actions__grid">
+
+            <?php if (
+                !empty(
+                    $lifecycleTransitionCapabilities[
+                        'can_resolve'
+                    ]
+                )
+            ): ?>
+
+                <form
+                    method="post"
+                    action="<?= $lifecycleH(
+                        '/admin/ticketing/tickets/'
+                        . rawurlencode(
+                            $lifecycleReference
+                        )
+                        . '/resolve'
+                    ) ?>"
+                >
+                    <input
+                        type="hidden"
+                        name="_token"
+                        value="<?= $lifecycleH(
+                            $lifecycleActionCsrf
+                        ) ?>"
+                    >
+
+                    <button
+                        class="admin-button ticketing-lifecycle-action--resolve"
+                        type="submit"
+                    >
+                        ثبت به‌عنوان حل‌شده
+                    </button>
+                </form>
+
+            <?php endif; ?>
+
+
+            <?php if (
+                !empty(
+                    $lifecycleTransitionCapabilities[
+                        'can_close'
+                    ]
+                )
+            ): ?>
+
+                <form
+                    method="post"
+                    action="<?= $lifecycleH(
+                        '/admin/ticketing/tickets/'
+                        . rawurlencode(
+                            $lifecycleReference
+                        )
+                        . '/close'
+                    ) ?>"
+                    onsubmit="return confirm('تیکت بسته شود؟');"
+                >
+                    <input
+                        type="hidden"
+                        name="_token"
+                        value="<?= $lifecycleH(
+                            $lifecycleActionCsrf
+                        ) ?>"
+                    >
+
+                    <button
+                        class="admin-button admin-button--soft ticketing-lifecycle-action--close"
+                        type="submit"
+                    >
+                        بستن تیکت
+                    </button>
+                </form>
+
+            <?php endif; ?>
+
+
+            <?php if (
+                !empty(
+                    $lifecycleTransitionCapabilities[
+                        'can_reopen'
+                    ]
+                )
+            ): ?>
+
+                <form
+                    method="post"
+                    action="<?= $lifecycleH(
+                        '/admin/ticketing/tickets/'
+                        . rawurlencode(
+                            $lifecycleReference
+                        )
+                        . '/reopen'
+                    ) ?>"
+                    onsubmit="return confirm('تیکت بازگشایی شود و رسیدگی ادامه پیدا کند؟');"
+                >
+                    <input
+                        type="hidden"
+                        name="_token"
+                        value="<?= $lifecycleH(
+                            $lifecycleActionCsrf
+                        ) ?>"
+                    >
+
+                    <button
+                        class="admin-button ticketing-lifecycle-action--reopen"
+                        type="submit"
+                    >
+                        بازگشایی تیکت
+                    </button>
+                </form>
+
+            <?php endif; ?>
+
+        </div>
+    </section>
+
 <?php endif; ?>
 
 <script>
@@ -1133,52 +2384,21 @@ $lifecycleStatusMessage =
         );
 
     /*
-     * Summary sections rendered immediately before the
-     * A8D3 workspace belong to the Status tab.
+     * TICKETING_LEGACY_SUMMARY_RELOCATION_DISABLED
      *
-     * Keep page header / breadcrumb / subject outside.
+     * Static summary ownership is handled by the V2
+     * reconciliation controller.
+     *
+     * The legacy runtime now moves only the active reply into
+     * the Response and Operations panel.
      */
-    if (statusPanel) {
-        const parent =
-            root.parentElement;
-
-        if (parent) {
-            const candidates =
-                Array.from(
-                    parent.children
-                );
-
-            const rootIndex =
-                candidates.indexOf(
-                    root
-                );
-
-            if (rootIndex >= 0) {
-                candidates
-                    .slice(
-                        0,
-                        rootIndex
-                    )
-                    .filter(
-                        (element) =>
-                            element.tagName ===
-                            'SECTION'
-                    )
-                    .forEach(
-                        (section) => {
-                            statusPanel.appendChild(
-                                section
-                            );
-                        }
-                    );
-            }
-        }
-
-        if (activeReply) {
-            statusPanel.appendChild(
-                activeReply
-            );
-        }
+    if (
+        statusPanel
+        && activeReply
+    ) {
+        statusPanel.appendChild(
+            activeReply
+        );
     }
 
     if (replySlot) {
@@ -1258,7 +2478,7 @@ $lifecycleStatusMessage =
     );
 
     activate(
-        'status'
+        'conversation'
     );
 })();
 </script>
@@ -1493,6 +2713,694 @@ $lifecycleStatusMessage =
         );
     } else {
         scheduleInitialization();
+    }
+})();
+</script>
+
+
+<script>
+(() => {
+    const statusTitles = {
+        new: 'جدید',
+        in_progress: 'در حال بررسی',
+        waiting_requester:
+            'در انتظار پاسخ درخواست‌کننده',
+        waiting_internal:
+            'در انتظار اقدام داخلی',
+        resolved: 'حل‌شده',
+        closed: 'بسته‌شده',
+        cancelled: 'لغوشده',
+    };
+
+    const statusTitle = (code) => {
+        const value =
+            String(code || '').trim();
+
+        return (
+            statusTitles[value]
+            || value
+            || '—'
+        );
+    };
+
+    const normalizedTime = (value) => {
+        return String(value || '')
+            .trim()
+            .replace(' ', 'T');
+    };
+
+
+    const buildUnifiedTimeline = () => {
+        const timeline =
+            document.querySelector(
+                '[data-ticketing-unified-timeline]'
+            );
+
+        const conversation =
+            document.querySelector(
+                '[data-ticketing-detail-panel="conversation"]'
+            );
+
+        if (!timeline || !conversation) {
+            return;
+        }
+
+        const items = [];
+
+        Array.from(
+            conversation.querySelectorAll(
+                '.ticketing-message-bubble'
+                + '[data-ticketing-timeline-kind="message"]'
+            )
+        ).forEach(
+            (node, index) => {
+                items.push({
+                    kind: 'message',
+                    node,
+                    time:
+                        normalizedTime(
+                            node.dataset
+                                .ticketingTimelineTime
+                        ),
+                    index,
+                });
+            }
+        );
+
+        Array.from(
+            document.querySelectorAll(
+                '[data-ticketing-event-source]'
+            )
+        ).forEach(
+            (row, index) => {
+                const code =
+                    String(
+                        row.dataset
+                            .ticketingEventCode
+                        || ''
+                    ).trim();
+
+                const previous =
+                    String(
+                        row.dataset
+                            .ticketingEventPrevious
+                        || ''
+                    ).trim();
+
+                const result =
+                    String(
+                        row.dataset
+                            .ticketingEventResult
+                        || ''
+                    ).trim();
+
+                /*
+                 * Normal requester update is already shown
+                 * by its Message Card. Only show its event
+                 * when lifecycle changed.
+                 */
+                if (
+                    code ===
+                        'ticket_requester_updated'
+                    && (
+                        previous === result
+                        || result === ''
+                    )
+                ) {
+                    return;
+                }
+
+                const cells =
+                    Array.from(
+                        row.querySelectorAll('td')
+                    );
+
+                const label =
+                    (
+                        cells[0]
+                        ?.textContent
+                        || code
+                    ).trim();
+
+                const actor =
+                    String(
+                        row.dataset
+                            .ticketingEventActor
+                        || (
+                            cells[1]
+                            ?.textContent
+                            || ''
+                        )
+                    ).trim();
+
+                const renderedTime =
+                    (
+                        cells[3]
+                        ?.textContent
+                        || ''
+                    ).trim();
+
+                let description = label;
+
+                if (
+                    code ===
+                    'ticket_requester_resolved'
+                ) {
+                    description =
+                        'درخواست‌کننده مشکل را '
+                        + 'حل‌شده اعلام کرد.';
+
+                } else if (
+                    previous !== ''
+                    && result !== ''
+                    && previous !== result
+                ) {
+                    description =
+                        label
+                        + '؛ وضعیت از «'
+                        + statusTitle(previous)
+                        + '» به «'
+                        + statusTitle(result)
+                        + '» تغییر کرد.';
+                }
+
+                const event =
+                    document.createElement(
+                        'div'
+                    );
+
+                event.className =
+                    'ticketing-timeline-event';
+
+                event.dataset
+                    .ticketingTimelineEvent = '';
+
+                const dot =
+                    document.createElement(
+                        'span'
+                    );
+
+                dot.className =
+                    'ticketing-timeline-event__dot';
+
+                dot.setAttribute(
+                    'aria-hidden',
+                    'true'
+                );
+
+                const content =
+                    document.createElement(
+                        'div'
+                    );
+
+                content.className =
+                    'ticketing-timeline-event__content';
+
+                const message =
+                    document.createElement(
+                        'span'
+                    );
+
+                message.className =
+                    'ticketing-timeline-event__text';
+
+                message.textContent =
+                    description;
+
+                content.appendChild(
+                    message
+                );
+
+                const metaParts = [];
+
+                if (
+                    actor !== ''
+                    && actor !== '—'
+                ) {
+                    metaParts.push(actor);
+                }
+
+                if (renderedTime !== '') {
+                    metaParts.push(
+                        renderedTime
+                    );
+                }
+
+                if (metaParts.length > 0) {
+                    const meta =
+                        document.createElement(
+                            'small'
+                        );
+
+                    meta.className =
+                        'ticketing-timeline-event__meta';
+
+                    meta.textContent =
+                        metaParts.join(' · ');
+
+                    content.appendChild(
+                        meta
+                    );
+                }
+
+                event.appendChild(dot);
+                event.appendChild(content);
+
+                items.push({
+                    kind: 'event',
+                    node: event,
+                    time:
+                        normalizedTime(
+                            row.dataset
+                                .ticketingTimelineTime
+                        ),
+                    index:
+                        index + 100000,
+                });
+            }
+        );
+
+        items.sort(
+            (left, right) => {
+                const byTime =
+                    left.time.localeCompare(
+                        right.time
+                    );
+
+                if (byTime !== 0) {
+                    return byTime;
+                }
+
+                if (
+                    left.kind
+                    !== right.kind
+                ) {
+                    return (
+                        left.kind === 'message'
+                            ? -1
+                            : 1
+                    );
+                }
+
+                return (
+                    left.index
+                    - right.index
+                );
+            }
+        );
+
+        timeline.replaceChildren();
+
+        const appendItem = (
+            item,
+            destination = timeline
+        ) => {
+            const wrapper =
+                document.createElement(
+                    'div'
+                );
+
+            wrapper.className =
+                'ticketing-timeline-item '
+                + (
+                    item.kind === 'message'
+                        ? 'ticketing-timeline-item--message'
+                        : 'ticketing-timeline-item--event'
+                );
+
+            wrapper.appendChild(
+                item.node
+            );
+
+            destination.appendChild(
+                wrapper
+            );
+        };
+
+
+        const appendEventRun = (run) => {
+            /*
+             * Short runs remain fully visible.
+             */
+            if (run.length <= 6) {
+                run.forEach(
+                    (item) => {
+                        appendItem(item);
+                    }
+                );
+
+                return;
+            }
+
+            /*
+             * Preserve the complete audit history while
+             * avoiding a wall of repetitive system lines.
+             * First two and last two stay visible.
+             */
+            run.slice(0, 2).forEach(
+                (item) => {
+                    appendItem(item);
+                }
+            );
+
+            const middle =
+                run.slice(
+                    2,
+                    run.length - 2
+                );
+
+            const disclosure =
+                document.createElement(
+                    'details'
+                );
+
+            disclosure.className =
+                'ticketing-timeline-event-group';
+
+            disclosure.dataset
+                .ticketingTimelineEventGroup = '';
+
+            const summary =
+                document.createElement(
+                    'summary'
+                );
+
+            summary.className =
+                'ticketing-timeline-event-group__summary';
+
+            summary.textContent =
+                'نمایش '
+                + new Intl.NumberFormat(
+                    'fa-IR'
+                ).format(
+                    middle.length
+                )
+                + ' رویداد میانی';
+
+            const body =
+                document.createElement(
+                    'div'
+                );
+
+            body.className =
+                'ticketing-timeline-event-group__body';
+
+            middle.forEach(
+                (item) => {
+                    appendItem(
+                        item,
+                        body
+                    );
+                }
+            );
+
+            disclosure.appendChild(
+                summary
+            );
+
+            disclosure.appendChild(
+                body
+            );
+
+            timeline.appendChild(
+                disclosure
+            );
+
+            run.slice(-2).forEach(
+                (item) => {
+                    appendItem(item);
+                }
+            );
+        };
+
+
+        let cursor = 0;
+
+        while (cursor < items.length) {
+            const item =
+                items[cursor];
+
+            if (item.kind !== 'event') {
+                appendItem(item);
+                cursor += 1;
+                continue;
+            }
+
+            const run = [];
+
+            while (
+                cursor < items.length
+                && items[cursor].kind === 'event'
+            ) {
+                run.push(
+                    items[cursor]
+                );
+
+                cursor += 1;
+            }
+
+            appendEventRun(run);
+        }
+    };
+
+
+    const buildDetails = () => {
+        const host =
+            document.querySelector(
+                '[data-ticketing-details-host]'
+            );
+
+        if (!host) {
+            return;
+        }
+
+        host.replaceChildren();
+
+        const stack =
+            document.createElement(
+                'div'
+            );
+
+        stack.className =
+            'ticketing-details-stack';
+
+        const header =
+            document.createElement(
+                'header'
+            );
+
+        header.className =
+            'ticketing-details-heading';
+
+        const title =
+            document.createElement('h3');
+
+        title.textContent =
+            'جزئیات تیکت';
+
+        const description =
+            document.createElement('p');
+
+        description.textContent =
+            'پروژه، موضوع، مرحله، تیم و مسئول جاری رسیدگی';
+
+        header.appendChild(title);
+        header.appendChild(description);
+        stack.appendChild(header);
+
+        /*
+         * ticketing_timeline_polish_r4a2r4
+         *
+         * Do not repeat the four summary metrics already
+         * visible above the tabs. Details contains only
+         * routing / operational context.
+         */
+        const route =
+            document.querySelector(
+                '.ticketing-route-summary'
+            );
+
+        if (route) {
+            const clone =
+                route.cloneNode(true);
+
+            clone.classList.add(
+                'ticketing-details-route'
+            );
+
+            stack.appendChild(clone);
+
+        } else {
+            const empty =
+                document.createElement(
+                    'div'
+                );
+
+            empty.className =
+                'admin-empty-state';
+
+            empty.textContent =
+                'اطلاعات تکمیلی مسیر رسیدگی ثبت نشده است.';
+
+            stack.appendChild(empty);
+        }
+
+        host.appendChild(stack);
+    };
+
+
+    const localizeFilePickers = () => {
+        const number =
+            new Intl.NumberFormat(
+                'fa-IR'
+            );
+
+        document
+            .querySelectorAll(
+                'input[type="file"]'
+                + '[name="attachments[]"]'
+            )
+            .forEach(
+                (input) => {
+                    if (
+                        input.dataset
+                            .ticketingFilePickerReady
+                        === '1'
+                    ) {
+                        return;
+                    }
+
+                    input.dataset
+                        .ticketingFilePickerReady =
+                        '1';
+
+                    const wrapper =
+                        document.createElement(
+                            'div'
+                        );
+
+                    wrapper.className =
+                        'ticketing-file-picker';
+
+                    wrapper.dataset
+                        .ticketingFilePicker = '';
+
+                    input.parentNode
+                        .insertBefore(
+                            wrapper,
+                            input
+                        );
+
+                    wrapper.appendChild(
+                        input
+                    );
+
+                    const control =
+                        document.createElement(
+                            'div'
+                        );
+
+                    control.className =
+                        'ticketing-file-picker-control';
+
+                    const button =
+                        document.createElement(
+                            'button'
+                        );
+
+                    button.type = 'button';
+
+                    button.className =
+                        'admin-button '
+                        + 'admin-button--soft '
+                        + 'admin-button--compact';
+
+                    button.textContent =
+                        'انتخاب فایل';
+
+                    const state =
+                        document.createElement(
+                            'span'
+                        );
+
+                    state.className =
+                        'ticketing-file-picker-state';
+
+                    state.textContent =
+                        'فایلی انتخاب نشده است';
+
+                    control.appendChild(
+                        button
+                    );
+
+                    control.appendChild(
+                        state
+                    );
+
+                    wrapper.appendChild(
+                        control
+                    );
+
+                    button.addEventListener(
+                        'click',
+                        () => input.click()
+                    );
+
+                    input.addEventListener(
+                        'change',
+                        () => {
+                            const count =
+                                input.files
+                                    ?.length
+                                || 0;
+
+                            if (count === 0) {
+                                state.textContent =
+                                    'فایلی انتخاب نشده است';
+
+                                return;
+                            }
+
+                            if (count === 1) {
+                                state.textContent =
+                                    input.files[0]
+                                        ?.name
+                                    || 'یک فایل انتخاب شد';
+
+                                return;
+                            }
+
+                            state.textContent =
+                                number.format(
+                                    count
+                                )
+                                + ' فایل انتخاب شد';
+                        }
+                    );
+                }
+            );
+    };
+
+
+    const initialize = () => {
+        buildUnifiedTimeline();
+        buildDetails();
+        localizeFilePickers();
+    };
+
+    if (
+        document.readyState
+        === 'loading'
+    ) {
+        document.addEventListener(
+            'DOMContentLoaded',
+            initialize,
+            {
+                once: true,
+            }
+        );
+    } else {
+        initialize();
     }
 })();
 </script>
