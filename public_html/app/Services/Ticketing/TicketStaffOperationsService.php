@@ -96,6 +96,9 @@ final class TicketStaffOperationsService
 
 
         return [
+            'viewer_user_reference' =>
+                'user:' . $userId,
+
             'is_staff' =>
                 $this->repository->isStaff(
                     $userReference

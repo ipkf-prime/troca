@@ -52,6 +52,16 @@ $isStaff =
         $page['is_staff']
     );
 
+$viewerUserReference =
+    trim(
+        (string) (
+            $page[
+                'viewer_user_reference'
+            ]
+            ?? ''
+        )
+    );
+
 $status =
     trim(
         (string) (
@@ -496,9 +506,76 @@ ob_start();
                                     ? 'ارجاع به '
                                         . $escalationTarget
                                     : 'ارجاع به سطح بالاتر';
+
+
+                            /*
+                             * TICKETING_R4B_CARTABLE_VISUAL
+                             */
+                            $priorityCode =
+                                trim(
+                                    (string) (
+                                        $ticket[
+                                            'priority_code'
+                                        ]
+                                        ?? ''
+                                    )
+                                );
+
+                            $priorityColor =
+                                trim(
+                                    (string) (
+                                        $ticket[
+                                            'priority_color'
+                                        ]
+                                        ?? ''
+                                    )
+                                );
+
+                            if (
+                                preg_match(
+                                    '/^#[0-9a-fA-F]{6}$/',
+                                    $priorityColor
+                                ) !== 1
+                            ) {
+                                $priorityColor =
+                                    '#64748b';
+                            }
+
+                            $assigneeUserReference =
+                                trim(
+                                    (string) (
+                                        $ticket[
+                                            'assignee_user_reference'
+                                        ]
+                                        ?? ''
+                                    )
+                                );
+
+                            $isAssignedToViewer =
+                                $viewerUserReference !== ''
+                                && $assigneeUserReference !== ''
+                                && hash_equals(
+                                    $viewerUserReference,
+                                    $assigneeUserReference
+                                );
+
+                            $rowClass =
+                                'ticketing-staff-row'
+                                . (
+                                    $isAssignedToViewer
+                                        ? ' ticketing-staff-row--assigned-to-me'
+                                        : ''
+                                );
                             ?>
 
-                            <tr>
+                            <tr
+                                class="<?= ticketing_h(
+                                    $rowClass
+                                ) ?>"
+                                style="--ticketing-priority-color: <?= ticketing_h(
+                                    $priorityColor
+                                ) ?>"
+                            >
 
                                 <td class="ticketing-col-number">
 
@@ -572,32 +649,48 @@ ob_start();
 
                                 <td class="ticketing-col-assignee">
 
-                                    <?= ticketing_h(
-                                        trim(
-                                            (string) (
-                                                $ticket[
+                                    <span
+                                        class="ticketing-assignee-name<?= $isAssignedToViewer
+                                            ? ' ticketing-assignee-name--mine'
+                                            : '' ?>"
+                                        <?php if ($isAssignedToViewer): ?>
+                                            title="این تیکت به شما تخصیص داده شده است"
+                                        <?php endif; ?>
+                                    >
+                                        <?= ticketing_h(
+                                            trim(
+                                                (string) (
+                                                    $ticket[
+                                                        'assignee_name'
+                                                    ]
+                                                    ?? ''
+                                                )
+                                            ) !== ''
+                                                ? $ticket[
                                                     'assignee_name'
                                                 ]
-                                                ?? ''
-                                            )
-                                        ) !== ''
-                                            ? $ticket[
-                                                'assignee_name'
-                                            ]
-                                            : 'بدون کارشناس'
-                                    ) ?>
+                                                : 'بدون کارشناس'
+                                        ) ?>
+                                    </span>
 
                                 </td>
 
 
                                 <td class="ticketing-col-priority">
 
-                                    <?= ticketing_h(
-                                        $ticket[
-                                            'priority_title'
-                                        ]
-                                        ?? '—'
-                                    ) ?>
+                                    <span
+                                        class="ticketing-staff-priority"
+                                        data-priority-code="<?= ticketing_h(
+                                            $priorityCode
+                                        ) ?>"
+                                    >
+                                        <?= ticketing_h(
+                                            $ticket[
+                                                'priority_title'
+                                            ]
+                                            ?? '—'
+                                        ) ?>
+                                    </span>
 
                                 </td>
 

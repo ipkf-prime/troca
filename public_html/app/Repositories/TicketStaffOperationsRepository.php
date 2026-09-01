@@ -264,6 +264,7 @@ final class TicketStaffOperationsRepository
 
                     t.priority_code,
                     pr.title AS priority_title,
+                    pr.color AS priority_color,
 
                     t.current_support_layer_id,
                     l.title AS layer_title,
