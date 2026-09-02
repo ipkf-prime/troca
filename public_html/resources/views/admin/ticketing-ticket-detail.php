@@ -1436,7 +1436,148 @@ $routingExceptionDefaultTopic =
     )
         ? $routingExceptionPanel['default_topic']
         : null;
+
+$routingExceptionTopics =
+    is_array(
+        $routingExceptionPanel['selectable_topics']
+        ?? null
+    )
+        ? $routingExceptionPanel['selectable_topics']
+        : [];
+
+$routingRecoveryNotice =
+    trim(
+        (string) (
+            $_GET['routing_notice']
+            ?? ''
+        )
+    );
+
+$routingRecoveryIncident =
+    trim(
+        (string) (
+            $_GET['error']
+            ?? ''
+        )
+    );
+
+$routingRecoveryNoticeMessages = [
+    'routing_recovery_applied' =>
+        'موضوع ثبت شد و تیکت با مسیر استاندارد سامانه مسیریابی شد.',
+    'routing_recovery_invalid' =>
+        'درخواست بازیابی مسیریابی معتبر نیست.',
+    'routing_recovery_invalid_csrf' =>
+        'اعتبار فرم منقضی شده است. صفحه را دوباره بارگذاری کنید.',
+    'routing_recovery_invalid_topic' =>
+        'موضوع انتخاب‌شده برای این تیکت معتبر نیست.',
+    'routing_recovery_not_eligible' =>
+        'وضعیت تیکت تغییر کرده و دیگر واجد شرایط این بازیابی نیست.',
+    'routing_recovery_no_route' =>
+        'برای موضوع انتخاب‌شده قانون مسیریابی استاندارد معتبری پیدا نشد.',
+    'routing_recovery_invalid_topology' =>
+        'ساختار مسیر انتخاب‌شده کامل یا معتبر نیست.',
+    'routing_recovery_no_eligible_assignee' =>
+        'مسیر پیدا شد اما کارشناس واجد شرایط برای تخصیص خودکار موجود نیست.',
+    'routing_recovery_forbidden' =>
+        'اجازه انجام بازیابی مسیریابی را ندارید.',
+    'routing_recovery_failed' =>
+        'بازیابی مسیریابی انجام نشد.',
+];
 ?>
+
+<?php
+/*
+ * TICKETING_ROUTING_RECOVERY_V1_UI
+ * A success notice is independent from the exception card because
+ * the repaired ticket becomes healthy immediately after recovery.
+ */
+?>
+
+<?php if (
+    $routingRecoveryNotice !== ''
+    && isset(
+        $routingRecoveryNoticeMessages[
+            $routingRecoveryNotice
+        ]
+    )
+): ?>
+    <section
+        class="admin-section"
+        data-ticketing-routing-recovery-notice
+        hidden
+    >
+        <div
+            class="<?= $routingRecoveryNotice === 'routing_recovery_applied'
+                ? 'admin-alert admin-alert--success'
+                : 'admin-alert admin-alert--danger' ?>"
+            role="<?= $routingRecoveryNotice === 'routing_recovery_applied'
+                ? 'status'
+                : 'alert' ?>"
+        >
+            <?= $lifecycleH(
+                (string) $routingRecoveryNoticeMessages[
+                    $routingRecoveryNotice
+                ]
+            ) ?>
+
+            <?php if (
+                $routingRecoveryIncident !== ''
+            ): ?>
+                <div class="admin-muted">
+                    کد پیگیری:
+                    <?= $lifecycleH(
+                        $routingRecoveryIncident
+                    ) ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    </section>
+
+    <script data-ticketing-routing-recovery-notice-relocate>
+    (() => {
+        const moveRoutingRecoveryNotice = () => {
+            const block = document.querySelector(
+                '[data-ticketing-routing-recovery-notice]'
+            );
+            const operations = document.querySelector(
+                '[data-ticketing-detail-panel="status"]'
+            );
+
+            const operationsTab = document.querySelector(
+                '[data-ticketing-detail-tab="status"]'
+            );
+
+            if (!block || !operations) {
+                return;
+            }
+
+            operations.prepend(block);
+            block.hidden = false;
+
+            /*
+             * TICKETING_ROUTING_RECOVERY_ERROR_TAB_V1
+             *
+             * Recovery is submitted from Response & Operations.
+             * After redirect, keep that same tab active so the
+             * result/error is immediately visible to the user.
+             */
+            if (operationsTab) {
+                operationsTab.click();
+            }
+        };
+
+        if (document.readyState === 'complete') {
+            moveRoutingRecoveryNotice();
+        } else {
+            window.addEventListener(
+                'load',
+                moveRoutingRecoveryNotice,
+                {once: true}
+            );
+        }
+    })();
+    </script>
+<?php endif; ?>
 
 <?php if (
     is_array($routingExceptionPanel)
@@ -1502,10 +1643,103 @@ $routingExceptionDefaultTopic =
                 </div>
             <?php endif; ?>
 
-            <div class="admin-muted">
-                در این مرحله فقط تشخیص انجام می‌شود؛
-                هیچ مسیر، صف یا کارشناسی به‌صورت دستی بازنویسی نشده است.
-            </div>
+            <?php if (
+                (
+                    $routingExceptionClassification['code']
+                    ?? ''
+                ) === 'missing_topic'
+                && $routingExceptionTopics !== []
+            ): ?>
+                <?php
+                $routingRecoveryCsrf =
+                    (
+                        new \IPKF\Security\Csrf()
+                    )->token();
+
+                $routingDefaultTopicId =
+                    is_array($routingExceptionDefaultTopic)
+                        ? (int) (
+                            $routingExceptionDefaultTopic['id']
+                            ?? 0
+                        )
+                        : 0;
+                ?>
+
+                <form
+                    method="post"
+                    action="/admin/ticketing/tickets/<?= $lifecycleH(
+                        rawurlencode($lifecycleReference)
+                    ) ?>/recover-routing"
+                    data-ticketing-routing-recovery-form
+                >
+                    <input
+                        type="hidden"
+                        name="_token"
+                        value="<?= $lifecycleH(
+                            $routingRecoveryCsrf
+                        ) ?>"
+                    >
+
+                    <div class="admin-form-grid">
+                        <label>
+                            <span>موضوع پشتیبانی</span>
+
+                            <select
+                                name="support_topic_id"
+                                required
+                            >
+                                <?php foreach (
+                                    $routingExceptionTopics
+                                    as $topic
+                                ): ?>
+                                    <?php
+                                    $topicId = (int) (
+                                        $topic['id']
+                                        ?? 0
+                                    );
+                                    ?>
+
+                                    <option
+                                        value="<?= $lifecycleH(
+                                            $topicId
+                                        ) ?>"
+                                        <?= $topicId ===
+                                            $routingDefaultTopicId
+                                                ? 'selected'
+                                                : '' ?>
+                                    >
+                                        <?= $lifecycleH(
+                                            (string) (
+                                                $topic['title']
+                                                ?? ''
+                                            )
+                                        ) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                    </div>
+
+                    <p class="admin-muted">
+                        فقط موضوع را انتخاب کنید؛
+                        قانون، صف، تیم و کارشناس توسط موتور استاندارد مسیریابی تعیین می‌شوند.
+                    </p>
+
+                    <div class="admin-form-actions">
+                        <button
+                            type="submit"
+                            class="admin-button"
+                        >
+                            ثبت موضوع و مسیریابی
+                        </button>
+                    </div>
+                </form>
+            <?php else: ?>
+                <div class="admin-muted">
+                    این وضعیت از طریق این فرم قابل بازیابی خودکار نیست؛
+                    ابتدا تنظیمات مسیریابی مربوط به علت خطا باید اصلاح شود.
+                </div>
+            <?php endif; ?>
         </div>
     </section>
 

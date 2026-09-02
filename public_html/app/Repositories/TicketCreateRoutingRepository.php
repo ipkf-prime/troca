@@ -1296,6 +1296,528 @@ final class TicketCreateRoutingRepository
     }
 
 
+    /*
+     * TICKETING_ROUTING_RECOVERY_V1
+     *
+     * Recover only an open, fully-unrouted legacy ticket.
+     * The selected topic is validated canonically and the route is
+     * resolved through the standard rule path only. No intake fallback.
+     */
+    public function recoverMissingTopic(
+        string $publicReference,
+        int $topicId,
+        string $actorUserReference,
+        string $actorDisplayName
+    ): array {
+        $publicReference = trim($publicReference);
+        $actorUserReference = trim($actorUserReference);
+        $actorDisplayName = trim($actorDisplayName);
+
+        if (
+            $publicReference === ''
+            || $topicId < 1
+            || $actorUserReference === ''
+        ) {
+            throw new \RuntimeException('routing_recovery_invalid');
+        }
+
+        $this->db->beginTransaction();
+
+        try {
+            $ticket = $this->missingTopicRecoveryTicket(
+                $publicReference,
+                true
+            );
+
+            if ($ticket === null) {
+                throw new \RuntimeException('ticket_not_found');
+            }
+
+            if (
+                !$this->isFullyUnroutedTicket($ticket)
+                || (int) ($ticket['status_is_closed'] ?? 1) !== 0
+            ) {
+                throw new \RuntimeException(
+                    'routing_recovery_not_eligible'
+                );
+            }
+
+            $projectId = (int) ($ticket['support_project_id'] ?? 0);
+            $serviceId = (int) ($ticket['support_service_id'] ?? 0);
+
+            if ($projectId < 1 || $serviceId < 1) {
+                throw new \RuntimeException(
+                    'routing_recovery_invalid_scope'
+                );
+            }
+
+            /*
+             * Topic eligibility belongs to the original requester.
+             * The manager remains the authorized recovery actor only.
+             */
+            $requesterUserReference = trim(
+                (string) (
+                    $ticket['requester_user_reference']
+                    ?? ''
+                )
+            );
+
+            if ($requesterUserReference === '') {
+                throw new \RuntimeException(
+                    'routing_recovery_requester_identity_missing'
+                );
+            }
+
+            $validatedTopic = $this->topicForSelection(
+                $requesterUserReference,
+                $projectId,
+                $serviceId,
+                $topicId
+            );
+
+            if ($validatedTopic === null) {
+                throw new \RuntimeException(
+                    'routing_recovery_invalid_topic'
+                );
+            }
+
+            $topic = $this->missingTopicRecoveryTopicSnapshot(
+                $projectId,
+                $topicId
+            );
+
+            if ($topic === null) {
+                throw new \RuntimeException(
+                    'routing_recovery_invalid_topic'
+                );
+            }
+
+            $organizationReference = trim(
+                (string) (
+                    $ticket['requester_organization_reference']
+                    ?? ''
+                )
+            );
+
+            $route = $this->resolveRoute(
+                $projectId,
+                $serviceId,
+                $topicId,
+                $organizationReference
+            );
+
+            if ($route === null) {
+                throw new \RuntimeException(
+                    'routing_recovery_no_route'
+                );
+            }
+
+            foreach ([
+                'routing_rule_id',
+                'layer_id',
+                'node_id',
+                'queue_id',
+                'team_id',
+            ] as $field) {
+                if ((int) ($route[$field] ?? 0) < 1) {
+                    throw new \RuntimeException(
+                        'routing_recovery_invalid_topology'
+                    );
+                }
+            }
+
+            $assignmentMode =
+                $this->missingTopicRecoveryAssignmentMode($route);
+
+            $assignee =
+                $this->missingTopicRecoveryAssignee(
+                    $route,
+                    $assignmentMode
+                );
+
+            if (
+                $assignmentMode !== 'manual'
+                && $assignee === null
+            ) {
+                throw new \RuntimeException(
+                    'routing_recovery_no_eligible_assignee'
+                );
+            }
+
+            $update = $this->db->prepare("
+                UPDATE ticketing_tickets
+                SET
+                    support_topic_id = ?,
+                    support_topic_title_snapshot = ?,
+                    matched_routing_rule_id = ?,
+                    current_support_layer_id = ?,
+                    current_support_node_id = ?,
+                    current_support_queue_id = ?,
+                    current_support_team_id = ?,
+                    current_assignee_project_member_id = ?,
+                    updated_by_user_reference = ?,
+                    updated_at = UTC_TIMESTAMP()
+                WHERE id = ?
+                  AND archived_at IS NULL
+                  AND support_topic_id IS NULL
+                  AND matched_routing_rule_id IS NULL
+                  AND current_support_layer_id IS NULL
+                  AND current_support_node_id IS NULL
+                  AND current_support_queue_id IS NULL
+                  AND current_support_team_id IS NULL
+                  AND current_assignee_project_member_id IS NULL
+            ");
+
+            $update->execute([
+                $topicId,
+                (string) ($topic['title'] ?? ''),
+                (int) $route['routing_rule_id'],
+                (int) $route['layer_id'],
+                (int) $route['node_id'],
+                (int) $route['queue_id'],
+                (int) $route['team_id'],
+                $assignee !== null
+                    ? (int) ($assignee['project_member_id'] ?? 0)
+                    : null,
+                $actorUserReference,
+                (int) $ticket['id'],
+            ]);
+
+            if ($update->rowCount() !== 1) {
+                throw new \RuntimeException(
+                    'routing_recovery_conflict'
+                );
+            }
+
+            $this->event(
+                (int) $ticket['id'],
+                $this->missingTopicRecoveryEventReference(),
+                'ticket_routed',
+                'system:ticketing-router',
+                'مسیریاب تیکتینگ',
+                (string) $ticket['status_code'],
+                (string) $ticket['status_code'],
+                [
+                    'recovery_source' => 'missing_topic_recovery',
+                    'recovered_by_user_reference' =>
+                        $actorUserReference,
+                    'recovered_by_display_name' =>
+                        $actorDisplayName,
+                    'topic_id' => $topicId,
+                    'topic_title' => (string) ($topic['title'] ?? ''),
+                    'route_source' => 'routing-rule',
+                    'routing_rule_id' =>
+                        (int) $route['routing_rule_id'],
+                    'routing_rule_reference' =>
+                        $route['routing_rule_reference'] ?? null,
+                    'layer_id' => (int) $route['layer_id'],
+                    'node_id' => (int) $route['node_id'],
+                    'queue_id' => (int) $route['queue_id'],
+                    'team_id' => (int) $route['team_id'],
+                    'assignment_mode_code' => $assignmentMode,
+                ]
+            );
+
+            if ($assignee !== null) {
+                $assignment = $this->db->prepare("
+                    INSERT INTO ticketing_assignments (
+                        ticket_id,
+                        assignee_kind,
+                        assignee_reference,
+                        assignee_display_name_snapshot,
+                        assignment_role,
+                        assigned_by_user_reference,
+                        assigned_at,
+                        unassigned_at,
+                        project_member_id,
+                        support_node_id,
+                        support_queue_id,
+                        support_team_id,
+                        assignment_mode_code,
+                        assignment_reason
+                    ) VALUES (
+                        ?,
+                        'user',
+                        ?,
+                        ?,
+                        'owner',
+                        'system:ticketing-router',
+                        UTC_TIMESTAMP(),
+                        NULL,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?
+                    )
+                ");
+
+                $assignmentReason =
+                    'routing-rule:'
+                    . (string) (
+                        $route['routing_rule_reference']
+                        ?? ''
+                    );
+
+                $assignment->execute([
+                    (int) $ticket['id'],
+                    (string) ($assignee['user_reference'] ?? ''),
+                    (string) (
+                        $assignee['display_name_snapshot']
+                        ?? ''
+                    ),
+                    (int) ($assignee['project_member_id'] ?? 0),
+                    (int) $route['node_id'],
+                    (int) $route['queue_id'],
+                    (int) $route['team_id'],
+                    $assignmentMode,
+                    $assignmentReason,
+                ]);
+
+                $this->event(
+                    (int) $ticket['id'],
+                    $this->missingTopicRecoveryEventReference(),
+                    'ticket_assigned',
+                    'system:ticketing-router',
+                    'مسیریاب تیکتینگ',
+                    (string) $ticket['status_code'],
+                    (string) $ticket['status_code'],
+                    [
+                        'recovery_source' =>
+                            'missing_topic_recovery',
+                        'recovered_by_user_reference' =>
+                            $actorUserReference,
+                        'recovered_by_display_name' =>
+                            $actorDisplayName,
+                        'project_member_id' =>
+                            (int) (
+                                $assignee['project_member_id']
+                                ?? 0
+                            ),
+                        'assignee_reference' =>
+                            (string) (
+                                $assignee['user_reference']
+                                ?? ''
+                            ),
+                        'team_id' => (int) $route['team_id'],
+                        'queue_id' => (int) $route['queue_id'],
+                        'assignment_mode_code' =>
+                            $assignmentMode,
+                        'routing_rule_id' =>
+                            (int) $route['routing_rule_id'],
+                    ]
+                );
+            }
+
+            $this->db->commit();
+
+            return [
+                'ticket_id' => (int) $ticket['id'],
+                'ticket_number' =>
+                    (string) ($ticket['ticket_number'] ?? ''),
+                'public_reference' =>
+                    (string) ($ticket['public_reference'] ?? ''),
+                'topic_id' => $topicId,
+                'topic_title' => (string) ($topic['title'] ?? ''),
+                'routing_rule_id' =>
+                    (int) $route['routing_rule_id'],
+                'layer_id' => (int) $route['layer_id'],
+                'node_id' => (int) $route['node_id'],
+                'queue_id' => (int) $route['queue_id'],
+                'team_id' => (int) $route['team_id'],
+                'assignment_mode_code' => $assignmentMode,
+                'project_member_id' => $assignee !== null
+                    ? (int) ($assignee['project_member_id'] ?? 0)
+                    : null,
+            ];
+
+        } catch (\Throwable $exception) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+
+            throw $exception;
+        }
+    }
+
+
+    private function missingTopicRecoveryTicket(
+        string $publicReference,
+        bool $forUpdate
+    ): ?array {
+        $sql = "
+            SELECT
+                t.id,
+                t.ticket_number,
+                t.public_reference,
+                t.status_code,
+                t.support_project_id,
+                t.support_service_id,
+                t.support_topic_id,
+                t.support_topic_title_snapshot,
+                t.matched_routing_rule_id,
+                t.current_support_layer_id,
+                t.current_support_node_id,
+                t.current_support_queue_id,
+                t.current_support_team_id,
+                t.current_assignee_project_member_id,
+                t.requester_user_reference,
+                t.requester_organization_reference,
+                t.archived_at,
+                s.is_closed AS status_is_closed
+            FROM ticketing_tickets t
+            INNER JOIN ticketing_statuses s
+                ON s.code = t.status_code
+            WHERE t.public_reference = ?
+            LIMIT 1
+        ";
+
+        if ($forUpdate) {
+            $sql .= " FOR UPDATE";
+        }
+
+        $statement = $this->db->prepare($sql);
+        $statement->execute([$publicReference]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+
+        return is_array($row) ? $row : null;
+    }
+
+
+    private function isFullyUnroutedTicket(
+        array $ticket
+    ): bool {
+        foreach ([
+            'support_topic_id',
+            'matched_routing_rule_id',
+            'current_support_layer_id',
+            'current_support_node_id',
+            'current_support_queue_id',
+            'current_support_team_id',
+            'current_assignee_project_member_id',
+        ] as $field) {
+            if (($ticket[$field] ?? null) !== null) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
+    private function missingTopicRecoveryTopicSnapshot(
+        int $projectId,
+        int $topicId
+    ): ?array {
+        $statement = $this->db->prepare("
+            SELECT id, title
+            FROM ticketing_support_topics
+            WHERE id = ?
+              AND project_id = ?
+              AND status = 'active'
+              AND is_selectable = 1
+            LIMIT 1
+        ");
+
+        $statement->execute([$topicId, $projectId]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+
+        return is_array($row) ? $row : null;
+    }
+
+
+    private function missingTopicRecoveryAssignmentMode(
+        array $route
+    ): string {
+        $ruleMode = strtolower(trim(
+            (string) (
+                $route['rule_assignment_mode_code']
+                ?? ''
+            )
+        ));
+
+        $queueMode = strtolower(trim(
+            (string) (
+                $route['queue_assignment_mode_code']
+                ?? ''
+            )
+        ));
+
+        $mode = $ruleMode;
+
+        if (in_array(
+            $mode,
+            ['', 'inherit', 'queue', 'default'],
+            true
+        )) {
+            $mode = $queueMode;
+        }
+
+        if ($mode === '') {
+            $mode = 'manual';
+        }
+
+        if (!in_array(
+            $mode,
+            ['manual', 'fixed', 'least_loaded', 'round_robin'],
+            true
+        )) {
+            throw new \RuntimeException(
+                'routing_recovery_assignment_mode_invalid'
+            );
+        }
+
+        return $mode;
+    }
+
+
+    private function missingTopicRecoveryAssignee(
+        array $route,
+        string $assignmentMode
+    ): ?array {
+        $teamId = (int) ($route['team_id'] ?? 0);
+
+        if ($teamId < 1) {
+            throw new \RuntimeException(
+                'routing_recovery_no_team'
+            );
+        }
+
+        return match ($assignmentMode) {
+            'fixed' => $this->fixedAssignee(
+                $teamId,
+                (int) (
+                    $route['fixed_project_member_id']
+                    ?? 0
+                )
+            ),
+            'least_loaded' => $this->leastLoadedAssignee(
+                $teamId,
+                isset($route['max_open_per_agent'])
+                    && $route['max_open_per_agent'] !== null
+                        ? (int) $route['max_open_per_agent']
+                        : null
+            ),
+            'round_robin' => $this->roundRobinAssignee(
+                $teamId
+            ),
+            'manual' => null,
+            default => null,
+        };
+    }
+
+
+    private function missingTopicRecoveryEventReference(): string
+    {
+        return
+            'TEVT-'
+            . strtoupper(
+                bin2hex(random_bytes(12))
+            );
+    }
+
+
     private function resolveRoute(
         int $projectId,
         int $serviceId,

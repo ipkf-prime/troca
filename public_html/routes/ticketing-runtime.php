@@ -4064,6 +4064,139 @@ require
  *   transition and resumes the paused SLA state.
  */
 /*
+ * TICKETING_ROUTING_RECOVERY_V1_ROUTE
+ *
+ * Coarse RBAC uses the existing project-management route.
+ * Exact ticket state and project-manager scope are checked again
+ * inside TicketRoutingRecoveryService.
+ */
+$router->post(
+    '/admin/ticketing/tickets/{public_reference}/recover-routing',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $context = $adminGuard(
+            $response,
+            '/admin/ticketing/projects'
+        );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $publicReference = trim(
+            (string) $request->route(
+                'public_reference',
+                ''
+            )
+        );
+
+        if ($publicReference === '') {
+            return $response->redirect(
+                '/admin/ticketing/tickets'
+                . '?status=ticket_not_found'
+            );
+        }
+
+        $detailUrl =
+            '/admin/ticketing/tickets/'
+            . rawurlencode($publicReference);
+
+        $csrf = new \IPKF\Security\Csrf();
+
+        if (
+            !$csrf->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            return $response->redirect(
+                $detailUrl
+                . '?routing_notice='
+                . 'routing_recovery_invalid_csrf'
+            );
+        }
+
+        try {
+            $result = (
+                new \App\Services\Ticketing\TicketRoutingRecoveryService()
+            )->recoverMissingTopic(
+                $publicReference,
+                (int) $request->input(
+                    'support_topic_id',
+                    0
+                ),
+                (int) ($context['user_id'] ?? 0),
+                $context
+            );
+
+            if (!empty($result['not_found'])) {
+                return $response->redirect(
+                    '/admin/ticketing/tickets'
+                    . '?status=ticket_not_found'
+                );
+            }
+
+            $status = trim(
+                (string) (
+                    $result['status']
+                    ?? 'routing_recovery_failed'
+                )
+            );
+
+            $allowed = [
+                'routing_recovery_applied',
+                'routing_recovery_invalid',
+                'routing_recovery_invalid_csrf',
+                'routing_recovery_invalid_topic',
+                'routing_recovery_not_eligible',
+                'routing_recovery_no_route',
+                'routing_recovery_invalid_topology',
+                'routing_recovery_no_eligible_assignee',
+                'routing_recovery_forbidden',
+                'routing_recovery_failed',
+            ];
+
+            if (!in_array($status, $allowed, true)) {
+                $status = 'routing_recovery_failed';
+            }
+
+            return $response->redirect(
+                $detailUrl
+                . '?routing_notice='
+                . rawurlencode($status)
+            );
+
+        } catch (\Throwable $exception) {
+            $incident = $ticketingRuntimeReport(
+                $exception,
+                'ticket_routing_recovery',
+                [
+                    'user_id' =>
+                        (int) ($context['user_id'] ?? 0),
+                    'ticket_reference' =>
+                        $publicReference,
+                ]
+            );
+
+            return $response->redirect(
+                $detailUrl
+                . '?routing_notice=routing_recovery_failed'
+                . '&error='
+                . rawurlencode($incident)
+            );
+        }
+    }
+);
+
+
+/*
  * TICKETING_PRIORITY_GOVERNANCE_ROUTE
  *
  * Coarse RBAC intentionally reuses the existing staff-reply
