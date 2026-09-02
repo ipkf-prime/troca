@@ -273,7 +273,7 @@ echo "REQUESTER_IDENTITY_FAIL_CLOSED=PASS\\n";
 $expect(
     str_contains(
         $view,
-        "$routingRecoveryNotice === 'routing_recovery_applied'"
+        "\$routingRecoveryNotice === 'routing_recovery_applied'"
     ),
     'Recovery success-state class condition missing.'
 );

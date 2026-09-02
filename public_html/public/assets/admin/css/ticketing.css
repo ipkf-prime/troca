@@ -3283,3 +3283,16 @@ a.ticketing-attachment-action:focus-visible {
     white-space: nowrap;
     font-size: inherit;
 }
+
+/* TICKETING_ROUTING_RECOVERY_NOTICE_STYLE_V1 */
+.admin-alert.admin-alert--success {
+    border-color: #86d6a5;
+    background: #ecf9f0;
+    color: #17643a;
+}
+
+.admin-alert.admin-alert--danger {
+    border-color: #f1b0b7;
+    background: #fff1f2;
+    color: #a72c3a;
+}
