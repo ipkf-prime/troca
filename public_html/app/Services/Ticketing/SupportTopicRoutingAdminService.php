@@ -71,6 +71,15 @@ final class SupportTopicRoutingAdminService
                 );
         }
 
+        if ($action === 'topic.update') {
+            return
+                $this->updateTopic(
+                    $projectId,
+                    $input
+                );
+        }
+
+
         if ($action === 'rule.create') {
             return
                 $this->createRule(
@@ -192,7 +201,7 @@ final class SupportTopicRoutingAdminService
         }
 
 
-        $this->routing->createTopic([
+        $this->routing->createTopicGoverned([
             'public_reference' =>
                 $this->reference('TTP'),
 
@@ -247,6 +256,493 @@ final class SupportTopicRoutingAdminService
         return [
             'ok' => true,
             'status' => 'topic-created',
+        ];
+    }
+
+
+    /*
+     * TICKETING_SUPPORT_TOPIC_GOVERNANCE_V1
+     *
+     * Low-risk:
+     *   title / description / sort order.
+     *
+     * Structural:
+     *   service / parent / selectable / default / status.
+     *
+     * Structural edits with existing dependants require explicit
+     * impact acknowledgement.  Changing service after a topic has
+     * tickets or routing rules is blocked because that would alter
+     * the semantic routing scope of live/historical references.
+     */
+    private function updateTopic(
+        int $projectId,
+        array $input
+    ): array {
+        $topicId =
+            max(
+                0,
+                (int) (
+                    $input['topic_id']
+                    ?? 0
+                )
+            );
+
+        $current =
+            $this->routing
+                ->topic(
+                    $projectId,
+                    $topicId
+                );
+
+        if ($current === null) {
+            return [
+                'ok' => false,
+                'errors' => [
+                    'موضوع مورد نظر پیدا نشد.',
+                ],
+            ];
+        }
+
+        $title =
+            trim(
+                (string) (
+                    $input['title']
+                    ?? ''
+                )
+            );
+
+        $description =
+            trim(
+                (string) (
+                    $input['description']
+                    ?? ''
+                )
+            );
+
+        $serviceId =
+            max(
+                0,
+                (int) (
+                    $input['service_id']
+                    ?? 0
+                )
+            );
+
+        $parentTopicId =
+            max(
+                0,
+                (int) (
+                    $input['parent_topic_id']
+                    ?? 0
+                )
+            );
+
+        $isSelectable =
+            !empty(
+                $input['is_selectable']
+            )
+                ? 1
+                : 0;
+
+        $isDefault =
+            !empty(
+                $input['is_default']
+            )
+                ? 1
+                : 0;
+
+        $status =
+            strtolower(
+                trim(
+                    (string) (
+                        $input['status']
+                        ?? 'active'
+                    )
+                )
+            );
+
+        $sortOrder =
+            max(
+                0,
+                (int) (
+                    $input['sort_order']
+                    ?? 0
+                )
+            );
+
+        $confirmImpact =
+            !empty(
+                $input['confirm_impact']
+            );
+
+        $errors = [];
+
+        if ($title === '') {
+            $errors[] =
+                'عنوان موضوع الزامی است.';
+        }
+
+        if (
+            function_exists('mb_strlen')
+            ? mb_strlen(
+                $title,
+                'UTF-8'
+            ) > 255
+            : strlen($title) > 255
+        ) {
+            $errors[] =
+                'عنوان موضوع بیش از حد مجاز است.';
+        }
+
+        if (
+            function_exists('mb_strlen')
+            ? mb_strlen(
+                $description,
+                'UTF-8'
+            ) > 10000
+            : strlen($description) > 10000
+        ) {
+            $errors[] =
+                'توضیحات موضوع بیش از حد مجاز است.';
+        }
+
+        if (
+            !in_array(
+                $status,
+                [
+                    'active',
+                    'inactive',
+                ],
+                true
+            )
+        ) {
+            $errors[] =
+                'وضعیت موضوع معتبر نیست.';
+        }
+
+        if (
+            $isDefault === 1
+            && (
+                $isSelectable !== 1
+                || $status !== 'active'
+            )
+        ) {
+            $errors[] =
+                'موضوع پیش‌فرض باید فعال و قابل انتخاب باشد.';
+        }
+
+        $service = null;
+
+        if ($serviceId > 0) {
+            $service =
+                $this->routing
+                    ->service(
+                        $projectId,
+                        $serviceId
+                    );
+
+            if ($service === null) {
+                $errors[] =
+                    'زیرسامانه انتخاب‌شده معتبر نیست.';
+            }
+        }
+
+        $parent = null;
+
+        if ($parentTopicId > 0) {
+
+            if ($parentTopicId === $topicId) {
+                $errors[] =
+                    'یک موضوع نمی‌تواند والد خودش باشد.';
+            } else {
+                $parent =
+                    $this->routing
+                        ->topic(
+                            $projectId,
+                            $parentTopicId
+                        );
+
+                if ($parent === null) {
+                    $errors[] =
+                        'موضوع والد معتبر نیست.';
+                }
+            }
+
+            if (
+                $parent !== null
+                && $this->routing
+                    ->topicWouldCreateCycle(
+                        $projectId,
+                        $topicId,
+                        $parentTopicId
+                    )
+            ) {
+                $errors[] =
+                    'این جابه‌جایی باعث ایجاد چرخه در دسته‌بندی می‌شود.';
+            }
+
+            if (
+                $parent !== null
+                && strtolower(
+                    trim(
+                        (string) (
+                            $parent['status']
+                            ?? ''
+                        )
+                    )
+                ) !== 'active'
+            ) {
+                $errors[] =
+                    'موضوع والد باید فعال باشد.';
+            }
+
+            if ($parent !== null) {
+                $parentServiceId =
+                    isset(
+                        $parent['service_id']
+                    )
+                    && $parent['service_id'] !== null
+                        ? (int) $parent['service_id']
+                        : 0;
+
+                if (
+                    $parentServiceId > 0
+                    && $parentServiceId !== $serviceId
+                ) {
+                    $errors[] =
+                        'موضوع والد باید متعلق به همان زیرسامانه یا عمومی باشد.';
+                }
+            }
+        }
+
+        $children =
+            $this->routing
+                ->topicChildren(
+                    $projectId,
+                    $topicId
+                );
+
+        if ($serviceId > 0) {
+            foreach ($children as $child) {
+                $childServiceId =
+                    isset(
+                        $child['service_id']
+                    )
+                    && $child['service_id'] !== null
+                        ? (int) $child['service_id']
+                        : 0;
+
+                if ($childServiceId !== $serviceId) {
+                    $errors[] =
+                        'زیرسامانه این دسته با یکی از زیرموضوع‌های فعلی سازگار نیست. ابتدا ساختار زیرموضوع‌ها را اصلاح کنید.';
+                    break;
+                }
+            }
+        }
+
+        $impact =
+            $this->routing
+                ->topicImpact(
+                    $projectId,
+                    $topicId
+                );
+
+        if ($impact === null) {
+            $errors[] =
+                'اثر تغییر موضوع قابل محاسبه نیست.';
+        }
+
+        if ($errors !== []) {
+            return [
+                'ok' => false,
+                'errors' => $errors,
+            ];
+        }
+
+        $oldServiceId =
+            isset(
+                $current['service_id']
+            )
+            && $current['service_id'] !== null
+                ? (int) $current['service_id']
+                : 0;
+
+        $oldParentTopicId =
+            isset(
+                $current['parent_topic_id']
+            )
+            && $current['parent_topic_id'] !== null
+                ? (int) $current['parent_topic_id']
+                : 0;
+
+        $structuralChange =
+            $oldServiceId !== $serviceId
+            || $oldParentTopicId !== $parentTopicId
+            || (int) (
+                $current['is_selectable']
+                ?? 0
+            ) !== $isSelectable
+            || (int) (
+                $current['is_default']
+                ?? 0
+            ) !== $isDefault
+            || strtolower(
+                trim(
+                    (string) (
+                        $current['status']
+                        ?? ''
+                    )
+                )
+            ) !== $status;
+
+        $childCount =
+            (int) (
+                $impact['child_count']
+                ?? 0
+            );
+
+        $activeChildCount =
+            (int) (
+                $impact['active_child_count']
+                ?? 0
+            );
+
+        $ruleCount =
+            (int) (
+                $impact['routing_rule_count']
+                ?? 0
+            );
+
+        $activeRuleCount =
+            (int) (
+                $impact['active_routing_rule_count']
+                ?? 0
+            );
+
+        $ticketCount =
+            (int) (
+                $impact['ticket_count']
+                ?? 0
+            );
+
+        $openTicketCount =
+            (int) (
+                $impact['open_ticket_count']
+                ?? 0
+            );
+
+        if (
+            $oldServiceId !== $serviceId
+            && (
+                $ruleCount > 0
+                || $ticketCount > 0
+            )
+        ) {
+            return [
+                'ok' => false,
+                'errors' => [
+                    'زیرسامانه موضوعی که در قانون مسیریابی یا تیکت استفاده شده است قابل تغییر مستقیم نیست. موضوع جدید بسازید و موضوع قبلی را غیرفعال کنید.',
+                ],
+            ];
+        }
+
+        if (
+            $status === 'inactive'
+            && $activeChildCount > 0
+        ) {
+            return [
+                'ok' => false,
+                'errors' => [
+                    'تا زمانی که این دسته زیرموضوع فعال دارد، غیرفعال‌کردن آن مجاز نیست.',
+                ],
+            ];
+        }
+
+        $impactCount =
+            $childCount
+            + $ruleCount
+            + $ticketCount;
+
+        if (
+            $structuralChange
+            && $impactCount > 0
+            && !$confirmImpact
+        ) {
+            return [
+                'ok' => false,
+                'errors' => [
+                    'این تغییر ساختاری است و روی '
+                    . $childCount
+                    . ' زیرموضوع، '
+                    . $ruleCount
+                    . ' قانون مسیریابی و '
+                    . $ticketCount
+                    . ' تیکت اثر دارد. برای ادامه گزینه «اثر تغییر ساختاری را بررسی کردم» را فعال کنید.',
+                ],
+            ];
+        }
+
+        $this->routing
+            ->updateTopicGoverned([
+                'id' =>
+                    $topicId,
+
+                'project_id' =>
+                    $projectId,
+
+                'service_id' =>
+                    $serviceId > 0
+                        ? $serviceId
+                        : null,
+
+                'parent_topic_id' =>
+                    $parentTopicId > 0
+                        ? $parentTopicId
+                        : null,
+
+                'title' =>
+                    $title,
+
+                'description' =>
+                    $description !== ''
+                        ? $description
+                        : null,
+
+                'is_selectable' =>
+                    $isSelectable,
+
+                'is_default' =>
+                    $isDefault,
+
+                'status' =>
+                    $status,
+
+                'sort_order' =>
+                    $sortOrder,
+            ]);
+
+        return [
+            'ok' => true,
+            'status' => 'topic-updated',
+            'impact' => [
+                'children' =>
+                    $childCount,
+
+                'active_children' =>
+                    $activeChildCount,
+
+                'rules' =>
+                    $ruleCount,
+
+                'active_rules' =>
+                    $activeRuleCount,
+
+                'tickets' =>
+                    $ticketCount,
+
+                'open_tickets' =>
+                    $openTicketCount,
+            ],
         ];
     }
 

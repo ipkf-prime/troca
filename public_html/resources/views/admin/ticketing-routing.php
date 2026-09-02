@@ -82,6 +82,9 @@ $statusMessages = [
     'topic-created' =>
         'موضوع پشتیبانی ثبت شد.',
 
+    'topic-updated' =>
+        'تغییرات موضوع پشتیبانی ذخیره شد.',
+
     'rule-created' =>
         'قانون مسیریابی ثبت شد.',
 ];
@@ -372,6 +375,418 @@ ob_start();
                 </table>
             </div>
 
+        <?php endif; ?>
+
+
+        <?php if ($topics !== []): ?>
+            <div
+                class="ticketing-topic-governance"
+                data-ticketing-topic-governance
+            >
+                <div class="ticketing-topic-governance__header">
+                    <h3>ویرایش دسته و موضوع</h3>
+
+                    <p class="admin-muted">
+                        عنوان، توضیح و ترتیب کم‌ریسک هستند.
+                        تغییر والد، زیرسامانه، وضعیت، قابل‌انتخاب‌بودن یا پیش‌فرض‌بودن
+                        قبل از ذخیره با اثر آن روی تیکت‌ها و قوانین کنترل می‌شود.
+                        حذف فیزیکی موضوع استفاده‌شده انجام نمی‌شود؛ در صورت نیاز آن را غیرفعال کنید.
+                    </p>
+                </div>
+
+                <div class="ticketing-topic-governance__list">
+                    <?php foreach ($topics as $topic): ?>
+                        <?php
+                        $topicId =
+                            (int) (
+                                $topic['id']
+                                ?? 0
+                            );
+
+                        $topicServiceId =
+                            isset(
+                                $topic['service_id']
+                            )
+                            && $topic['service_id'] !== null
+                                ? (int) $topic['service_id']
+                                : 0;
+
+                        $topicParentId =
+                            isset(
+                                $topic['parent_topic_id']
+                            )
+                            && $topic['parent_topic_id'] !== null
+                                ? (int) $topic['parent_topic_id']
+                                : 0;
+
+                        $childCount =
+                            (int) (
+                                $topic['child_count']
+                                ?? 0
+                            );
+
+                        $ruleCount =
+                            (int) (
+                                $topic['routing_rule_count']
+                                ?? 0
+                            );
+
+                        $activeRuleCount =
+                            (int) (
+                                $topic['active_routing_rule_count']
+                                ?? 0
+                            );
+
+                        $ticketCount =
+                            (int) (
+                                $topic['ticket_count']
+                                ?? 0
+                            );
+
+                        $openTicketCount =
+                            (int) (
+                                $topic['open_ticket_count']
+                                ?? 0
+                            );
+
+                        $hasImpact =
+                            (
+                                $childCount
+                                + $ruleCount
+                                + $ticketCount
+                            ) > 0;
+                        ?>
+
+                        <details
+                            class="ticketing-topic-governance__item"
+                            name="ticketing-topic-governance"
+                            data-ticketing-topic-governance-item
+                            data-topic-id="<?= ticketing_h($topicId) ?>"
+                        >
+                            <summary>
+                                <span>
+                                    <strong>
+                                        <?= ticketing_h(
+                                            (string) (
+                                                $topic['title']
+                                                ?? ''
+                                            )
+                                        ) ?>
+                                    </strong>
+
+                                    <code dir="ltr">
+                                        <?= ticketing_h(
+                                            (string) (
+                                                $topic['code']
+                                                ?? ''
+                                            )
+                                        ) ?>
+                                    </code>
+                                </span>
+
+                                <span class="ticketing-topic-governance__impact-summary">
+                                    <?= ticketing_h($childCount) ?>
+                                    زیرموضوع
+                                    ·
+                                    <?= ticketing_h($ruleCount) ?>
+                                    قانون
+                                    ·
+                                    <?= ticketing_h($ticketCount) ?>
+                                    تیکت
+                                </span>
+                            </summary>
+
+                            <form
+                                method="post"
+                                action="<?= ticketing_h($action) ?>"
+                                class="ticketing-topic-governance__form"
+                                data-ticketing-topic-edit-form
+                            >
+                                <input
+                                    type="hidden"
+                                    name="_token"
+                                    value="<?= ticketing_h($csrf) ?>"
+                                >
+
+                                <input
+                                    type="hidden"
+                                    name="action"
+                                    value="topic.update"
+                                >
+
+                                <input
+                                    type="hidden"
+                                    name="topic_id"
+                                    value="<?= ticketing_h($topicId) ?>"
+                                >
+
+                                <div class="admin-form-grid">
+                                    <label>
+                                        <span>عنوان</span>
+                                        <input
+                                            type="text"
+                                            name="title"
+                                            maxlength="255"
+                                            value="<?= ticketing_h(
+                                                (string) (
+                                                    $topic['title']
+                                                    ?? ''
+                                                )
+                                            ) ?>"
+                                            required
+                                        >
+                                    </label>
+
+                                    <div class="ticketing-topic-governance__field">
+                                        <span>کد داخلی</span>
+
+                                        <div
+                                            class="ticketing-topic-governance__readonly-field"
+                                            dir="ltr"
+                                            aria-label="کد داخلی"
+                                        >
+                                            <code>
+                                                <?= ticketing_h(
+                                                    (string) (
+                                                        $topic['code']
+                                                        ?? ''
+                                                    )
+                                                ) ?>
+                                            </code>
+                                        </div>
+                                    </div>
+
+                                    <label>
+                                        <span>زیرسامانه</span>
+                                        <select name="service_id">
+                                            <option
+                                                value="0"
+                                                <?= $topicServiceId === 0
+                                                    ? 'selected'
+                                                    : '' ?>
+                                            >
+                                                عمومی / همه زیرسامانه‌ها
+                                            </option>
+
+                                            <?php foreach ($services as $service): ?>
+                                                <?php
+                                                $serviceId =
+                                                    (int) (
+                                                        $service['id']
+                                                        ?? 0
+                                                    );
+                                                ?>
+                                                <option
+                                                    value="<?= ticketing_h($serviceId) ?>"
+                                                    <?= $serviceId === $topicServiceId
+                                                        ? 'selected'
+                                                        : '' ?>
+                                                >
+                                                    <?= ticketing_h(
+                                                        (string) (
+                                                            $service['title']
+                                                            ?? ''
+                                                        )
+                                                    ) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </label>
+
+                                    <label>
+                                        <span>موضوع والد / دسته</span>
+                                        <select name="parent_topic_id">
+                                            <option
+                                                value="0"
+                                                <?= $topicParentId === 0
+                                                    ? 'selected'
+                                                    : '' ?>
+                                            >
+                                                بدون والد
+                                            </option>
+
+                                            <?php foreach ($topics as $parentOption): ?>
+                                                <?php
+                                                $parentOptionId =
+                                                    (int) (
+                                                        $parentOption['id']
+                                                        ?? 0
+                                                    );
+
+                                                if (
+                                                    $parentOptionId < 1
+                                                    || $parentOptionId === $topicId
+                                                ) {
+                                                    continue;
+                                                }
+                                                ?>
+
+                                                <option
+                                                    value="<?= ticketing_h(
+                                                        $parentOptionId
+                                                    ) ?>"
+                                                    <?= $parentOptionId === $topicParentId
+                                                        ? 'selected'
+                                                        : '' ?>
+                                                >
+                                                    <?= ticketing_h(
+                                                        (string) (
+                                                            $parentOption['title']
+                                                            ?? ''
+                                                        )
+                                                    ) ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </label>
+
+                                    <label>
+                                        <span>وضعیت</span>
+                                        <select name="status">
+                                            <option
+                                                value="active"
+                                                <?= (
+                                                    $topic['status']
+                                                    ?? 'active'
+                                                ) === 'active'
+                                                    ? 'selected'
+                                                    : '' ?>
+                                            >
+                                                فعال
+                                            </option>
+
+                                            <option
+                                                value="inactive"
+                                                <?= (
+                                                    $topic['status']
+                                                    ?? ''
+                                                ) === 'inactive'
+                                                    ? 'selected'
+                                                    : '' ?>
+                                            >
+                                                غیرفعال
+                                            </option>
+                                        </select>
+                                    </label>
+
+                                    <label>
+                                        <span>ترتیب نمایش</span>
+                                        <input
+                                            type="number"
+                                            name="sort_order"
+                                            min="0"
+                                            value="<?= ticketing_h(
+                                                (int) (
+                                                    $topic['sort_order']
+                                                    ?? 0
+                                                )
+                                            ) ?>"
+                                        >
+                                    </label>
+                                </div>
+
+                                <label class="ticketing-topic-governance__description">
+                                    <span>توضیحات</span>
+                                    <textarea
+                                        name="description"
+                                        rows="3"
+                                        maxlength="10000"
+                                    ><?= ticketing_h(
+                                        (string) (
+                                            $topic['description']
+                                            ?? ''
+                                        )
+                                    ) ?></textarea>
+                                </label>
+
+                                <div class="ticketing-routing-checks">
+                                    <label>
+                                        <input
+                                            type="checkbox"
+                                            name="is_selectable"
+                                            value="1"
+                                            <?= (int) (
+                                                $topic['is_selectable']
+                                                ?? 0
+                                            ) === 1
+                                                ? 'checked'
+                                                : '' ?>
+                                        >
+                                        قابل انتخاب
+                                    </label>
+
+                                    <label>
+                                        <input
+                                            type="checkbox"
+                                            name="is_default"
+                                            value="1"
+                                            <?= (int) (
+                                                $topic['is_default']
+                                                ?? 0
+                                            ) === 1
+                                                ? 'checked'
+                                                : '' ?>
+                                        >
+                                        موضوع پیش‌فرض
+                                    </label>
+                                </div>
+
+                                <div
+                                    class="ticketing-topic-governance__impact<?= $hasImpact
+                                        ? ' has-impact'
+                                        : '' ?>"
+                                    data-ticketing-topic-impact
+                                >
+                                    <strong>اثر فعلی این موضوع</strong>
+
+                                    <span>
+                                        زیرموضوع:
+                                        <?= ticketing_h($childCount) ?>
+                                    </span>
+
+                                    <span>
+                                        قانون مسیریابی:
+                                        <?= ticketing_h($ruleCount) ?>
+                                        <?php if ($activeRuleCount > 0): ?>
+                                            (فعال:
+                                            <?= ticketing_h($activeRuleCount) ?>)
+                                        <?php endif; ?>
+                                    </span>
+
+                                    <span>
+                                        تیکت:
+                                        <?= ticketing_h($ticketCount) ?>
+                                        <?php if ($openTicketCount > 0): ?>
+                                            (باز:
+                                            <?= ticketing_h($openTicketCount) ?>)
+                                        <?php endif; ?>
+                                    </span>
+                                </div>
+
+                                <?php if ($hasImpact): ?>
+                                    <label class="ticketing-topic-governance__confirm">
+                                        <input
+                                            type="checkbox"
+                                            name="confirm_impact"
+                                            value="1"
+                                        >
+                                        اثر تغییر ساختاری را بررسی کردم.
+                                    </label>
+                                <?php endif; ?>
+
+                                <div class="admin-form-actions">
+                                    <button
+                                        class="admin-button"
+                                        type="submit"
+                                    >
+                                        ذخیره تغییرات
+                                    </button>
+                                </div>
+                            </form>
+                        </details>
+                    <?php endforeach; ?>
+                </div>
+            </div>
         <?php endif; ?>
     </section>
 

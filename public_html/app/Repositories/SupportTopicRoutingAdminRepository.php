@@ -116,17 +116,73 @@ final class SupportTopicRoutingAdminRepository
     }
 
 
+    /*
+     * TICKETING_SUPPORT_TOPIC_GOVERNANCE_V1
+     *
+     * Topic/category rows are enriched with dependency counters.
+     * These counters are read-only and are used by the management
+     * UI and validation layer before structural changes.
+     */
     public function topics(
         int $projectId
     ): array {
+        if ($projectId < 1) {
+            return [];
+        }
+
         $statement =
             $this->db->prepare("
                 SELECT
                     t.*,
 
-                    s.title AS service_title,
+                    s.title
+                        AS service_title,
 
-                    p.title AS parent_title
+                    p.title
+                        AS parent_title,
+
+                    (
+                        SELECT COUNT(*)
+                        FROM ticketing_support_topics child
+                        WHERE child.parent_topic_id = t.id
+                    ) AS child_count,
+
+                    (
+                        SELECT COUNT(*)
+                        FROM ticketing_support_topics child
+                        WHERE child.parent_topic_id = t.id
+                          AND child.status = 'active'
+                    ) AS active_child_count,
+
+                    (
+                        SELECT COUNT(*)
+                        FROM ticketing_support_routing_rules rr
+                        WHERE rr.topic_id = t.id
+                    ) AS routing_rule_count,
+
+                    (
+                        SELECT COUNT(*)
+                        FROM ticketing_support_routing_rules rr
+                        WHERE rr.topic_id = t.id
+                          AND rr.status = 'active'
+                    ) AS active_routing_rule_count,
+
+                    (
+                        SELECT COUNT(*)
+                        FROM ticketing_tickets ticket
+                        WHERE ticket.support_topic_id = t.id
+                    ) AS ticket_count,
+
+                    (
+                        SELECT COUNT(*)
+                        FROM ticketing_tickets ticket
+                        INNER JOIN ticketing_statuses status_row
+                            ON status_row.code =
+                                ticket.status_code
+                        WHERE ticket.support_topic_id = t.id
+                          AND ticket.archived_at IS NULL
+                          AND status_row.is_closed = 0
+                    ) AS open_ticket_count
 
                 FROM ticketing_support_topics t
 
@@ -153,7 +209,6 @@ final class SupportTopicRoutingAdminRepository
                 PDO::FETCH_ASSOC
             ) ?: [];
     }
-
 
     public function rules(
         int $projectId
@@ -450,6 +505,478 @@ final class SupportTopicRoutingAdminRepository
         return
             (int) $statement->fetchColumn()
             > 0;
+    }
+
+
+    public function topicImpact(
+        int $projectId,
+        int $topicId
+    ): ?array {
+        if (
+            $projectId < 1
+            || $topicId < 1
+        ) {
+            return null;
+        }
+
+        $statement =
+            $this->db->prepare("
+                SELECT
+                    t.id,
+                    t.project_id,
+                    t.service_id,
+                    t.parent_topic_id,
+                    t.code,
+                    t.title,
+                    t.is_selectable,
+                    t.is_default,
+                    t.status,
+                    t.sort_order,
+
+                    (
+                        SELECT COUNT(*)
+                        FROM ticketing_support_topics child
+                        WHERE child.parent_topic_id = t.id
+                    ) AS child_count,
+
+                    (
+                        SELECT COUNT(*)
+                        FROM ticketing_support_topics child
+                        WHERE child.parent_topic_id = t.id
+                          AND child.status = 'active'
+                    ) AS active_child_count,
+
+                    (
+                        SELECT COUNT(*)
+                        FROM ticketing_support_routing_rules rr
+                        WHERE rr.topic_id = t.id
+                    ) AS routing_rule_count,
+
+                    (
+                        SELECT COUNT(*)
+                        FROM ticketing_support_routing_rules rr
+                        WHERE rr.topic_id = t.id
+                          AND rr.status = 'active'
+                    ) AS active_routing_rule_count,
+
+                    (
+                        SELECT COUNT(*)
+                        FROM ticketing_tickets ticket
+                        WHERE ticket.support_topic_id = t.id
+                    ) AS ticket_count,
+
+                    (
+                        SELECT COUNT(*)
+                        FROM ticketing_tickets ticket
+                        INNER JOIN ticketing_statuses status_row
+                            ON status_row.code =
+                                ticket.status_code
+                        WHERE ticket.support_topic_id = t.id
+                          AND ticket.archived_at IS NULL
+                          AND status_row.is_closed = 0
+                    ) AS open_ticket_count
+
+                FROM ticketing_support_topics t
+
+                WHERE t.id = ?
+                  AND t.project_id = ?
+
+                LIMIT 1
+            ");
+
+        $statement->execute([
+            $topicId,
+            $projectId,
+        ]);
+
+        $row =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        return
+            is_array($row)
+                ? $row
+                : null;
+    }
+
+
+    public function topicChildren(
+        int $projectId,
+        int $topicId
+    ): array {
+        if (
+            $projectId < 1
+            || $topicId < 1
+        ) {
+            return [];
+        }
+
+        $statement =
+            $this->db->prepare("
+                SELECT
+                    id,
+                    project_id,
+                    service_id,
+                    parent_topic_id,
+                    title,
+                    status
+                FROM ticketing_support_topics
+                WHERE project_id = ?
+                  AND parent_topic_id = ?
+                ORDER BY sort_order, id
+            ");
+
+        $statement->execute([
+            $projectId,
+            $topicId,
+        ]);
+
+        return
+            $statement->fetchAll(
+                PDO::FETCH_ASSOC
+            ) ?: [];
+    }
+
+
+    public function topicWouldCreateCycle(
+        int $projectId,
+        int $topicId,
+        ?int $candidateParentId
+    ): bool {
+        if (
+            $projectId < 1
+            || $topicId < 1
+            || $candidateParentId === null
+            || $candidateParentId < 1
+        ) {
+            return false;
+        }
+
+        $current =
+            $candidateParentId;
+
+        $visited = [];
+
+        for ($guard = 0; $guard < 100; $guard++) {
+
+            if ($current === $topicId) {
+                return true;
+            }
+
+            if (isset($visited[$current])) {
+                return true;
+            }
+
+            $visited[$current] = true;
+
+            $parent =
+                $this->topic(
+                    $projectId,
+                    $current
+                );
+
+            if ($parent === null) {
+                return false;
+            }
+
+            $next =
+                isset($parent['parent_topic_id'])
+                && $parent['parent_topic_id'] !== null
+                    ? (int) $parent['parent_topic_id']
+                    : 0;
+
+            if ($next < 1) {
+                return false;
+            }
+
+            $current = $next;
+        }
+
+        return true;
+    }
+
+
+    public function createTopicGoverned(
+        array $data
+    ): void {
+        $projectId =
+            (int) (
+                $data['project_id']
+                ?? 0
+            );
+
+        if ($projectId < 1) {
+            throw new \RuntimeException(
+                'topic_governance_invalid_project'
+            );
+        }
+
+        $this->db->beginTransaction();
+
+        try {
+            if (
+                (int) (
+                    $data['is_default']
+                    ?? 0
+                ) === 1
+            ) {
+                $this->lockTopicDefaultScope(
+                    $projectId,
+                    $data['service_id']
+                        ?? null
+                );
+
+                $this->clearTopicDefaultScope(
+                    $projectId,
+                    $data['service_id']
+                        ?? null,
+                    null
+                );
+            }
+
+            $this->createTopic(
+                $data
+            );
+
+            $this->db->commit();
+
+        } catch (\Throwable $exception) {
+
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+
+            throw $exception;
+        }
+    }
+
+
+    public function updateTopicGoverned(
+        array $data
+    ): void {
+        $topicId =
+            (int) (
+                $data['id']
+                ?? 0
+            );
+
+        $projectId =
+            (int) (
+                $data['project_id']
+                ?? 0
+            );
+
+        if (
+            $topicId < 1
+            || $projectId < 1
+        ) {
+            throw new \RuntimeException(
+                'topic_governance_invalid_identity'
+            );
+        }
+
+        $this->db->beginTransaction();
+
+        try {
+            $lockTopic =
+                $this->db->prepare("
+                    SELECT id
+                    FROM ticketing_support_topics
+                    WHERE id = ?
+                      AND project_id = ?
+                    FOR UPDATE
+                ");
+
+            $lockTopic->execute([
+                $topicId,
+                $projectId,
+            ]);
+
+            if (
+                (int) (
+                    $lockTopic->fetchColumn()
+                    ?: 0
+                ) !== $topicId
+            ) {
+                throw new \RuntimeException(
+                    'topic_governance_topic_not_found'
+                );
+            }
+
+            if (
+                (int) (
+                    $data['is_default']
+                    ?? 0
+                ) === 1
+            ) {
+                $this->lockTopicDefaultScope(
+                    $projectId,
+                    $data['service_id']
+                        ?? null
+                );
+
+                $this->clearTopicDefaultScope(
+                    $projectId,
+                    $data['service_id']
+                        ?? null,
+                    $topicId
+                );
+            }
+
+            $statement =
+                $this->db->prepare("
+                    UPDATE ticketing_support_topics
+                    SET
+                        service_id = ?,
+                        parent_topic_id = ?,
+                        title = ?,
+                        description = ?,
+                        is_selectable = ?,
+                        is_default = ?,
+                        status = ?,
+                        sort_order = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                      AND project_id = ?
+                ");
+
+            $statement->execute([
+                $data['service_id']
+                    ?? null,
+
+                $data['parent_topic_id']
+                    ?? null,
+
+                $data['title'],
+
+                $data['description']
+                    ?? null,
+
+                (int) $data['is_selectable'],
+
+                (int) $data['is_default'],
+
+                $data['status'],
+
+                (int) $data['sort_order'],
+
+                $topicId,
+                $projectId,
+            ]);
+
+            if ($statement->rowCount() > 1) {
+                throw new \RuntimeException(
+                    'topic_governance_update_conflict'
+                );
+            }
+
+            $this->db->commit();
+
+        } catch (\Throwable $exception) {
+
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+
+            throw $exception;
+        }
+    }
+
+
+    private function lockTopicDefaultScope(
+        int $projectId,
+        ?int $serviceId
+    ): void {
+        /*
+         * Lock the project row first.  This provides a stable
+         * serialization point even when the target default scope
+         * currently contains zero topic rows.
+         */
+        $projectLock =
+            $this->db->prepare("
+                SELECT id
+                FROM ticketing_support_projects
+                WHERE id = ?
+                FOR UPDATE
+            ");
+
+        $projectLock->execute([
+            $projectId,
+        ]);
+
+        if (
+            (int) (
+                $projectLock->fetchColumn()
+                ?: 0
+            ) !== $projectId
+        ) {
+            throw new \RuntimeException(
+                'topic_governance_project_not_found'
+            );
+        }
+
+        $scopeLock =
+            $this->db->prepare("
+                SELECT id
+                FROM ticketing_support_topics
+                WHERE project_id = ?
+                  AND service_id <=> ?
+                ORDER BY id
+                FOR UPDATE
+            ");
+
+        $scopeLock->execute([
+            $projectId,
+            $serviceId,
+        ]);
+
+        $scopeLock->fetchAll(
+            PDO::FETCH_COLUMN
+        );
+    }
+
+
+    private function clearTopicDefaultScope(
+        int $projectId,
+        ?int $serviceId,
+        ?int $exceptTopicId
+    ): void {
+        $sql = "
+            UPDATE ticketing_support_topics
+            SET
+                is_default = 0,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE project_id = ?
+              AND service_id <=> ?
+              AND is_default = 1
+        ";
+
+        $parameters = [
+            $projectId,
+            $serviceId,
+        ];
+
+        if (
+            $exceptTopicId !== null
+            && $exceptTopicId > 0
+        ) {
+            $sql .= "
+              AND id <> ?
+            ";
+
+            $parameters[] =
+                $exceptTopicId;
+        }
+
+        $statement =
+            $this->db->prepare(
+                $sql
+            );
+
+        $statement->execute(
+            $parameters
+        );
     }
 
 

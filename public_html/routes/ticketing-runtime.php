@@ -1974,6 +1974,18 @@ $router->post(
                     0
                 ),
 
+            'status' =>
+                $request->input(
+                    'status',
+                    'active'
+                ),
+
+            'confirm_impact' =>
+                $request->input(
+                    'confirm_impact',
+                    0
+                ),
+
             'topic_id' =>
                 $request->input(
                     'topic_id',

@@ -3155,3 +3155,131 @@ a.ticketing-attachment-action:focus-visible {
 .ticketing-assigned-to-me-badge {
     display: none !important;
 }
+
+/* TICKETING_SUPPORT_TOPIC_GOVERNANCE_STYLES_V1 */
+.ticketing-topic-governance {
+    margin-top: 24px;
+    border-top: 1px solid var(--admin-border, #e5e7eb);
+    padding-top: 20px;
+}
+
+.ticketing-topic-governance__header {
+    margin-bottom: 12px;
+}
+
+.ticketing-topic-governance__list {
+    display: grid;
+    gap: 10px;
+}
+
+.ticketing-topic-governance__item {
+    border: 1px solid var(--admin-border, #e5e7eb);
+    border-radius: 12px;
+    background: var(--admin-surface, #fff);
+    overflow: hidden;
+}
+
+.ticketing-topic-governance__item > summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 13px 15px;
+}
+
+.ticketing-topic-governance__item > summary::-webkit-details-marker {
+    display: none;
+}
+
+.ticketing-topic-governance__item > summary > span:first-child {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.ticketing-topic-governance__impact-summary {
+    white-space: nowrap;
+    font-size: 12px;
+    opacity: .72;
+}
+
+.ticketing-topic-governance__form {
+    border-top: 1px solid var(--admin-border, #e5e7eb);
+    padding: 16px;
+}
+
+.ticketing-topic-governance__description {
+    display: grid;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.ticketing-topic-governance__description textarea {
+    width: 100%;
+}
+
+.ticketing-topic-governance__impact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(100, 116, 139, .08);
+    font-size: 13px;
+}
+
+.ticketing-topic-governance__impact.has-impact {
+    background: rgba(245, 158, 11, .12);
+}
+
+.ticketing-topic-governance__confirm {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    font-weight: 700;
+}
+
+@media (max-width: 720px) {
+    .ticketing-topic-governance__item > summary {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .ticketing-topic-governance__impact-summary {
+        white-space: normal;
+    }
+}
+
+/* TICKETING_TOPIC_GOVERNANCE_UI_POLISH_V1 */
+.ticketing-topic-governance__field {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
+.ticketing-topic-governance__readonly-field {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 12px;
+    border: 1px solid var(--admin-border, #e5e7eb);
+    border-radius: 10px;
+    background: rgba(100, 116, 139, .055);
+    overflow: hidden;
+}
+
+.ticketing-topic-governance__readonly-field code {
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: inherit;
+}
