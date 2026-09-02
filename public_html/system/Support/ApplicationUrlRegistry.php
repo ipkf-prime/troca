@@ -201,12 +201,21 @@ class ApplicationUrlRegistry
     public function allowed(string $requestHost): bool
     {
         $host = $this->normalizeHost($requestHost);
+
+        if ($this->isApplicationModuleHost($host)) {
+            return true;
+        }
+
         $allowed = array_filter(array_unique(array_merge(
-            [$this->coreHost(), $this->automationHost(), $this->workHost(), $this->ticketingHost()],
-            array_map(fn (string $item): string => $this->normalizeHost($item), explode(',', (string) Env::get('ALLOWED_APP_HOSTS', '')))
+            [$this->coreHost()],
+            array_map(
+                fn (string $item): string => $this->normalizeHost($item),
+                explode(',', (string) Env::get('ALLOWED_APP_HOSTS', ''))
+            )
         )));
 
-        return $allowed === [] || in_array($host, $allowed, true);
+        return $allowed === []
+            || in_array($host, $allowed, true);
     }
 
     public function isAutomationHost(string $requestHost): bool

@@ -359,7 +359,7 @@ Version: `0.2.0-foundation`
 - `mfa_routes_available=true`.
 - Existing Auth Session routes still work.
 - CSRF remains enabled for Auth and MFA POST routes.
-- `AUTH_SESSION_NAME=ipkf_session` remains the only auth session cookie.
+- Each runtime uses exactly one Auth/CSRF/MFA session cookie; its name may be deployment/runtime-specific and must not depend on a shared parent-domain cookie.
 - Login without enabled MFA remains unchanged.
 - Login with enabled MFA sets pending MFA session state and does not set `auth_user_id`.
 - MFA challenge verification completes authentication.

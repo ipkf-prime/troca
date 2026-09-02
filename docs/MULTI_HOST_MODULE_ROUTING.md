@@ -1,46 +1,50 @@
 # Multi-host module routing
 
-The Core admin panel and Automation module are one versioned codebase with separate runtime hosts and an independent Automation database.
+The platform uses one versioned release across independent runtime hosts.
+
+Core provides the central portal and authentication entry point.
+Application modules are registered dynamically and may use dedicated
+hosts, databases and runtime configuration.
+
+Adding a module is a registry and deployment operation, not a source-code
+change.
 
 ## Development topology
 
+Current development runtimes:
+
 - Core: `https://dev.troca.ir`
 - Automation: `https://oa-dev.troca.ir`
-- Core deployment: `/home/troca/dev.troca.ir`
-- Automation deployment: `/home/troca/oa-dev.troca.ir`
-- Core document root: `/home/troca/dev.troca.ir/public`
-- Automation document root: `/home/troca/oa-dev.troca.ir/public`
+- Work: `https://work-dev.troca.ir`
+- Ticketing: `https://ticketing-dev.troca.ir`
 
-The repository deployment copies the same `public_html` release to both application paths. Each target retains its own untracked `.env`. Schema and seed operations for Automation continue to use the dedicated `automation.primary` connection.
+The same release is deployed to every runtime. Each runtime keeps its own
+untracked `.env`, database settings, storage configuration and secrets.
 
-## Required environment contract
+## Deployment contract
 
-Both development deployments must define:
+Shared deployment configuration defines:
 
-```env
-CORE_APP_URL=https://dev.troca.ir
-AUTOMATION_APP_URL=https://oa-dev.troca.ir
-ALLOWED_APP_HOSTS=dev.troca.ir,oa-dev.troca.ir
-APP_HOST_GUARD_ENABLED=true
-AUTH_COOKIE_SECURE=true
-AUTOMATION_DB_MODE=dedicated
-```
+- `DEPLOYMENT_ID`
+- Core application URL
+- shared security policy
+- optional non-module hosts
 
-`APP_URL` and the session name remain deployment-specific. Core uses `APP_URL=https://dev.troca.ir` and `AUTH_SESSION_NAME=ipkf_dev_core`; Automation uses `APP_URL=https://oa-dev.troca.ir` and `AUTH_SESSION_NAME=ipkf_dev_automation`. `AUTH_COOKIE_DOMAIN` must remain empty, so credentials and sessions are never shared through a parent-domain cookie.
+Each runtime identifies itself using `IPKF_MODULE`.
 
-## Routing policy
+Session names are derived from `DEPLOYMENT_ID` and `IPKF_MODULE`.
+Authentication cookies remain host-only because `AUTH_COOKIE_DOMAIN`
+is empty.
 
-- Automation URLs are generated from `AUTOMATION_APP_URL`.
-- Core URLs are generated from `CORE_APP_URL`.
-- Automation launches go through the Core SSO start endpoint.
-- Non-Automation admin paths requested on the Automation host redirect to Core.
-- Password and MFA are accepted only by Core. Automation has no independent login UI.
-- Core issues a hashed, audience-bound, one-time authorization code with a 60-second lifetime.
-- Automation consumes the code atomically, creates its own host-only session, and immediately removes the code from the browser URL.
-- Return paths are restricted to `/admin/automation` and its descendants.
-- Federated logout clears the Automation session and then the Core session.
-- Unknown hosts are rejected with HTTP 421 when the guard is enabled.
-- Both independent cookies are HTTPS-only, HTTP-only and host-scoped; authorization and CSRF checks remain active on both hosts.
+## Dynamic routing policy
+
+- Core host comes from deployment configuration.
+- Active module hosts come dynamically from the module registry.
+- Module base URL, callback, permission and route come from registry data.
+- `ALLOWED_APP_HOSTS` is only for optional non-module hosts.
+- Unknown hosts are rejected when the host guard is enabled.
+- One-login UX uses generic module SSO, not a shared parent-domain cookie.
+- Each module creates and owns its independent host-only session.
 
 ## Correspondence document workspace
 
@@ -50,8 +54,37 @@ AUTOMATION_DB_MODE=dedicated
 - `reply_to` is presented as «عطف / پاسخ به» and `follow_up` as «پیرو»; the referenced letter number and date are shown with the current content.
 - Attachments are stored outside the public web root. Set `PRIVATE_FILE_STORAGE_PATH` to a writable private directory; PDF, DOCX, JPG and PNG files up to 10 MiB are accepted.
 
-## cPanel prerequisites
+## cPanel and deployment prerequisites
 
-Create the `oa-dev.troca.ir` subdomain, issue its SSL certificate, and set its document root to `/home/troca/oa-dev.troca.ir/public` before enabling the host guard. Never commit either deployment's `.env` or database credentials.
+Before enabling any runtime host:
 
-Production uses the same code and only changes environment values to the production Core and Automation hosts.
+- create its domain or subdomain;
+- issue and validate SSL;
+- point the document root to that runtime's `public` directory;
+- deploy the approved release;
+- configure its local runtime descriptor;
+- register and activate the module when applicable;
+- verify host guard, SSO and session isolation.
+
+Never commit runtime `.env` files, database credentials or secrets.
+
+## Session and SSO contract
+
+Development session names are:
+
+- `ipkf_dev_core`
+- `ipkf_dev_automation`
+- `ipkf_dev_work`
+- `ipkf_dev_ticketing`
+
+Each session is host-only. Generic module SSO provides one-login UX.
+
+Module permission, base URL, callback URL and route are resolved from the
+dynamic module registry.
+
+A newly registered active module does not require a source-code change or
+an entry in `ALLOWED_APP_HOSTS`.
+
+Production uses the same tested release and changes only approved
+deployment configuration, registry data, database configuration, storage
+configuration and secrets.

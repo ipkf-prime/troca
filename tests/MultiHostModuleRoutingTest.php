@@ -25,10 +25,10 @@ $expect(str_contains($kernel, 'ModuleHostMiddleware::class'), 'The host guard mu
 $expect(str_contains($panel, 'ApplicationUrlRegistry') && str_contains($panel, 'automationLaunch($path)') && str_contains($panel, 'workLaunch($path)'), 'Admin module links must use the central SSO launch URL.');
 $expect(str_contains($routes, '/auth/module-sso/start') && str_contains($routes, '/auth/module-sso/callback'), 'Central SSO start and module callback routes are required.');
 $expect(str_contains($sso, '60,'), 'Authorization codes must be short-lived.');
-$expect(str_contains($sso, "'audience' => \$module"), 'Authorization codes must carry the target module audience.');
-$expect(str_contains($sso, "['audience' => \$audience]"), 'Authorization codes must be consumed only by the matching module audience.');
-$expect(str_contains($sso, "isWorkHost(\$requestHost)") && str_contains($sso, "isAutomationHost(\$requestHost)"), 'The SSO audience must be derived from the request host.');
-$expect(str_contains($sso, "'/admin/automation'") && str_contains($sso, "'/admin/work'") && str_contains($sso, 'safe_redirect_path'), 'SSO return paths must be constrained to known module admin paths.');
+$expect(str_contains($sso, "'audience' =>") && str_contains($sso, 'moduleForPath'), 'Authorization codes must bind the dynamically resolved module audience.');
+$expect(str_contains($sso, "'audience' =>") && str_contains($sso, 'moduleForHost'), 'Authorization codes must be consumed against the resolved host audience.');
+$expect(str_contains($sso, 'moduleForHost') && str_contains($sso, 'allActive()') && str_contains($sso, "['base_url']"), 'SSO audience must resolve from the dynamic module registry.');
+$expect(str_contains($sso, 'moduleForPath') && str_contains($sso, 'safe_redirect_path'), 'SSO return paths must be constrained by the resolved module contract.');
 $expect(str_contains($env, 'AUTOMATION_APP_URL=') && str_contains($env, 'WORK_APP_URL=') && str_contains($env, 'AUTH_COOKIE_DOMAIN='), 'Environment samples must document multi-host settings.');
 $expect(str_contains($deploy, 'IPKF_AUTOMATION_DEPLOYPATH') && str_contains($deploy, 'IPKF_WORK_DEPLOYPATH') && str_contains($deploy, 'ipkf-deploy.env'), 'cPanel deployment must resolve module destinations from the server registry.');
 $expect(!str_contains($deploy, 'troca.ir'), 'cPanel deployment must not hardcode the current domain.');

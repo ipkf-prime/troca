@@ -33,7 +33,7 @@ Use `.env` for real values. Do not commit secrets.
 
 - `APP_URL` controls generated login-token URLs.
 - `APP_TIMEZONE` controls local display timestamps; UTC remains canonical.
-- `AUTH_SESSION_NAME` controls the shared CSRF/Auth/MFA session cookie.
+- `AUTH_SESSION_NAME` controls the runtime-local CSRF/Auth/MFA session cookie; each runtime owns its own host-only authentication session.
 - `IDENTITY_DEV_EXPOSE_TOKEN` must be `false` in production. It only exposes identity-change `dev_token` when `APP_ENV=development` and `APP_DEBUG=true`.
 - `MFA_DEV_EXPOSE_OTP` must remain `false` by default.
 - `MFA_EMAIL_ENABLED`, `MFA_SMS_ENABLED`, and `MFA_BOT_ENABLED` enable delivery-channel foundations only when provider configuration is present.

@@ -305,18 +305,127 @@ class Env
 
     private static function deriveModuleValues(): void
     {
-        $module = strtolower(trim((string) self::get('IPKF_MODULE', '')));
-        if ($module === '') {
-            return;
-        }
-        if (!preg_match('/^[a-z][a-z0-9_-]{1,99}$/', $module)) {
+        $module =
+            strtolower(
+                trim(
+                    (string) self::get(
+                        'IPKF_MODULE',
+                        ''
+                    )
+                )
+            );
+
+        if (
+            $module === ''
+            || !preg_match(
+                '/^[a-z][a-z0-9_-]{1,99}$/',
+                $module
+            )
+        ) {
             return;
         }
 
-        $urlKey = strtoupper(str_replace('-', '_', $module)) . '_APP_URL';
-        $moduleUrl = trim((string) self::get($urlKey, ''));
+        $modulePrefix =
+            strtoupper(
+                str_replace(
+                    '-',
+                    '_',
+                    $module
+                )
+            );
+
+        $urlKey =
+            $modulePrefix
+            . '_APP_URL';
+
+        $moduleUrl =
+            trim(
+                (string) self::get(
+                    $urlKey,
+                    ''
+                )
+            );
+
         if ($moduleUrl !== '') {
-            $_ENV['APP_URL'] = $_SERVER['APP_URL'] = $moduleUrl;
+            $_ENV['APP_URL'] =
+                $_SERVER['APP_URL'] =
+                    $moduleUrl;
+        }
+
+        /*
+         * Every application runtime owns an independent
+         * host session.
+         *
+         * An explicit module session name may be supplied:
+         *
+         *   TICKETING_AUTH_SESSION_NAME=...
+         *
+         * Otherwise the stable session identity is derived
+         * from:
+         *
+         *   DEPLOYMENT_ID + IPKF_MODULE
+         *
+         * Cross-runtime one-login UX is handled by generic
+         * module SSO rather than a shared browser cookie.
+         */
+        $moduleSessionKey =
+            $modulePrefix
+            . '_AUTH_SESSION_NAME';
+
+        $sessionName =
+            trim(
+                (string) self::get(
+                    $moduleSessionKey,
+                    ''
+                )
+            );
+
+        if ($sessionName === '') {
+            $deploymentId =
+                trim(
+                    (string) self::get(
+                        'DEPLOYMENT_ID',
+                        ''
+                    )
+                );
+
+            if ($deploymentId !== '') {
+                $safeDeploymentId =
+                    preg_replace(
+                        '/[^A-Za-z0-9_-]+/',
+                        '_',
+                        $deploymentId
+                    )
+                    ?: '';
+
+                $safeModule =
+                    preg_replace(
+                        '/[^A-Za-z0-9_-]+/',
+                        '_',
+                        $module
+                    )
+                    ?: '';
+
+                $sessionName =
+                    trim(
+                        $safeDeploymentId
+                        . '_'
+                        . $safeModule,
+                        '_'
+                    );
+            }
+        }
+
+        if (
+            $sessionName !== ''
+            && preg_match(
+                '/^[A-Za-z0-9_-]{1,128}$/',
+                $sessionName
+            )
+        ) {
+            $_ENV['AUTH_SESSION_NAME'] =
+                $_SERVER['AUTH_SESSION_NAME'] =
+                    $sessionName;
         }
     }
 

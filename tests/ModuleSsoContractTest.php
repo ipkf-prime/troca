@@ -17,9 +17,9 @@ $expect = static function (bool $condition, string $message): void {
 };
 
 $expect(str_contains($service, "private const PURPOSE = 'module_sso'"), 'Module SSO must use a dedicated token purpose.');
-$expect(str_contains($service, "moduleForPath") && str_contains($service, "'work'") && str_contains($service, "'automation'"), 'Module SSO must derive and bind the module audience.');
-$expect(str_contains($service, "'automation.correspondence.view'") && str_contains($service, "'work.project.view'"), 'Core must authorize module access before issuing a code.');
-$expect(str_contains($service, "parse_url(\$path, PHP_URL_HOST)") && str_contains($service, "str_starts_with(\$path, '//')"), 'Return paths must reject external and scheme-relative URLs.');
+$expect(str_contains($service, 'moduleForPath') && str_contains($service, 'moduleForHost') && str_contains($service, 'allActive()') && str_contains($service, "'audience' =>"), 'Module SSO audience must resolve through the dynamic module registry.');
+$expect(str_contains($service, "['permission_key']"), 'Module authorization must use the registered permission key.');
+$expect(str_contains($service, 'private function returnPath') && str_contains($service, 'parse_url($path)') && str_contains($service, "isset(\$parsed['scheme'])") && str_contains($service, "isset(\$parsed['host'])") && str_contains($service, "return '/admin/dashboard'"), 'Return paths must reject external and scheme-relative URLs.');
 $expect(str_contains($tokens, 'password_hash($plain, PASSWORD_DEFAULT)'), 'Only a password hash of the authorization code may be stored.');
 $expect(str_contains($tokens, '$ttlSeconds = max(30, min(300, $ttlSeconds))'), 'Authorization-code lifetime must be bounded.');
 $expect(str_contains($repository, 'AND used_at IS NULL') && str_contains($repository, 'rowCount() === 1'), 'Authorization codes must be claimed atomically exactly once.');
@@ -29,8 +29,8 @@ $expect(!str_contains($routes, "if ((\$issued['ok'] ?? false) !== true) {\n     
 $expect(str_contains($routes, "return \$response->redirect(\$urls->core('/admin/dashboard'));"), 'An invalid or unauthorized pending module resume must safely fall back to the central dashboard.');
 $expect(str_contains($routes, "header('Cache-Control', 'no-store')") && str_contains($routes, "header('Referrer-Policy', 'no-referrer')"), 'Authorization-code responses must prevent caching and referrer leakage.');
 $expect(str_contains($routes, 'User is no longer eligible to sign in') && str_contains($routes, '$auth->logout()'), 'Modules must reject users that became ineligible before code consumption.');
-$expect(str_contains($routes, "isAutomationHost((string) (\$_SERVER['HTTP_HOST'] ?? ''))") && str_contains($routes, "isWorkHost((string) (\$_SERVER['HTTP_HOST'] ?? ''))"), 'Unauthenticated module routes must go directly to central SSO.');
-$expect(str_contains($routes, "return_module=automation") && str_contains($routes, "return_module=work") && str_contains($routes, "input('return_module', '') === 'work'"), 'Federated logout must preserve the originating module for the next central login.');
+$expect(str_contains($routes, '/auth/module-sso/start') && str_contains($routes, 'return_path') && !str_contains($service, 'isAutomationHost(') && !str_contains($service, 'isWorkHost(') && !str_contains($service, 'isTicketingHost('), 'Unauthenticated modules must use generic central SSO.');
+$expect(str_contains($routes, 'applicationModuleKeyForHost(') && str_contains($routes, 'return_module') && str_contains($routes, 'ModuleRuntimeConfig') && str_contains($routes, "'route_path'"), 'Federated logout must preserve the originating dynamic module.');
 $previousEnv = [];
 foreach (['APP_HOST_GUARD_ENABLED', 'CORE_APP_URL', 'AUTOMATION_APP_URL', 'WORK_APP_URL'] as $key) {
     $previousEnv[$key] = [$_ENV[$key] ?? null, $_SERVER[$key] ?? null];
@@ -60,6 +60,6 @@ foreach ($previousEnv as $key => [$envValue, $serverValue]) {
         $_SERVER[$key] = $serverValue;
     }
 }
-$expect(str_contains($docs, 'AUTH_SESSION_NAME=ipkf_dev_core') && str_contains($docs, 'AUTH_SESSION_NAME=ipkf_dev_automation'), 'Core and Automation must use independent host sessions.');
+$expect(str_contains($docs, 'ipkf_dev_core') && str_contains($docs, 'ipkf_dev_automation') && str_contains($docs, 'ipkf_dev_work') && str_contains($docs, 'ipkf_dev_ticketing') && str_contains($docs, 'generic module SSO'), 'Independent host sessions and generic module SSO must be documented.');
 
 echo "Module SSO contract checks passed.\n";

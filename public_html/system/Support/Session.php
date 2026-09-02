@@ -24,8 +24,8 @@ class Session
         $cookie = [
             'lifetime' => (int) Env::get('AUTH_SESSION_LIFETIME', 7200),
             'path' => '/',
-            'httponly' => true,
-            'samesite' => 'Lax',
+            'httponly' => filter_var(Env::get('AUTH_COOKIE_HTTPONLY', true), FILTER_VALIDATE_BOOL),
+            'samesite' => (string) Env::get('AUTH_COOKIE_SAMESITE', 'Lax'),
             'secure' => filter_var(Env::get('AUTH_COOKIE_SECURE', (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')), FILTER_VALIDATE_BOOL),
         ];
         $domain = trim((string) Env::get('AUTH_COOKIE_DOMAIN', ''));

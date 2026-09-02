@@ -141,7 +141,7 @@ Pending MFA session keys:
 - `auth_pending_at`
 - `auth_pending_methods`
 
-`AUTH_SESSION_NAME` still controls the single shared session cookie. CSRF, pending MFA, and authenticated session state must all use the same cookie. Postman must keep cookies between `/csrf-token`, `/auth/login`, `/mfa/verify`, `/mfa/status`, `/me`, and `/auth/logout`.
+`AUTH_SESSION_NAME` controls the single runtime-local session cookie. CSRF, pending MFA, and authenticated session state within that runtime must all use the same cookie. Cross-runtime authentication must not rely on a shared parent-domain cookie. Postman must keep cookies between `/csrf-token`, `/auth/login`, `/mfa/verify`, `/mfa/status`, `/me`, and `/auth/logout`.
 
 ## MFA Runtime Routes
 
