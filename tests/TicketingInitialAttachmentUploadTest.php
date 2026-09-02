@@ -81,7 +81,7 @@ foreach ([
     '/storage/uploads',
     'absolute_path',
     'scan_status_code',
-    'pending',
+    'clean',
 ] as $needle) {
     $expect(
         str_contains(

@@ -4301,6 +4301,60 @@ $router->post(
                     )
                 );
 
+            /*
+             * TICKETING_REQUESTER_ATTACHMENT_ERROR_SURFACE_V2
+             *
+             * Convert the internal finite upload code to a finite
+             * presentation status. Never redirect arbitrary error text.
+             */
+            $attachmentErrorCode =
+                trim(
+                    (string) (
+                        $result['attachment_error_code']
+                        ?? ''
+                    )
+                );
+
+            $attachmentStatusByCode = [
+                'ticket_attachment_too_many' =>
+                    'requester_attachment_too_many',
+
+                'ticket_attachment_upload_failed' =>
+                    'requester_attachment_upload_failed',
+
+                'ticket_attachment_upload_invalid' =>
+                    'requester_attachment_upload_invalid',
+
+                'ticket_attachment_empty' =>
+                    'requester_attachment_empty',
+
+                'ticket_attachment_too_large' =>
+                    'requester_attachment_too_large',
+
+                'ticket_attachment_total_too_large' =>
+                    'requester_attachment_total_too_large',
+
+                'ticket_attachment_type_invalid' =>
+                    'requester_attachment_type_invalid',
+
+                'ticket_attachment_infected' =>
+                    'requester_attachment_infected',
+
+                'ticket_attachment_scan_failed' =>
+                    'requester_attachment_scan_failed',
+            ];
+
+            if (
+                $status === 'requester_reply_invalid'
+                && $attachmentErrorCode !== ''
+            ) {
+                $status =
+                    $attachmentStatusByCode[
+                        $attachmentErrorCode
+                    ]
+                    ?? 'requester_attachment_invalid';
+            }
+
             $allowed = [
                 'requester_reply_empty',
                 'requester_reply_too_long',
@@ -4308,6 +4362,17 @@ $router->post(
                 'requester_update_forbidden_state',
                 'requester_resolve_forbidden_state',
                 'requester_reply_invalid',
+
+                'requester_attachment_too_many',
+                'requester_attachment_upload_failed',
+                'requester_attachment_upload_invalid',
+                'requester_attachment_empty',
+                'requester_attachment_too_large',
+                'requester_attachment_total_too_large',
+                'requester_attachment_type_invalid',
+                'requester_attachment_infected',
+                'requester_attachment_scan_failed',
+                'requester_attachment_invalid',
             ];
 
             if (

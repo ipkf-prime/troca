@@ -1240,6 +1240,37 @@ $lifecycleStatusMessage =
                 'نشست فرم معتبر نیست. صفحه را تازه‌سازی و دوباره تلاش کنید.',
             ],
 
+        /* TICKETING_REQUESTER_ATTACHMENT_ERROR_SURFACE_V2 */
+        'requester_attachment_too_many' =>
+            ['danger', 'تعداد فایل‌های انتخاب‌شده بیش از حد مجاز است.'],
+
+        'requester_attachment_upload_failed' =>
+            ['danger', 'بارگذاری فایل کامل نشد. فایل را دوباره انتخاب و ارسال کنید.'],
+
+        'requester_attachment_upload_invalid' =>
+            ['danger', 'فایل بارگذاری‌شده معتبر نیست. فایل را دوباره انتخاب کنید.'],
+
+        'requester_attachment_empty' =>
+            ['danger', 'فایل انتخاب‌شده خالی است.'],
+
+        'requester_attachment_too_large' =>
+            ['danger', 'حجم یکی از فایل‌های انتخاب‌شده بیش از حد مجاز است.'],
+
+        'requester_attachment_total_too_large' =>
+            ['danger', 'مجموع حجم فایل‌های انتخاب‌شده بیش از حد مجاز است.'],
+
+        'requester_attachment_type_invalid' =>
+            ['danger', 'نوع یا پسوند فایل انتخاب‌شده مجاز نیست.'],
+
+        'requester_attachment_infected' =>
+            ['danger', 'فایل انتخاب‌شده آلوده تشخیص داده شد و بارگذاری آن انجام نشد.'],
+
+        'requester_attachment_scan_failed' =>
+            ['danger', 'بررسی امنیتی فایل در حال حاضر انجام نشد. فایل بارگذاری نشد.'],
+
+        'requester_attachment_invalid' =>
+            ['danger', 'فایل پیوست معتبر نیست یا امکان بارگذاری آن وجود ندارد.'],
+
         'requester_reply_failed' =>
             [
                 'danger',

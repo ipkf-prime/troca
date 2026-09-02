@@ -2075,7 +2075,15 @@ final class TicketCreateRoutingRepository
                     $checksum
                 ) !== 1
 
-                || $scanStatus !== 'pending'
+                || !in_array(
+                    $scanStatus,
+                    [
+                        'pending',
+                        'clean',
+                        'approved',
+                    ],
+                    true
+                )
             ) {
                 throw new \RuntimeException(
                     'ticket_attachment_contract_invalid'

@@ -104,23 +104,65 @@ class TicketAttachmentUploadService
         string $uploadedByUserReference
     ): array {
         $files =
-            $this->normalizeFiles($input);
+            $this->normalizeFiles(
+                $input
+            );
 
         if ($files === []) {
             return [];
         }
 
         if (count($files) > self::MAX_FILES) {
-            throw new InvalidArgumentException(
+            throw new \InvalidArgumentException(
                 'ticket_attachment_too_many'
             );
         }
 
+        $privateRoot =
+            $this->privateStorageRoot();
+
+        /*
+         * TICKETING_ATTACHMENT_QUARANTINE_SCAN_PROMOTE
+         *
+         * Final Ticketing uploads live beneath storage/uploads.
+         * Quarantine is a sibling beneath the same storage root.
+         */
+        $storageRoot =
+            dirname(
+                $privateRoot
+            );
+
+        $quarantineRoot =
+            $storageRoot
+            . '/quarantine/ticketing';
+
+        if (
+            !is_dir($quarantineRoot)
+            && !mkdir($quarantineRoot, 0700, true)
+            && !is_dir($quarantineRoot)
+        ) {
+            throw new \RuntimeException(
+                'ticket_attachment_storage_unavailable'
+            );
+        }
+
+        @chmod(
+            $quarantineRoot,
+            0700
+        );
+
+        /* Reuse the platform-wide scanner. */
+        $scanner =
+            new \App\Services\Infrastructure\ClamAvProcessScanner();
+
         $prepared = [];
         $totalBytes = 0;
+        $quarantinePath = null;
 
         try {
             foreach ($files as $file) {
+                $quarantinePath = null;
+
                 $error =
                     (int) (
                         $file['error']
@@ -132,58 +174,55 @@ class TicketAttachmentUploadService
                 }
 
                 if ($error !== UPLOAD_ERR_OK) {
-                    throw new InvalidArgumentException(
+                    throw new \InvalidArgumentException(
                         'ticket_attachment_upload_failed'
                     );
                 }
 
                 $temporaryPath =
-                    (string) (
-                        $file['tmp_name']
-                        ?? ''
+                    trim(
+                        (string) (
+                            $file['tmp_name']
+                            ?? ''
+                        )
                     );
 
                 if (
                     $temporaryPath === ''
-                    || !is_uploaded_file(
-                        $temporaryPath
-                    )
+                    || !is_uploaded_file($temporaryPath)
                 ) {
-                    throw new InvalidArgumentException(
+                    throw new \InvalidArgumentException(
                         'ticket_attachment_upload_invalid'
                     );
                 }
 
-                $size =
-                    filesize($temporaryPath);
+                $temporarySize =
+                    filesize(
+                        $temporaryPath
+                    );
 
                 if (
-                    $size === false
-                    || $size < 1
+                    $temporarySize === false
+                    || (int) $temporarySize < 1
                 ) {
-                    throw new InvalidArgumentException(
+                    throw new \InvalidArgumentException(
                         'ticket_attachment_empty'
                     );
                 }
 
-                $size = (int) $size;
+                $temporarySize =
+                    (int) $temporarySize;
 
-                if (
-                    $size
-                    > self::MAX_FILE_BYTES
-                ) {
-                    throw new InvalidArgumentException(
+                if ($temporarySize > self::MAX_FILE_BYTES) {
+                    throw new \InvalidArgumentException(
                         'ticket_attachment_too_large'
                     );
                 }
 
-                $totalBytes += $size;
+                $totalBytes += $temporarySize;
 
-                if (
-                    $totalBytes
-                    > self::MAX_TOTAL_BYTES
-                ) {
-                    throw new InvalidArgumentException(
+                if ($totalBytes > self::MAX_TOTAL_BYTES) {
+                    throw new \InvalidArgumentException(
                         'ticket_attachment_total_too_large'
                     );
                 }
@@ -208,14 +247,61 @@ class TicketAttachmentUploadService
                     $extension === ''
                     || strlen($extension) > 10
                 ) {
-                    throw new InvalidArgumentException(
+                    throw new \InvalidArgumentException(
                         'ticket_attachment_type_invalid'
                     );
                 }
 
+                /* Browser upload -> account-local quarantine. */
+                $quarantinePath =
+                    $quarantineRoot
+                    . '/'
+                    . strtolower(
+                        bin2hex(
+                            random_bytes(24)
+                        )
+                    )
+                    . '.upload';
+
+                if (
+                    !move_uploaded_file(
+                        $temporaryPath,
+                        $quarantinePath
+                    )
+                ) {
+                    $quarantinePath = null;
+
+                    throw new \RuntimeException(
+                        'ticket_attachment_store_failed'
+                    );
+                }
+
+                @chmod(
+                    $quarantinePath,
+                    0600
+                );
+
+                /* Security metadata comes from quarantine. */
+                $size =
+                    filesize(
+                        $quarantinePath
+                    );
+
+                if (
+                    $size === false
+                    || (int) $size < 1
+                    || (int) $size !== $temporarySize
+                ) {
+                    throw new \InvalidArgumentException(
+                        'ticket_attachment_upload_invalid'
+                    );
+                }
+
+                $size = (int) $size;
+
                 $mimeType =
                     $this->detectMime(
-                        $temporaryPath
+                        $quarantinePath
                     );
 
                 $allowedExtensions =
@@ -224,20 +310,78 @@ class TicketAttachmentUploadService
                     ] ?? null;
 
                 if (
-                    !is_array(
-                        $allowedExtensions
-                    )
+                    !is_array($allowedExtensions)
                     || !in_array(
                         $extension,
                         $allowedExtensions,
                         true
                     )
                 ) {
-                    throw new InvalidArgumentException(
+                    throw new \InvalidArgumentException(
                         'ticket_attachment_type_invalid'
                     );
                 }
 
+                $checksum =
+                    hash_file(
+                        'sha256',
+                        $quarantinePath
+                    );
+
+                if (
+                    !is_string($checksum)
+                    || preg_match(
+                        '/^[a-f0-9]{64}$/',
+                        strtolower($checksum)
+                    ) !== 1
+                ) {
+                    throw new \RuntimeException(
+                        'ticket_attachment_checksum_failed'
+                    );
+                }
+
+                $checksum =
+                    strtolower($checksum);
+
+                /*
+                 * Shared malware scanner result:
+                 * clean / infected / error
+                 */
+                try {
+                    $scanResult =
+                        $scanner->scan(
+                            $quarantinePath
+                        );
+                } catch (\Throwable $scanException) {
+                    @unlink($quarantinePath);
+                    $quarantinePath = null;
+
+                    throw new \InvalidArgumentException(
+                        'ticket_attachment_scan_failed',
+                        0,
+                        $scanException
+                    );
+                }
+
+                if ($scanResult === 'infected') {
+                    @unlink($quarantinePath);
+                    $quarantinePath = null;
+
+                    throw new \InvalidArgumentException(
+                        'ticket_attachment_infected'
+                    );
+                }
+
+                if ($scanResult !== 'clean') {
+                    @unlink($quarantinePath);
+                    $quarantinePath = null;
+
+                    throw new \InvalidArgumentException(
+                        'ticket_attachment_scan_failed'
+                    );
+                }
+
+                /* Allocate final identity only after CLEAN. */
                 $publicReference =
                     'TKA-'
                     . strtoupper(
@@ -261,71 +405,70 @@ class TicketAttachmentUploadService
                     . '.'
                     . $extension;
 
-                $root =
-                    $this->privateStorageRoot();
-
                 $directory =
-                    $root
+                    $privateRoot
                     . '/'
                     . $relativeDirectory;
 
                 if (
                     !is_dir($directory)
-                    && !mkdir(
-                        $directory,
-                        0750,
-                        true
-                    )
+                    && !mkdir($directory, 0750, true)
                     && !is_dir($directory)
                 ) {
-                    throw new RuntimeException(
+                    throw new \RuntimeException(
                         'ticket_attachment_storage_unavailable'
                     );
                 }
 
-                $path =
-                    $root
+                $finalPath =
+                    $privateRoot
                     . '/'
                     . $storageKey;
 
-                if (is_file($path)) {
-                    throw new RuntimeException(
+                if (is_file($finalPath)) {
+                    throw new \RuntimeException(
                         'ticket_attachment_storage_collision'
                     );
                 }
 
-                if (
-                    !move_uploaded_file(
-                        $temporaryPath,
-                        $path
-                    )
-                ) {
-                    throw new RuntimeException(
+                /* Atomic promotion on the deployment filesystem. */
+                if (!rename($quarantinePath, $finalPath)) {
+                    throw new \RuntimeException(
                         'ticket_attachment_store_failed'
                     );
                 }
 
+                $quarantinePath = null;
+
                 @chmod(
-                    $path,
+                    $finalPath,
                     0640
                 );
 
-                $checksum =
+                /* Post-promote integrity proof. */
+                $finalSize =
+                    filesize(
+                        $finalPath
+                    );
+
+                $finalChecksum =
                     hash_file(
                         'sha256',
-                        $path
+                        $finalPath
                     );
 
                 if (
-                    !is_string($checksum)
-                    || preg_match(
-                        '/^[a-f0-9]{64}$/',
-                        $checksum
-                    ) !== 1
+                    $finalSize === false
+                    || (int) $finalSize !== $size
+                    || !is_string($finalChecksum)
+                    || !hash_equals(
+                        $checksum,
+                        strtolower($finalChecksum)
+                    )
                 ) {
-                    @unlink($path);
+                    @unlink($finalPath);
 
-                    throw new RuntimeException(
+                    throw new \RuntimeException(
                         'ticket_attachment_checksum_failed'
                     );
                 }
@@ -337,10 +480,6 @@ class TicketAttachmentUploadService
                     'storage_disk' =>
                         self::STORAGE_DISK,
 
-                    /*
-                     * Store only the relative key.
-                     * Absolute server paths never enter DB.
-                     */
                     'storage_key' =>
                         $storageKey,
 
@@ -357,20 +496,26 @@ class TicketAttachmentUploadService
                         $checksum,
 
                     'scan_status_code' =>
-                        'pending',
+                        'clean',
 
                     'uploaded_by_user_reference' =>
                         $uploadedByUserReference,
 
-                    /*
-                     * Runtime-only cleanup handle.
-                     * Repository never persists this value.
-                     */
+                    /* Runtime-only rollback handle. */
                     'absolute_path' =>
-                        $path,
+                        $finalPath,
                 ];
             }
-        } catch (Throwable $exception) {
+        } catch (\Throwable $exception) {
+            if (
+                is_string($quarantinePath)
+                && $quarantinePath !== ''
+                && is_file($quarantinePath)
+            ) {
+                @unlink($quarantinePath);
+            }
+
+            /* Remove already-promoted siblings on multipart failure. */
             $this->cleanup(
                 $prepared
             );
@@ -380,7 +525,6 @@ class TicketAttachmentUploadService
 
         return $prepared;
     }
-
 
     public function cleanup(
         array $prepared
@@ -426,6 +570,12 @@ class TicketAttachmentUploadService
             'ticket_attachment_upload_failed',
             'ticket_attachment_upload_invalid' =>
                 'بارگذاری یکی از فایل‌ها کامل یا معتبر نیست.',
+
+            'ticket_attachment_infected' =>
+                'فایل انتخاب‌شده آلوده تشخیص داده شد و بارگذاری آن انجام نشد.',
+
+            'ticket_attachment_scan_failed' =>
+                'بررسی امنیتی فایل در حال حاضر انجام نشد. فایل بارگذاری نشد.',
 
             default =>
                 'ذخیره فایل پیوست انجام نشد.',

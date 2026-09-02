@@ -282,6 +282,12 @@ final class TicketLifecycleService
                 'ok' => false,
                 'status' =>
                     'requester_reply_invalid',
+                /*
+                 * Preserve only an internal classification code.
+                 * Route/UI never render this value directly.
+                 */
+                'attachment_error_code' =>
+                    $exception->getMessage(),
                 'attachment_error' =>
                     $attachmentUpload->errorMessage(
                         $exception->getMessage()
