@@ -1394,6 +1394,155 @@ $lifecycleRequesterCanUpdate =
     );
 ?>
 
+<?php
+/*
+ * TICKETING_ROUTING_EXCEPTION_FOUNDATION_V1
+ *
+ * Shared read-only routing-health foundation.
+ * Recovery mutation is intentionally NOT implemented in this step.
+ */
+$routingExceptionPanel = null;
+
+if (
+    $lifecycleReference !== ''
+    &&
+    $lifecycleUserId > 0
+) {
+    try {
+        $routingExceptionPanel =
+            (
+                new \App\Services\Ticketing\TicketRoutingExceptionService()
+            )->panel(
+                $lifecycleReference,
+                $lifecycleUserId
+            );
+    } catch (\Throwable) {
+        $routingExceptionPanel = null;
+    }
+}
+
+$routingExceptionClassification =
+    is_array(
+        $routingExceptionPanel['classification']
+        ?? null
+    )
+        ? $routingExceptionPanel['classification']
+        : [];
+
+$routingExceptionDefaultTopic =
+    is_array(
+        $routingExceptionPanel['default_topic']
+        ?? null
+    )
+        ? $routingExceptionPanel['default_topic']
+        : null;
+?>
+
+<?php if (
+    is_array($routingExceptionPanel)
+    &&
+    !empty($routingExceptionPanel['found'])
+    &&
+    !empty($routingExceptionPanel['can_manage'])
+    &&
+    !empty($routingExceptionClassification['actionable'])
+): ?>
+    <section
+        class="admin-section"
+        data-ticketing-routing-exception
+        data-ticketing-routing-exception-code="<?= $lifecycleH(
+            (string) (
+                $routingExceptionClassification['code']
+                ?? ''
+            )
+        ) ?>"
+        hidden
+    >
+        <div class="admin-section__header">
+            <div>
+                <h3>نیازمند مداخله مسیریابی</h3>
+                <p class="admin-muted">
+                    این وضعیت توسط کنترل سلامت عمومی مسیریابی شناسایی شده است.
+                </p>
+            </div>
+        </div>
+
+        <div class="admin-alert admin-alert--warning">
+            <strong>
+                <?= $lifecycleH(
+                    (string) (
+                        $routingExceptionClassification['title']
+                        ?? 'اختلال مسیریابی'
+                    )
+                ) ?>
+            </strong>
+
+            <div>
+                <?= $lifecycleH(
+                    (string) (
+                        $routingExceptionClassification['message']
+                        ?? ''
+                    )
+                ) ?>
+            </div>
+
+            <?php if (
+                is_array($routingExceptionDefaultTopic)
+            ): ?>
+                <div>
+                    موضوع پیش‌فرض فعال این خدمت:
+                    <strong>
+                        <?= $lifecycleH(
+                            (string) (
+                                $routingExceptionDefaultTopic['title']
+                                ?? ''
+                            )
+                        ) ?>
+                    </strong>
+                </div>
+            <?php endif; ?>
+
+            <div class="admin-muted">
+                در این مرحله فقط تشخیص انجام می‌شود؛
+                هیچ مسیر، صف یا کارشناسی به‌صورت دستی بازنویسی نشده است.
+            </div>
+        </div>
+    </section>
+
+    <script data-ticketing-routing-exception-relocate>
+    (() => {
+        const moveRoutingException = () => {
+            const block =
+                document.querySelector(
+                    '[data-ticketing-routing-exception]'
+                );
+
+            const operations =
+                document.querySelector(
+                    '[data-ticketing-detail-panel="status"]'
+                );
+
+            if (!block || !operations) {
+                return;
+            }
+
+            operations.prepend(block);
+            block.hidden = false;
+        };
+
+        if (document.readyState === 'complete') {
+            moveRoutingException();
+        } else {
+            window.addEventListener(
+                'load',
+                moveRoutingException,
+                {once: true}
+            );
+        }
+    })();
+    </script>
+<?php endif; ?>
+
 <?php if (!empty($priorityGovernance['found'])): ?>
     <section
         class="admin-section ticketing-priority-governance"
