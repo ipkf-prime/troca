@@ -59,6 +59,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\RepairPersonAddressReferenceDataAndGeography::class,
                     \IPKF\Database\Migrations\CreateNotificationCoreFoundationTables::class,
                     \IPKF\Database\Migrations\SeedDynamicAuthMembershipMessageTemplates::class,
+                    \IPKF\Database\Migrations\CreateDynamicMessageTemplateManagement::class,
                     \IPKF\Database\Migrations\CreateCommunicationCenterFoundationTables::class,
                     \IPKF\Database\Migrations\ExposeAutomationSecretariatNavigation::class,
                     \IPKF\Database\Migrations\ExposeTicketingNavigation::class,

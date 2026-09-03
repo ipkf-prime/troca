@@ -36,24 +36,11 @@ final class DynamicMessageTemplateService extends BaseService
         $locale =
             strtolower(trim($locale));
 
-        if (
-            preg_match(
-                '/^[a-z0-9._-]{3,100}$/D',
-                $code
-            ) !== 1
-            || preg_match(
-                '/^[a-z0-9._-]{2,40}$/D',
-                $channel
-            ) !== 1
-            || preg_match(
-                '/^[a-z]{2}(?:-[a-z0-9]{2,8})?$/D',
-                $locale
-            ) !== 1
-        ) {
-            throw new RuntimeException(
-                'message_template_identity_invalid'
-            );
-        }
+        $this->assertIdentity(
+            $code,
+            $channel,
+            $locale
+        );
 
         $template =
             $this->template(
@@ -68,11 +55,32 @@ final class DynamicMessageTemplateService extends BaseService
             );
         }
 
-        $variables =
-            array_merge(
+        $content =
+            $this->renderContent(
                 [
-                    'brand_name' =>
-                        $this->brandName(),
+                    'title_template' =>
+                        (string) (
+                            $template[
+                                'title_template'
+                            ]
+                            ?? ''
+                        ),
+
+                    'body_template' =>
+                        (string) (
+                            $template[
+                                'body_template'
+                            ]
+                            ?? ''
+                        ),
+
+                    'action_url_template' =>
+                        (string) (
+                            $template[
+                                'action_url_template'
+                            ]
+                            ?? ''
+                        ),
                 ],
                 $variables
             );
@@ -98,9 +106,38 @@ final class DynamicMessageTemplateService extends BaseService
                 ],
 
             'title' =>
+                $content['title'],
+
+            'body' =>
+                $content['body'],
+
+            'action_url' =>
+                $content['action_url'],
+        ];
+    }
+
+    public function renderContent(
+        array $content,
+        array $variables = []
+    ): array {
+        /*
+         * Global system identity is authoritative.
+         * A caller cannot override brand_name.
+         */
+        $variables =
+            array_merge(
+                $variables,
+                [
+                    'brand_name' =>
+                        $this->brandName(),
+                ]
+            );
+
+        return [
+            'title' =>
                 $this->expand(
                     (string) (
-                        $template[
+                        $content[
                             'title_template'
                         ]
                         ?? ''
@@ -111,7 +148,7 @@ final class DynamicMessageTemplateService extends BaseService
             'body' =>
                 $this->expand(
                     (string) (
-                        $template[
+                        $content[
                             'body_template'
                         ]
                         ?? ''
@@ -122,7 +159,7 @@ final class DynamicMessageTemplateService extends BaseService
             'action_url' =>
                 $this->expand(
                     (string) (
-                        $template[
+                        $content[
                             'action_url_template'
                         ]
                         ?? ''
@@ -130,6 +167,31 @@ final class DynamicMessageTemplateService extends BaseService
                     $variables
                 ),
         ];
+    }
+
+    private function assertIdentity(
+        string $code,
+        string $channel,
+        string $locale
+    ): void {
+        if (
+            preg_match(
+                '/^[a-z0-9._-]{3,100}$/D',
+                $code
+            ) !== 1
+            || preg_match(
+                '/^[a-z0-9._-]{2,40}$/D',
+                $channel
+            ) !== 1
+            || preg_match(
+                '/^[a-z]{2}(?:-[a-z0-9]{2,8})?$/D',
+                $locale
+            ) !== 1
+        ) {
+            throw new RuntimeException(
+                'message_template_identity_invalid'
+            );
+        }
     }
 
     private function template(

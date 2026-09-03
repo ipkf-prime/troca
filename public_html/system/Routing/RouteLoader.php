@@ -28,6 +28,7 @@ class RouteLoader
             BASE_PATH . '/routes/public-landing.php',
             BASE_PATH . '/routes/public-registration.php',
             BASE_PATH . '/routes/system-help-texts.php',
+            BASE_PATH . '/routes/system-message-templates.php',
             BASE_PATH . '/routes/ticketing-runtime.php',
         ] as $routeFile) {
             if (is_readable($routeFile)) {
