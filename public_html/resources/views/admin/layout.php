@@ -86,7 +86,38 @@ $currentPath = parse_url(
     PHP_URL_PATH
 ) ?: '/';
 
-$year = \App\Support\AdminFormat::digits(date('Y'));
+$persianToday =
+    \IPKF\Support\PersianDate::fromGregorianDate(
+        date('Y-m-d'),
+        false
+    );
+
+$year =
+    \App\Support\AdminFormat::digits(
+        substr(
+            $persianToday,
+            0,
+            4
+        )
+    );
+/* ONLINE_PRESENCE_TOUCH_V1 */
+$presenceUserId =
+    max(
+        0,
+        (int) (
+            $context['user_id']
+            ?? 0
+        )
+    );
+
+if ($presenceUserId > 0) {
+    (
+        new \App\Services\OnlinePresenceService()
+    )->touch(
+        $presenceUserId
+    );
+}
+
 $runtimeVersion = \App\Support\AdminFormat::digits(
     \IPKF\Support\Version::current()
 );
@@ -132,10 +163,9 @@ $brandTitle = $isModuleShell
 
 $brandSubtitle = $isModuleShell
     ? (string) ($moduleShell['subtitle'] ?? '')
-    : admin_fa(
-        '&#x0632;&#x06CC;&#x0631;&#x0633;&#x0627;&#x062E;&#x062A; '
-        . '&#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A;&#x06CC; '
-        . 'IPKF'
+    : (string) (
+        $theme['brand_subtitle']
+        ?? 'سامانه یکپارچه خدمات سازمانی'
     );
 
 $brandHome = $isModuleShell
@@ -218,7 +248,10 @@ $accountNav = $themeUserId !== null
         name="viewport"
         content="width=device-width, initial-scale=1"
     >
-    <title><?= admin_h($title) ?> | IPKF</title>
+    <title><?= admin_h($title) ?> | <?= admin_h(
+        $theme['brand_name']
+        ?? 'سامانه هوشمند تروکا'
+    ) ?></title>
 
     <link
         rel="stylesheet"

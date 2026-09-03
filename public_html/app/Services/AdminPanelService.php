@@ -837,7 +837,28 @@ class AdminPanelService extends BaseService
                 'actions' => [
                     ['key' => 'theme', 'title' => $this->fa('&#x067E;&#x0648;&#x0633;&#x062A;&#x0647; &#x067E;&#x0646;&#x0644;'), 'description' => $this->fa('&#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x0638;&#x0627;&#x0647;&#x0631; &#x0648; &#x0647;&#x0648;&#x06CC;&#x062A; &#x0628;&#x0635;&#x0631;&#x06CC; &#x067E;&#x0646;&#x0644;'), 'icon' => 'palette', 'color' => 'purple', 'url' => '/admin/theme', 'permission' => 'admin.theme.manage', 'sort_order' => 10],
                     ['key' => 'settings', 'title' => $this->fa('&#x062A;&#x0646;&#x0638;&#x06CC;&#x0645;&#x0627;&#x062A;'), 'description' => $this->fa('&#x062A;&#x0646;&#x0638;&#x06CC;&#x0645;&#x0627;&#x062A; &#x0639;&#x0645;&#x0648;&#x0645;&#x06CC; &#x0633;&#x0627;&#x0645;&#x0627;&#x0646;&#x0647;'), 'icon' => 'sliders', 'color' => 'violet', 'url' => '/admin/settings', 'permission' => 'admin.settings.manage', 'sort_order' => 20],
-                    ['key' => 'pages', 'title' => $this->fa('&#x0635;&#x0641;&#x062D;&#x0627;&#x062A;'), 'description' => $this->fa('&#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x0635;&#x0641;&#x062D;&#x0627;&#x062A; &#x0648; &#x0645;&#x062D;&#x062A;&#x0648;&#x0627;&#x06CC; &#x0639;&#x0645;&#x0648;&#x0645;&#x06CC;'), 'icon' => 'file-lines', 'color' => 'fuchsia', 'url' => '/admin/pages', 'permission' => 'admin.pages.manage', 'sort_order' => 30],
+                    [
+                        'key' => 'public-page',
+                        'title' => 'مدیریت صفحات',
+                        'description' => 'مدیریت منو، اسلایدر، اطلاعیه‌ها، کارت‌ها و فوتر صفحه عمومی',
+                        'icon' => 'file-lines',
+                        'color' => 'fuchsia',
+                        'url' => '/admin/public-page',
+                        'permission' => 'admin.settings.manage',
+                        'sort_order' => 30,
+                    ],
+                        [
+                            'key' => 'help-texts',
+                            'title' => 'راهنماها',
+                            'description' =>
+                                'مدیریت متن‌های راهنما و پیام‌های آموزشی سامانه',
+                            'icon' => 'book-open',
+                            'color' => 'teal',
+                            'url' => '/admin/system/help-texts',
+                            'permission' =>
+                                'admin.settings.manage',
+                            'sort_order' => 40,
+                        ],
                 ],
             ],
 

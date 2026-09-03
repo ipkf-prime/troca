@@ -13,6 +13,7 @@ class AdminThemeService extends BaseService
     private const DEFAULT_LOGO_URL = '/assets/admin/images/logos/default-logo.svg';
     private const DEFAULT_AVATAR_URL = '/assets/admin/images/avatars/default-avatar.svg';
     private const DEFAULT_BRAND_NAME = 'سامانه هوشمند تروکا';
+    private const DEFAULT_BRAND_SUBTITLE = 'سامانه یکپارچه خدمات سازمانی';
     private const DEFAULT_FOOTER_TEXT = 'کلیه حقوق این وب‌سایت متعلق به سامانه هوشمند تروکا می‌باشد.';
     private const DEFAULT_PRESET = 'official_emerald';
     public const RUNTIME_FIX_VERSION = 'theme-runtime-forensics-v1';
@@ -236,6 +237,7 @@ class AdminThemeService extends BaseService
             'canonical_preset' => $preset,
             'preset_title' => $this->presets()[$preset]['title'],
             'brand_name' => $this->textSetting($system, 'brand_name', (string) Env::get('ADMIN_BRAND_NAME', self::DEFAULT_BRAND_NAME), self::DEFAULT_BRAND_NAME),
+            'brand_subtitle' => $this->textSetting($system, 'brand_subtitle', self::DEFAULT_BRAND_SUBTITLE, self::DEFAULT_BRAND_SUBTITLE, 120),
             'logo_url' => $this->cleanAssetUrl((string) ($system['logo_url'] ?? Env::get('ADMIN_LOGO_URL', self::DEFAULT_LOGO_URL)), self::DEFAULT_LOGO_URL),
             'default_avatar_url' => $this->cleanAssetUrl((string) ($system['default_avatar_url'] ?? Env::get('ADMIN_DEFAULT_AVATAR_URL', self::DEFAULT_AVATAR_URL)), self::DEFAULT_AVATAR_URL),
             'footer_text' => $this->textSetting($system, 'footer_text', self::DEFAULT_FOOTER_TEXT, self::DEFAULT_FOOTER_TEXT, 140),
@@ -275,6 +277,108 @@ class AdminThemeService extends BaseService
         return implode("\n", $lines);
     }
 
+    public function saveSystemIdentity(array $input): array
+    {
+        if (!$this->settingsAvailable()) {
+            return [
+                'ok' => false,
+                'errors' => ['settings_unavailable'],
+            ];
+        }
+
+        $current =
+            $this->settingMap(self::SYSTEM_USER_ID);
+
+        $brandName = $this->cleanBrand(
+            (string) (
+                $input['brand_name']
+                ?? $current['brand_name']
+                ?? self::DEFAULT_BRAND_NAME
+            )
+        );
+
+        $brandSubtitle = $this->cleanBrand(
+            (string) (
+                $input['brand_subtitle']
+                ?? $current['brand_subtitle']
+                ?? self::DEFAULT_BRAND_SUBTITLE
+            ),
+            120
+        );
+
+        $footerText = $this->cleanBrand(
+            (string) (
+                $input['footer_text']
+                ?? $current['footer_text']
+                ?? self::DEFAULT_FOOTER_TEXT
+            ),
+            140
+        );
+
+        if ($brandName === '') {
+            return [
+                'ok' => false,
+                'errors' => ['invalid_brand_name'],
+            ];
+        }
+
+        $logoUrl = $this->cleanAssetUrl(
+            (string) (
+                $input['logo_url']
+                ?? $current['logo_url']
+                ?? self::DEFAULT_LOGO_URL
+            ),
+            self::DEFAULT_LOGO_URL
+        );
+
+        $footerEnabled =
+            isset($input['footer_enabled'])
+                ? '1'
+                : '0';
+
+        $settings = [
+            'brand_name' => [
+                $brandName,
+                'string',
+            ],
+            'brand_subtitle' => [
+                $brandSubtitle,
+                'string',
+            ],
+            'logo_url' => [
+                $logoUrl,
+                'string',
+            ],
+            'footer_text' => [
+                $footerText,
+                'string',
+            ],
+            'footer_enabled' => [
+                $footerEnabled,
+                'bool',
+            ],
+        ];
+
+        foreach (
+            $settings
+            as $key => [$value, $type]
+        ) {
+            $this->settings->put(
+                self::NAMESPACE,
+                $key,
+                $value,
+                $type,
+                true,
+                self::SYSTEM_USER_ID
+            );
+        }
+
+        return [
+            'ok' => true,
+            'errors' => [],
+        ];
+    }
+
     public function update(array $input): array
     {
         return $this->saveSystemTheme($input);
@@ -288,26 +392,85 @@ class AdminThemeService extends BaseService
     public function saveSystemTheme(array $input): array
     {
         if (!$this->settingsAvailable()) {
-            return ['ok' => false, 'errors' => ['settings_unavailable']];
+            return [
+                'ok' => false,
+                'errors' => ['settings_unavailable'],
+            ];
         }
 
-        $currentSystem = $this->settingMap(self::SYSTEM_USER_ID);
-        $currentPreset = $this->validPreset((string) ($currentSystem['active_preset'] ?? $this->envDefaultPreset()));
-        $requestedPreset = $this->validPreset((string) ($input['active_preset'] ?? $currentPreset));
-        $presetChanged = $requestedPreset !== $currentPreset;
-        $result = $this->sanitizeSystemInput($input, $presetChanged);
+        $currentSystem =
+            $this->settingMap(self::SYSTEM_USER_ID);
+
+        $currentPreset =
+            $this->validPreset(
+                (string) (
+                    $currentSystem['active_preset']
+                    ?? $this->envDefaultPreset()
+                )
+            );
+
+        $requestedPreset =
+            $this->validPreset(
+                (string) (
+                    $input['active_preset']
+                    ?? $currentPreset
+                )
+            );
+
+        $presetChanged =
+            $requestedPreset !== $currentPreset;
+
+        $result =
+            $this->sanitizeSystemInput(
+                $input,
+                $presetChanged
+            );
 
         if ($result['errors'] !== []) {
-            return ['ok' => false, 'errors' => $result['errors']];
+            return [
+                'ok' => false,
+                'errors' => $result['errors'],
+            ];
         }
 
-        $this->deleteTokenOverrides(self::SYSTEM_USER_ID);
-
-        foreach ($result['settings'] as $key => [$value, $type]) {
-            $this->settings->put(self::NAMESPACE, $key, $value, $type, true, self::SYSTEM_USER_ID);
+        /*
+         * Identity belongs to Pages Management,
+         * not to the default visual theme.
+         */
+        foreach ([
+            'brand_name',
+            'brand_subtitle',
+            'logo_url',
+            'footer_text',
+            'footer_enabled',
+        ] as $identityKey) {
+            unset(
+                $result['settings'][$identityKey]
+            );
         }
 
-        return ['ok' => true, 'errors' => []];
+        $this->deleteTokenOverrides(
+            self::SYSTEM_USER_ID
+        );
+
+        foreach (
+            $result['settings']
+            as $key => [$value, $type]
+        ) {
+            $this->settings->put(
+                self::NAMESPACE,
+                $key,
+                $value,
+                $type,
+                true,
+                self::SYSTEM_USER_ID
+            );
+        }
+
+        return [
+            'ok' => true,
+            'errors' => [],
+        ];
     }
 
     public function updatePersonal(int $userId, array $input): array
@@ -341,12 +504,30 @@ class AdminThemeService extends BaseService
 
     public function resetSystemTheme(): void
     {
-        if ($this->scopeSupport()) {
-            $this->deleteTokenOverrides(self::SYSTEM_USER_ID);
-            $this->settings->delete(self::NAMESPACE, 'active_preset', self::SYSTEM_USER_ID);
+        if (!$this->settingsAvailable()) {
+            return;
         }
 
-        $this->seedDefaults(true);
+        $this->deleteTokenOverrides(
+            self::SYSTEM_USER_ID
+        );
+
+        if ($this->scopeSupport()) {
+            $this->settings->delete(
+                self::NAMESPACE,
+                'active_preset',
+                self::SYSTEM_USER_ID
+            );
+        }
+
+        $this->settings->put(
+            self::NAMESPACE,
+            'active_preset',
+            self::DEFAULT_PRESET,
+            'string',
+            true,
+            self::SYSTEM_USER_ID
+        );
     }
 
     public function resetUser(int $userId): void

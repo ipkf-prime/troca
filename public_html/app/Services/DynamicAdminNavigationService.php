@@ -803,8 +803,14 @@ class DynamicAdminNavigationService extends BaseService
                     ->items($shellKey);
 
             return
-                $this->withSystemScheduler(
-                    $items,
+                $this->withSystemHelpTexts(
+                    $this->withPublicLandingManagement(
+                        $this->withSystemScheduler(
+                            $items,
+                            $shellKey
+                        ),
+                        $shellKey
+                    ),
                     $shellKey
                 );
 
@@ -963,6 +969,227 @@ class DynamicAdminNavigationService extends BaseService
 
         return $items;
     }
+
+    private function withPublicLandingManagement(
+        array $items,
+        string $shellKey
+    ): array {
+        if ($shellKey !== 'core') {
+            return $items;
+        }
+
+        foreach ($items as $item) {
+            if (
+                (string) (
+                    $item['item_key']
+                    ?? ''
+                ) === 'public-page'
+            ) {
+                return $items;
+            }
+        }
+
+        $parentId = null;
+
+        foreach ($items as $item) {
+            $itemKey =
+                (string) (
+                    $item['item_key']
+                    ?? ''
+                );
+
+            $title =
+                (string) (
+                    $item['title']
+                    ?? ''
+                );
+
+            if (
+                $title === 'مدیریت سامانه'
+                ||
+                in_array(
+                    $itemKey,
+                    [
+                        'system-management',
+                        'system-settings',
+                        'system',
+                        'admin',
+                    ],
+                    true
+                )
+            ) {
+                $candidate =
+                    (int) (
+                        $item['id']
+                        ?? 0
+                    );
+
+                if ($candidate > 0) {
+                    $parentId = $candidate;
+                    break;
+                }
+            }
+        }
+
+        if ($parentId === null) {
+            return $items;
+        }
+
+        $items[] = [
+            'id' => -900002,
+            'parent_id' => $parentId,
+            'shell_key' => 'core',
+            'item_key' => 'public-page',
+            'item_type' => 'link',
+            'placement_code' => 'sidebar',
+            'hide_when_badge_empty' => 0,
+            'title' => 'مدیریت صفحات',
+            'description' =>
+                'مدیریت محتوای صفحه عمومی سامانه',
+            'route_path' =>
+                '/admin/public-page',
+            'target_application' => 'core',
+            'icon_code' => 'file-lines',
+            'color_code' => null,
+            'permission_mode' => 'any',
+            'permission_codes_json' =>
+                json_encode(
+                    [
+                        'admin.settings.manage',
+                    ],
+                    JSON_UNESCAPED_UNICODE
+                    | JSON_UNESCAPED_SLASHES
+                ),
+            'badge_source' => null,
+            'active_paths_json' =>
+                json_encode(
+                    [
+                        '/admin/public-page',
+                        '/admin/public-page/*',
+                    ],
+                    JSON_UNESCAPED_UNICODE
+                    | JSON_UNESCAPED_SLASHES
+                ),
+            'sort_order' => 35,
+            'is_active' => 1,
+        ];
+
+        return $items;
+    }
+
+
+    private function withSystemHelpTexts(
+        array $items,
+        string $shellKey
+    ): array {
+        if ($shellKey !== 'core') {
+            return $items;
+        }
+
+        foreach ($items as $item) {
+            if (
+                (string) (
+                    $item['item_key']
+                    ?? ''
+                ) === 'help-texts'
+            ) {
+                return $items;
+            }
+        }
+
+        $parentId = null;
+
+        foreach ($items as $item) {
+            $key =
+                (string) (
+                    $item['item_key']
+                    ?? ''
+                );
+
+            $title =
+                (string) (
+                    $item['title']
+                    ?? ''
+                );
+
+            if (
+                $title === 'مدیریت سامانه'
+                || in_array(
+                    $key,
+                    [
+                        'system-management',
+                        'system-settings',
+                        'system',
+                        'admin',
+                    ],
+                    true
+                )
+            ) {
+                $candidate =
+                    (int) (
+                        $item['id']
+                        ?? 0
+                    );
+
+                if ($candidate > 0) {
+                    $parentId =
+                        $candidate;
+                    break;
+                }
+            }
+        }
+
+        if ($parentId === null) {
+            return $items;
+        }
+
+        $items[] = [
+            'id' => -900003,
+            'parent_id' => $parentId,
+            'shell_key' => 'core',
+            'item_key' => 'help-texts',
+            'item_type' => 'link',
+            'placement_code' => 'sidebar',
+            'hide_when_badge_empty' => 0,
+            'title' => 'راهنماها',
+            'description' =>
+                'مدیریت متن‌های راهنمای سامانه',
+            'route_path' =>
+                '/admin/system/help-texts',
+            'target_application' =>
+                'core',
+            'icon_code' =>
+                'book-open',
+            'color_code' =>
+                null,
+            'permission_mode' =>
+                'any',
+            'permission_codes_json' =>
+                json_encode(
+                    [
+                        'admin.settings.manage',
+                    ],
+                    JSON_UNESCAPED_UNICODE
+                    | JSON_UNESCAPED_SLASHES
+                ),
+            'badge_source' =>
+                null,
+            'active_paths_json' =>
+                json_encode(
+                    [
+                        '/admin/system/help-texts',
+                        '/admin/system/help-texts/*',
+                    ],
+                    JSON_UNESCAPED_UNICODE
+                    | JSON_UNESCAPED_SLASHES
+                ),
+            'sort_order' => 40,
+            'is_active' => 1,
+        ];
+
+        return $items;
+    }
+
 
     private function present(array $item, int $userId): array
     {

@@ -51,7 +51,7 @@ $advancedTextTokens = [
 ob_start();
 ?>
 <?php if ($status === 'saved'): ?>
-    <div class="admin-notice">پوسته پنل با موفقیت ذخیره شد.</div>
+    <div class="admin-notice">پوسته پیش‌فرض سامانه با موفقیت ذخیره شد.</div>
 <?php elseif ($status === 'reset'): ?>
     <div class="admin-notice">پوسته سامانه به تنظیمات پیش‌فرض بازنشانی شد.</div>
 <?php elseif ($status === 'forbidden'): ?>
@@ -71,15 +71,14 @@ ob_start();
 
     <nav class="admin-tabs" data-admin-tabs role="tablist" aria-label="بخش‌های پوسته">
         <button class="admin-tab is-active" type="button" data-admin-tab="presets" role="tab">پوسته‌ها</button>
-        <button class="admin-tab" type="button" data-admin-tab="branding" role="tab">برندینگ</button>
-        <button class="admin-tab" type="button" data-admin-tab="footer" role="tab">فوتر</button>
+        <button class="admin-tab" type="button" data-admin-tab="branding" role="tab">آواتار پیش‌فرض</button>
         <button class="admin-tab" type="button" data-admin-tab="advanced" role="tab">پیشرفته</button>
     </nav>
 
     <section class="admin-section admin-tab-panel is-active" data-admin-tab-panel="presets">
         <div class="admin-section__header">
             <div>
-                <h2>پوسته پنل</h2>
+                <h2>پوسته پیش‌فرض سامانه</h2>
                 <p class="admin-muted">تنظیمات عمومی ظاهر پنل برای سامانه. این بخش فقط توسط مدیر سامانه قابل تغییر است.</p>
                 <p class="admin-muted">در نسخه ۰.۴.۴ انتخاب پوسته فقط از میان پوسته‌های آماده انجام می‌شود.</p>
             </div>
@@ -102,34 +101,75 @@ ob_start();
         </div>
     </section>
 
-    <section class="admin-section admin-tab-panel" data-admin-tab-panel="branding" hidden>
-        <div class="admin-section__header"><div><h2>برندینگ</h2><p class="admin-muted">نام سامانه، لوگو و آواتار پیش‌فرض کاربران را تنظیم کنید.</p></div></div>
+    <section
+        class="admin-section admin-tab-panel"
+        data-admin-tab-panel="branding"
+        hidden
+    >
+        <div class="admin-section__header">
+            <div>
+                <h2>
+                    آواتار پیش‌فرض کاربران
+                </h2>
+
+                <p class="admin-muted">
+                    نام سامانه، عنوان، لوگو و فوتر
+                    از بخش «مدیریت صفحات» مدیریت
+                    می‌شوند.
+                </p>
+            </div>
+        </div>
+
         <div class="admin-form-grid">
-            <label><span>نام سامانه</span><input name="brand_name" value="<?= admin_h($theme['brand_name']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>></label>
             <label>
-                <span>لوگوی پنل</span>
-                <select name="logo_url" <?= $canManageTheme ? '' : 'disabled' ?>>
-                    <?php foreach ($logoOptions as $label => $path): ?>
-                        <option value="<?= admin_h($path) ?>" <?= $theme['logo_url'] === $path ? 'selected' : '' ?>><?= admin_h($label) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <label>
-                <span>آواتار پیش‌فرض کاربران</span>
-                <select name="default_avatar_url" <?= $canManageTheme ? '' : 'disabled' ?>>
-                    <?php foreach ($avatarOptions as $label => $path): ?>
-                        <option value="<?= admin_h($path) ?>" <?= $theme['default_avatar_url'] === $path ? 'selected' : '' ?>><?= admin_h($label) ?></option>
+                <span>
+                    آواتار پیش‌فرض کاربران
+                </span>
+
+                <select
+                    name="default_avatar_url"
+                    <?= $canManageTheme
+                        ? ''
+                        : 'disabled' ?>
+                >
+                    <?php foreach (
+                        $avatarOptions
+                        as $label => $path
+                    ): ?>
+                        <option
+                            value="<?= admin_h($path) ?>"
+                            <?= $theme[
+                                'default_avatar_url'
+                            ] === $path
+                                ? 'selected'
+                                : '' ?>
+                        >
+                            <?= admin_h($label) ?>
+                        </option>
                     <?php endforeach; ?>
                 </select>
             </label>
         </div>
+
         <div class="admin-branding-preview">
-            <img src="<?= admin_h($theme['logo_url']) ?>" alt="">
+            <img
+                class="admin-avatar"
+                src="<?= admin_h(
+                    $theme['default_avatar_url']
+                ) ?>"
+                alt=""
+            >
+
             <div>
-                <strong><?= admin_h($theme['brand_name']) ?></strong>
-                <span class="admin-muted">پیش‌نمایش برند در هدر، سایدبار و صفحه ورود</span>
+                <strong>
+                    آواتار پیش‌فرض
+                </strong>
+
+                <span class="admin-muted">
+                    تصویر شخصی هر کاربر از پروفایل
+                    خودش قابل تغییر است.
+                </span>
             </div>
-            <img class="admin-avatar" src="<?= admin_h($theme['default_avatar_url']) ?>" alt="">
         </div>
     </section>
 
@@ -169,13 +209,7 @@ ob_start();
     </section>
     <?php endif; ?>
 
-    <section class="admin-section admin-tab-panel" data-admin-tab-panel="footer" hidden>
-        <div class="admin-section__header"><div><h2>فوتر</h2><p class="admin-muted">متن و رنگ فوتر پنل مدیریت.</p></div></div>
-        <div class="admin-form-grid">
-            <label><span>متن فوتر</span><input name="footer_text" value="<?= admin_h($theme['footer_text']) ?>" <?= $canManageTheme ? '' : 'disabled' ?>></label>
-            <label class="admin-check-field"><input type="checkbox" name="footer_enabled" value="1" <?= $theme['footer_enabled'] ? 'checked' : '' ?> <?= $canManageTheme ? '' : 'disabled' ?>><span>نمایش فوتر</span></label>
-        </div>
-    </section>
+
 
     <?php if (false): ?>
     <section class="admin-section admin-tab-panel" data-admin-tab-panel="font" hidden>

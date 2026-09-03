@@ -3,8 +3,41 @@
 /** @var \IPKF\Routing\Router $router */
 
 $router->get('/', function ($request, $response) {
-    $siteMode = (string) \IPKF\Support\Env::get('SITE_MODE', 'coming_soon');
-    $view = BASE_PATH . '/resources/views/site/coming-soon.php';
+    $siteMode = (string) \IPKF\Support\Env::get(
+        'SITE_MODE',
+        'coming_soon'
+    );
+
+    $view =
+        BASE_PATH
+        . '/resources/views/site/coming-soon.php';
+
+    $page = [];
+
+    try {
+        if (
+            \IPKF\Database\Database::tableExists(
+                'public_page_settings'
+            )
+            && \IPKF\Database\Database::tableExists(
+                'public_page_items'
+            )
+        ) {
+            $page = (
+                new \App\Services\PublicLandingService()
+            )->publicPage();
+
+            $dynamicView =
+                BASE_PATH
+                . '/resources/views/site/landing.php';
+
+            if (is_readable($dynamicView)) {
+                $view = $dynamicView;
+            }
+        }
+    } catch (\Throwable) {
+        $page = [];
+    }
 
     if (is_readable($view)) {
         ob_start();
@@ -12,11 +45,16 @@ $router->get('/', function ($request, $response) {
         $content = ob_get_clean() ?: '';
 
         return $response
-            ->header('Content-Type', 'text/html; charset=UTF-8')
+            ->header(
+                'Content-Type',
+                'text/html; charset=UTF-8'
+            )
             ->send($content);
     }
 
-    return $response->send('IPKF Framework Genesis OK');
+    return $response->send(
+        'Application landing unavailable'
+    );
 });
 
 $router->get('/health', function ($request, $response) {
@@ -2080,7 +2118,7 @@ $router->get('/admin/theme', function ($request, $response) use ($adminRender, $
     $theme = new \App\Services\AdminThemeService();
 
     return $adminRender($response, 'theme', [
-        'title' => 'پوسته پنل',
+        'title' => 'پوسته پیش‌فرض سامانه',
         'context' => $context,
         'theme' => $theme->systemTheme(),
         'presets' => $theme->presets(),
@@ -2102,7 +2140,7 @@ $router->post('/admin/theme', function ($request, $response) use ($adminRender, 
 
     if (!(new \App\Services\AuthorizationService())->hasPermission((int) $context['user_id'], 'admin.theme.manage')) {
         return $adminRender($response, 'theme', [
-            'title' => 'پوسته پنل',
+            'title' => 'پوسته پیش‌فرض سامانه',
             'context' => $context,
             'theme' => (new \App\Services\AdminThemeService())->systemTheme(),
             'presets' => (new \App\Services\AdminThemeService())->presets(),
@@ -2120,7 +2158,7 @@ $router->post('/admin/theme', function ($request, $response) use ($adminRender, 
 
     if (!$result['ok']) {
         return $adminRender($response, 'theme', [
-            'title' => 'پوسته پنل',
+            'title' => 'پوسته پیش‌فرض سامانه',
             'context' => $context,
             'theme' => $theme->systemTheme(),
             'presets' => $theme->presets(),
