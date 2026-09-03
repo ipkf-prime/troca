@@ -244,6 +244,40 @@ ob_start();
 <?php endif; ?>
 
 <section class="acl-shell" data-acl-shell>
+    <!-- ACCESS_DROPDOWN_FONT_INHERIT_V2_5 -->
+    <style>
+    [data-acl-shell] select,
+    [data-acl-shell] select option,
+    [data-acl-shell] select optgroup{font-family:"Vazirmatn","Tahoma","Segoe UI",sans-serif!important}
+    </style>
+
+    <!-- DYNAMIC_SCOPED_ACCESS_ENTRY_V1 -->
+    <div
+        class="admin-form-actions access-fixed-nav"
+        style="margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:.6rem;justify-content:flex-start;direction:rtl;width:100%"
+    >
+        <a
+            class="admin-button"
+            href="/admin/access-control/roles"
+        >
+            مدیریت و ویرایش نقش‌ها
+        </a>
+
+        <a
+            class="admin-button admin-button--soft"
+            href="/admin/access-control/roles/create"
+        >
+            ایجاد نقش جدید
+        </a>
+
+        <a
+            class="admin-button admin-button--soft"
+            href="/admin/access-control/scopes"
+        >
+            حوزه و محدودیت انتساب‌ها
+        </a>
+    </div>
+
     <header class="acl-hero">
         <div class="acl-hero__copy">
             <span>مرکز کنترل دسترسی</span>

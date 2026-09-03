@@ -59,25 +59,27 @@ class AuthRbacSeeder extends Seeder
     private function seedRoleKinds(): void
     {
         $kinds = [
-            ['system_admin', 'مدیر سامانه'],
-            ['central_admin', 'ادمین مرکزی'],
-            ['province_admin', 'ادمین استان'],
-            ['county_admin', 'ادمین شهرستان'],
-            ['manager', 'مدیر'],
-            ['expert', 'کارشناس'],
-            ['auditor', 'حسابرسی'],
-            ['inspector', 'بازرس'],
-            ['support', 'پشتیبان'],
-            ['operator', 'اپراتور'],
-            ['customer', 'مشتری'],
-            ['supplier', 'تأمین‌کننده'],
+            ['system_admin', 'مدیر سامانه', 10],
+            ['central_admin', 'ادمین مرکزی', 20],
+            ['province_admin', 'ادمین استان', 30],
+            ['county_admin', 'ادمین شهرستان', 40],
+            ['manager', 'مدیر', 50],
+            ['expert', 'کارشناس', 60],
+            ['auditor', 'حسابرسی', 70],
+            ['inspector', 'بازرس', 80],
+            ['support', 'پشتیبان', 90],
+            ['operator', 'اپراتور', 100],
+            ['supplier', 'تأمین‌کننده', 110],
+            ['customer', 'مشتری', 120],
         ];
 
         $statement = $this->db->prepare("
-            INSERT INTO role_kinds (code, title, is_active, created_at, updated_at)
-            VALUES (?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            INSERT INTO role_kinds
+                (code, title, sort_order, is_active, created_at, updated_at)
+            VALUES (?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             ON DUPLICATE KEY UPDATE
                 title = VALUES(title),
+                sort_order = VALUES(sort_order),
                 is_active = VALUES(is_active),
                 updated_at = CURRENT_TIMESTAMP
         ");

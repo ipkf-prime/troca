@@ -6973,3 +6973,422 @@ $router->get('/admin-check', function ($request, $response) {
         'permission' => $permission,
     ]);
 });
+
+
+/*
+ * ============================================================================
+ * DYNAMIC_SCOPED_ACCESS_FOUNDATION_V1
+ * Custom role builder + assignment scope/constraint editor
+ * ============================================================================
+ */
+
+$router->get(
+    '/admin/access-control/roles/create',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard
+    ) {
+        $context = $adminGuard(
+            $response,
+            '/admin/access'
+        );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        try {
+            $page = (
+                new \App\Services\DynamicRoleGovernanceService()
+            )->createBuilder(
+                (int) $context['user_id']
+            );
+        } catch (\Throwable) {
+            return $response->redirect(
+                '/admin/access-control'
+                . '?status=forbidden'
+            );
+        }
+
+        return $adminRender(
+            $response,
+            'access-role-create',
+            [
+                'title' => 'ایجاد نقش دسترسی',
+                'context' => $context,
+                'page' => $page,
+                'role_notice_code' => trim(
+                    (string) $request->input(
+                        'status',
+                        ''
+                    )
+                ),
+            ]
+        );
+    }
+);
+
+$router->post(
+    '/admin/access-control/roles/create',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard
+    ) {
+        $context = $adminGuard(
+            $response,
+            '/admin/access'
+        );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        if (
+            !(
+                new \IPKF\Security\Csrf()
+            )->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            return $response->redirect(
+                '/admin/access-control/roles/create'
+                . '?status=invalid_csrf'
+            );
+        }
+
+        try {
+            $roleId = (
+                new \App\Services\DynamicRoleGovernanceService()
+            )->createRole(
+                (int) $context['user_id'],
+                [
+                    'title' => $request->input(
+                        'title',
+                        ''
+                    ),
+                    'code' => $request->input(
+                        'code',
+                        ''
+                    ),
+                    'role_kind_code' =>
+                        $request->input(
+                            'role_kind_code',
+                            ''
+                        ),
+                    'role_area_code' =>
+                        $request->input(
+                            'role_area_code',
+                            ''
+                        ),
+                    'priority' => $request->input(
+                        'priority',
+                        100
+                    ),
+                    'can_manage_other_users' =>
+                        $request->input(
+                            'can_manage_other_users',
+                            ''
+                        ),
+                    'requires_center' =>
+                        $request->input(
+                            'requires_center',
+                            ''
+                        ),
+                    'permissions' =>
+                        $request->input(
+                            'permissions',
+                            []
+                        ),
+                    'scope_types' =>
+                        $request->input(
+                            'scope_types',
+                            []
+                        ),
+                    'identity_fields' =>
+                        $request->input(
+                            'identity_fields',
+                            []
+                        ),
+                    'reason' => $request->input(
+                        'reason',
+                        ''
+                    ),
+                ],
+                (string) (
+                    $_SERVER['REMOTE_ADDR']
+                    ?? ''
+                )
+            );
+
+            return $response->redirect(
+                '/admin/access-control/roles/create'
+                . '?status=role_created'
+                . '&role_id='
+                . $roleId
+            );
+        } catch (\Throwable $exception) {
+            return $response->redirect(
+                '/admin/access-control/roles/create'
+                . '?status='
+                . rawurlencode(
+                    $exception->getMessage()
+                )
+            );
+        }
+    }
+);
+
+/* DYNAMIC_ROLE_GOVERNANCE_V2 */
+$router->get(
+    '/admin/access-control/roles',
+    function ($request, $response) use ($adminRender, $adminGuard) {
+        $context = $adminGuard($response, '/admin/access');
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        try {
+            $page = (
+                new \App\Services\DynamicRoleGovernanceService()
+            )->roleEditor(
+                (int) $context['user_id'],
+                max(0, (int) $request->input('role_id', 0))
+            );
+        } catch (\Throwable) {
+            return $response->redirect(
+                '/admin/access-control?status=forbidden'
+            );
+        }
+
+        return $adminRender(
+            $response,
+            'access-role-create',
+            [
+                'title' => 'مدیریت و ویرایش نقش‌ها',
+                'context' => $context,
+                'page' => $page,
+                'role_notice_code' => trim(
+                    (string) $request->input('status', '')
+                ),
+            ]
+        );
+    }
+);
+
+$router->post(
+    '/admin/access-control/roles/update',
+    function ($request, $response) use ($adminGuard) {
+        $context = $adminGuard($response, '/admin/access');
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $roleId = max(0, (int) $request->input('role_id', 0));
+        $returnUrl = '/admin/access-control/roles?role_id=' . $roleId;
+
+        if (!(new \IPKF\Security\Csrf())->check(
+            (string) $request->input('_token', '')
+        )) {
+            return $response->redirect(
+                $returnUrl . '&status=invalid_csrf'
+            );
+        }
+
+        try {
+            (
+                new \App\Services\DynamicRoleGovernanceService()
+            )->updateRole(
+                (int) $context['user_id'],
+                [
+                    'role_id' => $roleId,
+                    'title' => $request->input('title', ''),
+                    'role_kind_code' =>
+                        $request->input('role_kind_code', ''),
+                    'role_area_code' =>
+                        $request->input('role_area_code', ''),
+                    'priority' => $request->input('priority', 1),
+                    'can_manage_other_users' =>
+                        $request->input('can_manage_other_users', ''),
+                    'requires_center' =>
+                        $request->input('requires_center', ''),
+                    'permissions' =>
+                        $request->input('permissions', []),
+                    'scope_types' =>
+                        $request->input('scope_types', []),
+                    'identity_fields' =>
+                        $request->input('identity_fields', []),
+                    'reason' => $request->input('reason', ''),
+                ],
+                (string) ($_SERVER['REMOTE_ADDR'] ?? '')
+            );
+
+            return $response->redirect(
+                $returnUrl . '&status=role_updated'
+            );
+        } catch (\Throwable $exception) {
+            return $response->redirect(
+                $returnUrl . '&status=' . rawurlencode(
+                    $exception->getMessage()
+                )
+            );
+        }
+    }
+);
+
+$router->get(
+    '/admin/access-control/scopes',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard
+    ) {
+        $context = $adminGuard(
+            $response,
+            '/admin/access'
+        );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        try {
+            $page = (
+                new \App\Services\DynamicAccessService()
+            )->scopeEditor(
+                (int) $context['user_id'],
+                max(
+                    0,
+                    (int) $request->input(
+                        'assignment_id',
+                        0
+                    )
+                )
+            );
+        } catch (\Throwable) {
+            return $response->redirect(
+                '/admin/access-control'
+                . '?status=forbidden'
+            );
+        }
+
+        return $adminRender(
+            $response,
+            'access-scope-editor',
+            [
+                'title' =>
+                    'حوزه و محدودیت دسترسی',
+                'context' => $context,
+                'page' => $page,
+                'scope_notice_code' => trim(
+                    (string) $request->input(
+                        'status',
+                        ''
+                    )
+                ),
+            ]
+        );
+    }
+);
+
+$router->post(
+    '/admin/access-control/scopes',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard
+    ) {
+        $context = $adminGuard(
+            $response,
+            '/admin/access'
+        );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $assignmentId = max(
+            0,
+            (int) $request->input(
+                'role_assignment_id',
+                0
+            )
+        );
+
+        if (
+            !(
+                new \IPKF\Security\Csrf()
+            )->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            return $response->redirect(
+                '/admin/access-control/scopes'
+                . '?assignment_id='
+                . $assignmentId
+                . '&status=invalid_csrf'
+            );
+        }
+
+        try {
+            (
+                new \App\Services\DynamicAccessService()
+            )->saveAssignmentPolicy(
+                (int) $context['user_id'],
+                [
+                    'role_assignment_id' =>
+                        $assignmentId,
+                    'scopes' => $request->input(
+                        'scopes',
+                        []
+                    ),
+                    'constraints' =>
+                        $request->input(
+                            'constraints',
+                            []
+                        ),
+                    'reason' => $request->input(
+                        'reason',
+                        ''
+                    ),
+                ],
+                (string) (
+                    $_SERVER['REMOTE_ADDR']
+                    ?? ''
+                )
+            );
+
+            return $response->redirect(
+                '/admin/access-control/scopes'
+                . '?assignment_id='
+                . $assignmentId
+                . '&status=scope_saved'
+            );
+        } catch (\Throwable $exception) {
+            return $response->redirect(
+                '/admin/access-control/scopes'
+                . '?assignment_id='
+                . $assignmentId
+                . '&status='
+                . rawurlencode(
+                    $exception->getMessage()
+                )
+            );
+        }
+    }
+);
