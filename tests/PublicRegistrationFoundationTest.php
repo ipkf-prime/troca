@@ -32,6 +32,12 @@ $service =
         . 'PublicRegistrationService.php'
     );
 
+$otpService =
+    $read(
+        'public_html/app/Services/'
+        . 'PublicRegistrationOtpService.php'
+    );
+
 $routes =
     $read(
         'public_html/routes/'
@@ -185,17 +191,33 @@ $expect(
 $expect(
     str_contains(
         $service,
-        "'user'"
+        "'pending_verification'"
+    )
+    && !str_contains(
+        $service,
+        'user_role_assignments'
+    ),
+    'Pending registration must not assign a role before mobile verification.'
+);
+
+$expect(
+    str_contains(
+        $otpService,
+        'ensureExactlyBaseRole'
     )
     && str_contains(
-        $service,
+        $otpService,
+        "WHERE code = 'user'"
+    )
+    && str_contains(
+        $otpService,
         'is_default'
     )
     && str_contains(
-        $service,
+        $otpService,
         "'global'"
     ),
-    'Base user role/default assignment missing.'
+    'Verified registration must assign exactly the global default user role.'
 );
 
 $expect(
@@ -206,6 +228,14 @@ $expect(
     && !str_contains(
         $service,
         "'system_admin'"
+    )
+    && !str_contains(
+        $otpService,
+        "'super_admin'"
+    )
+    && !str_contains(
+        $otpService,
+        "'system_admin'"
     ),
     'Public registration must never assign admin roles.'
 );
@@ -213,21 +243,33 @@ $expect(
 $expect(
     str_contains(
         $service,
-        'DELETE FROM'
-    )
-    && str_contains(
-        $service,
-        'user_role_assignments'
-    )
-    && str_contains(
-        $service,
         'DELETE FROM users'
     )
     && str_contains(
         $service,
         'DELETE FROM persons'
+    )
+    && !str_contains(
+        $service,
+        'DELETE FROM user_role_assignments'
     ),
-    'MyISAM compensating rollback missing.'
+    'Pending-registration MyISAM compensation contract is invalid.'
+);
+
+$expect(
+    str_contains(
+        $otpService,
+        'ensureExactlyBaseRole'
+    )
+    && str_contains(
+        $otpService,
+        "status = 'active'"
+    )
+    && str_contains(
+        $otpService,
+        'mobile_verified_at'
+    ),
+    'Post-OTP activation contract is missing.'
 );
 
 $expect(

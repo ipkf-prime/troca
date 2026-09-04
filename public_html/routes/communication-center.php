@@ -1308,6 +1308,114 @@ $router->post(
 );
 
 $router->post(
+    '/admin/communications/settings/sms-policy',
+    function (
+        $request,
+        $response
+    ) use ($adminGuard, $communicationAccess) {
+        $context = $adminGuard(
+            $response,
+            '/admin/communications/settings'
+        );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        /*
+         * The policy is managed inside the existing
+         * routing/settings capability. It does not
+         * introduce a parallel RBAC surface.
+         */
+        if (!$communicationAccess(
+            $context,
+            'GET',
+            '/admin/communications/settings'
+        )) {
+            return $response->redirect(
+                '/admin/dashboard?error=forbidden'
+            );
+        }
+
+        if (!(new \IPKF\Security\Csrf())->check(
+            (string) $request->input(
+                '_token',
+                ''
+            )
+        )) {
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=routing'
+                . '&status=invalid_csrf'
+            );
+        }
+
+        try {
+            (
+                new \App\Services\CommunicationSettingsService()
+            )->saveSmsPolicy(
+                (int) $context['user_id'],
+                [
+                    'all_day' =>
+                        $request->input(
+                            'all_day',
+                            ''
+                        ),
+
+                    'start_time' =>
+                        $request->input(
+                            'start_time',
+                            '07:00'
+                        ),
+
+                    'end_time' =>
+                        $request->input(
+                            'end_time',
+                            '22:00'
+                        ),
+                ]
+            );
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=routing'
+                . '&status=sms_policy_saved'
+            );
+        } catch (
+            \InvalidArgumentException
+            | \RuntimeException $exception
+        ) {
+            $status = trim(
+                $exception->getMessage()
+            );
+
+            if (
+                !str_starts_with(
+                    $status,
+                    'sms_policy_'
+                )
+            ) {
+                $status =
+                    'sms_policy_save_failed';
+            }
+
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=routing'
+                . '&status='
+                . rawurlencode($status)
+            );
+        } catch (\Throwable) {
+            return $response->redirect(
+                '/admin/communications/settings'
+                . '?section=routing'
+                . '&status=sms_policy_save_failed'
+            );
+        }
+    }
+);
+
+$router->post(
     '/admin/communications/settings/preferences',
     function (
         $request,

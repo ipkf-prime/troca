@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Repositories\UserRepository;
 use IPKF\Database\Connections\ConnectionResolver;
 use PDO;
 use Throwable;
@@ -15,17 +16,35 @@ final class PublicRegistrationService extends BaseService
 
     private PDO $db;
 
-    public function __construct(?PDO $db = null)
-    {
+    private PublicRegistrationOtpService $otp;
+
+    private UserRepository $users;
+
+    public function __construct(
+        ?PDO $db = null,
+        ?PublicRegistrationOtpService $otp = null,
+        ?UserRepository $users = null
+    ) {
         $this->db =
             $db
             ?? (
                 new ConnectionResolver()
             )->resolve('core.primary');
+
+        $this->otp =
+            $otp
+            ?? new PublicRegistrationOtpService(
+                $this->db
+            );
+
+        $this->users =
+            $users
+            ?? new UserRepository();
     }
 
-    public function register(array $input): array
-    {
+    public function register(
+        array $input
+    ): array {
         $normalizer =
             new IdentityNormalizer();
 
@@ -67,6 +86,24 @@ final class PublicRegistrationService extends BaseService
                 ?? ''
             );
 
+        $ip =
+            trim(
+                (string) (
+                    $input['created_ip']
+                    ?? ''
+                )
+            );
+
+        $userAgent =
+            trim(
+                (string) (
+                    $input[
+                        'created_user_agent'
+                    ]
+                    ?? ''
+                )
+            );
+
         $mobile =
             $normalizer->mobile(
                 $mobileInput
@@ -82,7 +119,9 @@ final class PublicRegistrationService extends BaseService
         $errors = [];
 
         $nameLength =
-            function_exists('mb_strlen')
+            function_exists(
+                'mb_strlen'
+            )
                 ? mb_strlen(
                     $fullName,
                     'UTF-8'
@@ -111,7 +150,9 @@ final class PublicRegistrationService extends BaseService
         }
 
         $passwordLength =
-            function_exists('mb_strlen')
+            function_exists(
+                'mb_strlen'
+            )
                 ? mb_strlen(
                     $password,
                     'UTF-8'
@@ -152,30 +193,60 @@ final class PublicRegistrationService extends BaseService
             return [
                 'ok' => false,
                 'errors' => $errors,
-                'user_id' => null,
             ];
         }
 
-        $locked =
-            $this->acquireLock();
+        if (
+            !$this->otp
+                ->canStartFromIp(
+                    $ip
+                )
+        ) {
+            return [
+                'ok' => false,
+                'errors' => [
+                    'general' =>
+                        'تعداد درخواست‌ها بیش از حد مجاز است. کمی بعد دوباره تلاش کنید.',
+                ],
+            ];
+        }
 
-        if (!$locked) {
+        $passwordHash =
+            password_hash(
+                $password,
+                PASSWORD_DEFAULT
+            );
+
+        if (
+            !is_string($passwordHash)
+            || $passwordHash === ''
+        ) {
+            return [
+                'ok' => false,
+                'errors' => [
+                    'general' =>
+                        'ثبت‌نام تکمیل نشد. لطفاً دوباره تلاش کنید.',
+                ],
+            ];
+        }
+
+        if (!$this->acquireLock()) {
             return [
                 'ok' => false,
                 'errors' => [
                     'general' =>
                         'سامانه در حال پردازش درخواست دیگری است. چند لحظه بعد دوباره تلاش کنید.',
                 ],
-                'user_id' => null,
             ];
         }
 
         $personId = null;
         $userId = null;
+        $newIdentity = false;
 
         try {
             if (
-                $this->mobileExists(
+                $this->activeMobileExists(
                     (string) $mobile
                 )
             ) {
@@ -185,13 +256,12 @@ final class PublicRegistrationService extends BaseService
                         'mobile' =>
                             'این شماره موبایل قبلاً ثبت شده است.',
                     ],
-                    'user_id' => null,
                 ];
             }
 
             if (
                 $email !== null
-                && $this->emailExists(
+                && $this->activeEmailExists(
                     $email
                 )
             ) {
@@ -201,208 +271,148 @@ final class PublicRegistrationService extends BaseService
                         'email' =>
                             'این ایمیل قبلاً ثبت شده است.',
                     ],
-                    'user_id' => null,
                 ];
             }
 
-            $roleId =
-                $this->baseRoleId();
-
-            if ($roleId === null) {
-                return [
-                    'ok' => false,
-                    'errors' => [
-                        'general' =>
-                            'نقش پایه کاربر در سامانه فعال نیست.',
-                    ],
-                    'user_id' => null,
-                ];
-            }
-
-            $statement =
-                $this->db->prepare("
-                    INSERT INTO persons (
-                        person_type,
-                        full_name,
-                        mobile,
-                        email,
-                        mobile_norm,
-                        email_norm,
-                        status,
-                        created_at,
-                        updated_at
-                    )
-                    VALUES (
-                        'individual',
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        'active',
-                        CURRENT_TIMESTAMP,
-                        CURRENT_TIMESTAMP
-                    )
-                ");
-
-            $statement->execute([
-                $fullName,
-                $mobile,
-                $email,
-                $mobile,
-                $email,
-            ]);
-
-            $personId =
-                (int) $this->db
-                    ->lastInsertId();
-
-            if ($personId < 1) {
-                throw new \RuntimeException(
-                    'person_insert_failed'
-                );
-            }
-
-            $passwordHash =
-                password_hash(
-                    $password,
-                    PASSWORD_DEFAULT
+            $pending =
+                $this->pendingUserByMobile(
+                    (string) $mobile
                 );
 
-            if (
-                !is_string($passwordHash)
-                || $passwordHash === ''
-            ) {
-                throw new \RuntimeException(
-                    'password_hash_failed'
-                );
-            }
+            if (is_array($pending)) {
+                $userId =
+                    (int) $pending['id'];
 
-            $statement =
-                $this->db->prepare("
-                    INSERT INTO users (
-                        person_id,
-                        username,
-                        username_norm,
-                        email,
-                        email_norm,
-                        mobile,
-                        mobile_norm,
-                        password_hash,
-                        status,
-                        force_password_change,
-                        failed_login_attempts,
-                        created_at,
-                        updated_at
-                    )
-                    VALUES (
-                        ?,
-                        NULL,
-                        NULL,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        'active',
-                        0,
-                        0,
-                        CURRENT_TIMESTAMP,
-                        CURRENT_TIMESTAMP
-                    )
-                ");
+                $personId =
+                    (int) $pending[
+                        'person_id'
+                    ];
+            } else {
+                $newIdentity = true;
 
-            $statement->execute([
-                $personId,
-                $email,
-                $email,
-                $mobile,
-                $mobile,
-                $passwordHash,
-            ]);
-
-            $userId =
-                (int) $this->db
-                    ->lastInsertId();
-
-            if ($userId < 1) {
-                throw new \RuntimeException(
-                    'user_insert_failed'
-                );
-            }
-
-            /*
-             * Public registration receives exactly
-             * one role: the global base user role.
-             */
-            $statement =
-                $this->db->prepare("
-                    INSERT INTO
-                        user_role_assignments (
-                            user_id,
-                            role_id,
-                            scope_type,
-                            scope_id,
-                            include_children,
-                            is_active,
-                            is_default,
-                            assigned_by,
+                $statement =
+                    $this->db->prepare("
+                        INSERT INTO persons (
+                            person_type,
+                            full_name,
+                            mobile,
+                            email,
+                            mobile_norm,
+                            email_norm,
+                            status,
                             created_at,
                             updated_at
                         )
-                    VALUES (
-                        ?,
-                        ?,
-                        'global',
-                        NULL,
-                        0,
-                        1,
-                        1,
-                        NULL,
-                        CURRENT_TIMESTAMP,
-                        CURRENT_TIMESTAMP
-                    )
-                ");
+                        VALUES (
+                            'individual',
+                            ?,
+                            ?,
+                            NULL,
+                            ?,
+                            NULL,
+                            'active',
+                            CURRENT_TIMESTAMP,
+                            CURRENT_TIMESTAMP
+                        )
+                    ");
 
-            $statement->execute([
-                $userId,
-                $roleId,
-            ]);
+                $statement->execute([
+                    $fullName,
+                    $mobile,
+                    $mobile,
+                ]);
 
-            $proof =
-                $this->registrationProof(
-                    $userId
-                );
+                $personId =
+                    (int) $this->db
+                        ->lastInsertId();
 
-            if (
-                ($proof['role_code']
-                    ?? null) !== 'user'
-                || (int) (
-                    $proof['is_default']
-                    ?? 0
-                ) !== 1
-            ) {
-                throw new \RuntimeException(
-                    'base_role_proof_failed'
-                );
+                if ($personId < 1) {
+                    throw new \RuntimeException(
+                        'person_insert_failed'
+                    );
+                }
+
+                /*
+                 * Submitted password is NOT stored on the
+                 * pending user. It lives only in the
+                 * token-bound registration attempt.
+                 */
+                $placeholder =
+                    password_hash(
+                        bin2hex(
+                            random_bytes(32)
+                        ),
+                        PASSWORD_DEFAULT
+                    );
+
+                if (
+                    !is_string($placeholder)
+                    || $placeholder === ''
+                ) {
+                    throw new \RuntimeException(
+                        'placeholder_hash_failed'
+                    );
+                }
+
+                $statement =
+                    $this->db->prepare("
+                        INSERT INTO users (
+                            person_id,
+                            username,
+                            username_norm,
+                            email,
+                            email_norm,
+                            mobile,
+                            mobile_norm,
+                            password_hash,
+                            status,
+                            force_password_change,
+                            failed_login_attempts,
+                            created_at,
+                            updated_at
+                        )
+                        VALUES (
+                            ?,
+                            NULL,
+                            NULL,
+                            NULL,
+                            NULL,
+                            ?,
+                            ?,
+                            ?,
+                            'pending_verification',
+                            0,
+                            0,
+                            CURRENT_TIMESTAMP,
+                            CURRENT_TIMESTAMP
+                        )
+                    ");
+
+                $statement->execute([
+                    $personId,
+                    $mobile,
+                    $mobile,
+                    $placeholder,
+                ]);
+
+                $userId =
+                    (int) $this->db
+                        ->lastInsertId();
+
+                if ($userId < 1) {
+                    throw new \RuntimeException(
+                        'user_insert_failed'
+                    );
+                }
             }
 
-            return [
-                'ok' => true,
-                'errors' => [],
-                'user_id' => $userId,
-            ];
-
-        } catch (Throwable $exception) {
-            /*
-             * Core identity tables are currently MyISAM.
-             * Therefore rollback is compensating, not
-             * transactional.
-             */
-            $this->compensate(
-                $userId,
-                $personId
-            );
+        } catch (Throwable) {
+            if ($newIdentity) {
+                $this->compensate(
+                    $userId,
+                    $personId
+                );
+            }
 
             return [
                 'ok' => false,
@@ -410,12 +420,88 @@ final class PublicRegistrationService extends BaseService
                     'general' =>
                         'ثبت‌نام تکمیل نشد. لطفاً دوباره تلاش کنید.',
                 ],
-                'user_id' => null,
             ];
 
         } finally {
             $this->releaseLock();
         }
+
+        $attempt =
+            $this->otp
+                ->startAttempt([
+                    'user_id' =>
+                        $userId,
+                    'full_name' =>
+                        $fullName,
+                    'mobile' =>
+                        $mobile,
+                    'email' =>
+                        $email,
+                    'password_hash' =>
+                        $passwordHash,
+                    'created_ip' =>
+                        $ip,
+                    'created_user_agent' =>
+                        $userAgent,
+                ]);
+
+        if (
+            ($attempt['ok'] ?? false)
+            !== true
+        ) {
+            $status =
+                (string) (
+                    $attempt['status']
+                    ?? ''
+                );
+
+            return [
+                'ok' => false,
+                'errors' => [
+                    'general' =>
+                        $status === 'rate_limited'
+                            ? 'تعداد درخواست‌ها بیش از حد مجاز است. کمی بعد دوباره تلاش کنید.'
+                            : 'امکان شروع تأیید شماره همراه فراهم نشد. لطفاً دوباره تلاش کنید.',
+                ],
+            ];
+        }
+
+        return [
+            'ok' => true,
+            'errors' => [],
+            'user_id' =>
+                $userId,
+            'attempt_id' =>
+                (int) $attempt[
+                    'attempt_id'
+                ],
+            'attempt_token' =>
+                (string) $attempt[
+                    'attempt_token'
+                ],
+            'masked_mobile' =>
+                (string) (
+                    $attempt[
+                        'masked_mobile'
+                    ]
+                    ?? ''
+                ),
+            'delivery_status' =>
+                (string) (
+                    $attempt['status']
+                    ?? ''
+                ),
+            'delivery_ok' =>
+                (bool) (
+                    $attempt[
+                        'delivery_ok'
+                    ]
+                    ?? false
+                ),
+            'dev_token' =>
+                $attempt['dev_token']
+                ?? null,
+        ];
     }
 
     private function normalizeName(
@@ -433,6 +519,61 @@ final class PublicRegistrationService extends BaseService
             : '';
     }
 
+    private function pendingUserByMobile(
+        string $mobile
+    ): ?array {
+        $statement =
+            $this->db->prepare("
+                SELECT
+                    id,
+                    person_id
+                FROM users
+                WHERE deleted_at IS NULL
+                  AND status =
+                      'pending_verification'
+                  AND mobile_norm = ?
+                ORDER BY id
+                LIMIT 1
+            ");
+
+        $statement->execute([
+            $mobile,
+        ]);
+
+        $row =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        return is_array($row)
+            ? $row
+            : null;
+    }
+
+    private function activeMobileExists(
+        string $mobile
+    ): bool {
+        return
+            $this->users
+                ->identityValueExists(
+                    'mobile',
+                    $mobile,
+                    0
+                );
+    }
+
+    private function activeEmailExists(
+        string $email
+    ): bool {
+        return
+            $this->users
+                ->identityValueExists(
+                    'email',
+                    $email,
+                    0
+                );
+    }
+
     private function acquireLock(): bool
     {
         $statement =
@@ -446,7 +587,8 @@ final class PublicRegistrationService extends BaseService
 
         return
             (int) $statement
-                ->fetchColumn() === 1;
+                ->fetchColumn()
+            === 1;
     }
 
     private function releaseLock(): void
@@ -461,149 +603,7 @@ final class PublicRegistrationService extends BaseService
                 self::LOCK_NAME,
             ]);
         } catch (Throwable) {
-            // Lock is connection scoped.
         }
-    }
-
-    private function mobileExists(
-        string $mobile
-    ): bool {
-        $variants = [
-            $mobile,
-            substr($mobile, 1),
-            '98' . substr(
-                $mobile,
-                1
-            ),
-            '+98' . substr(
-                $mobile,
-                1
-            ),
-        ];
-
-        $statement =
-            $this->db->prepare("
-                SELECT COUNT(
-                    DISTINCT users.id
-                )
-                FROM users
-                LEFT JOIN persons
-                    ON persons.id =
-                        users.person_id
-                WHERE users.deleted_at
-                    IS NULL
-                  AND (
-                    users.mobile_norm = ?
-                    OR persons.mobile_norm = ?
-                    OR users.mobile
-                        IN (?, ?, ?, ?)
-                    OR persons.mobile
-                        IN (?, ?, ?, ?)
-                  )
-            ");
-
-        $statement->execute([
-            $mobile,
-            $mobile,
-            ...$variants,
-            ...$variants,
-        ]);
-
-        return
-            (int) $statement
-                ->fetchColumn() > 0;
-    }
-
-    private function emailExists(
-        string $email
-    ): bool {
-        $statement =
-            $this->db->prepare("
-                SELECT COUNT(
-                    DISTINCT users.id
-                )
-                FROM users
-                LEFT JOIN persons
-                    ON persons.id =
-                        users.person_id
-                WHERE users.deleted_at
-                    IS NULL
-                  AND (
-                    users.email_norm = ?
-                    OR persons.email_norm = ?
-                    OR LOWER(users.email) = ?
-                    OR LOWER(persons.email) = ?
-                  )
-            ");
-
-        $statement->execute([
-            $email,
-            $email,
-            $email,
-            $email,
-        ]);
-
-        return
-            (int) $statement
-                ->fetchColumn() > 0;
-    }
-
-    private function baseRoleId(): ?int
-    {
-        $statement =
-            $this->db->prepare("
-                SELECT id
-                FROM roles
-                WHERE code = ?
-                  AND is_active = 1
-                LIMIT 1
-            ");
-
-        $statement->execute([
-            'user',
-        ]);
-
-        $id =
-            $statement->fetchColumn();
-
-        return $id === false
-            ? null
-            : (int) $id;
-    }
-
-    private function registrationProof(
-        int $userId
-    ): array {
-        $statement =
-            $this->db->prepare("
-                SELECT
-                    roles.code AS role_code,
-                    assignments.is_default
-                FROM user_role_assignments
-                    AS assignments
-                INNER JOIN roles
-                    ON roles.id =
-                        assignments.role_id
-                WHERE assignments.user_id = ?
-                  AND assignments.is_active = 1
-                ORDER BY assignments.id
-                LIMIT 2
-            ");
-
-        $statement->execute([
-            $userId,
-        ]);
-
-        $rows =
-            $statement->fetchAll(
-                PDO::FETCH_ASSOC
-            );
-
-        if (count($rows) !== 1) {
-            return [];
-        }
-
-        return $rows[0];
     }
 
     private function compensate(
@@ -617,19 +617,10 @@ final class PublicRegistrationService extends BaseService
             ) {
                 $statement =
                     $this->db->prepare("
-                        DELETE FROM
-                            user_role_assignments
-                        WHERE user_id = ?
-                    ");
-
-                $statement->execute([
-                    $userId,
-                ]);
-
-                $statement =
-                    $this->db->prepare("
                         DELETE FROM users
                         WHERE id = ?
+                          AND status =
+                              'pending_verification'
                     ");
 
                 $statement->execute([
@@ -652,10 +643,6 @@ final class PublicRegistrationService extends BaseService
                 ]);
             }
         } catch (Throwable) {
-            /*
-             * No secondary exception should mask
-             * the registration failure.
-             */
         }
     }
 }

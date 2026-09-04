@@ -58,6 +58,132 @@ class IdentityVerificationRepository extends BaseRepository
         return (int) $statement->fetchColumn();
     }
 
+    public function recentChallengeCountByPurposePrefix(
+        int $userId,
+        string $method,
+        string $purposePrefix,
+        int $minutes = 10
+    ): int {
+        $minutes =
+            max(
+                1,
+                min(
+                    60,
+                    $minutes
+                )
+            );
+
+        $statement =
+            $this->connection()->prepare("
+                SELECT COUNT(*)
+                FROM mfa_delivery_challenges
+                WHERE user_id = ?
+                  AND method = ?
+                  AND purpose LIKE CONCAT(?, '%')
+                  AND created_at >=
+                      DATE_SUB(
+                          CURRENT_TIMESTAMP,
+                          INTERVAL {$minutes} MINUTE
+                      )
+            ");
+
+        $statement->execute([
+            $userId,
+            $method,
+            $purposePrefix,
+        ]);
+
+        return
+            (int) $statement->fetchColumn();
+    }
+
+    public function recentChallengeCountByIp(
+        string $ip,
+        string $method,
+        string $purposePrefix,
+        int $minutes = 10
+    ): int {
+        $ip =
+            trim($ip);
+
+        if ($ip === '') {
+            return 0;
+        }
+
+        $minutes =
+            max(
+                1,
+                min(
+                    60,
+                    $minutes
+                )
+            );
+
+        $statement =
+            $this->connection()->prepare("
+                SELECT COUNT(*)
+                FROM mfa_delivery_challenges
+                WHERE created_ip = ?
+                  AND method = ?
+                  AND purpose LIKE CONCAT(?, '%')
+                  AND created_at >=
+                      DATE_SUB(
+                          CURRENT_TIMESTAMP,
+                          INTERVAL {$minutes} MINUTE
+                      )
+            ");
+
+        $statement->execute([
+            $ip,
+            $method,
+            $purposePrefix,
+        ]);
+
+        return
+            (int) $statement->fetchColumn();
+    }
+
+    public function latestChallengeRecord(
+        int $userId,
+        string $method,
+        string $purpose
+    ): ?array {
+        $statement =
+            $this->connection()->prepare("
+                SELECT
+                    id,
+                    user_id,
+                    method,
+                    purpose,
+                    code_hash,
+                    attempts,
+                    expires_at,
+                    consumed_at,
+                    created_at
+                FROM mfa_delivery_challenges
+                WHERE user_id = ?
+                  AND method = ?
+                  AND purpose = ?
+                ORDER BY id DESC
+                LIMIT 1
+            ");
+
+        $statement->execute([
+            $userId,
+            $method,
+            $purpose,
+        ]);
+
+        $row =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        return is_array($row)
+            ? $row
+            : null;
+    }
+
     public function createChallenge(array $data): int
     {
         $statement = $this->connection()->prepare("
@@ -88,8 +214,12 @@ class IdentityVerificationRepository extends BaseRepository
             $data['method'],
             $data['purpose'],
             $data['code_hash'],
-            $_SERVER['REMOTE_ADDR'] ?? null,
-            $_SERVER['HTTP_USER_AGENT'] ?? null,
+            $data['created_ip']
+                ?? $_SERVER['REMOTE_ADDR']
+                ?? null,
+            $data['created_user_agent']
+                ?? $_SERVER['HTTP_USER_AGENT']
+                ?? null,
         ]);
 
         return (int) $this->connection()->lastInsertId();
@@ -103,9 +233,13 @@ class IdentityVerificationRepository extends BaseRepository
         $statement = $this->connection()->prepare("
             SELECT
                 id,
+                user_id,
+                method,
+                purpose,
                 code_hash,
                 attempts,
-                expires_at
+                expires_at,
+                created_at
             FROM mfa_delivery_challenges
             WHERE user_id = ?
               AND method = ?

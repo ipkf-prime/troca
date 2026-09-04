@@ -58,6 +58,33 @@ class IdentityOtpDeliveryService extends BaseService
                 ? 'email'
                 : 'sms';
 
+        /*
+         * SMS_POLICY_IDENTITY_OTP_GATE_V1
+         *
+         * The policy is checked before template rendering
+         * and before the transport is touched.
+         */
+        if ($channel === 'sms') {
+            $policy =
+                (new SmsDeliveryPolicyService())
+                    ->decision();
+
+            if (!($policy['allowed'] ?? false)) {
+                return [
+                    'ok' => false,
+                    'status' =>
+                        (string) (
+                            $policy['status']
+                            ?? 'sms_window_closed'
+                        ),
+                    'next_allowed_at' =>
+                        $policy[
+                            'next_allowed_at'
+                        ] ?? null,
+                ];
+            }
+        }
+
         $templateCode =
             trim(
                 (string) (

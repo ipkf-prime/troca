@@ -94,6 +94,25 @@ class NotificationGatewayService extends BaseService
             $body
         );
 
+        /*
+         * SMS_POLICY_GATEWAY_GATE_V1
+         *
+         * A synchronous SMS outside the configured
+         * window is rejected before a delivery row
+         * or provider attempt is created.
+         */
+        if ($channel === 'sms') {
+            $policy =
+                (new SmsDeliveryPolicyService())
+                    ->decision();
+
+            if (!($policy['allowed'] ?? false)) {
+                throw new RuntimeException(
+                    'notification_gateway_sms_window_closed'
+                );
+            }
+        }
+
         $candidates = $this->resolver->resolve(
             $channel,
             $purpose,

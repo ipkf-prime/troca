@@ -34,6 +34,22 @@ class NotificationKavenegarGatewayAdapter extends BaseService implements
         array $instance,
         array $message
     ): array {
+        /*
+         * SMS_POLICY_KAVENEGAR_DEFENCE_V1
+         *
+         * Defence in depth for direct adapter calls
+         * such as provider test-send operations.
+         */
+        $policy =
+            (new SmsDeliveryPolicyService())
+                ->decision();
+
+        if (!($policy['allowed'] ?? false)) {
+            throw new RuntimeException(
+                'notification_gateway_sms_window_closed'
+            );
+        }
+
         $configuration =
             $this->runtime->configuration($instance);
         $secrets = $this->runtime->secrets($instance);

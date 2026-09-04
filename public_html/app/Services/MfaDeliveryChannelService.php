@@ -51,6 +51,33 @@ class MfaDeliveryChannelService extends BaseService
             return ['status' => 'error', 'error' => 'channel_not_configured'];
         }
 
+        /*
+         * SMS_POLICY_MFA_GATE_V1
+         *
+         * Temporary provider-hour restrictions must
+         * not consume the MFA challenge rate limit.
+         */
+        if ($method === 'sms') {
+            $policy =
+                (new SmsDeliveryPolicyService())
+                    ->decision();
+
+            if (!($policy['allowed'] ?? false)) {
+                return [
+                    'status' => 'error',
+                    'error' =>
+                        (string) (
+                            $policy['status']
+                            ?? 'sms_window_closed'
+                        ),
+                    'next_allowed_at' =>
+                        $policy[
+                            'next_allowed_at'
+                        ] ?? null,
+                ];
+            }
+        }
+
         if (!$this->allowedByRateLimit($userId, $method)) {
             return ['status' => 'error', 'error' => 'rate_limited'];
         }

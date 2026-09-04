@@ -20,6 +20,15 @@ $providerForm = is_array(
 ) ? $providerManagement['form'] : [];
 $defaults = $page['provider_defaults'] ?? [];
 $rules = $page['routing_rules'] ?? [];
+
+$smsPolicy = is_array(
+    $page['sms_policy'] ?? null
+) ? $page['sms_policy'] : [
+    'all_day' => false,
+    'start_time' => '07:00',
+    'end_time' => '22:00',
+    'timezone' => 'Asia/Tehran',
+];
 $channels = $page['channels'] ?? [];
 $preferences = $page['preferences'] ?? [];
 $notificationSendCenter = is_array(
@@ -41,6 +50,31 @@ $messageSettings = $page['message_settings'] ?? [];
 $status = (string) ($status ?? '');
 $statusMessages = [
     'saved' => ['success', 'روش‌های دریافت اعلان ذخیره شد.'],
+
+    'sms_policy_saved' => [
+        'success',
+        'سیاست ساعت ارسال پیامک ذخیره شد.',
+    ],
+
+    'sms_policy_time_invalid' => [
+        'error',
+        'ساعت شروع یا پایان معتبر نیست.',
+    ],
+
+    'sms_policy_window_invalid' => [
+        'error',
+        'در حالت محدود، ساعت شروع و پایان نمی‌توانند یکسان باشند.',
+    ],
+
+    'sms_policy_forbidden' => [
+        'error',
+        'دسترسی مدیریت سیاست ارسال پیامک فعال نیست.',
+    ],
+
+    'sms_policy_save_failed' => [
+        'error',
+        'ذخیره سیاست ارسال پیامک انجام نشد.',
+    ],
     'provider_created' => ['success', 'حساب سرویس‌دهنده با موفقیت ثبت شد.'],
     'provider_updated' => ['success', 'حساب سرویس‌دهنده با موفقیت ویرایش شد.'],
     'provider_enabled' => ['success', 'حساب سرویس‌دهنده فعال شد.'],
@@ -2012,6 +2046,229 @@ require BASE_PATH
             </script>
 
         <?php elseif ($section === 'routing'): ?>
+
+<section
+    class="admin-card"
+    data-sms-policy-card
+    style="margin-bottom:1rem"
+>
+    <div
+        style="
+            display:flex;
+            flex-wrap:wrap;
+            align-items:flex-start;
+            justify-content:space-between;
+            gap:1rem;
+        "
+    >
+        <div>
+            <h3 style="margin-top:0">
+                سیاست ساعت ارسال پیامک
+            </h3>
+
+            <p style="margin-bottom:.35rem">
+                محدودیت سراسری ارسال پیامک در همه
+                مسیرهای سامانه.
+            </p>
+
+            <small>
+                منطقه زمانی:
+                <strong dir="ltr">
+                    <?= admin_h(
+                        $smsPolicy['timezone']
+                        ?? 'Asia/Tehran'
+                    ) ?>
+                </strong>
+            </small>
+        </div>
+
+        <div>
+            <?php if (!empty(
+                $smsPolicy['all_day']
+            )): ?>
+                <span class="admin-badge">
+                    ارسال ۲۴ ساعته
+                </span>
+            <?php else: ?>
+                <span class="admin-badge">
+                    محدودیت ساعتی فعال
+                </span>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <form
+        method="post"
+        action="/admin/communications/settings/sms-policy"
+        data-sms-policy-form
+        style="margin-top:1rem"
+    >
+        <input
+            type="hidden"
+            name="_token"
+            value="<?= admin_h(
+                (new \IPKF\Security\Csrf())
+                    ->token()
+            ) ?>"
+        >
+
+        <label
+            style="
+                display:flex;
+                gap:.6rem;
+                align-items:center;
+                margin-bottom:1rem;
+            "
+        >
+            <input
+                type="checkbox"
+                name="all_day"
+                value="1"
+                data-sms-all-day
+                <?= !empty(
+                    $smsPolicy['all_day']
+                ) ? 'checked' : '' ?>
+            >
+
+            <span>
+                <strong>
+                    ارسال پیامک به‌صورت ۲۴ ساعته
+                </strong>
+
+                <small
+                    style="
+                        display:block;
+                        margin-top:.2rem;
+                    "
+                >
+                    پس از خدماتی‌شدن خط پیامکی این گزینه
+                    را فعال کنید.
+                </small>
+            </span>
+        </label>
+
+        <div
+            data-sms-window-fields
+            style="
+                display:grid;
+                grid-template-columns:
+                    repeat(
+                        auto-fit,
+                        minmax(180px, 1fr)
+                    );
+                gap:1rem;
+            "
+        >
+            <label>
+                <span>
+                    شروع ساعت مجاز
+                </span>
+
+                <input
+                    type="time"
+                    name="start_time"
+                    value="<?= admin_h(
+                        $smsPolicy['start_time']
+                        ?? '07:00'
+                    ) ?>"
+                    required
+                >
+            </label>
+
+            <label>
+                <span>
+                    پایان ساعت مجاز
+                </span>
+
+                <input
+                    type="time"
+                    name="end_time"
+                    value="<?= admin_h(
+                        $smsPolicy['end_time']
+                        ?? '22:00'
+                    ) ?>"
+                    required
+                >
+            </label>
+        </div>
+
+        <p
+            style="
+                margin-top:1rem;
+                margin-bottom:.5rem;
+            "
+        >
+            در حالت فعلی، ارسال در بازه
+            <strong dir="ltr">
+                <?= admin_h(
+                    $smsPolicy['start_time']
+                    ?? '07:00'
+                ) ?>
+                –
+                <?= admin_h(
+                    $smsPolicy['end_time']
+                    ?? '22:00'
+                ) ?>
+            </strong>
+            مجاز است.
+        </p>
+
+        <div
+            class="admin-form-actions"
+            style="margin-top:1rem"
+        >
+            <button
+                type="submit"
+                class="admin-button"
+            >
+                ذخیره سیاست پیامک
+            </button>
+        </div>
+    </form>
+</section>
+
+<script>
+(() => {
+    const form = document.querySelector(
+        '[data-sms-policy-form]'
+    );
+
+    if (!form) {
+        return;
+    }
+
+    const toggle = form.querySelector(
+        '[data-sms-all-day]'
+    );
+
+    const fields = form.querySelector(
+        '[data-sms-window-fields]'
+    );
+
+    if (!toggle || !fields) {
+        return;
+    }
+
+    const sync = () => {
+        /*
+         * Hide the time window while 24-hour
+         * delivery is active, but keep the
+         * controls enabled so their values are
+         * preserved on submit.
+         */
+        fields.hidden =
+            toggle.checked;
+    };
+
+    toggle.addEventListener(
+        'change',
+        sync
+    );
+
+    sync();
+})();
+</script>
+
             <div class="communication-table-wrap">
                 <table class="communication-table">
                     <thead>

@@ -209,6 +209,11 @@ class CommunicationSettingsService extends BaseService
             'routing_rules' => $routingAllowed
                 ? $this->repository->routingRules()
                 : [],
+
+            'sms_policy' => $routingAllowed
+                ? (new SmsDeliveryPolicyService())
+                    ->settings()
+                : [],
             'events' => $routingAllowed
                 ? $this->repository->events()
                 : [],
@@ -251,6 +256,25 @@ class CommunicationSettingsService extends BaseService
             $userId,
             $defaults
         );
+    }
+
+    public function saveSmsPolicy(
+        int $userId,
+        array $input
+    ): array {
+        if (!isset(
+            $this->allowedSections(
+                $userId
+            )['routing']
+        )) {
+            throw new \RuntimeException(
+                'sms_policy_forbidden'
+            );
+        }
+
+        return (
+            new SmsDeliveryPolicyService()
+        )->save($input);
     }
 
     public function savePreferences(
