@@ -214,3 +214,169 @@ $router->post('/admin/password', function (
         ],
     ], 422);
 });
+
+
+/*
+ * IDENTITY_EMAIL_VERIFICATION_A3_3A
+ *
+ * Email verification is independent from mobile registration
+ * activation. Both operations require an authenticated account
+ * and CSRF protection.
+ */
+$router->post(
+    '/admin/security/identity/email/request',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $accountSecurityRedirect
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/security'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        if (
+            !(
+                new \IPKF\Security\Csrf()
+            )->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            return $accountSecurityRedirect(
+                $response,
+                'email_delivery_failed'
+            );
+        }
+
+        $result =
+            (
+                new \App\Services\IdentityVerificationService()
+            )->request(
+                (int) $context['user_id'],
+                'email'
+            );
+
+        if (
+            ($result['ok'] ?? false)
+            === true
+        ) {
+            return $accountSecurityRedirect(
+                $response,
+                'email_code_sent'
+            );
+        }
+
+        $status =
+            (string) (
+                $result['status']
+                ?? ''
+            );
+
+        return $accountSecurityRedirect(
+            $response,
+            match ($status) {
+                'already_verified' =>
+                    'email_already_verified',
+
+                'rate_limited' =>
+                    'email_rate_limited',
+
+                'email_unavailable' =>
+                    'email_unavailable',
+
+                default =>
+                    'email_delivery_failed',
+            }
+        );
+    }
+);
+
+
+$router->post(
+    '/admin/security/identity/email/confirm',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $accountSecurityRedirect
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/security'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        if (
+            !(
+                new \IPKF\Security\Csrf()
+            )->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            return $accountSecurityRedirect(
+                $response,
+                'email_invalid_code'
+            );
+        }
+
+        $result =
+            (
+                new \App\Services\IdentityVerificationService()
+            )->confirm(
+                (int) $context['user_id'],
+                'email',
+                (string) $request->input(
+                    'code',
+                    ''
+                )
+            );
+
+        if (
+            ($result['ok'] ?? false)
+            === true
+        ) {
+            return $accountSecurityRedirect(
+                $response,
+                'email_verified'
+            );
+        }
+
+        $status =
+            (string) (
+                $result['status']
+                ?? ''
+            );
+
+        return $accountSecurityRedirect(
+            $response,
+            match ($status) {
+                'email_unavailable' =>
+                    'email_unavailable',
+
+                'already_verified' =>
+                    'email_already_verified',
+
+                default =>
+                    'email_invalid_code',
+            }
+        );
+    }
+);

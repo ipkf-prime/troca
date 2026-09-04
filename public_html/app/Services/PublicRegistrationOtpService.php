@@ -1963,8 +1963,7 @@ final class PublicRegistrationOtpService extends BaseService
     ): bool {
         return
             $this->users
-                ->identityValueExists(
-                    'email',
+                ->verifiedEmailExists(
                     $email,
                     $excludeUserId
                 );

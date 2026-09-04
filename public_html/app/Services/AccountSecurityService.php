@@ -11,12 +11,15 @@ class AccountSecurityService extends BaseService
     public function __construct(
         private ?UserRepository $users = null,
         private ?MfaService $mfa = null,
-        private ?LoginHistoryService $loginHistory = null
+        private ?LoginHistoryService $loginHistory = null,
+        private ?IdentityVerificationService $identityVerification = null
     ) {
         $this->users ??= new UserRepository();
         $this->mfa ??= new MfaService();
         $this->loginHistory ??=
             new LoginHistoryService();
+        $this->identityVerification ??=
+            new IdentityVerificationService();
     }
 
     public function page(
@@ -26,6 +29,9 @@ class AccountSecurityService extends BaseService
         Session::start();
 
         return [
+            'identity' =>
+                $this->identityVerification
+                    ->page($userId),
             'mfa_available' => $this->mfa->enabled(),
             'mfa_enforcement' => $this->mfa->enforcement(),
             'totp_enabled' => $this->mfa->totpEnabled($userId),
@@ -277,6 +283,34 @@ class AccountSecurityService extends BaseService
     public function statusMessage(string $status): ?array
     {
         return match ($status) {
+            'email_code_sent' => [
+                'type' => 'info',
+                'text' => 'کد تأیید به ایمیل شما ارسال شد.',
+            ],
+            'email_verified' => [
+                'type' => 'success',
+                'text' => 'ایمیل شما با موفقیت تأیید شد.',
+            ],
+            'email_already_verified' => [
+                'type' => 'success',
+                'text' => 'این ایمیل قبلاً تأیید شده است.',
+            ],
+            'email_rate_limited' => [
+                'type' => 'danger',
+                'text' => 'تعداد درخواست‌های تأیید ایمیل بیش از حد مجاز است. کمی بعد دوباره تلاش کنید.',
+            ],
+            'email_invalid_code' => [
+                'type' => 'danger',
+                'text' => 'کد تأیید ایمیل صحیح نیست یا اعتبار آن پایان یافته است.',
+            ],
+            'email_unavailable' => [
+                'type' => 'danger',
+                'text' => 'این ایمیل قبلاً توسط حساب دیگری تأیید شده یا در حال حاضر قابل تأیید نیست.',
+            ],
+            'email_delivery_failed' => [
+                'type' => 'danger',
+                'text' => 'ارسال کد تأیید ایمیل انجام نشد.',
+            ],
             'mfa_setup_started' => [
                 'type' => 'info',
                 'text' => 'اتصال جدید ایجاد شد. کد برنامه Authenticator را برای تأیید وارد کنید.',

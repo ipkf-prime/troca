@@ -10,10 +10,13 @@ use Throwable;
 class IdentityOtpDeliveryService extends BaseService
 {
     public function __construct(
-        private ?DynamicMessageTemplateService $templates = null
+        private ?DynamicMessageTemplateService $templates = null,
+        private ?NotificationGatewayService $gateway = null
     ) {
         $this->templates ??=
             new DynamicMessageTemplateService();
+        $this->gateway ??=
+            new NotificationGatewayService();
     }
 
     public function deliver(
@@ -21,7 +24,8 @@ class IdentityOtpDeliveryService extends BaseService
         string $destination,
         string $code,
         ?string $templateCode = null,
-        array $variables = []
+        array $variables = [],
+        int $actorUserId = 0
     ): array {
         $field =
             strtolower(
@@ -125,7 +129,7 @@ class IdentityOtpDeliveryService extends BaseService
 
         $configured =
             $field === 'email'
-                ? $this->emailConfigured()
+                ? $actorUserId > 0
                 : $this->smsConfigured();
 
         if (!$configured) {
@@ -151,6 +155,7 @@ class IdentityOtpDeliveryService extends BaseService
         $sent =
             $field === 'email'
                 ? $this->sendEmail(
+                    $actorUserId,
                     $destination,
                     (string) (
                         $message['title']
@@ -199,17 +204,6 @@ class IdentityOtpDeliveryService extends BaseService
         ];
     }
 
-    private function emailConfigured(): bool
-    {
-        return trim(
-            (string) Env::get(
-                'MAIL_FROM_ADDRESS',
-                ''
-            )
-        ) !== ''
-            && function_exists('mail');
-    }
-
     private function smsConfigured(): bool
     {
         return filter_var(
@@ -237,48 +231,55 @@ class IdentityOtpDeliveryService extends BaseService
     }
 
     private function sendEmail(
+        int $actorUserId,
         string $destination,
         string $subject,
         string $body
     ): bool {
-        $from =
-            trim(
-                (string) Env::get(
-                    'MAIL_FROM_ADDRESS',
-                    ''
-                )
-            );
-
         if (
-            $subject === ''
+            $actorUserId < 1
+            || $subject === ''
             || $body === ''
         ) {
             return false;
         }
 
-        $encodedSubject =
-            '=?UTF-8?B?'
-            . base64_encode(
-                $subject
-            )
-            . '?=';
+        try {
+            $result =
+                $this->gateway->sendDirect(
+                    $actorUserId,
+                    [
+                        'channel_code' =>
+                            'email',
+                        'purpose_code' =>
+                            'identity_email_verification',
+                        'scope_type' =>
+                            'global',
+                        'scope_reference' =>
+                            '*',
+                        'destination' =>
+                            $destination,
+                        'subject' =>
+                            $subject,
+                        'body' =>
+                            $body,
+                        'message_type_code' =>
+                            'text',
+                        'recipient_user_id' =>
+                            $actorUserId,
+                    ]
+                );
 
-        $headers =
-            implode(
-                "\r\n",
-                [
-                    'From: ' . $from,
-                    'MIME-Version: 1.0',
-                    'Content-Type: text/plain; charset=UTF-8',
-                ]
-            );
+            return
+                (string) (
+                    $result['status_code']
+                    ?? ''
+                ) ===
+                'notification_gateway_sent';
 
-        return @mail(
-            $destination,
-            $encodedSubject,
-            $body,
-            $headers
-        );
+        } catch (Throwable) {
+            return false;
+        }
     }
 
     private function sendSms(

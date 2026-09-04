@@ -28,6 +28,10 @@ class IdentityVerificationService extends BaseService
             'email' => (string) (
                 $account['email'] ?? ''
             ),
+            'email_norm' => (string) (
+                $account['email_norm']
+                ?? ''
+            ),
             'mobile' => (string) (
                 $account['mobile'] ?? ''
             ),
@@ -60,6 +64,38 @@ class IdentityVerificationService extends BaseService
             return $this->error('account_not_found');
         }
 
+        if (
+            $field === 'email'
+            && (
+                (string) (
+                    $account['status']
+                    ?? ''
+                ) !== 'active'
+                || empty(
+                    $account[
+                        'mobile_verified_at'
+                    ]
+                )
+            )
+        ) {
+            return $this->error(
+                'email_verification_not_allowed'
+            );
+        }
+
+        if (
+            $field === 'email'
+            && !empty(
+                $account[
+                    'email_verified_at'
+                ]
+            )
+        ) {
+            return $this->error(
+                'already_verified'
+            );
+        }
+
         $destination = trim((string) (
             $account[$field] ?? ''
         ));
@@ -71,7 +107,11 @@ class IdentityVerificationService extends BaseService
         $method = $field === 'email'
             ? 'email'
             : 'sms';
-        $purpose = $this->purpose($field);
+        $purpose =
+            $this->purpose(
+                $field,
+                $account
+            );
 
         if (
             $this->verification->recentChallengeCount(
@@ -87,7 +127,10 @@ class IdentityVerificationService extends BaseService
         $delivered = $this->delivery->deliver(
             $field,
             $destination,
-            $code
+            $code,
+            null,
+            [],
+            $userId
         );
 
         if (($delivered['ok'] ?? false) !== true) {
@@ -148,6 +191,49 @@ class IdentityVerificationService extends BaseService
             return $this->error('invalid_code');
         }
 
+        $account =
+            $this->verification->account(
+                $userId
+            );
+
+        if ($account === null) {
+            return $this->error(
+                'account_not_found'
+            );
+        }
+
+        if (
+            $field === 'email'
+            && (
+                (string) (
+                    $account['status']
+                    ?? ''
+                ) !== 'active'
+                || empty(
+                    $account[
+                        'mobile_verified_at'
+                    ]
+                )
+            )
+        ) {
+            return $this->error(
+                'email_verification_not_allowed'
+            );
+        }
+
+        $expectedEmail =
+            $field === 'email'
+                ? strtolower(
+                    trim(
+                        (string) (
+                            $account['email_norm']
+                            ?: $account['email']
+                            ?: ''
+                        )
+                    )
+                )
+                : '';
+
         $method = $field === 'email'
             ? 'email'
             : 'sms';
@@ -155,7 +241,10 @@ class IdentityVerificationService extends BaseService
             ->latestChallenge(
                 $userId,
                 $method,
-                $this->purpose($field)
+                $this->purpose(
+                    $field,
+                    $account
+                )
             );
 
         if (
@@ -180,13 +269,33 @@ class IdentityVerificationService extends BaseService
             );
         }
 
-        $this->verification->consume(
-            (int) $challenge['id']
-        );
-        $this->verification->markVerified(
-            $userId,
-            $field
-        );
+        if ($field === 'email') {
+            if (
+                !$this->verification
+                    ->claimVerifiedEmail(
+                        $userId,
+                        $expectedEmail
+                    )
+            ) {
+                return $this->error(
+                    'email_unavailable'
+                );
+            }
+
+            $this->verification->consume(
+                (int) $challenge['id']
+            );
+
+        } else {
+            $this->verification->consume(
+                (int) $challenge['id']
+            );
+
+            $this->verification->markVerified(
+                $userId,
+                $field
+            );
+        }
 
         return [
             'ok' => true,
@@ -195,9 +304,38 @@ class IdentityVerificationService extends BaseService
         ];
     }
 
-    private function purpose(string $field): string
-    {
-        return 'identity_' . $field . '_verification';
+    private function purpose(
+        string $field,
+        array $account = []
+    ): string {
+        if ($field !== 'email') {
+            return
+                'identity_'
+                . $field
+                . '_verification';
+        }
+
+        $email =
+            strtolower(
+                trim(
+                    (string) (
+                        $account['email_norm']
+                        ?: $account['email']
+                        ?: ''
+                    )
+                )
+            );
+
+        return
+            'identity_email_verification:'
+            . substr(
+                hash(
+                    'sha256',
+                    $email
+                ),
+                0,
+                24
+            );
     }
 
     private function error(string $status): array

@@ -17,6 +17,26 @@ $totpEnabled = (bool) ($page['totp_enabled'] ?? false);
 $pendingTotp = $page['pending_totp'] ?? null;
 $recoveryCodes = $page['recovery_codes'] ?? [];
 $session = $page['session'] ?? [];
+$identity = is_array(
+    $page['identity'] ?? null
+) ? $page['identity'] : [];
+
+$emailValue = trim(
+    (string) (
+        $identity['email']
+        ?? ''
+    )
+);
+
+$emailVerified = (bool) (
+    $identity['email_verified']
+    ?? false
+);
+
+$mobileVerified = (bool) (
+    $identity['mobile_verified']
+    ?? false
+);
 $loginHistory = is_array(
     $page['login_history'] ?? null
 ) ? $page['login_history'] : [];
@@ -134,6 +154,120 @@ ob_start();
             <?= admin_h($message['text'] ?? '') ?>
         </div>
     <?php endif; ?>
+
+    <section class="account-card">
+        <div class="account-card__head">
+            <div>
+                <h2>تأیید اطلاعات تماس</h2>
+                <p>
+                    شماره همراه و ایمیل به‌صورت مستقل تأیید می‌شوند.
+                    تأیید ایمیل جایگزین تأیید شماره همراه نیست.
+                </p>
+            </div>
+        </div>
+
+        <div class="security-grid">
+            <article class="security-method">
+                <div class="security-method__head">
+                    <strong>شماره همراه</strong>
+
+                    <span class="account-badge <?= $mobileVerified
+                        ? 'account-badge--success'
+                        : 'account-badge--danger' ?>">
+                        <?= $mobileVerified
+                            ? 'تأیید شده'
+                            : 'تأیید نشده' ?>
+                    </span>
+                </div>
+
+                <p>
+                    شماره همراه هویت پایه حساب را مشخص می‌کند.
+                </p>
+            </article>
+
+            <article class="security-method">
+                <div class="security-method__head">
+                    <strong>ایمیل</strong>
+
+                    <span class="account-badge <?= $emailVerified
+                        ? 'account-badge--success'
+                        : 'account-badge--danger' ?>">
+                        <?= $emailVerified
+                            ? 'تأیید شده'
+                            : 'تأیید نشده' ?>
+                    </span>
+                </div>
+
+                <?php if ($emailValue === ''): ?>
+                    <p>
+                        هنوز ایمیلی برای این حساب ثبت نشده است.
+                    </p>
+
+                <?php elseif ($emailVerified): ?>
+                    <p dir="ltr">
+                        <?= admin_h($emailValue) ?>
+                    </p>
+
+                <?php else: ?>
+                    <p dir="ltr">
+                        <?= admin_h($emailValue) ?>
+                    </p>
+
+                    <form
+                        method="post"
+                        action="/admin/security/identity/email/request"
+                        class="security-form"
+                        style="margin-top:.65rem"
+                    >
+                        <input
+                            type="hidden"
+                            name="_token"
+                            value="<?= admin_h(
+                                (new \IPKF\Security\Csrf())->token()
+                            ) ?>"
+                        >
+
+                        <button type="submit">
+                            ارسال کد تأیید ایمیل
+                        </button>
+                    </form>
+
+                    <form
+                        method="post"
+                        action="/admin/security/identity/email/confirm"
+                        class="security-form"
+                        style="margin-top:.65rem"
+                    >
+                        <input
+                            type="hidden"
+                            name="_token"
+                            value="<?= admin_h(
+                                (new \IPKF\Security\Csrf())->token()
+                            ) ?>"
+                        >
+
+                        <label>
+                            <span>کد شش‌رقمی ایمیل</span>
+
+                            <input
+                                name="code"
+                                inputmode="numeric"
+                                autocomplete="one-time-code"
+                                maxlength="6"
+                                pattern="[0-9]{6}"
+                                dir="ltr"
+                                required
+                            >
+                        </label>
+
+                        <button type="submit">
+                            تأیید ایمیل
+                        </button>
+                    </form>
+                <?php endif; ?>
+            </article>
+        </div>
+    </section>
 
     <?php if ($recoveryCodes !== []): ?>
         <section class="account-card">

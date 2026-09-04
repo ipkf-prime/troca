@@ -4,6 +4,7 @@ namespace App\Repositories;
 
 use IPKF\Database\Database;
 use PDO;
+use Throwable;
 
 class IdentityVerificationRepository extends BaseRepository
 {
@@ -13,7 +14,10 @@ class IdentityVerificationRepository extends BaseRepository
             SELECT
                 users.id,
                 users.email,
+                users.email_norm,
                 users.mobile,
+                users.mobile_norm,
+                users.status,
                 users.email_verified_at,
                 users.mobile_verified_at
             FROM users
@@ -277,6 +281,254 @@ class IdentityVerificationRepository extends BaseRepository
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         ")->execute([$challengeId]);
+    }
+
+    public function claimVerifiedEmail(
+        int $userId,
+        string $expectedEmail
+    ): bool {
+        $expectedEmail =
+            strtolower(
+                trim(
+                    $expectedEmail
+                )
+            );
+
+        if (
+            $userId < 1
+            || $expectedEmail === ''
+            || filter_var(
+                $expectedEmail,
+                FILTER_VALIDATE_EMAIL
+            ) === false
+        ) {
+            return false;
+        }
+
+        $db = $this->connection();
+
+        $lookup =
+            $db->prepare("
+                SELECT
+                    email,
+                    email_norm
+                FROM users
+                WHERE id = ?
+                  AND deleted_at IS NULL
+                  AND status = 'active'
+                  AND mobile_verified_at
+                        IS NOT NULL
+                LIMIT 1
+            ");
+
+        $lookup->execute([
+            $userId,
+        ]);
+
+        $row =
+            $lookup->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        if (!is_array($row)) {
+            return false;
+        }
+
+        $email =
+            strtolower(
+                trim(
+                    (string) (
+                        $row['email_norm']
+                        ?: $row['email']
+                        ?: ''
+                    )
+                )
+            );
+
+        if (
+            $email === ''
+            || filter_var(
+                $email,
+                FILTER_VALIDATE_EMAIL
+            ) === false
+            || $email !== $expectedEmail
+        ) {
+            return false;
+        }
+
+        $lockName =
+            'ipkf_email_verify_'
+            . substr(
+                hash(
+                    'sha256',
+                    $email
+                ),
+                0,
+                40
+            );
+
+        $locked = false;
+
+        try {
+            $lock =
+                $db->prepare("
+                    SELECT GET_LOCK(?, 5)
+                ");
+
+            $lock->execute([
+                $lockName,
+            ]);
+
+            $locked =
+                (int) $lock->fetchColumn()
+                === 1;
+
+            if (!$locked) {
+                return false;
+            }
+
+            $current =
+                $db->prepare("
+                    SELECT
+                        email,
+                        email_norm,
+                        email_verified_at
+                    FROM users
+                    WHERE id = ?
+                      AND deleted_at IS NULL
+                      AND status = 'active'
+                      AND mobile_verified_at
+                            IS NOT NULL
+                    LIMIT 1
+                ");
+
+            $current->execute([
+                $userId,
+            ]);
+
+            $account =
+                $current->fetch(
+                    PDO::FETCH_ASSOC
+                );
+
+            if (!is_array($account)) {
+                return false;
+            }
+
+            $currentEmail =
+                strtolower(
+                    trim(
+                        (string) (
+                            $account['email_norm']
+                            ?: $account['email']
+                            ?: ''
+                        )
+                    )
+                );
+
+            if (
+                $currentEmail !== $email
+                || $currentEmail !== $expectedEmail
+            ) {
+                return false;
+            }
+
+            if (
+                !empty(
+                    $account[
+                        'email_verified_at'
+                    ]
+                )
+            ) {
+                return true;
+            }
+
+            $conflict =
+                $db->prepare("
+                    SELECT users.id
+                    FROM users
+                    LEFT JOIN persons
+                        ON persons.id =
+                            users.person_id
+                    WHERE users.id <> ?
+                      AND users.deleted_at
+                            IS NULL
+                      AND users.email_verified_at
+                            IS NOT NULL
+                      AND (
+                        users.email_norm = ?
+                        OR persons.email_norm = ?
+                        OR LOWER(users.email) = ?
+                        OR LOWER(persons.email) = ?
+                      )
+                    LIMIT 1
+                ");
+
+            $conflict->execute([
+                $userId,
+                $email,
+                $email,
+                $email,
+                $email,
+            ]);
+
+            if (
+                $conflict->fetchColumn()
+                !== false
+            ) {
+                return false;
+            }
+
+            $update =
+                $db->prepare("
+                    UPDATE users
+                    SET email_verified_at =
+                            CURRENT_TIMESTAMP,
+                        updated_at =
+                            CURRENT_TIMESTAMP
+                    WHERE id = ?
+                      AND deleted_at IS NULL
+                      AND status = 'active'
+                      AND mobile_verified_at
+                            IS NOT NULL
+                      AND email_verified_at
+                            IS NULL
+                      AND (
+                        email_norm = ?
+                        OR LOWER(email) = ?
+                      )
+                ");
+
+            $update->execute([
+                $userId,
+                $email,
+                $email,
+            ]);
+
+            return
+                $update->rowCount() === 1;
+
+        } catch (Throwable) {
+            return false;
+
+        } finally {
+            if ($locked) {
+                try {
+                    $release =
+                        $db->prepare("
+                            SELECT RELEASE_LOCK(?)
+                        ");
+
+                    $release->execute([
+                        $lockName,
+                    ]);
+                } catch (Throwable) {
+                    /*
+                     * Named locks are connection-scoped.
+                     */
+                }
+            }
+        }
     }
 
     public function markVerified(

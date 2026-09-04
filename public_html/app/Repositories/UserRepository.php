@@ -34,15 +34,15 @@ class UserRepository extends BaseRepository
 
         if ($identity['email'] !== null) {
             if (Database::columnExists('users', 'email_norm')) {
-                $matches[] = 'users.email_norm = :email_norm_user';
+                $matches[] = '(users.email_verified_at IS NOT NULL AND users.email_norm = :email_norm_user)';
             }
 
             if (Database::columnExists('persons', 'email_norm')) {
-                $matches[] = 'persons.email_norm = :email_norm_person';
+                $matches[] = '(users.email_verified_at IS NOT NULL AND persons.email_norm = :email_norm_person)';
             }
 
-            $matches[] = 'LOWER(users.email) = :email_user';
-            $matches[] = 'LOWER(persons.email) = :email_person';
+            $matches[] = '(users.email_verified_at IS NOT NULL AND LOWER(users.email) = :email_user)';
+            $matches[] = '(users.email_verified_at IS NOT NULL AND LOWER(persons.email) = :email_person)';
         }
 
         if ($identity['mobile'] !== null) {
@@ -227,6 +227,62 @@ class UserRepository extends BaseRepository
         return (int) $statement->fetchColumn() > 0;
     }
 
+    public function verifiedEmailExists(
+        string $normalizedEmail,
+        int $exceptUserId = 0
+    ): bool {
+        $normalizedEmail =
+            strtolower(
+                trim(
+                    $normalizedEmail
+                )
+            );
+
+        if (
+            $normalizedEmail === ''
+            || filter_var(
+                $normalizedEmail,
+                FILTER_VALIDATE_EMAIL
+            ) === false
+        ) {
+            return true;
+        }
+
+        $statement =
+            $this->connection()->prepare("
+                SELECT COUNT(
+                    DISTINCT users.id
+                )
+                FROM users
+                LEFT JOIN persons
+                    ON persons.id =
+                        users.person_id
+                WHERE users.id <> ?
+                  AND users.deleted_at
+                        IS NULL
+                  AND users.email_verified_at
+                        IS NOT NULL
+                  AND (
+                    users.email_norm = ?
+                    OR persons.email_norm = ?
+                    OR LOWER(users.email) = ?
+                    OR LOWER(persons.email) = ?
+                  )
+            ");
+
+        $statement->execute([
+            $exceptUserId,
+            $normalizedEmail,
+            $normalizedEmail,
+            $normalizedEmail,
+            $normalizedEmail,
+        ]);
+
+        return
+            (int) $statement
+                ->fetchColumn() > 0;
+    }
+
     public function applyIdentityChange(int $userId, string $field, string $value, string $normalizedValue): void
     {
         if ($field === 'username') {
@@ -245,6 +301,7 @@ class UserRepository extends BaseRepository
                 LEFT JOIN persons ON persons.id = users.person_id
                 SET users.email = ?, users.email_norm = ?,
                     persons.email = ?, persons.email_norm = ?,
+                    users.email_verified_at = NULL,
                     users.updated_at = CURRENT_TIMESTAMP,
                     persons.updated_at = CURRENT_TIMESTAMP
                 WHERE users.id = ?

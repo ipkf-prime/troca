@@ -567,8 +567,7 @@ final class PublicRegistrationService extends BaseService
     ): bool {
         return
             $this->users
-                ->identityValueExists(
-                    'email',
+                ->verifiedEmailExists(
                     $email,
                     0
                 );
