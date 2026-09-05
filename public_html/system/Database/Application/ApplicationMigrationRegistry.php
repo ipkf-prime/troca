@@ -30,6 +30,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\SeedExistingDynamicRoleGovernance::class,
                     \IPKF\Database\Migrations\EnsureTransactionalIdentityAccessGovernanceWriteSet::class,
                     \IPKF\Database\Migrations\AddRoleAssignmentLifecycleGovernance::class,
+                    \IPKF\Database\Migrations\CreateUserInvitationFoundationTables::class,
                     \IPKF\Database\Migrations\AddRoleKindSortOrder::class,
                     \IPKF\Database\Migrations\CreatePublicLandingFoundation::class,
                     \IPKF\Database\Migrations\PromotePublicLandingIdentityToSystemTheme::class,
