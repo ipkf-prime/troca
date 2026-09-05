@@ -63,6 +63,16 @@ class PermissionRepository extends BaseRepository
               AND permissions.is_active = 1
               AND user_role_assignments.is_active = 1
               AND roles.is_active = 1
+              AND (
+                    user_role_assignments.starts_at IS NULL
+                    OR user_role_assignments.starts_at
+                        <= CURRENT_TIMESTAMP
+                  )
+              AND (
+                    user_role_assignments.ends_at IS NULL
+                    OR user_role_assignments.ends_at
+                        >= CURRENT_TIMESTAMP
+                  )
               {$assignmentFilter}
         ");
         $params = [$userId, $permissionCode];
@@ -100,6 +110,29 @@ class PermissionRepository extends BaseRepository
               AND permissions.is_active = 1
               AND user_permission_overrides.role_assignment_id
                     IN (0, ?)
+              AND (
+                    user_permission_overrides.role_assignment_id = 0
+                    OR EXISTS (
+                        SELECT 1
+                        FROM user_role_assignments
+                            AS override_assignments
+                        WHERE override_assignments.id =
+                            user_permission_overrides.role_assignment_id
+                          AND override_assignments.user_id =
+                            user_permission_overrides.user_id
+                          AND override_assignments.is_active = 1
+                          AND (
+                                override_assignments.starts_at IS NULL
+                                OR override_assignments.starts_at
+                                    <= CURRENT_TIMESTAMP
+                              )
+                          AND (
+                                override_assignments.ends_at IS NULL
+                                OR override_assignments.ends_at
+                                    >= CURRENT_TIMESTAMP
+                              )
+                    )
+              )
             ORDER BY user_permission_overrides.role_assignment_id DESC
             LIMIT 1
         ");

@@ -12,13 +12,17 @@ class AdminUserManagementService extends BaseService
         private ?AdminUserManagementRepository $users = null,
         private ?IdentityNormalizer $normalizer = null,
         private ?AuthorizationService $authorization = null,
-        private ?IdentityVerificationService $verification = null
+        private ?IdentityVerificationService $verification = null,
+        private ?RoleAssignmentLifecycleService $roleLifecycle = null
     ) {
         $this->users ??= new AdminUserManagementRepository();
         $this->normalizer ??= new IdentityNormalizer();
         $this->authorization ??= new AuthorizationService();
         $this->verification ??=
             new IdentityVerificationService();
+
+        $this->roleLifecycle ??=
+            new RoleAssignmentLifecycleService();
     }
 
     public function canCreate(int $actorUserId): bool
@@ -140,6 +144,13 @@ class AdminUserManagementService extends BaseService
             ],
             'is_edit' => $userId !== null,
             'can_assign_protected_roles' => $includeProtected,
+            'role_states' =>
+                $userId !== null
+                    ? $this->roleLifecycle
+                        ->userRoleStates(
+                            $userId
+                        )
+                    : [],
         ];
     }
 
@@ -164,7 +175,10 @@ class AdminUserManagementService extends BaseService
         try {
             $userId = $this->users->create(
                 $validated['data'],
-                $validated['role_ids']
+                $validated['role_ids'],
+                $this->roleSynchronizer(
+                    $actorUserId
+                )
             );
         } catch (Throwable) {
             return [
@@ -263,7 +277,10 @@ class AdminUserManagementService extends BaseService
                 $userId,
                 $validated['data'],
                 $validated['role_ids'],
-                $preserveOwnSuperAdmin
+                $preserveOwnSuperAdmin,
+                $this->roleSynchronizer(
+                    $actorUserId
+                )
             );
         } catch (Throwable) {
             return [
@@ -324,7 +341,10 @@ class AdminUserManagementService extends BaseService
             $this->users->updateRoles(
                 $userId,
                 $roleIds,
-                $preserveOwnSuperAdmin
+                $preserveOwnSuperAdmin,
+                $this->roleSynchronizer(
+                    $actorUserId
+                )
             );
         } catch (Throwable) {
             return [
@@ -623,6 +643,43 @@ class AdminUserManagementService extends BaseService
         }
 
         return $result;
+    }
+
+    private function roleSynchronizer(
+        int $actorUserId
+    ): callable {
+        return function (
+            $db,
+            int $managedUserId,
+            array $roleIds,
+            bool $preserveSuperAdmin
+        ) use ($actorUserId): void {
+            $preserveRoleIds = [];
+
+            if ($preserveSuperAdmin) {
+                $superAdminId =
+                    $this->users
+                        ->roleIdByCode(
+                            'super_admin'
+                        );
+
+                if ($superAdminId !== null) {
+                    $preserveRoleIds[] =
+                        $superAdminId;
+                }
+            }
+
+            (
+                new RoleAssignmentLifecycleService(
+                    $db
+                )
+            )->syncSelection(
+                $actorUserId,
+                $managedUserId,
+                $roleIds,
+                $preserveRoleIds
+            );
+        };
     }
 
     private function canAssignProtectedRoles(int $actorUserId): bool

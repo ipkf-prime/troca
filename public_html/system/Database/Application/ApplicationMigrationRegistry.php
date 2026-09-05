@@ -28,6 +28,8 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\AddDefaultRoleAssignmentSelection::class,
                     \IPKF\Database\Migrations\CreateDynamicScopedAccessFoundation::class,
                     \IPKF\Database\Migrations\SeedExistingDynamicRoleGovernance::class,
+                    \IPKF\Database\Migrations\EnsureTransactionalIdentityAccessGovernanceWriteSet::class,
+                    \IPKF\Database\Migrations\AddRoleAssignmentLifecycleGovernance::class,
                     \IPKF\Database\Migrations\AddRoleKindSortOrder::class,
                     \IPKF\Database\Migrations\CreatePublicLandingFoundation::class,
                     \IPKF\Database\Migrations\PromotePublicLandingIdentityToSystemTheme::class,

@@ -7,6 +7,7 @@ use PDO;
 use RuntimeException;
 use Throwable;
 use App\Support\PersianDate;
+use App\Services\RoleAssignmentLifecycleService;
 
 class OrganizationOperationsService
 {
@@ -69,29 +70,324 @@ class OrganizationOperationsService
         ];
     }
 
-    public function createAppointment(array $data): string
-    {
-        $personRef=trim((string)($data['person_reference']??''));
-        $positionRef=trim((string)($data['position_reference']??''));
-        $kind=(string)($data['appointment_kind']??'permanent');
-        if (!in_array($kind,['permanent','temporary','acting','delegated'],true)) $kind='permanent';
-        if ($personRef==='' || $positionRef==='') throw new RuntimeException('انتخاب شخص و پست الزامی است.');
-        $person=$this->scalar("SELECT id FROM persons WHERE public_reference=? AND status='active' LIMIT 1",[$personRef]);
-        $position=$this->row("SELECT id, organization_id FROM organization_positions WHERE public_reference=? AND status='active' LIMIT 1",[$positionRef]);
-        if (!$person || !$position) throw new RuntimeException('شخص یا پست انتخاب‌شده معتبر نیست.');
-        $isPrimary=isset($data['is_primary']) ? 1 : 0;
-        $validFrom=$this->dateOrNull($data['valid_from']??null); $validTo=$this->dateOrNull($data['valid_to']??null);
-        if ($validFrom && $validTo && $validTo < $validFrom) throw new RuntimeException('تاریخ پایان نمی‌تواند قبل از تاریخ شروع باشد.');
-        $this->db->beginTransaction();
+    public function createAppointment(
+        array $data,
+        int $actorUserId = 0
+    ): string {
+        $personRef =
+            trim(
+                (string) (
+                    $data['person_reference']
+                    ?? ''
+                )
+            );
+
+        $positionRef =
+            trim(
+                (string) (
+                    $data['position_reference']
+                    ?? ''
+                )
+            );
+
+        $kind =
+            (string) (
+                $data['appointment_kind']
+                ?? 'permanent'
+            );
+
+        if (
+            !in_array(
+                $kind,
+                [
+                    'permanent',
+                    'temporary',
+                    'acting',
+                    'delegated',
+                ],
+                true
+            )
+        ) {
+            $kind = 'permanent';
+        }
+
+        if (
+            $personRef === ''
+            || $positionRef === ''
+        ) {
+            throw new RuntimeException(
+                'انتخاب شخص و پست الزامی است.'
+            );
+        }
+
+        $person =
+            $this->scalar(
+                "
+                    SELECT id
+                    FROM persons
+                    WHERE public_reference = ?
+                      AND status = 'active'
+                    LIMIT 1
+                ",
+                [
+                    $personRef,
+                ]
+            );
+
+        $position =
+            $this->row(
+                "
+                    SELECT
+                        id,
+                        organization_id
+                    FROM organization_positions
+                    WHERE public_reference = ?
+                      AND status = 'active'
+                    LIMIT 1
+                ",
+                [
+                    $positionRef,
+                ]
+            );
+
+        if (
+            !$person
+            || !$position
+        ) {
+            throw new RuntimeException(
+                'شخص یا پست انتخاب‌شده معتبر نیست.'
+            );
+        }
+
+        $isPrimary =
+            isset(
+                $data['is_primary']
+            )
+                ? 1
+                : 0;
+
+        $validFrom =
+            $this->dateOrNull(
+                $data['valid_from']
+                ?? null
+            );
+
+        $validTo =
+            $this->dateOrNull(
+                $data['valid_to']
+                ?? null
+            );
+
+        if (
+            $validFrom
+            && $validTo
+            && $validTo < $validFrom
+        ) {
+            throw new RuntimeException(
+                'تاریخ پایان نمی‌تواند قبل از تاریخ شروع باشد.'
+            );
+        }
+
+        $ownsTransaction =
+            !$this->db->inTransaction();
+
+        if ($ownsTransaction) {
+            $this->db->beginTransaction();
+        }
+
         try {
-            if ($isPrimary===1) {
-                $u=$this->db->prepare("UPDATE organization_appointments SET is_primary=0, updated_at=CURRENT_TIMESTAMP WHERE person_id=? AND status='active' AND revoked_at IS NULL"); $u->execute([(int)$person]);
+            if ($isPrimary === 1) {
+                $update =
+                    $this->db->prepare("
+                        UPDATE organization_appointments
+                        SET
+                            is_primary = 0,
+                            updated_at = (
+                                CURRENT_TIMESTAMP
+                            )
+                        WHERE person_id = ?
+                          AND status = 'active'
+                          AND revoked_at IS NULL
+                    ");
+
+                $update->execute([
+                    (int) $person,
+                ]);
             }
-            $st=$this->db->prepare("INSERT INTO organization_appointments (public_reference,organization_id,person_id,organization_position_id,appointment_type,appointment_kind,is_primary,is_acting,status,valid_from,valid_to,appointment_reference,description,created_at,updated_at) VALUES (UUID(),?,?,?,?,?,?,?,'active',?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
-            $st->execute([(int)$position['organization_id'],(int)$person,(int)$position['id'],$kind,$kind,$isPrimary,$kind==='acting'?1:0,$validFrom,$validTo,$this->clean($data['appointment_reference']??'',150),$this->clean($data['description']??'',2000)]);
-            $ref=(string)$this->db->query("SELECT public_reference FROM organization_appointments WHERE id=LAST_INSERT_ID()")->fetchColumn();
-            $this->db->commit(); return $ref;
-        } catch (Throwable $e) { if ($this->db->inTransaction()) $this->db->rollBack(); throw $e; }
+
+            $statement =
+                $this->db->prepare("
+                    INSERT INTO organization_appointments (
+                        public_reference,
+                        organization_id,
+                        person_id,
+                        organization_position_id,
+                        appointment_type,
+                        appointment_kind,
+                        is_primary,
+                        is_acting,
+                        status,
+                        valid_from,
+                        valid_to,
+                        appointment_reference,
+                        description,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES (
+                        UUID(),
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        'active',
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        CURRENT_TIMESTAMP,
+                        CURRENT_TIMESTAMP
+                    )
+                ");
+
+            $statement->execute([
+                (int) $position[
+                    'organization_id'
+                ],
+                (int) $person,
+                (int) $position['id'],
+                $kind,
+                $kind,
+                $isPrimary,
+                $kind === 'acting'
+                    ? 1
+                    : 0,
+                $validFrom,
+                $validTo,
+                $this->clean(
+                    $data[
+                        'appointment_reference'
+                    ] ?? '',
+                    150
+                ),
+                $this->clean(
+                    $data['description']
+                    ?? '',
+                    2000
+                ),
+            ]);
+
+            $appointmentId =
+                (int) $this->db
+                    ->lastInsertId();
+
+            if ($appointmentId < 1) {
+                throw new RuntimeException(
+                    'appointment_insert_failed'
+                );
+            }
+
+            $referenceStatement =
+                $this->db->prepare("
+                    SELECT public_reference
+                    FROM organization_appointments
+                    WHERE id = ?
+                    LIMIT 1
+                ");
+
+            $referenceStatement->execute([
+                $appointmentId,
+            ]);
+
+            $reference =
+                (string) (
+                    $referenceStatement
+                        ->fetchColumn()
+                    ?: ''
+                );
+
+            if ($reference === '') {
+                throw new RuntimeException(
+                    'appointment_reference_missing'
+                );
+            }
+
+            $this->refreshLifecycleForPerson(
+                (int) $person,
+                $actorUserId
+            );
+
+            if ($ownsTransaction) {
+                $this->db->commit();
+            }
+
+            return $reference;
+
+        } catch (Throwable $exception) {
+            if (
+                $ownsTransaction
+                && $this->db->inTransaction()
+            ) {
+                $this->db->rollBack();
+            }
+
+            throw $exception;
+        }
+    }
+
+    private function refreshLifecycleForPerson(
+        int $personId,
+        int $actorUserId
+    ): void {
+        if (
+            $personId < 1
+            || !Database::columnExists(
+                'user_role_assignments',
+                'lifecycle_status_code'
+            )
+        ) {
+            return;
+        }
+
+        $statement =
+            $this->db->prepare("
+                SELECT id
+                FROM users
+                WHERE person_id = ?
+                  AND status = 'active'
+                  AND deleted_at IS NULL
+                ORDER BY id
+            ");
+
+        $statement->execute([
+            $personId,
+        ]);
+
+        $userIds =
+            array_map(
+                'intval',
+                $statement->fetchAll(
+                    PDO::FETCH_COLUMN
+                ) ?: []
+            );
+
+        foreach ($userIds as $userId) {
+            if ($userId < 1) {
+                continue;
+            }
+
+            (
+                new RoleAssignmentLifecycleService(
+                    $this->db
+                )
+            )->refreshUser(
+                $userId,
+                $actorUserId
+            );
+        }
     }
 
     private function buildChart(array $rows): array

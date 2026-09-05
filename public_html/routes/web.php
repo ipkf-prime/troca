@@ -6231,17 +6231,98 @@ $router->get('/admin/appointments', function ($request, $response) use ($adminRe
 });
 $router->post('/admin/appointments', function ($request, $response) use ($adminGuard) {
     $context = $adminGuard($response, '/admin/appointments');
-    if (!is_array($context)) { return $context; }
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    if (
+        !(
+            new \IPKF\Security\Csrf()
+        )->check(
+            (string) $request->input(
+                '_token',
+                ''
+            )
+        )
+    ) {
+        $_SESSION['admin_flash_error'] =
+            'نشست فرم معتبر نیست.';
+
+        return $response->redirect(
+            '/admin/appointments?status=invalid_csrf'
+        );
+    }
+
     try {
-        (new \App\Services\Organization\OrganizationOperationsService())->createAppointment([
-            'person_reference'=>$request->input('person_reference',''), 'position_reference'=>$request->input('position_reference',''),
-            'appointment_kind'=>$request->input('appointment_kind','permanent'), 'is_primary'=>$request->input('is_primary',null),
-            'valid_from'=>$request->input('valid_from',''), 'valid_to'=>$request->input('valid_to',''),
-            'appointment_reference'=>$request->input('appointment_reference',''), 'description'=>$request->input('description',''),
-        ]);
-        $_SESSION['admin_flash_message']='انتصاب با موفقیت ثبت شد.';
-    } catch (\Throwable $e) { $_SESSION['admin_flash_error']=$e instanceof \RuntimeException ? $e->getMessage() : 'ثبت انتصاب ممکن نشد.'; }
-    return $response->redirect('/admin/appointments');
+        (
+            new \App\Services\Organization\OrganizationOperationsService()
+        )->createAppointment(
+            [
+                'person_reference' =>
+                    $request->input(
+                        'person_reference',
+                        ''
+                    ),
+
+                'position_reference' =>
+                    $request->input(
+                        'position_reference',
+                        ''
+                    ),
+
+                'appointment_kind' =>
+                    $request->input(
+                        'appointment_kind',
+                        'permanent'
+                    ),
+
+                'is_primary' =>
+                    $request->input(
+                        'is_primary',
+                        null
+                    ),
+
+                'valid_from' =>
+                    $request->input(
+                        'valid_from',
+                        ''
+                    ),
+
+                'valid_to' =>
+                    $request->input(
+                        'valid_to',
+                        ''
+                    ),
+
+                'appointment_reference' =>
+                    $request->input(
+                        'appointment_reference',
+                        ''
+                    ),
+
+                'description' =>
+                    $request->input(
+                        'description',
+                        ''
+                    ),
+            ],
+            (int) $context['user_id']
+        );
+
+        $_SESSION['admin_flash_message'] =
+            'انتصاب با موفقیت ثبت شد.';
+
+    } catch (\Throwable $exception) {
+        $_SESSION['admin_flash_error'] =
+            $exception instanceof \RuntimeException
+                ? $exception->getMessage()
+                : 'ثبت انتصاب ممکن نشد.';
+    }
+
+    return $response->redirect(
+        '/admin/appointments'
+    );
 });
 $router->get('/admin/profile/organizational-context', function ($request, $response) use ($adminRender, $adminGuard) {
     $context = $adminGuard($response, '/admin/profile/organizational-context');

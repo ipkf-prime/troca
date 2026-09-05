@@ -331,7 +331,20 @@ class SelfProfileService extends BaseService
                     'district' => $district,
                     'postal_code' => $postalCode,
                     'address_line' => $addressLine,
-                ]
+                ],
+                function (
+                    $db,
+                    int $managedUserId
+                ) use ($userId): void {
+                    (
+                        new RoleAssignmentLifecycleService(
+                            $db
+                        )
+                    )->refreshUser(
+                        $managedUserId,
+                        $userId
+                    );
+                }
             );
         } catch (Throwable) {
             return [

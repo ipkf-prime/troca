@@ -90,11 +90,47 @@ class ScopedAuthorizationService extends BaseService
             : [];
 
         if ($scopes === []) {
-            return [
-                'allowed' => true,
-                'reason' =>
-                    'legacy_assignment_without_scope_policy',
-            ];
+            $roleId =
+                (int) (
+                    $assignment['role_id']
+                    ?? 0
+                );
+
+            if (
+                $this->dynamicAccess
+                    ->roleHasExplicitScopePolicy(
+                        $roleId
+                    )
+            ) {
+                /*
+                 * Reference-free role policies such as
+                 * own/global/assigned are self-contained
+                 * and do not require a duplicated
+                 * assignment-scope row.
+                 *
+                 * Any scope requiring a concrete reference
+                 * remains fail-closed.
+                 */
+                $scopes =
+                    $this->dynamicAccess
+                        ->referenceFreeDefaultScopesForRole(
+                            $roleId
+                        );
+
+                if ($scopes === []) {
+                    return [
+                        'allowed' => false,
+                        'reason' =>
+                            'scope_policy_required',
+                    ];
+                }
+            } else {
+                return [
+                    'allowed' => true,
+                    'reason' =>
+                        'legacy_assignment_without_scope_policy',
+                ];
+            }
         }
 
         if (!$this->scopeAllowed($scopes, $context)) {

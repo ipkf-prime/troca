@@ -482,7 +482,11 @@ class AdminUserManagementRepository extends BaseRepository
         return (int) $statement->fetchColumn() > 0;
     }
 
-    public function create(array $data, array $roleIds): int
+    public function create(
+        array $data,
+        array $roleIds,
+        ?callable $roleSynchronizer = null
+    ): int
     {
         $db = $this->connection();
         $db->beginTransaction();
@@ -536,7 +540,35 @@ class AdminUserManagementRepository extends BaseRepository
 
             $this->syncPrimaryContacts($personId, $data);
             $this->syncPrimaryAddress($personId, $data);
-            $this->syncGlobalRoles($userId, $roleIds);
+
+            if (
+                Database::columnExists(
+                    'user_role_assignments',
+                    'lifecycle_status_code'
+                )
+            ) {
+                if ($roleSynchronizer === null) {
+                    throw new RuntimeException(
+                        'role_assignment_lifecycle_synchronizer_required'
+                    );
+                }
+
+                $this->ensureBaseUserRole(
+                    $userId
+                );
+
+                $roleSynchronizer(
+                    $db,
+                    $userId,
+                    $roleIds,
+                    false
+                );
+            } else {
+                $this->syncGlobalRoles(
+                    $userId,
+                    $roleIds
+                );
+            }
 
             $db->commit();
 
@@ -554,7 +586,8 @@ class AdminUserManagementRepository extends BaseRepository
         int $userId,
         array $data,
         array $roleIds,
-        bool $preserveSuperAdmin
+        bool $preserveSuperAdmin,
+        ?callable $roleSynchronizer = null
     ): bool {
         $db = $this->connection();
         $db->beginTransaction();
@@ -622,14 +655,46 @@ class AdminUserManagementRepository extends BaseRepository
             $this->syncPrimaryContacts($personId, $data);
             $this->syncPrimaryAddress($personId, $data);
 
-            if ($preserveSuperAdmin) {
-                $superAdminId = $this->roleIdByCode('super_admin');
-                if ($superAdminId !== null) {
-                    $roleIds[] = $superAdminId;
+            if (
+                Database::columnExists(
+                    'user_role_assignments',
+                    'lifecycle_status_code'
+                )
+            ) {
+                if ($roleSynchronizer === null) {
+                    throw new RuntimeException(
+                        'role_assignment_lifecycle_synchronizer_required'
+                    );
                 }
-            }
 
-            $this->syncGlobalRoles($userId, $roleIds);
+                $this->ensureBaseUserRole(
+                    $userId
+                );
+
+                $roleSynchronizer(
+                    $db,
+                    $userId,
+                    $roleIds,
+                    $preserveSuperAdmin
+                );
+            } else {
+                if ($preserveSuperAdmin) {
+                    $superAdminId =
+                        $this->roleIdByCode(
+                            'super_admin'
+                        );
+
+                    if ($superAdminId !== null) {
+                        $roleIds[] =
+                            $superAdminId;
+                    }
+                }
+
+                $this->syncGlobalRoles(
+                    $userId,
+                    $roleIds
+                );
+            }
 
             $db->commit();
 
@@ -646,7 +711,8 @@ class AdminUserManagementRepository extends BaseRepository
     public function updateRoles(
         int $userId,
         array $roleIds,
-        bool $preserveSuperAdmin
+        bool $preserveSuperAdmin,
+        ?callable $roleSynchronizer = null
     ): bool {
         $db = $this->connection();
         $db->beginTransaction();
@@ -656,14 +722,47 @@ class AdminUserManagementRepository extends BaseRepository
                 throw new RuntimeException('user_not_found');
             }
 
-            if ($preserveSuperAdmin) {
-                $superAdminId = $this->roleIdByCode('super_admin');
-                if ($superAdminId !== null) {
-                    $roleIds[] = $superAdminId;
+            if (
+                Database::columnExists(
+                    'user_role_assignments',
+                    'lifecycle_status_code'
+                )
+            ) {
+                if ($roleSynchronizer === null) {
+                    throw new RuntimeException(
+                        'role_assignment_lifecycle_synchronizer_required'
+                    );
                 }
+
+                $this->ensureBaseUserRole(
+                    $userId
+                );
+
+                $roleSynchronizer(
+                    $db,
+                    $userId,
+                    $roleIds,
+                    $preserveSuperAdmin
+                );
+            } else {
+                if ($preserveSuperAdmin) {
+                    $superAdminId =
+                        $this->roleIdByCode(
+                            'super_admin'
+                        );
+
+                    if ($superAdminId !== null) {
+                        $roleIds[] =
+                            $superAdminId;
+                    }
+                }
+
+                $this->syncGlobalRoles(
+                    $userId,
+                    $roleIds
+                );
             }
 
-            $this->syncGlobalRoles($userId, $roleIds);
             $db->commit();
 
             return true;
@@ -677,13 +776,24 @@ class AdminUserManagementRepository extends BaseRepository
 
     public function updateOwnProfile(
         int $userId,
-        array $data
+        array $data,
+        ?callable $identityRefresher = null
     ): bool {
-        $db = $this->connection();
-        $db->beginTransaction();
+        $db =
+            $this->connection();
+
+        $ownsTransaction =
+            !$db->inTransaction();
+
+        if ($ownsTransaction) {
+            $db->beginTransaction();
+        }
 
         try {
-            $current = $this->findForForm($userId);
+            $current =
+                $this->findForForm(
+                    $userId
+                );
 
             if ($current === null) {
                 throw new RuntimeException(
@@ -691,9 +801,11 @@ class AdminUserManagementRepository extends BaseRepository
                 );
             }
 
-            $personId = (int) (
-                $current['person_id'] ?? 0
-            );
+            $personId =
+                (int) (
+                    $current['person_id']
+                    ?? 0
+                );
 
             if ($personId < 1) {
                 throw new RuntimeException(
@@ -701,37 +813,90 @@ class AdminUserManagementRepository extends BaseRepository
                 );
             }
 
-            $payload = array_merge($current, $data, [
-                'person_type' => (string) (
-                    $current['person_type']
-                    ?? 'individual'
-                ),
-                'email' => $current['email'] ?? null,
-                'email_norm' => $current['email'] ?? null,
-                'mobile' => $current['mobile'] ?? null,
-                'mobile_norm' => $current['mobile'] ?? null,
-                'full_name' => trim(
-                    (string) $data['first_name']
-                    . ' '
-                    . (string) $data['last_name']
-                ),
-            ]);
+            $payload =
+                array_merge(
+                    $current,
+                    $data,
+                    [
+                        'person_type' =>
+                            (string) (
+                                $current['person_type']
+                                ?? 'individual'
+                            ),
 
-            $this->updatePerson($personId, $payload);
+                        'email' =>
+                            $current['email']
+                            ?? null,
+
+                        'email_norm' =>
+                            $current['email']
+                            ?? null,
+
+                        'mobile' =>
+                            $current['mobile']
+                            ?? null,
+
+                        'mobile_norm' =>
+                            $current['mobile']
+                            ?? null,
+
+                        'full_name' =>
+                            trim(
+                                (string) $data[
+                                    'first_name'
+                                ]
+                                . ' '
+                                . (string) $data[
+                                    'last_name'
+                                ]
+                            ),
+                    ]
+                );
+
+            $this->updatePerson(
+                $personId,
+                $payload
+            );
+
             $this->syncPersonProfile(
                 $personId,
                 $payload
             );
+
             $this->syncPrimaryAddress(
                 $personId,
                 $payload
             );
 
-            $db->commit();
+            if (
+                Database::columnExists(
+                    'user_role_assignments',
+                    'lifecycle_status_code'
+                )
+            ) {
+                if ($identityRefresher === null) {
+                    throw new RuntimeException(
+                        'role_assignment_lifecycle_refresher_required'
+                    );
+                }
+
+                $identityRefresher(
+                    $db,
+                    $userId
+                );
+            }
+
+            if ($ownsTransaction) {
+                $db->commit();
+            }
 
             return true;
+
         } catch (Throwable $exception) {
-            if ($db->inTransaction()) {
+            if (
+                $ownsTransaction
+                && $db->inTransaction()
+            ) {
                 $db->rollBack();
             }
 
@@ -1500,23 +1665,267 @@ class AdminUserManagementRepository extends BaseRepository
 
     private function globalRoleIdsForUser(int $userId): array
     {
-        $statement = $this->connection()->prepare("
-            SELECT assignments.role_id
-            FROM user_role_assignments assignments
-            INNER JOIN roles ON roles.id = assignments.role_id
-            WHERE assignments.user_id = ?
-              AND assignments.scope_type = 'global'
-              AND assignments.scope_id IS NULL
-              AND assignments.is_active = 1
-              AND roles.is_active = 1
-            ORDER BY roles.priority ASC, roles.id ASC
-        ");
-        $statement->execute([$userId]);
+        if (
+            Database::columnExists(
+                'user_role_assignments',
+                'lifecycle_status_code'
+            )
+        ) {
+            $statement =
+                $this->connection()->prepare("
+                    SELECT
+                        assignments.role_id
+                    FROM user_role_assignments
+                        AS assignments
+                    INNER JOIN roles
+                        ON roles.id =
+                            assignments.role_id
+                    WHERE assignments.user_id = ?
+                      AND roles.is_active = 1
+                      AND (
+                            (
+                                roles.code = 'user'
+                                AND assignments.is_active = 1
+                            )
+                            OR
+                            (
+                                roles.code <> 'user'
+                                AND assignments.lifecycle_status_code
+                                    <> 'revoked'
+                            )
+                          )
+                    ORDER BY
+                        roles.priority ASC,
+                        roles.id ASC
+                ");
+
+            $statement->execute([
+                $userId,
+            ]);
+
+            return array_map(
+                'intval',
+                $statement->fetchAll(
+                    PDO::FETCH_COLUMN
+                ) ?: []
+            );
+        }
+
+        $statement =
+            $this->connection()->prepare("
+                SELECT assignments.role_id
+                FROM user_role_assignments assignments
+                INNER JOIN roles
+                    ON roles.id =
+                        assignments.role_id
+                WHERE assignments.user_id = ?
+                  AND assignments.scope_type =
+                        'global'
+                  AND assignments.scope_id
+                        IS NULL
+                  AND assignments.is_active = 1
+                  AND roles.is_active = 1
+                ORDER BY
+                    roles.priority ASC,
+                    roles.id ASC
+            ");
+
+        $statement->execute([
+            $userId,
+        ]);
 
         return array_map(
             'intval',
-            $statement->fetchAll(PDO::FETCH_COLUMN) ?: []
+            $statement->fetchAll(
+                PDO::FETCH_COLUMN
+            ) ?: []
         );
+    }
+
+    private function ensureBaseUserRole(
+        int $userId
+    ): void {
+        $baseRoleId =
+            $this->roleIdByCode(
+                'user'
+            );
+
+        if ($baseRoleId === null) {
+            throw new RuntimeException(
+                'base_user_role_missing'
+            );
+        }
+
+        $existing =
+            $this->connection()->prepare("
+                SELECT
+                    id,
+                    is_default
+                FROM user_role_assignments
+                WHERE user_id = ?
+                  AND role_id = ?
+                ORDER BY
+                    is_active DESC,
+                    id
+                LIMIT 1
+            ");
+
+        $existing->execute([
+            $userId,
+            $baseRoleId,
+        ]);
+
+        $row =
+            $existing->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        if (is_array($row)) {
+            $assignmentId =
+                (int) $row['id'];
+
+            $otherDefault =
+                $this->connection()->prepare("
+                    SELECT COUNT(*)
+                    FROM user_role_assignments
+                    WHERE user_id = ?
+                      AND is_default = 1
+                      AND id <> ?
+                ");
+
+            $otherDefault->execute([
+                $userId,
+                $assignmentId,
+            ]);
+
+            $makeDefault =
+                (int) $otherDefault
+                    ->fetchColumn() === 0
+                    ? 1
+                    : 0;
+
+            $update =
+                $this->connection()->prepare("
+                    UPDATE user_role_assignments
+                    SET
+                        scope_type = 'global',
+                        scope_id = NULL,
+                        include_children = 0,
+                        starts_at = NULL,
+                        ends_at = NULL,
+                        is_active = 1,
+                        is_default =
+                            CASE
+                                WHEN ? = 1
+                                    THEN 1
+                                ELSE is_default
+                            END,
+                        lifecycle_status_code =
+                            'active',
+                        requested_at =
+                            COALESCE(
+                                requested_at,
+                                created_at,
+                                CURRENT_TIMESTAMP
+                            ),
+                        eligibility_checked_at =
+                            CURRENT_TIMESTAMP,
+                        eligible_at =
+                            COALESCE(
+                                eligible_at,
+                                CURRENT_TIMESTAMP
+                            ),
+                        activated_at =
+                            COALESCE(
+                                activated_at,
+                                CURRENT_TIMESTAMP
+                            ),
+                        revoked_at = NULL,
+                        revoked_by = NULL,
+                        updated_at =
+                            CURRENT_TIMESTAMP
+                    WHERE id = ?
+                ");
+
+            $update->execute([
+                $makeDefault,
+                $assignmentId,
+            ]);
+
+            return;
+        }
+
+        $defaultExists =
+            $this->connection()->prepare("
+                SELECT COUNT(*)
+                FROM user_role_assignments
+                WHERE user_id = ?
+                  AND is_default = 1
+            ");
+
+        $defaultExists->execute([
+            $userId,
+        ]);
+
+        $isDefault =
+            (int) $defaultExists
+                ->fetchColumn() === 0
+                ? 1
+                : 0;
+
+        $insert =
+            $this->connection()->prepare("
+                INSERT INTO user_role_assignments (
+                    user_id,
+                    role_id,
+                    scope_type,
+                    scope_id,
+                    include_children,
+                    starts_at,
+                    ends_at,
+                    is_active,
+                    is_default,
+                    lifecycle_status_code,
+                    requested_at,
+                    eligibility_checked_at,
+                    eligible_at,
+                    activated_at,
+                    activated_by,
+                    revoked_at,
+                    revoked_by,
+                    assigned_by,
+                    created_at,
+                    updated_at
+                )
+                VALUES (
+                    ?,
+                    ?,
+                    'global',
+                    NULL,
+                    0,
+                    NULL,
+                    NULL,
+                    1,
+                    ?,
+                    'active',
+                    CURRENT_TIMESTAMP,
+                    CURRENT_TIMESTAMP,
+                    CURRENT_TIMESTAMP,
+                    CURRENT_TIMESTAMP,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL,
+                    CURRENT_TIMESTAMP,
+                    CURRENT_TIMESTAMP
+                )
+            ");
+
+        $insert->execute([
+            $userId,
+            $baseRoleId,
+            $isDefault,
+        ]);
     }
 
     private function syncGlobalRoles(int $userId, array $roleIds): void

@@ -27,6 +27,46 @@ $isEdit = !empty($page['is_edit']);
 $userId = (int) ($form['id'] ?? 0);
 $formAction = $isEdit ? '/admin/users/' . $userId : '/admin/users';
 $selectedRoleIds = array_map('intval', is_array($form['role_ids'] ?? null) ? $form['role_ids'] : []);
+
+$roleStates = is_array(
+    $page['role_states'] ?? null
+)
+    ? $page['role_states']
+    : [];
+
+$roleStateByRoleId = [];
+
+foreach ($roleStates as $roleState) {
+    $stateRoleId =
+        (int) (
+            $roleState['role_id']
+            ?? 0
+        );
+
+    if ($stateRoleId > 0) {
+        $roleStateByRoleId[
+            $stateRoleId
+        ] = $roleState;
+    }
+}
+
+$roleLifecycleLabels = [
+    'active' =>
+        'فعال',
+
+    'pending_identity' =>
+        'در انتظار تکمیل هویت',
+
+    'pending_scope' =>
+        'در انتظار تعیین حوزه',
+
+    'pending_identity_scope' =>
+        'در انتظار تکمیل هویت و حوزه',
+
+    'revoked' =>
+        'لغوشده',
+];
+
 $baseRoleId = 0;
 foreach ($roles as $roleDefinition) {
     if ((string) ($roleDefinition['code'] ?? '') === 'user') {
@@ -337,6 +377,26 @@ ob_start();
                                     $selectedRoleIds,
                                     true
                                 );
+
+                            $roleState =
+                                $roleStateByRoleId[
+                                    $roleId
+                                ] ?? null;
+
+                            $roleLifecycleCode =
+                                is_array($roleState)
+                                    ? (string) (
+                                        $roleState[
+                                            'lifecycle_status_code'
+                                        ]
+                                        ?? ''
+                                    )
+                                    : '';
+
+                            $roleLifecycleLabel =
+                                $roleLifecycleLabels[
+                                    $roleLifecycleCode
+                                ] ?? '';
                             ?>
                             <label
                                 class="role-row<?= $selected
@@ -386,6 +446,22 @@ ob_start();
                                     <?php if ($isBase): ?>
                                         <span class="role-row__badge">
                                             نقش پیش‌فرض
+                                        </span>
+                                    <?php endif; ?>
+
+                                    <?php if (
+                                        !$isBase
+                                        && $roleLifecycleLabel !== ''
+                                    ): ?>
+                                        <span
+                                            class="role-row__badge"
+                                            data-role-lifecycle="<?= admin_h(
+                                                $roleLifecycleCode
+                                            ) ?>"
+                                        >
+                                            <?= admin_h(
+                                                $roleLifecycleLabel
+                                            ) ?>
                                         </span>
                                     <?php endif; ?>
                                 </span>

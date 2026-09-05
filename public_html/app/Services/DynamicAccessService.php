@@ -483,6 +483,16 @@ class DynamicAccessService extends BaseService
                 'constraints' => $constraints,
             ];
 
+            $after['lifecycle'] =
+                (
+                    new RoleAssignmentLifecycleService(
+                        $this->db
+                    )
+                )->refreshAssignment(
+                    $actorUserId,
+                    $assignmentId
+                );
+
             $this->audit(
                 $actorUserId,
                 'role_assignment',
@@ -530,6 +540,16 @@ class DynamicAccessService extends BaseService
               AND assignments.user_id = ?
               AND assignments.is_active = 1
               AND roles.is_active = 1
+              AND (
+                    assignments.starts_at IS NULL
+                    OR assignments.starts_at
+                        <= CURRENT_TIMESTAMP
+                  )
+              AND (
+                    assignments.ends_at IS NULL
+                    OR assignments.ends_at
+                        >= CURRENT_TIMESTAMP
+                  )
             LIMIT 1
         ");
 
@@ -541,6 +561,144 @@ class DynamicAccessService extends BaseService
         $row = $statement->fetch(PDO::FETCH_ASSOC);
 
         return is_array($row) ? $row : null;
+    }
+
+    public function roleHasExplicitScopePolicy(
+        int $roleId
+    ): bool {
+        if (
+            $roleId < 1
+            || !Database::tableExists(
+                'role_scope_policies'
+            )
+        ) {
+            return false;
+        }
+
+        $statement =
+            $this->db->prepare("
+                SELECT COUNT(*)
+                FROM role_scope_policies
+                WHERE role_id = ?
+            ");
+
+        $statement->execute([
+            $roleId,
+        ]);
+
+        return
+            (int) $statement->fetchColumn()
+            > 0;
+    }
+
+    /**
+     * Scope policies such as own/global/assigned require no external
+     * entity reference. For exactly one required default policy of
+     * this type, the role policy itself is sufficient to derive the
+     * assignment scope.
+     *
+     * Concrete scopes (province/company/project/...) are never
+     * inferred here and remain fail-closed until a reference is
+     * explicitly assigned.
+     */
+    public function referenceFreeDefaultScopesForRole(
+        int $roleId
+    ): array {
+        if (
+            $roleId < 1
+            || !Database::tableExists(
+                'role_scope_policies'
+            )
+            || !Database::tableExists(
+                'access_scope_types'
+            )
+        ) {
+            return [];
+        }
+
+        $statement =
+            $this->db->prepare("
+                SELECT
+                    policies.scope_type_code,
+                    policies.is_default
+                FROM role_scope_policies
+                    AS policies
+                INNER JOIN access_scope_types
+                    AS scope_types
+                  ON scope_types.code =
+                        policies.scope_type_code
+                 AND scope_types.is_active = 1
+                WHERE policies.role_id = ?
+                  AND policies.is_required = 1
+                ORDER BY
+                    policies.is_default DESC,
+                    policies.id
+            ");
+
+        $statement->execute([
+            $roleId,
+        ]);
+
+        $rows =
+            $statement->fetchAll(
+                PDO::FETCH_ASSOC
+            ) ?: [];
+
+        if (count($rows) !== 1) {
+            return [];
+        }
+
+        $row = $rows[0];
+
+        if (
+            (int) (
+                $row['is_default']
+                ?? 0
+            ) !== 1
+        ) {
+            return [];
+        }
+
+        $code =
+            strtolower(
+                trim(
+                    (string) (
+                        $row[
+                            'scope_type_code'
+                        ]
+                        ?? ''
+                    )
+                )
+            );
+
+        if (
+            !in_array(
+                $code,
+                [
+                    'global',
+                    'own',
+                    'assigned',
+                ],
+                true
+            )
+        ) {
+            return [];
+        }
+
+        return [
+            [
+                'scope_type_code' =>
+                    $code,
+                'scope_reference' =>
+                    '*',
+                'effect_code' =>
+                    'allow',
+                'include_descendants' =>
+                    0,
+                'derived_from_role_policy' =>
+                    1,
+            ],
+        ];
     }
 
     private function permissions(): array
@@ -656,6 +814,7 @@ class DynamicAccessService extends BaseService
                 assignments.scope_type,
                 '' AS scope_reference,
                 assignments.is_active,
+                assignments.lifecycle_status_code,
                 assignments.starts_at,
                 assignments.ends_at,
                 roles.code AS role_code,
@@ -668,12 +827,16 @@ class DynamicAccessService extends BaseService
                 ) AS user_title
             FROM user_role_assignments AS assignments
             INNER JOIN roles
-                ON roles.id = assignments.role_id
+                ON roles.id =
+                    assignments.role_id
             INNER JOIN users
-                ON users.id = assignments.user_id
+                ON users.id =
+                    assignments.user_id
             LEFT JOIN persons
-                ON persons.id = users.person_id
-            WHERE assignments.is_active = 1
+                ON persons.id =
+                    users.person_id
+            WHERE assignments.lifecycle_status_code
+                    <> 'revoked'
               AND roles.is_active = 1
             ORDER BY
                 user_title,
@@ -1107,7 +1270,10 @@ class DynamicAccessService extends BaseService
                 ['title', 'name', 'display_name']
             ),
             'org_unit' => $this->lookupOptions(
-                ['organization_units'],
+                [
+                    'org_units',
+                    'organization_units',
+                ],
                 ['title', 'name', 'display_name']
             ),
             'project' => $this->externalLookupOptions(

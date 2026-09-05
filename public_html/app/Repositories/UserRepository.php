@@ -37,12 +37,7 @@ class UserRepository extends BaseRepository
                 $matches[] = '(users.email_verified_at IS NOT NULL AND users.email_norm = :email_norm_user)';
             }
 
-            if (Database::columnExists('persons', 'email_norm')) {
-                $matches[] = '(users.email_verified_at IS NOT NULL AND persons.email_norm = :email_norm_person)';
-            }
-
             $matches[] = '(users.email_verified_at IS NOT NULL AND LOWER(users.email) = :email_user)';
-            $matches[] = '(users.email_verified_at IS NOT NULL AND LOWER(persons.email) = :email_person)';
         }
 
         if ($identity['mobile'] !== null) {
@@ -254,9 +249,6 @@ class UserRepository extends BaseRepository
                     DISTINCT users.id
                 )
                 FROM users
-                LEFT JOIN persons
-                    ON persons.id =
-                        users.person_id
                 WHERE users.id <> ?
                   AND users.deleted_at
                         IS NULL
@@ -264,16 +256,12 @@ class UserRepository extends BaseRepository
                         IS NOT NULL
                   AND (
                     users.email_norm = ?
-                    OR persons.email_norm = ?
                     OR LOWER(users.email) = ?
-                    OR LOWER(persons.email) = ?
                   )
             ");
 
         $statement->execute([
             $exceptUserId,
-            $normalizedEmail,
-            $normalizedEmail,
             $normalizedEmail,
             $normalizedEmail,
         ]);
@@ -316,6 +304,7 @@ class UserRepository extends BaseRepository
                 LEFT JOIN persons ON persons.id = users.person_id
                 SET users.mobile = ?, users.mobile_norm = ?,
                     persons.mobile = ?, persons.mobile_norm = ?,
+                    users.mobile_verified_at = NULL,
                     users.updated_at = CURRENT_TIMESTAMP,
                     persons.updated_at = CURRENT_TIMESTAMP
                 WHERE users.id = ?
@@ -424,12 +413,7 @@ class UserRepository extends BaseRepository
                 $statement->bindValue(':email_norm_user', $identity['email']);
             }
 
-            if (Database::columnExists('persons', 'email_norm')) {
-                $statement->bindValue(':email_norm_person', $identity['email']);
-            }
-
             $statement->bindValue(':email_user', $identity['email']);
-            $statement->bindValue(':email_person', $identity['email']);
         }
 
         if ($identity['mobile'] !== null) {

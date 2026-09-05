@@ -145,13 +145,21 @@ $pass =
     && substr_count(
         $login,
         'users.email_verified_at IS NOT NULL'
-    ) === 4
+    ) === 2
 
     && str_contains(
         $login,
-        'persons.email_norm = :email_norm_person'
+        'users.email_norm = :email_norm_user'
     )
     && str_contains(
+        $login,
+        'LOWER(users.email) = :email_user'
+    )
+    && !str_contains(
+        $login,
+        'persons.email_norm = :email_norm_person'
+    )
+    && !str_contains(
         $login,
         'LOWER(persons.email) = :email_person'
     )
@@ -224,7 +232,7 @@ echo "STANDARD_SMTP_GATEWAY=PASS\n";
 echo "EMAIL_OTP_BOUND_TO_EXACT_EMAIL=PASS\n";
 echo "VERIFIED_EMAIL_OWNERSHIP_LOCK=PASS\n";
 echo "UNVERIFIED_EMAIL_LOGIN_BLOCKED=PASS\n";
-echo "VERIFIED_PERSON_EMAIL_MIRROR_PRESERVED=PASS\n";
+echo "VERIFIED_EMAIL_CANONICAL_USERS_ONLY=PASS\n";
 echo "EMAIL_CHANGE_REQUIRES_REVERIFICATION=PASS\n";
 echo "UNVERIFIED_EMAIL_DOES_NOT_RESERVE_IDENTITY=PASS\n";
 echo "AUTHENTICATED_EMAIL_VERIFICATION_ROUTES=PASS\n";

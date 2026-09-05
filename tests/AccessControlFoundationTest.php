@@ -73,7 +73,14 @@ $expect(
 
 $expect(
     str_contains($policy, 'approval_required')
-    && str_contains($send, 'notification_send_approval_required')
+    && str_contains(
+        $send,
+        "\$policy === 'approval_required'"
+    )
+    && str_contains(
+        $send,
+        "'pending_approval'"
+    )
     && str_contains(
         $send,
         'notification_send_manual_target_forbidden'
@@ -84,7 +91,7 @@ $expect(
 $expect(
     str_contains($routes, '/admin/access-control/users')
     && str_contains($view, 'سیاست ارسال اعلان')
-    && str_contains($view, 'data-acl-role-form'),
+    && str_contains($view, 'data-acl-role-panel'),
     'Access management UI or routes are incomplete.'
 );
 

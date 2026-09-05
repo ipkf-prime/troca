@@ -11,12 +11,16 @@ class IdentityVerificationService extends BaseService
 
     public function __construct(
         private ?IdentityVerificationRepository $verification = null,
-        private ?IdentityOtpDeliveryService $delivery = null
+        private ?IdentityOtpDeliveryService $delivery = null,
+        private ?RoleAssignmentLifecycleService $roleLifecycle = null
     ) {
         $this->verification ??=
             new IdentityVerificationRepository();
         $this->delivery ??=
             new IdentityOtpDeliveryService();
+
+        $this->roleLifecycle ??=
+            new RoleAssignmentLifecycleService();
     }
 
     public function page(int $userId): array
@@ -297,10 +301,29 @@ class IdentityVerificationService extends BaseService
             );
         }
 
+        $roleLifecycleRefreshed = true;
+
+        try {
+            $this->roleLifecycle
+                ->refreshUser(
+                    $userId,
+                    0
+                );
+        } catch (Throwable) {
+            /*
+             * Verification has already succeeded.
+             * Pending assignments remain fail-closed until
+             * a later successful lifecycle refresh.
+             */
+            $roleLifecycleRefreshed = false;
+        }
+
         return [
             'ok' => true,
             'status' => 'verified',
             'field' => $field,
+            'role_lifecycle_refreshed' =>
+                $roleLifecycleRefreshed,
         ];
     }
 

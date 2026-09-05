@@ -116,8 +116,15 @@ class IdentityChangeService extends BaseService
             return $this->error('value_not_available');
         }
 
-        $db = Database::connect();
-        $db->beginTransaction();
+        $db =
+            Database::connect();
+
+        $ownsTransaction =
+            !$db->inTransaction();
+
+        if ($ownsTransaction) {
+            $db->beginTransaction();
+        }
 
         try {
             $this->users->applyIdentityChange(
@@ -126,10 +133,39 @@ class IdentityChangeService extends BaseService
                 $normalized,
                 $normalized
             );
-            $this->changes->markApplied($requestId);
-            $db->commit();
+
+            $this->changes->markApplied(
+                $requestId
+            );
+
+            if (
+                Database::columnExists(
+                    'user_role_assignments',
+                    'lifecycle_status_code'
+                )
+            ) {
+                (
+                    new RoleAssignmentLifecycleService(
+                        $db
+                    )
+                )->refreshUser(
+                    $userId,
+                    $userId
+                );
+            }
+
+            if ($ownsTransaction) {
+                $db->commit();
+            }
+
         } catch (\Throwable $exception) {
-            $db->rollBack();
+            if (
+                $ownsTransaction
+                && $db->inTransaction()
+            ) {
+                $db->rollBack();
+            }
+
             throw $exception;
         }
 
