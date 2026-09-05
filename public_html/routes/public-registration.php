@@ -100,6 +100,7 @@ $registrationClearAttempt =
                 'public_registration_attempt_token',
                 'public_registration_verify_status',
                 'public_registration_dev_token',
+                'public_registration_invitation_token',
             ] as $key
         ) {
             \IPKF\Support\Session::forget(
@@ -196,6 +197,81 @@ $router->get(
             }
         }
 
+        $registrationInvitationToken =
+            trim(
+                (string) (
+                    $request->input(
+                        'invite',
+                        ''
+                    )
+                    ?: \IPKF\Support\Session::get(
+                        'public_registration_invitation_token'
+                    )
+                    ?: ''
+                )
+            );
+
+        $registrationInvitation = null;
+        $registrationErrors = [];
+        $registrationOld = [];
+
+        if ($registrationInvitationToken !== '') {
+            $invitationState =
+                (
+                    new \App\Services\UserInvitationService()
+                )->publicInvitation(
+                    $registrationInvitationToken
+                );
+
+            if (
+                ($invitationState['ok'] ?? false)
+                === true
+            ) {
+                $registrationInvitation =
+                    $invitationState['invitation']
+                    ?? null;
+
+                \IPKF\Support\Session::put(
+                    'public_registration_invitation_token',
+                    $registrationInvitationToken
+                );
+
+                if (is_array(
+                    $registrationInvitation
+                )) {
+                    $registrationOld = [
+                        'full_name' =>
+                            (string) (
+                                $registrationInvitation[
+                                    'full_name'
+                                ] ?? ''
+                            ),
+                        'mobile' =>
+                            (string) (
+                                $registrationInvitation[
+                                    'mobile'
+                                ] ?? ''
+                            ),
+                        'email' =>
+                            (string) (
+                                $registrationInvitation[
+                                    'email'
+                                ] ?? ''
+                            ),
+                    ];
+                }
+            } else {
+                \IPKF\Support\Session::forget(
+                    'public_registration_invitation_token'
+                );
+
+                $registrationErrors[
+                    'general'
+                ] =
+                    'لینک دعوت معتبر نیست یا منقضی شده است.';
+            }
+        }
+
         $registrationSuccess =
             (string) \IPKF\Support\Session::get(
                 'public_registration_success'
@@ -218,8 +294,12 @@ $router->get(
                         ? 'success'
                         : '',
 
-                'errors' => [],
-                'old' => [],
+                'errors' =>
+                    $registrationErrors,
+                'old' =>
+                    $registrationOld,
+                'invitation' =>
+                    $registrationInvitation,
             ]
         );
     }
@@ -285,6 +365,36 @@ $router->post(
                 ),
         ];
 
+        $registrationInvitationToken =
+            trim(
+                (string) (
+                    \IPKF\Support\Session::get(
+                        'public_registration_invitation_token'
+                    )
+                    ?? ''
+                )
+            );
+
+        $registrationInvitation = null;
+
+        if ($registrationInvitationToken !== '') {
+            $invitationState =
+                (
+                    new \App\Services\UserInvitationService()
+                )->publicInvitation(
+                    $registrationInvitationToken
+                );
+
+            if (
+                ($invitationState['ok'] ?? false)
+                === true
+            ) {
+                $registrationInvitation =
+                    $invitationState['invitation']
+                    ?? null;
+            }
+        }
+
         if (
             !$registrationCsrfValid(
                 $request
@@ -301,12 +411,63 @@ $router->post(
                             'اعتبار فرم منقضی شده است. صفحه را تازه‌سازی و دوباره تلاش کنید.',
                     ],
                     'old' => $old,
+                    'invitation' =>
+                        $registrationInvitation,
                 ],
                 422
             );
         }
 
+        if ($registrationInvitationToken !== '') {
+            $invitationValidation =
+                (
+                    new \App\Services\UserInvitationService()
+                )->validateSubmission(
+                    $registrationInvitationToken,
+                    $old
+                );
+
+            if (
+                ($invitationValidation['ok'] ?? false)
+                !== true
+            ) {
+                return $renderPublicRegistration(
+                    $response,
+                    [
+                        'title' =>
+                            'تکمیل دعوت',
+                        'status' => '',
+                        'errors' =>
+                            $invitationValidation[
+                                'errors'
+                            ] ?? [
+                                'general' =>
+                                    'دعوت معتبر نیست.',
+                            ],
+                        'old' => $old,
+                        'invitation' =>
+                            $invitationValidation[
+                                'invitation'
+                            ] ?? null,
+                    ],
+                    422
+                );
+            }
+
+            $registrationInvitation =
+                $invitationValidation[
+                    'invitation'
+                ] ?? null;
+        }
+
         $registrationClearAttempt();
+        if ($registrationInvitationToken !== '') {
+            \IPKF\Support\Session::put(
+                'public_registration_invitation_token',
+                $registrationInvitationToken
+            );
+        }
+
 
         $result =
             (
@@ -350,6 +511,13 @@ $router->post(
             ($result['ok'] ?? false)
             === true
         ) {
+            if ($registrationInvitationToken !== '') {
+                \IPKF\Support\Session::put(
+                    'public_registration_invitation_token',
+                    $registrationInvitationToken
+                );
+            }
+
             \IPKF\Support\Session::put(
                 'public_registration_attempt_id',
                 (int) $result[
@@ -416,6 +584,8 @@ $router->post(
                         ],
 
                 'old' => $old,
+                'invitation' =>
+                    $registrationInvitation,
             ],
             422
         );
@@ -573,6 +743,16 @@ $router->post(
             );
         }
 
+        $registrationInvitationToken =
+            trim(
+                (string) (
+                    \IPKF\Support\Session::get(
+                        'public_registration_invitation_token'
+                    )
+                    ?? ''
+                )
+            );
+
         $result =
             (
                 new \App\Services\PublicRegistrationOtpService()
@@ -589,6 +769,28 @@ $router->post(
             ($result['ok'] ?? false)
             === true
         ) {
+            if (
+                $registrationInvitationToken
+                !== ''
+            ) {
+                try {
+                    (
+                        new \App\Services\UserInvitationService()
+                    )->accept(
+                        $registrationInvitationToken,
+                        (int) (
+                            $result['user_id']
+                            ?? 0
+                        )
+                    );
+                } catch (\Throwable) {
+                    /*
+                     * Registration success is authoritative.
+                     * Invitation status can be reconciled later.
+                     */
+                }
+            }
+
             $registrationClearAttempt();
 
             \IPKF\Support\Session::put(

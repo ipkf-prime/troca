@@ -25,6 +25,14 @@ $old = is_array($old ?? null)
     ? $old
     : [];
 
+$invitation =
+    is_array($invitation ?? null)
+        ? $invitation
+        : null;
+
+$invited =
+    $invitation !== null;
+
 $themeService =
     new \App\Services\AdminThemeService();
 
@@ -380,7 +388,9 @@ $success =
                 </p>
 
                 <h1 class="register-brand__title">
-                    ثبت‌نام در
+                    <?= $invited
+                        ? 'تکمیل دعوت در'
+                        : 'ثبت‌نام در' ?>
                     <?= public_register_h(
                         $brandName
                     ) ?>
@@ -426,15 +436,29 @@ $success =
 
         <?php else: ?>
 
+            <?php if ($invited): ?>
+                <div class="admin-notice register-alert">
+                    <strong>
+                        دعوت اختصاصی
+                    </strong>
+                    <div>
+                        این دعوت برای
+                        <?= public_register_h(
+                            $invitation['mobile']
+                            ?? ''
+                        ) ?>
+                        صادر شده است.
+                        پس از تأیید شماره همراه،
+                        حساب با نقش پایه «کاربر»
+                        فعال می‌شود.
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <p class="register-intro">
-                برای ایجاد حساب کاربری،
-                اطلاعات اولیه زیر را وارد کنید.
-                پس از این مرحله،
-                شماره همراه شما با کد یک‌بارمصرف
-                تأیید خواهد شد.
-                اطلاعات هویتی و سازمانی موردنیاز
-                برای نقش‌های بالاتر،
-                هنگام ارتقای دسترسی تکمیل خواهد شد.
+                <?= $invited
+                    ? 'اطلاعات دعوت را بررسی و کلمه عبور خود را تعیین کنید. شماره همراه و ایمیل درج‌شده در دعوت قابل تغییر نیست.'
+                    : 'برای ایجاد حساب کاربری، اطلاعات اولیه زیر را وارد کنید. پس از این مرحله، شماره همراه شما با کد یک‌بارمصرف تأیید خواهد شد. اطلاعات هویتی و سازمانی موردنیاز برای نقش‌های بالاتر، هنگام ارتقای دسترسی تکمیل خواهد شد.' ?>
             </p>
 
             <?php if (
@@ -522,6 +546,9 @@ $success =
 
                         <input
                             name="mobile"
+                            <?= $invited
+                                ? 'readonly'
+                                : '' ?>
                             value="<?= public_register_h(
                                 $old['mobile']
                                 ?? ''
@@ -557,6 +584,16 @@ $success =
                         <input
                             name="email"
                             type="email"
+                            <?= $invited
+                                && trim(
+                                    (string) (
+                                        $invitation[
+                                            'email'
+                                        ] ?? ''
+                                    )
+                                ) !== ''
+                                    ? 'readonly'
+                                    : '' ?>
                             value="<?= public_register_h(
                                 $old['email']
                                 ?? ''

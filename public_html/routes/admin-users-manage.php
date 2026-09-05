@@ -106,7 +106,7 @@ $router->get('/admin/users/create', function (
     $page = $service->form((int) $context['user_id']);
 
     return $adminRender($response, 'admin-user-form', [
-        'title' => 'ایجاد کاربر',
+        'title' => 'افزودن دستی کاربر',
         'context' => $context,
         'page' => $page,
         'errors' => [],
@@ -169,7 +169,7 @@ $router->post('/admin/users', function (
     );
 
     return $adminRender($response, 'admin-user-form', [
-        'title' => 'ایجاد کاربر',
+        'title' => 'افزودن دستی کاربر',
         'context' => $context,
         'page' => $page,
         'errors' => $result['errors'] ?? [
@@ -178,6 +178,199 @@ $router->post('/admin/users', function (
         'status' => '',
     ], 422);
 });
+
+$router->get('/admin/users/invite', function (
+    $request,
+    $response
+) use (
+    $adminRender,
+    $adminGuard,
+    $adminUserManagementForbidden
+) {
+    $context =
+        $adminGuard(
+            $response,
+            '/admin/users'
+        );
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $service =
+        new \App\Services\UserInvitationService();
+
+    if (!$service->canInvite(
+        (int) $context['user_id']
+    )) {
+        return $adminUserManagementForbidden(
+            $response,
+            $adminRender,
+            $context
+        );
+    }
+
+    $createdInvitation =
+        \IPKF\Support\Session::get(
+            'admin_user_invitation_created'
+        );
+
+    \IPKF\Support\Session::forget(
+        'admin_user_invitation_created'
+    );
+
+    return $adminRender(
+        $response,
+        'user-invite',
+        [
+            'title' =>
+                'دعوت کاربر',
+            'context' =>
+                $context,
+            'errors' => [],
+            'old' => [
+                'full_name' => '',
+                'mobile' => '',
+                'email' => '',
+                'expires_days' => 7,
+            ],
+            'createdInvitation' =>
+                is_array(
+                    $createdInvitation
+                )
+                    ? $createdInvitation
+                    : null,
+        ]
+    );
+});
+
+
+$router->post('/admin/users/invite', function (
+    $request,
+    $response
+) use (
+    $adminRender,
+    $adminGuard,
+    $adminUserManagementForbidden
+) {
+    $context =
+        $adminGuard(
+            $response,
+            '/admin/users'
+        );
+
+    if (!is_array($context)) {
+        return $context;
+    }
+
+    $service =
+        new \App\Services\UserInvitationService();
+
+    if (!$service->canInvite(
+        (int) $context['user_id']
+    )) {
+        return $adminUserManagementForbidden(
+            $response,
+            $adminRender,
+            $context
+        );
+    }
+
+    if (
+        !(new \IPKF\Security\Csrf())
+            ->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+    ) {
+        return $adminRender(
+            $response,
+            'user-invite',
+            [
+                'title' =>
+                    'دعوت کاربر',
+                'context' =>
+                    $context,
+                'errors' => [
+                    'general' =>
+                        'اعتبار فرم منقضی شده است. صفحه را تازه‌سازی و دوباره تلاش کنید.',
+                ],
+                'old' =>
+                    $request->all(),
+                'createdInvitation' =>
+                    null,
+            ],
+            422
+        );
+    }
+
+    $input =
+        $request->all();
+
+    $input['created_ip'] =
+        $_SERVER['REMOTE_ADDR']
+        ?? '';
+
+    $input['created_user_agent'] =
+        $_SERVER['HTTP_USER_AGENT']
+        ?? '';
+
+    $result =
+        $service->create(
+            (int) $context['user_id'],
+            $input
+        );
+
+    if (($result['ok'] ?? false)
+        === true
+    ) {
+        \IPKF\Support\Session::put(
+            'admin_user_invitation_created',
+            $result['invitation']
+        );
+
+        return $response->redirect(
+            '/admin/users/invite'
+            . '?status=created'
+        );
+    }
+
+    if (($result['forbidden'] ?? false)
+        === true
+    ) {
+        return $adminUserManagementForbidden(
+            $response,
+            $adminRender,
+            $context
+        );
+    }
+
+    return $adminRender(
+        $response,
+        'user-invite',
+        [
+            'title' =>
+                'دعوت کاربر',
+            'context' =>
+                $context,
+            'errors' =>
+                $result['errors']
+                ?? [
+                    'general' =>
+                        'ایجاد دعوت انجام نشد.',
+                ],
+            'old' =>
+                $result['form']
+                ?? $request->all(),
+            'createdInvitation' =>
+                null,
+        ],
+        422
+    );
+});
+
 
 $router->get('/admin/users/{id}/edit', function (
     $request,
@@ -330,67 +523,35 @@ $router->post('/admin/users/{id}/roles', function (
     $request,
     $response
 ) use (
-    $adminRender,
-    $adminGuard,
-    $adminUserManagementForbidden
+    $adminGuard
 ) {
-    $context = $adminGuard($response, '/admin/users');
+    $context =
+        $adminGuard(
+            $response,
+            '/admin/users'
+        );
+
     if (!is_array($context)) {
         return $context;
     }
 
-    $service = new \App\Services\AdminUserManagementService();
-    if (!$service->canUpdate((int) $context['user_id'])) {
-        return $adminUserManagementForbidden($response, $adminRender, $context);
-    }
-
-    $userId = filter_var(
-        $request->route('id'),
-        FILTER_VALIDATE_INT,
-        ['options' => ['min_range' => 1]]
-    );
-    if ($userId === false) {
-        return $adminRender($response, 'user-not-found', [
-            'title' => 'کاربر پیدا نشد',
-            'context' => $context,
-        ], 404);
-    }
-
-    $result = $service->updateRoles(
-        (int) $context['user_id'],
-        (int) $userId,
-        $request->all()
-    );
-    if (($result['ok'] ?? false) === true) {
-        return $response->redirect(
-            '/admin/users/' . $userId . '/edit?status=roles_saved&tab=access'
+    $userId =
+        max(
+            0,
+            (int) $request->route(
+                'id'
+            )
         );
-    }
-    if (($result['not_found'] ?? false) === true) {
-        return $adminRender($response, 'user-not-found', [
-            'title' => 'کاربر پیدا نشد',
-            'context' => $context,
-        ], 404);
-    }
-    if (($result['forbidden'] ?? false) === true) {
-        return $adminUserManagementForbidden($response, $adminRender, $context);
-    }
 
-    $page = $service->form(
-        (int) $context['user_id'],
-        (int) $userId,
-        $result['form'] ?? []
+    return $response->redirect(
+        '/admin/access-control'
+        . '?tab=users'
+        . '&user_id='
+        . $userId
+        . '&status=access_management_moved'
     );
-    return $adminRender($response, 'admin-user-form', [
-        'title' => 'ویرایش کاربر',
-        'context' => $context,
-        'page' => $page,
-        'errors' => $result['errors'] ?? [
-            'invalid' => 'نقش‌های انتخاب‌شده معتبر نیستند.',
-        ],
-        'status' => '',
-    ], 422);
 });
+
 
 $adminManagedUserDetailRoute = function (
     string $pattern,

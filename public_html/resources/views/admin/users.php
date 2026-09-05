@@ -88,9 +88,17 @@ ob_start();
     grid-template-columns:2.5rem minmax(12rem,1fr) auto auto;
 }
 
-.admin-users-toolbar__action {
+.admin-users-toolbar__actions {
     align-items:center;
     display:flex;
+    flex-wrap:wrap;
+    gap:.45rem;
+}
+
+.admin-users-toolbar__actions .is-disabled {
+    cursor:not-allowed;
+    opacity:.58;
+    pointer-events:none;
 }
 
 .admin-users-total {
@@ -160,7 +168,7 @@ ob_start();
         grid-row:1;
     }
 
-    .admin-users-toolbar__action {
+    .admin-users-toolbar__actions {
         grid-column:2;
         grid-row:2;
     }
@@ -186,7 +194,7 @@ ob_start();
         width:100%;
     }
 
-    .admin-users-toolbar__action,
+    .admin-users-toolbar__actions,
     .admin-users-total {
         grid-column:auto;
         grid-row:1;
@@ -274,10 +282,28 @@ ob_start();
         </form>
 
         <?php if ($canCreate): ?>
-            <div class="admin-users-toolbar__action">
-                <a class="admin-button" href="/admin/users/create">
-                    ایجاد کاربر
+            <div class="admin-users-toolbar__actions">
+                <a
+                    class="admin-button"
+                    href="/admin/users/create"
+                >
+                    افزودن دستی
                 </a>
+
+                <a
+                    class="admin-button admin-button--soft"
+                    href="/admin/users/invite"
+                >
+                    دعوت کاربر
+                </a>
+
+                <span
+                    class="admin-button admin-button--soft is-disabled"
+                    aria-disabled="true"
+                    title="در مرحله بعد فعال می‌شود"
+                >
+                    ورود گروهی از فایل
+                </span>
             </div>
         <?php endif; ?>
 
