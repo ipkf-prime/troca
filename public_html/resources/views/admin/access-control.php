@@ -39,6 +39,63 @@ $assignments = is_array($page['assignments'] ?? null)
     : [];
 $assignmentId = (int) ($page['assignment_id'] ?? 0);
 
+$assignableRoles =
+    is_array(
+        $page['assignable_roles']
+        ?? null
+    )
+        ? $page['assignable_roles']
+        : [];
+
+$selectedRoleIds =
+    array_values(
+        array_unique(
+            array_map(
+                'intval',
+                is_array(
+                    $page['selected_role_ids']
+                    ?? null
+                )
+                    ? $page['selected_role_ids']
+                    : []
+            )
+        )
+    );
+
+$roleStates =
+    is_array(
+        $page['role_states']
+        ?? null
+    )
+        ? $page['role_states']
+        : [];
+
+$roleStateMap = [];
+
+foreach ($roleStates as $roleState) {
+    $roleId =
+        (int) (
+            $roleState['role_id']
+            ?? 0
+        );
+
+    if ($roleId > 0) {
+        $roleStateMap[$roleId] =
+            $roleState;
+    }
+}
+
+$roleLifecycleLabels = [
+    'active' => 'فعال',
+    'pending_identity' =>
+        'در انتظار تکمیل هویت',
+    'pending_scope' =>
+        'در انتظار تعیین حوزه',
+    'pending_identity_scope' =>
+        'در انتظار هویت و حوزه',
+    'revoked' => 'لغوشده',
+];
+
 $defaultAssignmentId = 0;
 
 foreach ($assignments as $assignment) {
@@ -130,12 +187,20 @@ $groupLabel = static fn ($value): string =>
 
 $scopeTitles = [
     'global' => 'سراسری',
-    'organization' => 'سازمان',
-    'org_unit' => 'واحد سازمانی',
+    'national' => 'ملی',
     'province' => 'استان',
     'county' => 'شهرستان',
+    'district' => 'بخش',
     'city' => 'شهر',
+    'village' => 'روستا',
+    'organization' => 'سازمان',
+    'company' => 'شرکت',
+    'warehouse' => 'انبار',
+    'center' => 'مرکز',
+    'org_unit' => 'واحد سازمانی',
+    'project' => 'پروژه',
     'own' => 'فقط خود کاربر',
+    'assigned' => 'واگذارشده',
 ];
 
 $scopeLabel = static fn ($value): string =>
@@ -171,6 +236,12 @@ $notices = [
         ['ok', 'مجوزهای نقش ذخیره شد.'],
     'user_policy_saved' =>
         ['ok', 'سیاست دسترسی کاربر ذخیره شد.'],
+
+    'user_roles_saved' =>
+        ['ok', 'نقش‌های کاربر ذخیره شد.'],
+
+    'access_management_moved' =>
+        ['ok', 'مدیریت دسترسی از مسیر قدیمی به این مرکز منتقل شده است.'],
 
     'default_role_saved' =>
         ['ok', 'نقش پیش‌فرض کاربر ذخیره شد.'],
@@ -249,6 +320,97 @@ ob_start();
     [data-acl-shell] select,
     [data-acl-shell] select option,
     [data-acl-shell] select optgroup{font-family:"Vazirmatn","Tahoma","Segoe UI",sans-serif!important}
+
+    .acl-user-role-manager{
+        background:var(--admin-surface);
+        border:1px solid var(--admin-border);
+        border-radius:.85rem;
+        margin:.8rem 0;
+        padding:.8rem;
+    }
+
+    .acl-user-role-manager__head{
+        align-items:center;
+        display:flex;
+        gap:.7rem;
+        justify-content:space-between;
+        margin-bottom:.65rem;
+    }
+
+    .acl-user-role-manager__head h4{
+        font-size:.84rem;
+        margin:0;
+    }
+
+    .acl-user-role-manager__head p{
+        color:var(--admin-text-muted);
+        font-size:.66rem;
+        line-height:1.7;
+        margin:.1rem 0 0;
+    }
+
+    .acl-user-role-grid{
+        display:grid;
+        gap:.45rem;
+        grid-template-columns:repeat(3,minmax(0,1fr));
+    }
+
+    .acl-user-role-choice{
+        align-items:center;
+        background:var(--admin-surface-muted);
+        border:1px solid var(--admin-border);
+        border-radius:.65rem;
+        display:grid;
+        gap:.15rem;
+        grid-template-columns:auto minmax(0,1fr) auto;
+        min-height:3.25rem;
+        padding:.45rem .55rem;
+    }
+
+    .acl-user-role-choice input{
+        height:1rem;
+        margin:0;
+        width:1rem;
+    }
+
+    .acl-user-role-choice strong{
+        display:block;
+        font-size:.72rem;
+    }
+
+    .acl-user-role-choice code{
+        color:var(--admin-text-muted);
+        display:block;
+        font-size:.58rem;
+        margin-top:.05rem;
+    }
+
+    .acl-user-role-actions{
+        align-items:center;
+        display:flex;
+        flex-wrap:wrap;
+        gap:.5rem;
+        justify-content:space-between;
+        margin-top:.65rem;
+    }
+
+    @media(max-width:980px){
+        .acl-user-role-grid{
+            grid-template-columns:repeat(2,minmax(0,1fr));
+        }
+    }
+
+    @media(max-width:640px){
+        .acl-user-role-grid{
+            grid-template-columns:1fr;
+        }
+
+        .acl-user-role-manager__head,
+        .acl-user-role-actions{
+            align-items:stretch;
+            display:grid;
+        }
+    }
     </style>
 
     <!-- DYNAMIC_SCOPED_ACCESS_ENTRY_V1 -->
@@ -956,6 +1118,162 @@ ob_start();
                         </label>
                     </form>
                 </header>
+
+                <section class="acl-user-role-manager">
+                    <header class="acl-user-role-manager__head">
+                        <div>
+                            <h4>نقش‌های کاربر</h4>
+                            <p>
+                                افزودن و حذف نقش فقط از این بخش انجام می‌شود.
+                                نقش پایه «کاربر» همیشه حفظ می‌شود.
+                            </p>
+                        </div>
+
+                        <a
+                            class="admin-button admin-button--soft admin-button--compact"
+                            href="/admin/access-control/scopes"
+                        >
+                            حوزه و محدودیت انتساب‌ها
+                        </a>
+                    </header>
+
+                    <form
+                        method="post"
+                        action="/admin/access-control/users/roles"
+                    >
+                        <input
+                            type="hidden"
+                            name="_token"
+                            value="<?= admin_h($csrf) ?>"
+                        >
+
+                        <input
+                            type="hidden"
+                            name="user_id"
+                            value="<?= (int) $selectedUser['id'] ?>"
+                        >
+
+                        <div class="acl-user-role-grid">
+                            <?php foreach ($assignableRoles as $role): ?>
+                                <?php
+                                $roleId =
+                                    (int) (
+                                        $role['id']
+                                        ?? 0
+                                    );
+
+                                $roleCode =
+                                    (string) (
+                                        $role['code']
+                                        ?? ''
+                                    );
+
+                                $selected =
+                                    $roleCode === 'user'
+                                    || in_array(
+                                        $roleId,
+                                        $selectedRoleIds,
+                                        true
+                                    );
+
+                                $isBase =
+                                    $roleCode === 'user';
+
+                                $state =
+                                    $roleStateMap[
+                                        $roleId
+                                    ] ?? null;
+
+                                $lifecycleCode =
+                                    is_array($state)
+                                        ? (string) (
+                                            $state[
+                                                'lifecycle_status_code'
+                                            ] ?? ''
+                                        )
+                                        : '';
+
+                                $lifecycleLabel =
+                                    $roleLifecycleLabels[
+                                        $lifecycleCode
+                                    ] ?? '';
+                                ?>
+
+                                <label
+                                    class="acl-user-role-choice"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        name="role_ids[]"
+                                        value="<?= $roleId ?>"
+                                        <?= $selected
+                                            ? 'checked'
+                                            : '' ?>
+                                        <?= $isBase
+                                            ? 'disabled'
+                                            : '' ?>
+                                    >
+
+                                    <?php if ($isBase): ?>
+                                        <input
+                                            type="hidden"
+                                            name="role_ids[]"
+                                            value="<?= $roleId ?>"
+                                        >
+                                    <?php endif; ?>
+
+                                    <span>
+                                        <strong>
+                                            <?= admin_h(
+                                                $role['title']
+                                                ?? ''
+                                            ) ?>
+                                        </strong>
+
+                                        <code dir="ltr">
+                                            <?= admin_h(
+                                                $roleCode
+                                            ) ?>
+                                        </code>
+                                    </span>
+
+                                    <?php if (
+                                        $lifecycleLabel !== ''
+                                    ): ?>
+                                        <span class="admin-pill">
+                                            <?= admin_h(
+                                                $lifecycleLabel
+                                            ) ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </label>
+                            <?php endforeach; ?>
+
+                            <?php if ($assignableRoles === []): ?>
+                                <div class="acl-empty">
+                                    نقش قابل‌انتسابی پیدا نشد.
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="acl-user-role-actions">
+                            <small class="admin-muted">
+                                ترتیب نقش‌ها از بالاترین اولویت مدیریتی
+                                تا نقش پایه کاربر است.
+                            </small>
+
+                            <button
+                                class="admin-button"
+                                type="submit"
+                                <?= $assignableRoles === []
+                                    ? 'disabled'
+                                    : '' ?>
+                            >
+                                ذخیره نقش‌های کاربر
+                            </button>
+                        </div>
+                    </form>
+                </section>
 
                 <section class="acl-default-role">
                     <div>

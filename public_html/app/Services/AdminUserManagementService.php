@@ -175,7 +175,7 @@ class AdminUserManagementService extends BaseService
         try {
             $userId = $this->users->create(
                 $validated['data'],
-                $validated['role_ids'],
+                $this->baseUserRoleIds(),
                 $this->roleSynchronizer(
                     $actorUserId
                 )
@@ -269,16 +269,15 @@ class AdminUserManagementService extends BaseService
             ];
         }
 
-        $preserveOwnSuperAdmin = $actorUserId === $userId
-            && $this->users->userHasGlobalRole($userId, 'super_admin');
-
         try {
             $this->users->update(
                 $userId,
                 $validated['data'],
-                $validated['role_ids'],
-                $preserveOwnSuperAdmin,
-                $this->roleSynchronizer(
+                [],
+                false,
+                null,
+                false,
+                $this->identityRefresher(
                     $actorUserId
                 )
             );
@@ -317,8 +316,22 @@ class AdminUserManagementService extends BaseService
         int $userId,
         array $input
     ): array {
-        if (!$this->canUpdate($actorUserId)) {
-            return ['ok' => false, 'forbidden' => true, 'errors' => []];
+        if (
+            !$this->canUpdate($actorUserId)
+            && !$this->authorization->hasPermission(
+                $actorUserId,
+                'access.users.manage'
+            )
+            && !$this->authorization->hasPermission(
+                $actorUserId,
+                'access.manage'
+            )
+        ) {
+            return [
+                'ok' => false,
+                'forbidden' => true,
+                'errors' => [],
+            ];
         }
 
         if ($this->users->findForForm($userId) === null) {
@@ -334,8 +347,17 @@ class AdminUserManagementService extends BaseService
             $roleIdsRaw,
             $this->canAssignProtectedRoles($actorUserId)
         );
-        $preserveOwnSuperAdmin = $actorUserId === $userId
-            && $this->users->userHasGlobalRole($userId, 'super_admin');
+        $preserveOwnSuperAdmin =
+            $this->users->userHasGlobalRole(
+                $userId,
+                'super_admin'
+            )
+            && (
+                $actorUserId === $userId
+                || !$this->canAssignProtectedRoles(
+                    $actorUserId
+                )
+            );
 
         try {
             $this->users->updateRoles(
@@ -643,6 +665,42 @@ class AdminUserManagementService extends BaseService
         }
 
         return $result;
+    }
+
+    private function baseUserRoleIds(): array
+    {
+        $baseRoleId =
+            $this->users->roleIdByCode(
+                'user'
+            );
+
+        if ($baseRoleId === null) {
+            throw new \RuntimeException(
+                'base_user_role_missing'
+            );
+        }
+
+        return [
+            $baseRoleId,
+        ];
+    }
+
+    private function identityRefresher(
+        int $actorUserId
+    ): callable {
+        return function (
+            $db,
+            int $managedUserId
+        ) use ($actorUserId): void {
+            (
+                new RoleAssignmentLifecycleService(
+                    $db
+                )
+            )->refreshUser(
+                $managedUserId,
+                $actorUserId
+            );
+        };
     }
 
     private function roleSynchronizer(

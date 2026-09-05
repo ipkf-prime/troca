@@ -34,7 +34,7 @@ class AccessControlRepository extends BaseRepository
     public function roles(): array
     {
         $order = Database::columnExists('roles', 'priority')
-            ? 'priority ASC, id ASC'
+            ? 'priority DESC, id ASC'
             : 'id ASC';
 
         return $this->connection()->query("
@@ -113,7 +113,7 @@ class AccessControlRepository extends BaseRepository
                 COALESCE((
                     SELECT GROUP_CONCAT(
                         DISTINCT roles.title
-                        ORDER BY roles.priority, roles.id
+                        ORDER BY roles.priority DESC, roles.id
                         SEPARATOR '، '
                     )
                     FROM user_role_assignments
@@ -157,7 +157,7 @@ class AccessControlRepository extends BaseRepository
                 COALESCE((
                     SELECT GROUP_CONCAT(
                         DISTINCT roles.title
-                        ORDER BY roles.priority, roles.id
+                        ORDER BY roles.priority DESC, roles.id
                         SEPARATOR '، '
                     )
                     FROM user_role_assignments
@@ -234,7 +234,7 @@ class AccessControlRepository extends BaseRepository
             WHERE user_role_assignments.user_id = ?
               AND user_role_assignments.is_active = 1
               AND roles.is_active = 1
-            ORDER BY roles.priority, user_role_assignments.id
+            ORDER BY roles.priority DESC, user_role_assignments.id
         ");
         $statement->execute([$userId]);
 

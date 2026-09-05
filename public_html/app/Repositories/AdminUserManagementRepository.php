@@ -110,7 +110,7 @@ class AdminUserManagementRepository extends BaseRepository
             LEFT JOIN role_areas ON role_areas.id = roles.role_area_id
             WHERE {$where}
             ORDER BY
-                roles.priority ASC,
+                roles.priority DESC,
                 roles.id ASC
         ");
 
@@ -121,11 +121,18 @@ class AdminUserManagementRepository extends BaseRepository
     {
         $protected = $includeProtected ? '' : " AND roles.code <> 'super_admin'";
         $statement = $this->connection()->query("
-            SELECT DISTINCT role_kinds.id, role_kinds.code, role_kinds.title
+            SELECT DISTINCT
+                role_kinds.id,
+                role_kinds.code,
+                role_kinds.title,
+                role_kinds.sort_order
             FROM role_kinds
-            INNER JOIN roles ON roles.role_kind_id = role_kinds.id
+            INNER JOIN roles
+                ON roles.role_kind_id = role_kinds.id
             WHERE roles.is_active = 1 {$protected}
-            ORDER BY role_kinds.title ASC, role_kinds.id ASC
+            ORDER BY
+                role_kinds.sort_order ASC,
+                role_kinds.id ASC
         ");
         return $statement->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -134,11 +141,18 @@ class AdminUserManagementRepository extends BaseRepository
     {
         $protected = $includeProtected ? '' : " AND roles.code <> 'super_admin'";
         $statement = $this->connection()->query("
-            SELECT DISTINCT role_areas.id, role_areas.code, role_areas.title
+            SELECT DISTINCT
+                role_areas.id,
+                role_areas.code,
+                role_areas.title,
+                role_areas.sort_order
             FROM role_areas
-            INNER JOIN roles ON roles.role_area_id = role_areas.id
+            INNER JOIN roles
+                ON roles.role_area_id = role_areas.id
             WHERE roles.is_active = 1 {$protected}
-            ORDER BY role_areas.title ASC, role_areas.id ASC
+            ORDER BY
+                role_areas.sort_order ASC,
+                role_areas.id ASC
         ");
         return $statement->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -587,7 +601,9 @@ class AdminUserManagementRepository extends BaseRepository
         array $data,
         array $roleIds,
         bool $preserveSuperAdmin,
-        ?callable $roleSynchronizer = null
+        ?callable $roleSynchronizer = null,
+        bool $syncRoles = true,
+        ?callable $identityRefresher = null
     ): bool {
         $db = $this->connection();
         $db->beginTransaction();
@@ -655,44 +671,60 @@ class AdminUserManagementRepository extends BaseRepository
             $this->syncPrimaryContacts($personId, $data);
             $this->syncPrimaryAddress($personId, $data);
 
+            if ($syncRoles) {
+                if (
+                    Database::columnExists(
+                        'user_role_assignments',
+                        'lifecycle_status_code'
+                    )
+                ) {
+                    if ($roleSynchronizer === null) {
+                        throw new RuntimeException(
+                            'role_assignment_lifecycle_synchronizer_required'
+                        );
+                    }
+
+                    $this->ensureBaseUserRole(
+                        $userId
+                    );
+
+                    $roleSynchronizer(
+                        $db,
+                        $userId,
+                        $roleIds,
+                        $preserveSuperAdmin
+                    );
+                } else {
+                    if ($preserveSuperAdmin) {
+                        $superAdminId =
+                            $this->roleIdByCode(
+                                'super_admin'
+                            );
+
+                        if ($superAdminId !== null) {
+                            $roleIds[] =
+                                $superAdminId;
+                        }
+                    }
+
+                    $this->syncGlobalRoles(
+                        $userId,
+                        $roleIds
+                    );
+                }
+
+            }
+
             if (
-                Database::columnExists(
+                $identityRefresher !== null
+                && Database::columnExists(
                     'user_role_assignments',
                     'lifecycle_status_code'
                 )
             ) {
-                if ($roleSynchronizer === null) {
-                    throw new RuntimeException(
-                        'role_assignment_lifecycle_synchronizer_required'
-                    );
-                }
-
-                $this->ensureBaseUserRole(
-                    $userId
-                );
-
-                $roleSynchronizer(
+                $identityRefresher(
                     $db,
-                    $userId,
-                    $roleIds,
-                    $preserveSuperAdmin
-                );
-            } else {
-                if ($preserveSuperAdmin) {
-                    $superAdminId =
-                        $this->roleIdByCode(
-                            'super_admin'
-                        );
-
-                    if ($superAdminId !== null) {
-                        $roleIds[] =
-                            $superAdminId;
-                    }
-                }
-
-                $this->syncGlobalRoles(
-                    $userId,
-                    $roleIds
+                    $userId
                 );
             }
 

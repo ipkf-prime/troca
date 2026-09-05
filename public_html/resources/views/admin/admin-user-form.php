@@ -142,6 +142,7 @@ ob_start();
 ?>
 <style>
 .user-editor { display:grid; gap:.85rem; }
+.user-editor select,.user-editor select option,.user-editor select optgroup { font-family:"Vazirmatn","Tahoma","Segoe UI",sans-serif!important; }
 .user-editor__head, .user-editor__tabs, .user-block, .access-card, .user-actions { background:var(--admin-surface); border:1px solid var(--admin-border); border-radius:.9rem; }
 .user-editor__head { align-items:center; display:flex; gap:.8rem; justify-content:space-between; min-height:4rem; padding:.7rem .9rem; }
 .user-editor__title { align-items:center; display:flex; gap:.65rem; min-width:0; }
@@ -200,9 +201,13 @@ ob_start();
 .permission-next small { color:var(--admin-text-muted); display:block; font-size:.65rem; line-height:1.75; margin-top:.1rem; }
 .user-actions { bottom:.5rem; box-shadow:0 8px 24px rgb(15 23 42/.08); display:flex; gap:.45rem; justify-content:space-between; margin-top:.8rem; padding:.5rem; position:sticky; z-index:20; }
 .user-actions > div { display:flex; flex-wrap:wrap; gap:.4rem; }
+.user-access-summary-grid { display:grid; gap:.55rem; grid-template-columns:repeat(2,minmax(0,1fr)); }
+.user-access-summary-role { align-items:center; background:var(--admin-surface-muted); border:1px solid var(--admin-border); border-radius:.72rem; display:flex; gap:.6rem; justify-content:space-between; min-height:3.2rem; padding:.55rem .65rem; }
+.user-access-summary-role strong { display:block; font-size:.76rem; }
+.user-access-summary-role code { color:var(--admin-text-muted); display:block; font-size:.62rem; margin-top:.1rem; }
 @media (max-width:1100px) { .user-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .access-tools { grid-template-columns:1fr 1fr; } .access-tools .user-field:last-child { grid-column:1/-1; } }
 @media (max-width:1050px) { .role-table__head { display:none; } .role-row { align-items:start; grid-template-columns:1.25rem minmax(0,1fr) minmax(0,1fr); } .role-row__identity { grid-column:2/-1; } .role-row__code { grid-column:2; } .role-row__meta { background:var(--admin-surface); border:1px solid var(--admin-border); border-radius:.55rem; min-height:2.8rem; padding:.4rem .5rem; } .role-row__meta small { display:block; } }
-@media (max-width:760px) { .user-grid,.user-grid--2,.access-tools,.access-summary { grid-template-columns:1fr; } .user-field--wide,.access-tools .user-field:last-child { grid-column:auto; } .role-row { grid-template-columns:1.25rem minmax(0,1fr); } .role-row__identity,.role-row__code,.role-row__meta { grid-column:2; } .user-editor__head p { display:none; } .user-actions,.permission-next { display:grid; } }
+@media (max-width:760px) { .user-grid,.user-grid--2,.access-tools,.access-summary,.user-access-summary-grid { grid-template-columns:1fr; } .user-field--wide,.access-tools .user-field:last-child { grid-column:auto; } .role-row { grid-template-columns:1.25rem minmax(0,1fr); } .role-row__identity,.role-row__code,.role-row__meta { grid-column:2; } .user-editor__head p { display:none; } .user-actions,.permission-next { display:grid; } }
 </style>
 
 <div class="user-editor" data-user-editor data-active-tab="<?= admin_h($activeTab) ?>">
@@ -216,7 +221,7 @@ ob_start();
     <header class="user-editor__head">
         <div class="user-editor__title">
             <span class="user-editor__icon"><?= \App\Support\AdminIcon::html('users') ?></span>
-            <div><h2><?= $isEdit ? 'ویرایش کاربر' : 'ایجاد کاربر جدید' ?></h2><p>هویت، اطلاعات تماس، نشانی و دسترسی‌ها را کامل ثبت کنید.</p></div>
+            <div><h2><?= $isEdit ? 'ویرایش کاربر' : 'ایجاد کاربر جدید' ?></h2><p>هویت، اطلاعات تماس، نشانی و وضعیت حساب را مدیریت کنید.</p></div>
         </div>
         <a class="admin-button admin-button--soft admin-button--compact" href="/admin/users">بازگشت</a>
     </header>
@@ -320,184 +325,156 @@ ob_start();
 
         <section class="user-editor__panel" data-user-panel="access" <?= $activeTab === 'access' ? '' : 'hidden' ?>>
             <section class="access-card">
-                <div class="access-card__head"><div><h3>فیلتر نقش‌ها</h3><p>نقش‌ها را بر اساس نوع سطح دسترسی، حوزه و عنوان محدود کنید.</p></div></div>
-                <div class="access-tools">
-                    <label class="user-field"><span>نوع سطح دسترسی</span><select name="access_kind" data-kind-filter><?php foreach ($roleKinds as $kind): ?><option value="<?= admin_h($kind['code'] ?? 'all') ?>" <?= (string)($form['access_kind'] ?? 'all') === (string)($kind['code'] ?? 'all') ? 'selected' : '' ?>><?= admin_h($kind['title'] ?? '') ?></option><?php endforeach; ?></select></label>
-                    <label class="user-field"><span>حوزه دسترسی</span><select name="access_area" data-area-filter><?php foreach ($roleAreas as $area): ?><option value="<?= admin_h($area['code'] ?? 'all') ?>" <?= (string)($form['access_area'] ?? 'all') === (string)($area['code'] ?? 'all') ? 'selected' : '' ?>><?= admin_h($area['title'] ?? '') ?></option><?php endforeach; ?></select></label>
-                    <label class="user-field"><span>جست‌وجوی نقش</span><input type="search" name="role_search" value="<?= admin_h($form['role_search'] ?? '') ?>" maxlength="80" placeholder="عنوان یا کد نقش" data-role-search></label>
-                </div>
-            </section>
-
-            <section class="access-card">
-                <div class="access-card__head"><div><h3>نقش‌های کاربر</h3><p>نقش پایه «کاربر» همیشه فعال است.</p></div><span class="admin-pill"><span data-role-count><?= count($selectedRoleIds) ?></span> نقش فعال</span></div>
-                <div class="access-summary"><span class="access-summary__title">انتخاب‌های فعلی</span><div class="access-summary__content"><div class="access-summary__chips" data-role-summary></div><span class="access-summary__empty" data-role-summary-empty>فقط نقش پایه کاربر فعال است.</span></div></div>
-                <div class="role-table" style="margin-top:.75rem">
-                    <div class="role-table__head">
-                        <span>انتخاب</span>
-                        <?php foreach ([
-                            'title' => 'عنوان نقش',
-                            'code' => 'کد نقش',
-                            'kind' => 'نوع دسترسی',
-                            'area' => 'حوزه دسترسی',
-                            'scope' => 'مرجع حوزه',
-                        ] as $roleSortKey => $roleSortLabel): ?>
-                            <button
-                                type="button"
-                                class="admin-sort-link"
-                                data-role-sort="<?= admin_h($roleSortKey) ?>"
-                            >
-                                <?= admin_h($roleSortLabel) ?>
-                                <span class="admin-sort-link__indicator">↕</span>
-                            </button>
-                        <?php endforeach; ?>
+                <div class="access-card__head">
+                    <div>
+                        <h3>خلاصه نقش و دسترسی</h3>
+                        <p>
+                            این بخش فقط وضعیت فعلی را نمایش می‌دهد.
+                            تغییر نقش، حوزه و مجوز از مرکز کنترل دسترسی انجام می‌شود.
+                        </p>
                     </div>
 
-                    <div class="role-table__body" data-role-list>
+                    <?php if ($isEdit): ?>
+                        <a
+                            class="admin-button admin-button--compact"
+                            href="<?= admin_h(
+                                '/admin/access-control'
+                                . '?tab=users'
+                                . '&user_id='
+                                . $userId
+                            ) ?>"
+                        >
+                            مدیریت نقش و دسترسی این کاربر
+                        </a>
+                    <?php endif; ?>
+                </div>
+
+                <?php if (!$isEdit): ?>
+                    <div class="permission-next">
+                        <div>
+                            <strong>نقش پایه کاربر</strong>
+                            <small>
+                                حساب جدید فقط با نقش پایه «کاربر» ایجاد می‌شود.
+                                پس از ایجاد حساب، نقش‌های تکمیلی را از مرکز کنترل دسترسی اضافه کنید.
+                            </small>
+                        </div>
+                        <span class="admin-pill">
+                            خودکار
+                        </span>
+                    </div>
+
+                <?php else: ?>
+                    <div class="user-access-summary-grid">
+                        <?php
+                        $visibleRoleCount = 0;
+                        ?>
+
                         <?php foreach ($roles as $role): ?>
                             <?php
-                            $roleId = (int) ($role['id'] ?? 0);
-                            $roleCode = (string) ($role['code'] ?? '');
-                            $roleTitle = (string) ($role['title'] ?? '');
-                            $kindTitle = (string) (
-                                $role['role_kind_title'] ?? 'سایر'
-                            );
-                            $areaTitle = (string) (
-                                $role['role_area_title'] ?? 'سراسری'
-                            );
-                            $areaCode = (string) (
-                                $role['role_area_code'] ?? 'global'
-                            );
-                            $scopeReference = $areaCode === 'global'
-                                ? 'کل سامانه'
-                                : 'هنگام انتصاب تعیین می‌شود';
-                            $isBase = $roleCode === 'user';
-                            $selected = $isBase
-                                || in_array(
+                            $roleId =
+                                (int) (
+                                    $role['id']
+                                    ?? 0
+                                );
+
+                            if (
+                                !in_array(
                                     $roleId,
                                     $selectedRoleIds,
                                     true
+                                )
+                            ) {
+                                continue;
+                            }
+
+                            $visibleRoleCount++;
+
+                            $roleCode =
+                                (string) (
+                                    $role['code']
+                                    ?? ''
                                 );
 
-                            $roleState =
+                            $state =
                                 $roleStateByRoleId[
                                     $roleId
                                 ] ?? null;
 
-                            $roleLifecycleCode =
-                                is_array($roleState)
+                            $lifecycleCode =
+                                is_array($state)
                                     ? (string) (
-                                        $roleState[
+                                        $state[
                                             'lifecycle_status_code'
-                                        ]
-                                        ?? ''
+                                        ] ?? ''
                                     )
                                     : '';
 
-                            $roleLifecycleLabel =
+                            $lifecycleLabel =
                                 $roleLifecycleLabels[
-                                    $roleLifecycleCode
-                                ] ?? '';
+                                    $lifecycleCode
+                                ] ?? 'ثبت‌شده';
                             ?>
-                            <label
-                                class="role-row<?= $selected
-                                    ? ' is-selected'
-                                    : '' ?><?= $isBase
-                                    ? ' is-base'
-                                    : '' ?>"
-                                data-role-row
-                                data-kind="<?= admin_h(
-                                    $role['role_kind_code']
-                                    ?? 'uncategorized'
-                                ) ?>"
-                                data-area="<?= admin_h($areaCode) ?>"
-                                data-search="<?= admin_h(
-                                    strtolower(
-                                        $roleTitle . ' ' . $roleCode
-                                    )
-                                ) ?>"
-                                data-sort-title="<?= admin_h($roleTitle) ?>"
-                                data-sort-code="<?= admin_h($roleCode) ?>"
-                                data-sort-kind="<?= admin_h($kindTitle) ?>"
-                                data-sort-area="<?= admin_h($areaTitle) ?>"
-                                data-sort-scope="<?= admin_h(
-                                    $scopeReference
-                                ) ?>"
-                            >
-                                <input
-                                    type="checkbox"
-                                    name="role_ids[]"
-                                    value="<?= $roleId ?>"
-                                    data-role-checkbox
-                                    data-title="<?= admin_h($roleTitle) ?>"
-                                    <?= $selected ? ' checked' : '' ?>
-                                    <?= $isBase ? ' disabled' : '' ?>
+
+                            <article class="user-access-summary-role">
+                                <div>
+                                    <strong>
+                                        <?= admin_h(
+                                            $role['title']
+                                            ?? ''
+                                        ) ?>
+                                    </strong>
+
+                                    <code dir="ltr">
+                                        <?= admin_h($roleCode) ?>
+                                    </code>
+                                </div>
+
+                                <span
+                                    class="admin-pill"
+                                    data-role-lifecycle="<?= admin_h(
+                                        $lifecycleCode
+                                    ) ?>"
                                 >
-
-                                <?php if ($isBase): ?>
-                                    <input
-                                        type="hidden"
-                                        name="role_ids[]"
-                                        value="<?= $roleId ?>"
-                                    >
-                                <?php endif; ?>
-
-                                <span class="role-row__identity">
-                                    <strong><?= admin_h($roleTitle) ?></strong>
-                                    <?php if ($isBase): ?>
-                                        <span class="role-row__badge">
-                                            نقش پیش‌فرض
-                                        </span>
-                                    <?php endif; ?>
-
-                                    <?php if (
-                                        !$isBase
-                                        && $roleLifecycleLabel !== ''
-                                    ): ?>
-                                        <span
-                                            class="role-row__badge"
-                                            data-role-lifecycle="<?= admin_h(
-                                                $roleLifecycleCode
-                                            ) ?>"
-                                        >
-                                            <?= admin_h(
-                                                $roleLifecycleLabel
-                                            ) ?>
-                                        </span>
-                                    <?php endif; ?>
+                                    <?= admin_h(
+                                        $lifecycleLabel
+                                    ) ?>
                                 </span>
-
-                                <code class="role-row__code">
-                                    <?= admin_h($roleCode) ?>
-                                </code>
-
-                                <span class="role-row__meta">
-                                    <small>نوع دسترسی</small>
-                                    <?= admin_h($kindTitle) ?>
-                                </span>
-
-                                <span class="role-row__meta">
-                                    <small>حوزه دسترسی</small>
-                                    <?= admin_h($areaTitle) ?>
-                                </span>
-
-                                <span class="role-row__meta role-row__scope">
-                                    <small>مرجع حوزه</small>
-                                    <?= admin_h($scopeReference) ?>
-                                </span>
-                            </label>
+                            </article>
                         <?php endforeach; ?>
 
-                        <div class="role-empty" data-role-empty>
-                            نقشی مطابق فیلتر پیدا نشد.
-                        </div>
+                        <?php if ($visibleRoleCount === 0): ?>
+                            <div class="admin-empty-state">
+                                نقش قابل‌نمایشی برای این حساب ثبت نشده است.
+                            </div>
+                        <?php endif; ?>
                     </div>
-                </div>
-            </section>
 
-            <section class="access-card"><div class="permission-next"><div><strong>مجوزهای ریزدانه</strong><small>مدیریت مستقیم Permissionها در مرحله توسعه دسترسی‌ها به همین تب اضافه می‌شود.</small></div><span class="admin-pill">مرحله بعد</span></div></section>
+                    <div class="permission-next" style="margin-top:.75rem">
+                        <div>
+                            <strong>مرجع تغییرات دسترسی</strong>
+                            <small>
+                                افزودن یا حذف نقش، تعیین حوزه، محدودیت،
+                                نقش پیش‌فرض و Permission فقط در مرکز کنترل دسترسی انجام می‌شود.
+                            </small>
+                        </div>
+
+                        <a
+                            class="admin-button admin-button--soft admin-button--compact"
+                            href="<?= admin_h(
+                                '/admin/access-control'
+                                . '?tab=users'
+                                . '&user_id='
+                                . $userId
+                            ) ?>"
+                        >
+                            باز کردن مرکز کنترل
+                        </a>
+                    </div>
+                <?php endif; ?>
+            </section>
         </section>
 
-        <footer class="user-actions"><div><button class="admin-button" type="submit"><?= $isEdit ? 'ذخیره تغییرات' : 'ایجاد کاربر' ?></button><?php if($isEdit):?><button class="admin-button admin-button--soft" type="submit" formaction="<?= admin_h('/admin/users/'.$userId.'/roles') ?>" formnovalidate>ذخیره نقش‌ها و دسترسی‌ها</button><?php endif;?><a class="admin-button admin-button--soft" href="/admin/users">انصراف</a></div><div><?php if($isEdit):?><a class="admin-button admin-button--soft" href="<?= admin_h('/admin/users/'.$userId) ?>">مشاهده جزئیات</a><?php endif;?></div></footer>
+        <footer class="user-actions"><div><button class="admin-button" type="submit"><?= $isEdit ? 'ذخیره تغییرات' : 'ایجاد کاربر' ?></button><a class="admin-button admin-button--soft" href="/admin/users">انصراف</a></div><div><?php if($isEdit):?><a class="admin-button admin-button--soft" href="<?= admin_h('/admin/users/'.$userId) ?>">مشاهده جزئیات</a><?php endif;?></div></footer>
     </form>
 </div>
 
@@ -788,56 +765,7 @@ ob_start();
         loadSelectedAddressType
     );
 
-    const kind=root.querySelector('[data-kind-filter]'); const area=root.querySelector('[data-area-filter]'); const search=root.querySelector('[data-role-search]'); const rows=[...root.querySelectorAll('[data-role-row]')]; const empty=root.querySelector('[data-role-empty]'); const summary=root.querySelector('[data-role-summary]'); const summaryEmpty=root.querySelector('[data-role-summary-empty]'); const counts=[...root.querySelectorAll('[data-role-count]')];
-    const normalize=value=>String(value||'').trim().toLocaleLowerCase('fa');
-    const filter=()=>{let visible=0;rows.forEach(row=>{const show=(kind?.value==='all'||row.dataset.kind===kind?.value)&&(area?.value==='all'||row.dataset.area===area?.value)&&(!normalize(search?.value)||normalize(row.dataset.search).includes(normalize(search?.value)));row.hidden=!show;if(show)visible++;});empty?.classList.toggle('is-visible',visible===0);};
-    const selection=()=>{const checked=[...root.querySelectorAll('[data-role-checkbox]:checked')];rows.forEach(row=>row.classList.toggle('is-selected',Boolean(row.querySelector('[data-role-checkbox]')?.checked)));if(summary){summary.textContent='';checked.filter(item=>!item.disabled).forEach(item=>{const chip=document.createElement('span');chip.className='access-chip';chip.textContent=item.dataset.title||'';summary.appendChild(chip);});}if(summaryEmpty)summaryEmpty.hidden=checked.filter(item=>!item.disabled).length>0;counts.forEach(count=>count.textContent=String(checked.length));};
-    const roleList=root.querySelector('[data-role-list]');
-    let roleSort={key:'',dir:'asc'};
-    const sortRoles=key=>{
-        roleSort={
-            key,
-            dir:roleSort.key===key&&roleSort.dir==='asc'
-                ?'desc'
-                :'asc'
-        };
-        const dataKey=`sort${key.charAt(0).toUpperCase()+key.slice(1)}`;
-        const sorted=[...rows].sort((a,b)=>{
-            const left=normalize(a.dataset[dataKey]);
-            const right=normalize(b.dataset[dataKey]);
-            const compared=left.localeCompare(
-                right,
-                key==='code'?'en':'fa',
-                {numeric:true,sensitivity:'base'}
-            );
-            return roleSort.dir==='asc'?compared:-compared;
-        });
-        sorted.forEach(row=>roleList?.insertBefore(row,empty));
-        root.querySelectorAll('[data-role-sort]').forEach(button=>{
-            const indicator=button.querySelector('.admin-sort-link__indicator');
-            if(indicator){
-                indicator.textContent=button.dataset.roleSort===key
-                    ?(roleSort.dir==='asc'?'↑':'↓')
-                    :'↕';
-            }
-        });
-    };
-    root.querySelectorAll('[data-role-sort]').forEach(button=>
-        button.addEventListener(
-            'click',
-            ()=>sortRoles(button.dataset.roleSort||'title')
-        )
-    );
-    kind?.addEventListener('change',filter);
-    area?.addEventListener('change',filter);
-    search?.addEventListener('input',filter);
-    rows.forEach(row=>
-        row.querySelector('[data-role-checkbox]')
-            ?.addEventListener('change',selection)
-    );
-    // Initial order is roles.priority from the database.
-    filter();
-    selection();
+    // Role assignment is managed exclusively by /admin/access-control.
 })();
 </script>
 <?php

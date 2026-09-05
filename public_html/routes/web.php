@@ -1859,10 +1859,7 @@ $router->get('/admin/access', function ($request, $response) use ($adminRender, 
         'title' => 'سطح دسترسی فعال',
         'context' => $context,
         'status' => trim((string) $request->input('status', '')),
-        'canManageCommunicationAccess' => $canManage,
-        'communicationMatrix' => $canManage
-            ? (new \App\Repositories\PermissionRepository())->communicationMatrix()
-            : [],
+        'canManageAccessControl' => $canManage,
     ]);
 });
 
@@ -1951,6 +1948,79 @@ $router->post('/admin/access-control/roles', function (
         );
     }
 });
+
+$router->post(
+    '/admin/access-control/users/roles',
+    function (
+        $request,
+        $response
+    ) use ($adminGuard) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/access'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        if (
+            !(new \IPKF\Security\Csrf())
+                ->check(
+                    (string) $request
+                        ->input(
+                            '_token',
+                            ''
+                        )
+                )
+        ) {
+            return $response->redirect(
+                '/admin/access-control'
+                . '?tab=users'
+                . '&status=invalid_csrf'
+            );
+        }
+
+        $userId =
+            max(
+                0,
+                (int) $request->input(
+                    'user_id',
+                    0
+                )
+            );
+
+        try {
+            (new \App\Services\AccessControlService())
+                ->saveUserRoles(
+                    (int) $context['user_id'],
+                    $request->all()
+                );
+
+            return $response->redirect(
+                '/admin/access-control'
+                . '?tab=users'
+                . '&user_id='
+                . $userId
+                . '&status=user_roles_saved'
+            );
+
+        } catch (\Throwable $exception) {
+            return $response->redirect(
+                '/admin/access-control'
+                . '?tab=users'
+                . '&user_id='
+                . $userId
+                . '&status='
+                . rawurlencode(
+                    $exception->getMessage()
+                )
+            );
+        }
+    }
+);
+
 
 $router->post(
     '/admin/access-control/users/default-role',
@@ -2300,18 +2370,15 @@ $router->post('/admin/access', function ($request, $response) {
     return $response->redirect('/admin/access?status=' . ($assignment === null ? 'forbidden' : 'switched'));
 });
 
-$router->post('/admin/access/communications', function ($request, $response) use ($adminGuard) {
-    $context = $adminGuard($response, '/admin/access');
-    if (!is_array($context)) return $context;
-    if (!(new \App\Services\AuthorizationService())->hasPermission((int) $context['user_id'], 'access.manage')) {
-        return $response->redirect('/admin/access?status=forbidden');
-    }
-    $codes = $request->input('permissions', []);
-    $saved = (new \App\Repositories\PermissionRepository())->saveCommunicationRolePermissions(
-        (int) $request->input('role_id', 0),
-        is_array($codes) ? $codes : []
+$router->post('/admin/access/communications', function (
+    $request,
+    $response
+) {
+    return $response->redirect(
+        '/admin/access-control'
+        . '?tab=roles'
+        . '&status=access_management_moved'
     );
-    return $response->redirect('/admin/access?status=' . ($saved ? 'permissions_saved' : 'protected_role'));
 });
 
 $router->post('/admin/profile/access', function ($request, $response) {

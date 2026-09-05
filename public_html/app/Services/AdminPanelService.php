@@ -805,7 +805,6 @@ class AdminPanelService extends BaseService
                 'sort_order' => 10,
                 'actions' => [
                     ['key' => 'users-list', 'title' => $this->fa('&#x06A9;&#x0627;&#x0631;&#x0628;&#x0631;&#x0627;&#x0646;'), 'description' => $this->fa('&#x0645;&#x0634;&#x0627;&#x0647;&#x062F;&#x0647; &#x0648; &#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x062D;&#x0633;&#x0627;&#x0628;&#x200C;&#x0647;&#x0627;&#x06CC; &#x06A9;&#x0627;&#x0631;&#x0628;&#x0631;&#x06CC;'), 'icon' => 'user-group', 'color' => 'blue', 'url' => '/admin/users', 'permission' => 'users.view', 'sort_order' => 10],
-                    ['key' => 'access', 'title' => $this->fa('&#x0646;&#x0642;&#x0634;&#x200C;&#x0647;&#x0627; &#x0648; &#x062F;&#x0633;&#x062A;&#x0631;&#x0633;&#x06CC;&#x200C;&#x0647;&#x0627;'), 'description' => $this->fa('&#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x0646;&#x0642;&#x0634;&#x200C;&#x0647;&#x0627;&#x060C; &#x0645;&#x062C;&#x0648;&#x0632;&#x0647;&#x0627; &#x0648; &#x062F;&#x0633;&#x062A;&#x0631;&#x0633;&#x06CC;&#x200C;&#x0647;&#x0627;'), 'icon' => 'user-shield', 'color' => 'indigo', 'url' => '/admin/access', 'permission' => 'access.manage', 'sort_order' => 20],
                 ],
             ],
             [
@@ -837,7 +836,17 @@ class AdminPanelService extends BaseService
                 'actions' => [
                     ['key' => 'theme', 'title' => $this->fa('&#x067E;&#x0648;&#x0633;&#x062A;&#x0647; &#x067E;&#x0646;&#x0644;'), 'description' => $this->fa('&#x0645;&#x062F;&#x06CC;&#x0631;&#x06CC;&#x062A; &#x0638;&#x0627;&#x0647;&#x0631; &#x0648; &#x0647;&#x0648;&#x06CC;&#x062A; &#x0628;&#x0635;&#x0631;&#x06CC; &#x067E;&#x0646;&#x0644;'), 'icon' => 'palette', 'color' => 'purple', 'url' => '/admin/theme', 'permission' => 'admin.theme.manage', 'sort_order' => 10],
                     ['key' => 'settings', 'title' => $this->fa('&#x062A;&#x0646;&#x0638;&#x06CC;&#x0645;&#x0627;&#x062A;'), 'description' => $this->fa('&#x062A;&#x0646;&#x0638;&#x06CC;&#x0645;&#x0627;&#x062A; &#x0639;&#x0645;&#x0648;&#x0645;&#x06CC; &#x0633;&#x0627;&#x0645;&#x0627;&#x0646;&#x0647;'), 'icon' => 'sliders', 'color' => 'violet', 'url' => '/admin/settings', 'permission' => 'admin.settings.manage', 'sort_order' => 20],
+
                     [
+                        'key' => 'access-control',
+                        'title' => 'سطوح و نقش‌های دسترسی',
+                        'description' => 'مرکز یکپارچه نقش‌ها، مجوزها، انتساب‌ها، حوزه‌ها و دسترسی اختصاصی کاربران',
+                        'icon' => 'user-shield',
+                        'color' => 'indigo',
+                        'url' => '/admin/access-control',
+                        'permission' => 'access.manage',
+                        'sort_order' => 25,
+                    ],                    [
                         'key' => 'public-page',
                         'title' => 'مدیریت صفحات',
                         'description' => 'مدیریت منو، اسلایدر، اطلاعیه‌ها، کارت‌ها و فوتر صفحه عمومی',

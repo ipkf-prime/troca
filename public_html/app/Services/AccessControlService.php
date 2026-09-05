@@ -69,6 +69,48 @@ class AccessControlService extends BaseService
             )
             : 'none';
 
+        $data['assignable_roles'] = [];
+        $data['selected_role_ids'] = [];
+        $data['role_states'] = [];
+
+        if ($userId > 0) {
+            $roleForm =
+                (new AdminUserManagementService())
+                    ->form(
+                        $actorUserId,
+                        $userId
+                    );
+
+            if (($roleForm['ok'] ?? false) === true) {
+                $data['assignable_roles'] =
+                    is_array(
+                        $roleForm['roles']
+                        ?? null
+                    )
+                        ? $roleForm['roles']
+                        : [];
+
+                $data['selected_role_ids'] =
+                    array_map(
+                        'intval',
+                        is_array(
+                            $roleForm['form']['role_ids']
+                            ?? null
+                        )
+                            ? $roleForm['form']['role_ids']
+                            : []
+                    );
+
+                $data['role_states'] =
+                    is_array(
+                        $roleForm['role_states']
+                        ?? null
+                    )
+                        ? $roleForm['role_states']
+                        : [];
+            }
+        }
+
         return $data;
     }
 
@@ -96,6 +138,78 @@ class AccessControlService extends BaseService
         );
 
         return $roleId;
+    }
+
+    public function saveUserRoles(
+        int $actorUserId,
+        array $input
+    ): array {
+        $this->authorize(
+            $actorUserId,
+            [
+                'access.manage',
+                'access.users.manage',
+            ]
+        );
+
+        $userId =
+            max(
+                0,
+                (int) (
+                    $input['user_id']
+                    ?? 0
+                )
+            );
+
+        if ($userId < 1) {
+            throw new RuntimeException(
+                'access_user_not_found'
+            );
+        }
+
+        $result =
+            (new AdminUserManagementService())
+                ->updateRoles(
+                    $actorUserId,
+                    $userId,
+                    [
+                        'role_ids' =>
+                            is_array(
+                                $input['role_ids']
+                                ?? null
+                            )
+                                ? $input['role_ids']
+                                : [],
+                    ]
+                );
+
+        if (($result['ok'] ?? false) !== true) {
+            if (
+                ($result['not_found'] ?? false)
+                === true
+            ) {
+                throw new RuntimeException(
+                    'access_user_not_found'
+                );
+            }
+
+            if (
+                ($result['forbidden'] ?? false)
+                === true
+            ) {
+                throw new RuntimeException(
+                    'access_management_forbidden'
+                );
+            }
+
+            throw new RuntimeException(
+                'access_user_roles_update_failed'
+            );
+        }
+
+        return [
+            'user_id' => $userId,
+        ];
     }
 
     public function saveUser(
