@@ -159,14 +159,69 @@ ob_start();
 .user-block__head, .access-card__head { align-items:flex-start; display:flex; gap:.8rem; justify-content:space-between; margin-bottom:.7rem; }
 .user-block__head h3, .access-card__head h3 { font-size:.86rem; line-height:1.55; margin:0; }
 .user-block__head p, .access-card__head p { color:var(--admin-text-muted); font-size:.69rem; line-height:1.75; margin:.1rem 0 0; }
-.user-grid { align-items:start; display:grid; gap:.75rem; grid-template-columns:repeat(3,minmax(0,1fr)); }
-.user-grid--2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
-.user-field { display:grid; grid-template-rows:auto minmax(2.48rem,auto) auto; min-width:0; }
-.user-field--wide { grid-column:1/-1; }
-.user-field > span { color:var(--admin-text); display:block; font-size:.74rem; font-weight:800; margin-bottom:.26rem; }
-.user-field > small { color:var(--admin-text-muted); display:block; font-size:.64rem; line-height:1.7; margin-top:.2rem; }
-.user-field input, .user-field select, .user-field textarea { min-height:2.48rem; width:100%; }
-.user-field textarea { min-height:6.5rem; resize:vertical; }
+.user-grid {
+    align-items:start;
+    display:grid;
+    gap:.62rem .68rem;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+}
+
+.user-grid--2 {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+}
+
+.user-field {
+    align-content:start;
+    display:grid;
+    grid-template-rows:1.18rem 2.5rem minmax(1rem,auto);
+    min-width:0;
+    row-gap:.22rem;
+}
+
+.user-field--wide {
+    grid-column:1/-1;
+}
+
+.user-field > span {
+    align-self:end;
+    color:var(--admin-text);
+    display:block;
+    font-size:.71rem;
+    font-weight:800;
+    line-height:1.2;
+    margin:0;
+    min-width:0;
+}
+
+.user-field > small {
+    color:var(--admin-text-muted);
+    display:block;
+    font-size:.61rem;
+    line-height:1.55;
+    margin:0;
+    min-height:1rem;
+}
+
+.user-field input,
+.user-field select {
+    height:2.5rem;
+    min-height:2.5rem;
+    width:100%;
+}
+
+.user-field textarea {
+    min-height:6rem;
+    resize:vertical;
+    width:100%;
+}
+
+.user-block {
+    padding:.82rem .9rem;
+}
+
+.user-block__head {
+    margin-bottom:.58rem;
+}
 .user-checks { display:flex; flex-wrap:wrap; gap:.45rem; }
 .user-check { align-items:center; background:var(--admin-surface-muted); border:1px solid var(--admin-border); border-radius:.62rem; display:flex; font-size:.71rem; gap:.38rem; min-height:2.3rem; padding:.32rem .58rem; }
 .user-check input { height:1rem; margin:0; width:1rem; }
@@ -205,7 +260,19 @@ ob_start();
 .user-access-summary-role { align-items:center; background:var(--admin-surface-muted); border:1px solid var(--admin-border); border-radius:.72rem; display:flex; gap:.6rem; justify-content:space-between; min-height:3.2rem; padding:.55rem .65rem; }
 .user-access-summary-role strong { display:block; font-size:.76rem; }
 .user-access-summary-role code { color:var(--admin-text-muted); display:block; font-size:.62rem; margin-top:.1rem; }
-@media (max-width:1100px) { .user-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .access-tools { grid-template-columns:1fr 1fr; } .access-tools .user-field:last-child { grid-column:1/-1; } }
+@media (max-width:1100px) {
+    .user-grid {
+        grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+
+    .access-tools {
+        grid-template-columns:1fr 1fr;
+    }
+
+    .access-tools .user-field:last-child {
+        grid-column:1/-1;
+    }
+}
 @media (max-width:1050px) { .role-table__head { display:none; } .role-row { align-items:start; grid-template-columns:1.25rem minmax(0,1fr) minmax(0,1fr); } .role-row__identity { grid-column:2/-1; } .role-row__code { grid-column:2; } .role-row__meta { background:var(--admin-surface); border:1px solid var(--admin-border); border-radius:.55rem; min-height:2.8rem; padding:.4rem .5rem; } .role-row__meta small { display:block; } }
 @media (max-width:760px) { .user-grid,.user-grid--2,.access-tools,.access-summary,.user-access-summary-grid { grid-template-columns:1fr; } .user-field--wide,.access-tools .user-field:last-child { grid-column:auto; } .role-row { grid-template-columns:1.25rem minmax(0,1fr); } .role-row__identity,.role-row__code,.role-row__meta { grid-column:2; } .user-editor__head p { display:none; } .user-actions,.permission-next { display:grid; } }
 </style>

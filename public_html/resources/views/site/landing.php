@@ -368,6 +368,23 @@ $jsVersion = is_readable(
                         $runtimeItem['kind']
                         ?? 'default'
                     ) ?>"
+                    <?php if (
+                        (
+                            $runtimeItem['kind']
+                            ?? ''
+                        ) === 'datetime'
+                    ): ?>
+                        dir="ltr"
+                        data-runtime-datetime
+                        data-runtime-utc="<?= landing_h(
+                            $runtime['utc_iso']
+                            ?? ''
+                        ) ?>"
+                        data-runtime-timezone="<?= landing_h(
+                            $runtime['timezone']
+                            ?? ''
+                        ) ?>"
+                    <?php endif; ?>
                 >
                     <?php if (
                         (

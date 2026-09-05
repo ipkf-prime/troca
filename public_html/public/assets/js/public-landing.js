@@ -48,8 +48,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-/* runtime-strip-persian-digits-v1 */
+/* runtime-strip-live-clock-v2 */
 (() => {
+    'use strict';
+
     const persianDigits = {
         '0': '۰',
         '1': '۱',
@@ -101,16 +103,205 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const runtimeClockFormatter = (
+        timeZone
+    ) => {
+        if (
+            !timeZone
+            || typeof Intl === 'undefined'
+            || typeof Intl.DateTimeFormat
+                !== 'function'
+        ) {
+            return null;
+        }
+
+        try {
+            return new Intl.DateTimeFormat(
+                'en-US-u-ca-persian-nu-latn',
+                {
+                    timeZone,
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hourCycle: 'h23'
+                }
+            );
+        } catch (error) {
+            return null;
+        }
+    };
+
+    const runtimeClockText = (
+        instant,
+        formatter
+    ) => {
+        if (
+            !(instant instanceof Date)
+            || Number.isNaN(
+                instant.getTime()
+            )
+            || !formatter
+            || typeof formatter.formatToParts
+                !== 'function'
+        ) {
+            return null;
+        }
+
+        const parts = {};
+
+        formatter
+            .formatToParts(instant)
+            .forEach(
+                part => {
+                    if (
+                        part.type !==
+                        'literal'
+                    ) {
+                        parts[
+                            part.type
+                        ] = part.value;
+                    }
+                }
+            );
+
+        const required = [
+            'year',
+            'month',
+            'day',
+            'hour',
+            'minute',
+            'second'
+        ];
+
+        if (
+            required.some(
+                key => !parts[key]
+            )
+        ) {
+            return null;
+        }
+
+        return (
+            parts.year
+            + '/'
+            + parts.month
+            + '/'
+            + parts.day
+            + ' | '
+            + parts.hour
+            + ':'
+            + parts.minute
+            + ':'
+            + parts.second
+        );
+    };
+
+    const startRuntimeClock = () => {
+        const item =
+            document.querySelector(
+                '[data-runtime-datetime]'
+            );
+
+        if (!item) {
+            return;
+        }
+
+        const serverUtc =
+            item.getAttribute(
+                'data-runtime-utc'
+            )
+            || '';
+
+        const timeZone =
+            item.getAttribute(
+                'data-runtime-timezone'
+            )
+            || '';
+
+        const serverInstant =
+            new Date(serverUtc);
+
+        if (
+            Number.isNaN(
+                serverInstant.getTime()
+            )
+        ) {
+            return;
+        }
+
+        const formatter =
+            runtimeClockFormatter(
+                timeZone
+            );
+
+        if (!formatter) {
+            return;
+        }
+
+        /*
+         * Anchor the live display to the UTC instant
+         * rendered by the server. The browser clock is
+         * used only to measure elapsed time after render.
+         */
+        const serverStartMs =
+            serverInstant.getTime();
+
+        const clientStartMs =
+            Date.now();
+
+        const render = () => {
+            const elapsedMs =
+                Date.now()
+                - clientStartMs;
+
+            const currentInstant =
+                new Date(
+                    serverStartMs
+                    + elapsedMs
+                );
+
+            const text =
+                runtimeClockText(
+                    currentInstant,
+                    formatter
+                );
+
+            if (text === null) {
+                return;
+            }
+
+            item.textContent =
+                toPersianDigits(
+                    text
+                );
+        };
+
+        render();
+
+        window.setInterval(
+            render,
+            1000
+        );
+    };
+
+    const initializeRuntimeStrip = () => {
+        normalizeRuntimeStrip();
+        startRuntimeClock();
+    };
+
     if (
         document.readyState ===
         'loading'
     ) {
         document.addEventListener(
             'DOMContentLoaded',
-            normalizeRuntimeStrip,
+            initializeRuntimeStrip,
             { once: true }
         );
     } else {
-        normalizeRuntimeStrip();
+        initializeRuntimeStrip();
     }
 })();

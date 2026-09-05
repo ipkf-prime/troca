@@ -464,7 +464,8 @@ class PublicLandingService
 
     private function runtimeMetadata(): array
     {
-        $now = Clock::convertToDisplayTimezone(Clock::nowUtc());
+        $nowUtc = Clock::nowUtc();
+        $now = Clock::convertToDisplayTimezone($nowUtc);
 
         return [
             'version' =>
@@ -476,8 +477,10 @@ class PublicLandingService
             ),
             'time' =>
                 $this->persianDigits(
-                    $now->format('H:i')
+                    $now->format('H:i:s')
                 ),
+            'utc_iso' => Clock::isoUtc($nowUtc),
+            'timezone' => Clock::displayTimezoneName(),
             'deployment_at' => $this->deploymentTime(),
             'online_users' =>
                 (
@@ -583,7 +586,7 @@ class PublicLandingService
                             ]
                             ?? ''
                         )
-                        . ' '
+                        . ' | '
                         . (string) (
                             $runtime[
                                 'time'

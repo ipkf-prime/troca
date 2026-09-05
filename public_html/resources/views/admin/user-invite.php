@@ -36,15 +36,64 @@ ob_start();
     gap:.85rem;
 }
 
+.user-invite-head {
+    align-items:center;
+    background:var(--admin-surface);
+    border:1px solid var(--admin-border);
+    border-radius:.9rem;
+    display:flex;
+    gap:.75rem;
+    justify-content:space-between;
+    min-height:4rem;
+    padding:.68rem .85rem;
+}
+
+.user-invite-head__title {
+    align-items:center;
+    display:flex;
+    gap:.65rem;
+    min-width:0;
+}
+
+.user-invite-head__icon {
+    align-items:center;
+    background:var(--admin-primary-soft);
+    border:1px solid color-mix(
+        in srgb,
+        var(--admin-primary) 22%,
+        transparent
+    );
+    border-radius:.65rem;
+    color:var(--admin-primary);
+    display:inline-flex;
+    flex:0 0 auto;
+    height:2.4rem;
+    justify-content:center;
+    width:2.4rem;
+}
+
+.user-invite-head h2 {
+    font-size:1rem;
+    line-height:1.45;
+    margin:0;
+}
+
+.user-invite-head p {
+    color:var(--admin-text-muted);
+    font-size:.69rem;
+    line-height:1.55;
+    margin:.08rem 0 0;
+}
+
 .user-invite-card {
     background:var(--admin-surface);
     border:1px solid var(--admin-border);
     border-radius:.9rem;
-    padding:1rem;
+    padding:.88rem .95rem;
 }
 
 .user-invite-card__head {
-    margin-bottom:.9rem;
+    margin-bottom:.65rem;
 }
 
 .user-invite-card__head h2 {
@@ -60,15 +109,18 @@ ob_start();
 }
 
 .user-invite-grid {
+    align-items:start;
     display:grid;
-    gap:.7rem;
+    gap:.62rem .7rem;
     grid-template-columns:
         repeat(2,minmax(0,1fr));
 }
 
 .user-invite-field {
+    align-content:start;
     display:grid;
-    gap:.3rem;
+    grid-template-rows:1.18rem 2.5rem minmax(1rem,auto);
+    row-gap:.22rem;
 }
 
 .user-invite-field--wide {
@@ -76,17 +128,23 @@ ob_start();
 }
 
 .user-invite-field span {
-    font-size:.72rem;
-    font-weight:700;
+    align-self:end;
+    font-size:.71rem;
+    font-weight:800;
+    line-height:1.2;
 }
 
 .user-invite-field small {
     color:var(--admin-text-muted);
-    font-size:.63rem;
+    font-size:.61rem;
+    line-height:1.55;
+    min-height:1rem;
 }
 
 .user-invite-field input,
 .user-invite-field select {
+    height:2.5rem;
+    min-height:2.5rem;
     width:100%;
 }
 
@@ -116,14 +174,20 @@ ob_start();
 }
 
 .user-invite-actions {
+    align-items:center;
     display:flex;
     flex-wrap:wrap;
-    gap:.45rem;
-    justify-content:flex-end;
-    margin-top:.8rem;
+    gap:.4rem;
+    justify-content:flex-start;
+    margin-top:.65rem;
 }
 
 @media(max-width:760px) {
+    .user-invite-head {
+        align-items:stretch;
+        display:grid;
+    }
+
     .user-invite-grid {
         grid-template-columns:1fr;
     }
@@ -151,25 +215,27 @@ ob_start();
         </span>
     </nav>
 
-    <section class="admin-module-hub admin-module-hub--blue">
-        <div class="admin-module-hub__icon">
-            <?= \App\Support\AdminIcon::html('users') ?>
-        </div>
+    <header class="user-invite-head">
+        <div class="user-invite-head__title">
+            <span class="user-invite-head__icon">
+                <?= \App\Support\AdminIcon::html('users') ?>
+            </span>
 
-        <div>
-            <h2>دعوت کاربر</h2>
-            <p>
-                ایجاد لینک اختصاصی و یک‌بارمصرف برای ثبت‌نام کاربر
-            </p>
+            <div>
+                <h2>دعوت کاربر</h2>
+                <p>
+                    ایجاد لینک اختصاصی و یک‌بارمصرف برای ثبت‌نام کاربر
+                </p>
+            </div>
         </div>
 
         <a
-            class="admin-module-hub__back"
+            class="admin-button admin-button--soft admin-button--compact"
             href="/admin/users"
         >
-            بازگشت به کاربران
+            بازگشت
         </a>
-    </section>
+    </header>
 
     <?php if (isset($errors['general'])): ?>
         <div class="admin-alert">

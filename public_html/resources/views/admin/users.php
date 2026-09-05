@@ -74,8 +74,8 @@ ob_start();
 .admin-users-toolbar {
     align-items:end;
     display:grid;
-    gap:.7rem;
-    grid-template-columns:minmax(18rem,1fr) auto auto;
+    gap:.55rem;
+    grid-template-columns:minmax(16rem,1fr) auto 5.9rem;
 }
 
 .admin-users-search {
@@ -83,16 +83,32 @@ ob_start();
 }
 
 .admin-users-search__row {
+    align-items:center;
     display:grid;
-    gap:.55rem;
-    grid-template-columns:2.5rem minmax(12rem,1fr) auto auto;
+    gap:.4rem;
+    grid-template-columns:2.25rem minmax(10rem,1fr) auto auto;
+}
+
+.admin-users-search__row input,
+.admin-users-search__row button,
+.admin-users-search__row a {
+    min-height:2.25rem;
 }
 
 .admin-users-toolbar__actions {
     align-items:center;
+    align-self:end;
     display:flex;
-    flex-wrap:wrap;
-    gap:.45rem;
+    flex-wrap:nowrap;
+    gap:.32rem;
+    min-height:2.25rem;
+}
+
+.admin-users-toolbar__actions .admin-button {
+    font-size:.68rem;
+    min-height:2.25rem;
+    padding-inline:.55rem;
+    white-space:nowrap;
 }
 
 .admin-users-toolbar__actions .is-disabled {
@@ -102,19 +118,107 @@ ob_start();
 }
 
 .admin-users-total {
-    min-width:6.5rem;
+    align-items:center;
+    align-self:end;
+    display:flex;
+    gap:.35rem;
+    justify-content:center;
+    min-height:2.25rem;
+    min-width:5.9rem;
+    padding:.3rem .45rem;
     white-space:nowrap;
 }
 
+.admin-users-total span {
+    font-size:.66rem;
+}
+
+.admin-users-total strong {
+    font-size:.82rem;
+}
+
 .admin-users-table {
-    table-layout:auto;
+    font-size:.69rem;
+    min-width:0!important;
+    table-layout:fixed;
     width:100%;
 }
 
-.admin-users-table col.col-index { width:3.4rem; }
-.admin-users-table col.col-username { width:7.5rem; }
-.admin-users-table col.col-status { width:7.5rem; }
-.admin-users-table col.col-actions { width:11rem; }
+.admin-users-table col.col-index { width:2.7rem; }
+.admin-users-table col.col-name { width:9rem; }
+.admin-users-table col.col-username { width:6.1rem; }
+.admin-users-table col.col-mobile { width:7rem; }
+.admin-users-table col.col-email { width:9.2rem; }
+.admin-users-table col.col-status { width:6rem; }
+.admin-users-table col.col-role { width:7.6rem; }
+.admin-users-table col.col-org { width:8rem; }
+.admin-users-table col.col-created { width:7rem; }
+.admin-users-table col.col-actions { width:7.5rem; }
+
+.admin-users-table th,
+.admin-users-table td {
+    font-size:.68rem;
+    line-height:1.45;
+    overflow:hidden;
+    padding:.4rem .34rem;
+    text-overflow:ellipsis;
+    vertical-align:middle;
+    white-space:nowrap;
+}
+
+.admin-users-table thead th {
+    font-size:.65rem;
+    font-weight:800;
+}
+
+.admin-users-table tbody tr {
+    height:2.65rem;
+}
+
+.admin-users-table td:nth-child(4),
+.admin-users-table td:nth-child(5),
+.admin-users-table td:nth-child(9) {
+    font-size:.65rem;
+}
+
+.admin-users-table .admin-users-identity {
+    max-width:100%;
+    min-width:0;
+    overflow:hidden;
+}
+
+.admin-users-table .admin-users-identity strong {
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.admin-users-table .admin-status-badge,
+.admin-users-table .admin-pill {
+    font-size:.61rem;
+    line-height:1.35;
+    padding:.16rem .34rem;
+}
+
+.admin-users-table .admin-users-highest-role {
+    gap:.22rem;
+    max-width:100%;
+}
+
+.admin-users-table .admin-users-role-count {
+    font-size:.58rem;
+}
+
+.admin-users-table .admin-form-actions {
+    flex-wrap:nowrap;
+    gap:.22rem;
+}
+
+.admin-users-table .admin-button--compact {
+    font-size:.62rem;
+    min-height:1.8rem;
+    padding:.16rem .4rem;
+}
 
 .admin-sort-link {
     align-items:center;
@@ -198,6 +302,10 @@ ob_start();
     .admin-users-total {
         grid-column:auto;
         grid-row:1;
+    }
+
+    .admin-users-toolbar__actions {
+        flex-wrap:wrap;
     }
 }
 </style>
@@ -332,14 +440,14 @@ ob_start();
             <table class="admin-table admin-users-table">
                 <colgroup>
                     <col class="col-index">
-                    <col>
+                    <col class="col-name">
                     <col class="col-username">
-                    <col>
-                    <col>
+                    <col class="col-mobile">
+                    <col class="col-email">
                     <col class="col-status">
-                    <col>
-                    <col>
-                    <col>
+                    <col class="col-role">
+                    <col class="col-org">
+                    <col class="col-created">
                     <col class="col-actions">
                 </colgroup>
                 <thead>
