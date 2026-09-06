@@ -78,6 +78,152 @@ $ticketingRuntimeReport = static function (
 
 
 /*
+ * ============================================================================
+ * TICKETING_CONTEXT_AWARE_TOPBAR_DISPATCHER_V1
+ *
+ * Resolve Ticketing topbar clicks at request time:
+ *
+ * requester        -> My Tickets
+ * current assignee -> Staff / My
+ * scoped staff     -> Staff / All
+ * no unread item   -> Ticketing home
+ * ============================================================================
+ */
+$router->get(
+    '/admin/ticketing/attention',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/ticketing/attention'
+            );
+
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+
+        try {
+
+            $resolved =
+                (
+                    new \App\Services\Ticketing\TicketTopbarTargetService()
+                )->targetForUser(
+                    (int) $context['user_id']
+                );
+
+
+            $notificationReference =
+                trim(
+                    (string) (
+                        $resolved[
+                            'notification_reference'
+                        ]
+                        ?? ''
+                    )
+                );
+
+
+            $target =
+                trim(
+                    (string) (
+                        $resolved[
+                            'target'
+                        ]
+                        ?? ''
+                    )
+                );
+
+
+            if (
+                $target === ''
+                ||
+                !str_starts_with(
+                    $target,
+                    '/admin/ticketing'
+                )
+                ||
+                $target ===
+                    '/admin/ticketing/attention'
+                ||
+                str_starts_with(
+                    $target,
+                    '/admin/ticketing/attention?'
+                )
+            ) {
+                $target =
+                    '/admin/ticketing';
+            }
+
+
+            /*
+             * TICKETING_TOPBAR_NOTIFICATION_CONSUME_V1
+             *
+             * A deliberate click on the Ticketing attention
+             * badge consumes exactly the notification that
+             * selected this destination.
+             *
+             * Do not mark every Ticketing notification read.
+             */
+            if ($notificationReference !== '') {
+
+                (
+                    new \App\Services\NotificationInboxService()
+                )->markRead(
+                    (int) $context['user_id'],
+                    $notificationReference
+                );
+            }
+
+
+            return
+                $response->redirect(
+                    $target
+                );
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'ticket_topbar_attention_dispatch',
+                    [
+                        'user_id' =>
+                            (int) $context[
+                                'user_id'
+                            ],
+
+                        'host' =>
+                            (string) $request->host(),
+
+                        'uri' =>
+                            (string) $request->uri(),
+                    ]
+                );
+
+
+            return
+                $response->redirect(
+                    '/admin/ticketing'
+                    . '?status=attention-dispatch-failed'
+                    . '&error='
+                    . rawurlencode(
+                        $incident
+                    )
+                );
+        }
+    }
+);
+
+
+/*
  * ---------------------------------------------------------
  * Dashboard
  * ---------------------------------------------------------

@@ -630,15 +630,14 @@ class DynamicAdminNavigationService extends BaseService
                     'description' =>
                         'تیکت‌ها و اعلان‌های نیازمند توجه',
 
+                    /*
+                     * TICKETING_CONTEXT_AWARE_TOPBAR_DISPATCH_LINK_V1
+                     *
+                     * Actual requester/staff destination is resolved
+                     * only when the user clicks the Ticketing badge.
+                     */
                     'route_path' =>
-                        trim(
-                            (string) (
-                                $ticketing[
-                                    'route_path'
-                                ]
-                                ?? '/admin/ticketing'
-                            )
-                        ),
+                        '/admin/ticketing/attention',
 
                     'target_application' =>
                         'ticketing',
