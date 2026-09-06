@@ -615,11 +615,21 @@ final class TicketStaffOperationsRepository
             );
 
 
+        /*
+         * TICKETING_OPERATION_PERMISSION_SPLIT_V1
+         *
+         * can_assign:
+         *     reassign inside the current support Team.
+         *
+         * can_transfer:
+         *     move the ticket through the support topology,
+         *     currently only by direct-parent escalation.
+         */
         $canTransfer =
             is_array($currentMembership)
             && !empty(
                 $currentMembership[
-                    'can_transfer'
+                    'can_assign'
                 ]
             );
 
@@ -645,18 +655,10 @@ final class TicketStaffOperationsRepository
 
         $canEscalate =
             is_array($currentMembership)
-            && (
-                !empty(
-                    $currentMembership[
-                        'can_transfer'
-                    ]
-                )
-                ||
-                !empty(
-                    $currentMembership[
-                        'can_takeover'
-                    ]
-                )
+            && !empty(
+                $currentMembership[
+                    'can_transfer'
+                ]
             );
 
         if ($canEscalate) {
@@ -881,7 +883,7 @@ final class TicketStaffOperationsRepository
                 ||
                 empty(
                     $actorMembership[
-                        'can_transfer'
+                        'can_assign'
                     ]
                 )
             ) {
@@ -1090,18 +1092,10 @@ final class TicketStaffOperationsRepository
                 if (
                     !is_array($actorMembership)
                     ||
-                    (
-                        empty(
-                            $actorMembership[
-                                'can_transfer'
-                            ]
-                        )
-                        &&
-                        empty(
-                            $actorMembership[
-                                'can_takeover'
-                            ]
-                        )
+                    empty(
+                        $actorMembership[
+                            'can_transfer'
+                        ]
                     )
                 ) {
                     throw new DomainException(
@@ -1997,15 +1991,24 @@ final class TicketStaffOperationsRepository
     }
 
 
+    /*
+     * TICKETING_SAME_NODE_TAKEOVER_V1
+     *
+     * Read visibility of a direct child does not grant
+     * operational takeover rights on that child.
+     *
+     * Takeover is strictly local:
+     *     same project
+     *     same current node
+     *     same current team
+     *
+     * Cross-layer movement must go through the audited
+     * escalation path.
+     */
     private function takeoverMembership(
         array $ticket,
         array $memberships
     ): ?array {
-        $projectId =
-            (int) $ticket[
-                'support_project_id'
-            ];
-
         $currentNodeId =
             (int) (
                 $ticket[
@@ -2014,20 +2017,21 @@ final class TicketStaffOperationsRepository
                 ?? 0
             );
 
-
-        if ($currentNodeId <= 0) {
-            return null;
-        }
-
-
-        $distance =
-            $this->ancestorDistances(
-                $projectId,
-                $currentNodeId
+        $currentTeamId =
+            (int) (
+                $ticket[
+                    'current_support_team_id'
+                ]
+                ?? 0
             );
 
 
-        $eligible = [];
+        if (
+            $currentNodeId <= 0
+            || $currentTeamId <= 0
+        ) {
+            return null;
+        }
 
 
         foreach (
@@ -2044,168 +2048,51 @@ final class TicketStaffOperationsRepository
                 continue;
             }
 
-            $nodeId =
+
+            if (
                 (int) (
                     $membership[
                         'node_id'
                     ]
                     ?? 0
-                );
-
-            $queueId =
-                (int) (
-                    $membership[
-                        'queue_id'
-                    ]
-                    ?? 0
-                );
-
-            if (
-                $nodeId <= 0
-                || $queueId <= 0
-                || !isset(
-                    $distance[$nodeId]
                 )
+                !== $currentNodeId
             ) {
                 continue;
             }
 
 
-            $membership[
-                '_distance'
-            ] =
-                $distance[$nodeId];
-
-            $eligible[] =
-                $membership;
-        }
-
-
-        if ($eligible === []) {
-            return null;
-        }
-
-
-        usort(
-            $eligible,
-            static function (
-                array $left,
-                array $right
-            ): int {
-                $compare =
-                    (int) $left[
-                        '_distance'
-                    ]
-                    <=>
-                    (int) $right[
-                        '_distance'
-                    ];
-
-                if ($compare !== 0) {
-                    return $compare;
-                }
-
-                return
-                    (int) $left[
+            if (
+                (int) (
+                    $membership[
                         'team_id'
                     ]
-                    <=>
-                    (int) $right[
-                        'team_id'
-                    ];
-            }
-        );
-
-
-        return $eligible[0];
-    }
-
-
-    private function ancestorDistances(
-        int $projectId,
-        int $startNodeId
-    ): array {
-        $statement =
-            $this->db->prepare("
-                SELECT
-                    parent_node_id,
-                    child_node_id
-
-                FROM
-                    ticketing_support_node_relations
-
-                WHERE project_id = ?
-                  AND status = 'active'
-                  AND relation_type_code =
-                      'hierarchy'
-            ");
-
-        $statement->execute([
-            $projectId,
-        ]);
-
-        $parents = [];
-
-        foreach (
-            $statement->fetchAll(
-                PDO::FETCH_ASSOC
-            ) ?: []
-            as $relation
-        ) {
-            $child =
-                (int) $relation[
-                    'child_node_id'
-                ];
-
-            $parent =
-                (int) $relation[
-                    'parent_node_id'
-                ];
-
-            $parents[$child][] =
-                $parent;
-        }
-
-
-        $distance = [
-            $startNodeId => 0,
-        ];
-
-        $queue = [
-            $startNodeId,
-        ];
-
-
-        while ($queue !== []) {
-
-            $current =
-                array_shift($queue);
-
-            $currentDistance =
-                (int) $distance[
-                    $current
-                ];
-
-
-            foreach (
-                $parents[$current]
-                ?? []
-                as $parent
+                    ?? 0
+                )
+                !== $currentTeamId
             ) {
-                if (isset($distance[$parent])) {
-                    continue;
-                }
-
-                $distance[$parent] =
-                    $currentDistance + 1;
-
-                $queue[] =
-                    $parent;
+                continue;
             }
+
+
+            if (
+                (int) (
+                    $membership[
+                        'queue_id'
+                    ]
+                    ?? 0
+                )
+                <= 0
+            ) {
+                continue;
+            }
+
+
+            return $membership;
         }
 
 
-        return $distance;
+        return null;
     }
 
 
@@ -2353,6 +2240,12 @@ final class TicketStaffOperationsRepository
     }
 
 
+    /*
+     * TICKETING_DIRECT_PARENT_ESCALATION_V1
+     *
+     * A manual or automatic upward transition may traverse
+     * exactly one active primary hierarchy edge.
+     */
     private function nextEscalationRelation(
         int $projectId,
         int $currentNodeId
@@ -2387,6 +2280,7 @@ final class TicketStaffOperationsRepository
                         'hierarchy'
 
                   AND r.allow_escalation = 1
+                  AND r.is_primary_path = 1
 
                   AND parent.status = 'active'
 
