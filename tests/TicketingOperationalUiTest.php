@@ -262,20 +262,35 @@ foreach ([
 
 foreach ([
     'ticketing-dashboard-page',
-    'ticketing-metrics',
-    'ticketing-metric-value',
-    'ticketing-recent',
-    'ticketing-queue-card',
+    'ticketing-dashboard-metrics',
+    'ticketing-dashboard-metric__value',
+    'ticketing-dashboard-section',
+    'ticketing-dashboard-role',
+    'کارتابل کارشناسی',
+    'کارتابل پشتیبانی',
+    'آخرین درخواست‌های من',
 ] as $needle) {
     $expect(
         str_contains(
             $dashboard,
             $needle
         ),
-        'Dashboard compact contract missing: '
+        'Role-aware dashboard contract missing: '
         . $needle
     );
 }
+
+$expect(
+    !str_contains(
+        $dashboard,
+        'ticketing-queue-card'
+    )
+    && !str_contains(
+        $dashboard,
+        'در مرحله عملیاتی بعدی فعال می‌شود'
+    ),
+    'Obsolete Ticketing queue placeholder remains.'
+);
 
 
 foreach ([

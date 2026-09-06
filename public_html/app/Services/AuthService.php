@@ -137,6 +137,13 @@ class AuthService extends BaseService
         Session::forget('auth_pending_auth_method');
         Session::forget('module_sso_return_path');
         Session::forget('messages_unread_on_login');
+
+        /*
+         * Logout is a terminal authentication boundary.
+         * Do not leave the PHP session identifier alive
+         * after merely removing authentication keys.
+         */
+        Session::destroy();
     }
 
     public function currentUserId(): ?int

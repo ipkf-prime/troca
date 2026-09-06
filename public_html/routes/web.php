@@ -1293,7 +1293,22 @@ $adminRender = function ($response, string $view, array $data = [], int $status 
 
     return $response
         ->status($httpStatus)
-        ->header('Content-Type', 'text/html; charset=UTF-8')
+        ->header(
+            'Content-Type',
+            'text/html; charset=UTF-8'
+        )
+        ->header(
+            'Cache-Control',
+            'no-store, no-cache, must-revalidate, max-age=0'
+        )
+        ->header(
+            'Pragma',
+            'no-cache'
+        )
+        ->header(
+            'Expires',
+            '0'
+        )
         ->send($content);
 };
 
@@ -6445,26 +6460,44 @@ $router->get('/admin/navigation/debug', function ($request, $response) use ($adm
     ]);
 });
 $router->get('/admin/logout', function ($request, $response) {
-    (new \App\Services\AuthService())->logout();
-    $urls = new \IPKF\Support\ApplicationUrlRegistry();
+    /*
+     * GLOBAL_LOGOUT_SESSION_HYGIENE
+     *
+     * Every application host owns an independent
+     * host-scoped PHP session. Logging out from one host
+     * therefore cannot invalidate the browser session
+     * cookie on another host.
+     *
+     * The browser is redirected through each active
+     * application module. Each host destroys its local
+     * session and expires legacy parent-domain cookie
+     * variants before the chain continues.
+     */
+    (new \App\Services\AuthService())
+        ->logout();
+
+    $urls =
+        new \IPKF\Support\ApplicationUrlRegistry();
+
+    $runtime =
+        new \IPKF\Support\ModuleRuntimeConfig();
+
+    $requestHost =
+        (string) $request->host();
 
     $moduleKey =
         $urls->applicationModuleKeyForHost(
-            (string) $request->host()
+            $requestHost
         );
 
-    if ($moduleKey !== null) {
-        return $response->redirect(
-            $urls->core(
-                '/admin/logout'
-                . '?federated=1'
-                . '&return_module='
-                . rawurlencode(
-                    $moduleKey
-                )
+    $step =
+        max(
+            0,
+            (int) $request->input(
+                'logout_step',
+                0
             )
         );
-    }
 
     $returnModule =
         strtolower(
@@ -6476,11 +6509,229 @@ $router->get('/admin/logout', function ($request, $response) {
             )
         );
 
+    /*
+     * When logout starts on a module host, remember the
+     * module only as a post-login destination. It never
+     * influences authentication or the logout chain.
+     */
+    if (
+        $returnModule === ''
+        && $moduleKey !== null
+    ) {
+        $returnModule =
+            strtolower(
+                trim(
+                    $moduleKey
+                )
+            );
+    }
+
+    $query = static function (
+        int $nextStep,
+        string $returnModule
+    ): string {
+        $value =
+            '?federated=1'
+            . '&logout_step='
+            . $nextStep;
+
+        if ($returnModule !== '') {
+            $value .=
+                '&return_module='
+                . rawurlencode(
+                    $returnModule
+                );
+        }
+
+        return $value;
+    };
+
+    $logoutResponse =
+        static function (
+            $response,
+            string $target
+        ) {
+            return $response
+                ->header(
+                    'Cache-Control',
+                    'no-store, no-cache, must-revalidate, max-age=0'
+                )
+                ->header(
+                    'Pragma',
+                    'no-cache'
+                )
+                ->header(
+                    'Expires',
+                    '0'
+                )
+                /*
+                 * Cache is origin-scoped. Cookie removal is
+                 * handled explicitly by Session::destroy()
+                 * so this header cannot accidentally clear
+                 * unrelated parent-domain authentication.
+                 */
+                ->header(
+                    'Clear-Site-Data',
+                    '"cache"'
+                )
+                ->header(
+                    'Referrer-Policy',
+                    'no-referrer'
+                )
+                ->redirect(
+                    $target
+                );
+        };
+
+    /*
+     * A module host performs local logout first and then
+     * returns control to Core with the current chain step.
+     */
+    if ($moduleKey !== null) {
+        return $logoutResponse(
+            $response,
+            $urls->core(
+                '/admin/logout'
+                . $query(
+                    $step,
+                    $returnModule
+                )
+            )
+        );
+    }
+
+    /*
+     * Core coordinates the chain dynamically from the
+     * application_modules registry. Hosts are de-duplicated
+     * because several modules may legally share one host.
+     */
+    $targets = [];
+    $seenHosts = [];
+
+    $coreHost =
+        $urls->coreHost();
+
+    foreach (
+        $runtime->allActive()
+        as $module
+    ) {
+        $key =
+            strtolower(
+                trim(
+                    (string) (
+                        $module['module_key']
+                        ?? ''
+                    )
+                )
+            );
+
+        if ($key === '') {
+            continue;
+        }
+
+        $baseUrl =
+            trim(
+                (string) (
+                    $module['base_url']
+                    ?? ''
+                )
+            );
+
+        if (
+            $baseUrl === ''
+            || filter_var(
+                $baseUrl,
+                FILTER_VALIDATE_URL
+            ) === false
+        ) {
+            continue;
+        }
+
+        $scheme =
+            strtolower(
+                (string) parse_url(
+                    $baseUrl,
+                    PHP_URL_SCHEME
+                )
+            );
+
+        if (
+            !in_array(
+                $scheme,
+                [
+                    'http',
+                    'https',
+                ],
+                true
+            )
+        ) {
+            continue;
+        }
+
+        $host =
+            $urls->applicationModuleHost(
+                $key
+            );
+
+        if (
+            $host === null
+            || (
+                $coreHost !== null
+                && hash_equals(
+                    $coreHost,
+                    $host
+                )
+            )
+            || isset(
+                $seenHosts[$host]
+            )
+        ) {
+            continue;
+        }
+
+        $seenHosts[$host] =
+            true;
+
+        $targets[] = [
+            'key' =>
+                $key,
+
+            'url' =>
+                rtrim(
+                    $baseUrl,
+                    '/'
+                ),
+        ];
+    }
+
+    if (
+        $step < count(
+            $targets
+        )
+    ) {
+        $target =
+            $targets[$step];
+
+        return $logoutResponse(
+            $response,
+            $target['url']
+            . '/admin/logout'
+            . $query(
+                $step + 1,
+                $returnModule
+            )
+        );
+    }
+
+    /*
+     * Preserve the old UX: logout from a module may return
+     * to that module after the user authenticates again.
+     * The SSO start route will first require fresh Core
+     * authentication because every session is now gone.
+     */
     if ($returnModule !== '') {
         $module =
-            (
-                new \IPKF\Support\ModuleRuntimeConfig()
-            )->active(
+            $runtime->active(
                 $returnModule
             );
 
@@ -6500,7 +6751,8 @@ $router->get('/admin/logout', function ($request, $response) {
                     '/admin/'
                 )
             ) {
-                return $response->redirect(
+                return $logoutResponse(
+                    $response,
                     $urls->core(
                         '/auth/module-sso/start'
                         . '?return_path='
@@ -6513,7 +6765,12 @@ $router->get('/admin/logout', function ($request, $response) {
         }
     }
 
-    return $response->redirect($urls->core('/admin/login'));
+    return $logoutResponse(
+        $response,
+        $urls->core(
+            '/admin/login'
+        )
+    );
 });
 
 $router->post('/auth/login', function ($request, $response) {

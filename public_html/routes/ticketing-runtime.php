@@ -102,11 +102,39 @@ $router->get(
         }
 
         try {
-            $dashboard = (
-                new \App\Services\Ticketing\TicketService()
-            )->dashboardForUser(
-                (int) $context['user_id']
+            /*
+             * Ticketing membership is authoritative for
+             * choosing the in-module experience.
+             *
+             * A Core account may remain base `user` while
+             * also being an active Ticketing member/manager
+             * of an operational support team.
+             */
+            $staffDashboard = (
+                new \App\Services\Ticketing\TicketStaffOperationsService()
+            )->page(
+                (int) $context['user_id'],
+                $context,
+                [
+                    'scope' => 'all',
+                ]
             );
+
+            $isStaff =
+                !empty(
+                    $staffDashboard[
+                        'is_staff'
+                    ]
+                );
+
+            $dashboard =
+                $isStaff
+                    ? []
+                    : (
+                        new \App\Services\Ticketing\TicketService()
+                    )->dashboardForUser(
+                        (int) $context['user_id']
+                    );
 
         } catch (\Throwable $exception) {
 
@@ -157,6 +185,12 @@ $router->get(
 
                 'dashboard' =>
                     $dashboard,
+
+                'is_staff' =>
+                    $isStaff,
+
+                'staff_dashboard' =>
+                    $staffDashboard,
 
                 /*
                  * Keep the module permission contract

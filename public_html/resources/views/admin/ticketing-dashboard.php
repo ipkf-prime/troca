@@ -16,17 +16,216 @@ if (!function_exists('ticketing_h')) {
 
 /** @var array $context */
 /** @var array $dashboard */
+/** @var bool $is_staff */
+/** @var array $staff_dashboard */
 
 $dashboard =
-    $dashboard
-    ?? [];
+    is_array(
+        $dashboard
+        ?? null
+    )
+        ? $dashboard
+        : [];
 
 $recent =
-    $dashboard['recent']
-    ?? [];
+    is_array(
+        $dashboard['recent']
+        ?? null
+    )
+        ? $dashboard['recent']
+        : [];
+
+$isStaff =
+    !empty(
+        $is_staff
+        ?? false
+    );
+
+$staffDashboard =
+    is_array(
+        $staff_dashboard
+        ?? null
+    )
+        ? $staff_dashboard
+        : [];
+
+$staffCounts =
+    is_array(
+        $staffDashboard['counts']
+        ?? null
+    )
+        ? $staffDashboard['counts']
+        : [];
+
+$staffItems =
+    is_array(
+        $staffDashboard['items']
+        ?? null
+    )
+        ? $staffDashboard['items']
+        : [];
+
+$staffRecent =
+    array_slice(
+        $staffItems,
+        0,
+        8
+    );
 
 ob_start();
 ?>
+
+<style>
+.ticketing-dashboard-page {
+    display:grid;
+    gap:.8rem;
+}
+
+.ticketing-dashboard-head {
+    align-items:center;
+    display:flex;
+    gap:.8rem;
+    justify-content:space-between;
+}
+
+.ticketing-dashboard-role {
+    align-items:center;
+    background:var(--admin-surface);
+    border:1px solid var(--admin-border);
+    border-radius:.85rem;
+    display:flex;
+    gap:.65rem;
+    justify-content:space-between;
+    padding:.62rem .78rem;
+}
+
+.ticketing-dashboard-role__caption {
+    color:var(--admin-text-muted);
+    font-size:.7rem;
+}
+
+.ticketing-dashboard-role__badge {
+    align-items:center;
+    border:1px solid var(--admin-border);
+    border-radius:999px;
+    color:var(--admin-primary);
+    display:inline-flex;
+    font-size:.72rem;
+    font-weight:900;
+    min-height:2rem;
+    padding:.25rem .72rem;
+    white-space:nowrap;
+}
+
+.ticketing-dashboard-metrics {
+    display:grid;
+    gap:.68rem;
+}
+
+.ticketing-dashboard-metrics--staff {
+    grid-template-columns:
+        repeat(3,minmax(0,1fr));
+}
+
+.ticketing-dashboard-metrics--requester {
+    grid-template-columns:
+        repeat(4,minmax(0,1fr));
+}
+
+.ticketing-dashboard-metric {
+    background:var(--admin-surface);
+    border:1px solid var(--admin-border);
+    border-radius:.9rem;
+    padding:.82rem .9rem;
+}
+
+.ticketing-dashboard-metric__label {
+    color:var(--admin-text-muted);
+    font-size:.72rem;
+    font-weight:800;
+}
+
+.ticketing-dashboard-metric__value {
+    font-size:1.45rem;
+    font-weight:950;
+    margin-top:.2rem;
+}
+
+.ticketing-dashboard-section {
+    background:var(--admin-surface);
+    border:1px solid var(--admin-border);
+    border-radius:.9rem;
+    padding:.9rem .95rem;
+}
+
+.ticketing-dashboard-section__head {
+    align-items:center;
+    display:flex;
+    gap:.65rem;
+    justify-content:space-between;
+    margin-bottom:.7rem;
+}
+
+.ticketing-dashboard-section__head h2 {
+    font-size:1rem;
+    margin:0;
+}
+
+.ticketing-dashboard-section__head p {
+    color:var(--admin-text-muted);
+    font-size:.7rem;
+    margin:.12rem 0 0;
+}
+
+.ticketing-dashboard-table {
+    table-layout:fixed;
+    width:100%;
+}
+
+.ticketing-dashboard-table th,
+.ticketing-dashboard-table td {
+    font-size:.68rem;
+    line-height:1.55;
+    overflow:hidden;
+    padding:.44rem .4rem;
+    text-overflow:ellipsis;
+    vertical-align:middle;
+    white-space:nowrap;
+}
+
+.ticketing-dashboard-subject {
+    white-space:normal !important;
+}
+
+.ticketing-dashboard-empty {
+    color:var(--admin-text-muted);
+    font-size:.75rem;
+    padding:1rem .25rem;
+    text-align:center;
+}
+
+@media (max-width:1050px) {
+    .ticketing-dashboard-metrics--staff,
+    .ticketing-dashboard-metrics--requester {
+        grid-template-columns:
+            repeat(2,minmax(0,1fr));
+    }
+}
+
+@media (max-width:720px) {
+    .ticketing-dashboard-head,
+    .ticketing-dashboard-role,
+    .ticketing-dashboard-section__head {
+        align-items:stretch;
+        display:grid;
+    }
+
+    .ticketing-dashboard-metrics--staff,
+    .ticketing-dashboard-metrics--requester {
+        grid-template-columns:1fr;
+    }
+}
+</style>
 
 <nav
     class="admin-breadcrumb"
@@ -35,245 +234,550 @@ ob_start();
     <a href="/admin/dashboard">
         داشبورد
     </a>
+
     <span>/</span>
+
     <span>
         پشتیبانی و تیکتینگ
     </span>
 </nav>
 
-<div class="admin-page ticketing-page ticketing-dashboard-page">
+<div
+    class="admin-page
+           ticketing-page
+           ticketing-dashboard-page"
+>
 
-    <div class="admin-page-header ticketing-page-head">
+    <div
+        class="admin-page-header
+               ticketing-page-head
+               ticketing-dashboard-head"
+    >
         <div>
-            <h1>
-                پشتیبانی و تیکتینگ
-            </h1>
 
-            <p>
-                ثبت و پیگیری درخواست‌های
-                پشتیبانی
-            </p>
+            <?php if ($isStaff): ?>
+
+                <h1>داشبورد پشتیبانی</h1>
+
+                <p>
+                    کارتابل عملیاتی درخواست‌های
+                    قابل رسیدگی در حوزه فعال شما
+                </p>
+
+            <?php else: ?>
+
+                <h1>پشتیبانی و تیکتینگ</h1>
+
+                <p>
+                    ثبت و پیگیری درخواست‌های پشتیبانی
+                </p>
+
+            <?php endif; ?>
+
         </div>
 
         <div class="admin-form-actions">
-            <a
-                class="admin-button admin-button--soft"
-                href="/admin/ticketing/tickets"
-            >
-                تیکت‌های من
-            </a>
 
-            <a
-                class="admin-button"
-                href="/admin/ticketing/tickets/create"
-            >
-                تیکت جدید
-            </a>
+            <?php if ($isStaff): ?>
+
+                <a
+                    class="admin-button"
+                    href="/admin/ticketing/staff"
+                >
+                    کارتابل کامل
+                </a>
+
+            <?php else: ?>
+
+                <a
+                    class="admin-button
+                           admin-button--soft"
+                    href="/admin/ticketing/tickets"
+                >
+                    درخواست‌های من
+                </a>
+
+                <a
+                    class="admin-button"
+                    href="/admin/ticketing/tickets/create"
+                >
+                    درخواست جدید
+                </a>
+
+            <?php endif; ?>
+
         </div>
     </div>
 
+    <section class="ticketing-dashboard-role">
 
-    <div class="admin-grid admin-grid-4 ticketing-metrics">
+        <div class="ticketing-dashboard-role__caption">
+            دسترسی فعال در ماژول تیکتینگ
+        </div>
 
-        <?php foreach ([
-            [
-                'label' => 'همه تیکت‌ها',
-                'value' =>
-                    $dashboard['total']
-                    ?? 0,
-            ],
-            [
-                'label' => 'باز',
-                'value' =>
-                    $dashboard['open']
-                    ?? 0,
-            ],
-            [
-                'label' => 'در انتظار',
-                'value' =>
-                    $dashboard['waiting']
-                    ?? 0,
-            ],
-            [
-                'label' => 'بسته‌شده',
-                'value' =>
-                    $dashboard['closed']
-                    ?? 0,
-            ],
-        ] as $metric): ?>
+        <span class="ticketing-dashboard-role__badge">
+            <?= $isStaff
+                ? 'کارتابل کارشناسی'
+                : 'درخواست‌کننده' ?>
+        </span>
 
-            <section class="admin-card">
-                <div class="admin-card-body">
-                    <div class="admin-muted">
+    </section>
+
+    <?php if ($isStaff): ?>
+
+        <div
+            class="ticketing-dashboard-metrics
+                   ticketing-dashboard-metrics--staff"
+        >
+
+            <?php foreach ([
+                [
+                    'label' =>
+                        'قابل مشاهده',
+
+                    'value' =>
+                        $staffCounts['all']
+                        ?? 0,
+                ],
+                [
+                    'label' =>
+                        'تحت مسئولیت من',
+
+                    'value' =>
+                        $staffCounts['my']
+                        ?? 0,
+                ],
+                [
+                    'label' =>
+                        'بدون کارشناس',
+
+                    'value' =>
+                        $staffCounts['unassigned']
+                        ?? 0,
+                ],
+            ] as $metric): ?>
+
+                <section class="ticketing-dashboard-metric">
+
+                    <div class="ticketing-dashboard-metric__label">
                         <?= ticketing_h(
                             $metric['label']
                         ) ?>
                     </div>
 
-                    <div class="ticketing-metric-value">
+                    <div class="ticketing-dashboard-metric__value">
                         <?= ticketing_h(
                             \App\Support\AdminFormat::digits(
                                 (int) $metric['value']
                             )
                         ) ?>
                     </div>
-                </div>
-            </section>
 
-        <?php endforeach; ?>
+                </section>
 
-    </div>
+            <?php endforeach; ?>
 
-
-    <section
-        class="admin-section ticketing-recent"
-    >
-        <div class="admin-page-header">
-            <div>
-                <h2>
-                    آخرین تیکت‌های من
-                </h2>
-
-                <p>
-                    آخرین درخواست‌های ثبت‌شده
-                    توسط حساب کاربری شما
-                </p>
-            </div>
         </div>
 
-        <?php if ($recent === []): ?>
+        <section class="ticketing-dashboard-section">
 
-            <div class="admin-empty-state">
-                هنوز تیکتی ثبت نکرده‌اید.
+            <div class="ticketing-dashboard-section__head">
+
+                <div>
+                    <h2>
+                        کارتابل پشتیبانی
+                    </h2>
+
+                    <p>
+                        تازه‌ترین درخواست‌هایی که
+                        بر اساس پروژه و عضویت تیمی
+                        برای شما قابل مشاهده هستند.
+                    </p>
+                </div>
+
+                <a
+                    class="admin-button
+                           admin-button--soft
+                           admin-button--compact"
+                    href="/admin/ticketing/staff"
+                >
+                    مشاهده همه
+                </a>
+
             </div>
 
-        <?php else: ?>
+            <?php if ($staffRecent === []): ?>
 
-            <div class="admin-table-wrap">
-                <table class="admin-table">
-                    <thead>
-                    <tr>
-                        <th>شماره</th>
-                        <th>عنوان</th>
-                        <th>اولویت</th>
-                        <th>وضعیت</th>
-                        <th>آخرین فعالیت</th>
-                        <th>عملیات</th>
-                    </tr>
-                    </thead>
+                <div class="ticketing-dashboard-empty">
+                    در حال حاضر تیکتی در حوزه
+                    قابل مشاهده شما وجود ندارد.
+                </div>
 
-                    <tbody>
+            <?php else: ?>
 
-                    <?php foreach ($recent as $ticket): ?>
+                <div class="admin-table-wrap">
 
-                        <?php
-                        $url =
-                            '/admin/ticketing/tickets/'
-                            . rawurlencode(
-                                (string) (
-                                    $ticket[
-                                        'public_reference'
-                                    ]
-                                    ?? ''
-                                )
-                            );
-                        ?>
+                    <table
+                        class="admin-table
+                               ticketing-dashboard-table"
+                    >
+                        <colgroup>
+                            <col style="width:7rem">
+                            <col>
+                            <col style="width:10rem">
+                            <col style="width:8rem">
+                            <col style="width:9rem">
+                            <col style="width:7rem">
+                            <col style="width:6rem">
+                        </colgroup>
 
+                        <thead>
                         <tr>
-                            <td>
-                                <?= ticketing_h(
-                                    \App\Support\TicketingDisplay::ticketNumberFromRow($ticket)
-                                ) ?>
-                            </td>
+                            <th>شماره</th>
+                            <th>عنوان</th>
+                            <th>درخواست‌کننده</th>
+                            <th>تیم جاری</th>
+                            <th>کارشناس جاری</th>
+                            <th>وضعیت</th>
+                            <th>عملیات</th>
+                        </tr>
+                        </thead>
 
-                            <td>
-                                <a href="<?= ticketing_h($url) ?>">
-                                    <strong>
+                        <tbody>
+
+                        <?php foreach (
+                            $staffRecent
+                            as $ticket
+                        ): ?>
+
+                            <?php
+                            $url =
+                                '/admin/ticketing/tickets/'
+                                . rawurlencode(
+                                    (string) (
+                                        $ticket[
+                                            'public_reference'
+                                        ]
+                                        ?? ''
+                                    )
+                                );
+                            ?>
+
+                            <tr>
+
+                                <td>
+                                    <?= ticketing_h(
+                                        \App\Support\TicketingDisplay::ticketNumberFromRow(
+                                                $ticket
+                                            )
+                                    ) ?>
+                                </td>
+
+                                <td class="ticketing-dashboard-subject">
+
+                                    <a
+                                        href="<?= ticketing_h(
+                                            $url
+                                        ) ?>"
+                                    >
+                                        <strong>
+                                            <?= ticketing_h(
+                                                $ticket[
+                                                    'subject'
+                                                ]
+                                                ?? ''
+                                            ) ?>
+                                        </strong>
+                                    </a>
+
+                                </td>
+
+                                <td>
+                                    <?= ticketing_h(
+                                        $ticket[
+                                            'requester_display_name_snapshot'
+                                        ]
+                                        ?? '—'
+                                    ) ?>
+                                </td>
+
+                                <td>
+                                    <?= ticketing_h(
+                                        $ticket[
+                                            'team_title'
+                                        ]
+                                        ?? '—'
+                                    ) ?>
+                                </td>
+
+                                <td>
+                                    <?= ticketing_h(
+                                        $ticket[
+                                            'assignee_name'
+                                        ]
+                                        ?? '—'
+                                    ) ?>
+                                </td>
+
+                                <td>
+                                    <span class="admin-pill">
                                         <?= ticketing_h(
                                             $ticket[
-                                                'subject'
+                                                'status_title'
                                             ]
                                             ?? ''
                                         ) ?>
-                                    </strong>
-                                </a>
-                            </td>
+                                    </span>
+                                </td>
 
-                            <td>
-                                <?= ticketing_h(
-                                    $ticket[
-                                        'priority_title'
-                                    ]
-                                    ?? ''
-                                ) ?>
-                            </td>
+                                <td>
+                                    <a
+                                        class="admin-button
+                                               admin-button--soft
+                                               admin-button--compact"
+                                        href="<?= ticketing_h(
+                                            $url
+                                        ) ?>"
+                                    >
+                                        مشاهده
+                                    </a>
+                                </td>
 
-                            <td>
-                                <span class="admin-pill">
+                            </tr>
+
+                        <?php endforeach; ?>
+
+                        </tbody>
+                    </table>
+
+                </div>
+
+            <?php endif; ?>
+
+        </section>
+
+    <?php else: ?>
+
+        <div
+            class="ticketing-dashboard-metrics
+                   ticketing-dashboard-metrics--requester"
+        >
+
+            <?php foreach ([
+                [
+                    'label' =>
+                        'همه درخواست‌ها',
+
+                    'value' =>
+                        $dashboard['total']
+                        ?? 0,
+                ],
+                [
+                    'label' =>
+                        'باز',
+
+                    'value' =>
+                        $dashboard['open']
+                        ?? 0,
+                ],
+                [
+                    'label' =>
+                        'در انتظار',
+
+                    'value' =>
+                        $dashboard['waiting']
+                        ?? 0,
+                ],
+                [
+                    'label' =>
+                        'بسته‌شده',
+
+                    'value' =>
+                        $dashboard['closed']
+                        ?? 0,
+                ],
+            ] as $metric): ?>
+
+                <section class="ticketing-dashboard-metric">
+
+                    <div class="ticketing-dashboard-metric__label">
+                        <?= ticketing_h(
+                            $metric['label']
+                        ) ?>
+                    </div>
+
+                    <div class="ticketing-dashboard-metric__value">
+                        <?= ticketing_h(
+                            \App\Support\AdminFormat::digits(
+                                (int) $metric['value']
+                            )
+                        ) ?>
+                    </div>
+
+                </section>
+
+            <?php endforeach; ?>
+
+        </div>
+
+        <section class="ticketing-dashboard-section">
+
+            <div class="ticketing-dashboard-section__head">
+
+                <div>
+                    <h2>
+                        آخرین درخواست‌های من
+                    </h2>
+
+                    <p>
+                        آخرین درخواست‌های پشتیبانی
+                        ثبت‌شده توسط حساب کاربری شما
+                    </p>
+                </div>
+
+            </div>
+
+            <?php if ($recent === []): ?>
+
+                <div class="ticketing-dashboard-empty">
+                    هنوز درخواست پشتیبانی ثبت نکرده‌اید.
+                </div>
+
+            <?php else: ?>
+
+                <div class="admin-table-wrap">
+
+                    <table
+                        class="admin-table
+                               ticketing-dashboard-table"
+                    >
+                        <thead>
+                        <tr>
+                            <th>شماره</th>
+                            <th>عنوان</th>
+                            <th>اولویت</th>
+                            <th>وضعیت</th>
+                            <th>آخرین فعالیت</th>
+                            <th>عملیات</th>
+                        </tr>
+                        </thead>
+
+                        <tbody>
+
+                        <?php foreach (
+                            $recent
+                            as $ticket
+                        ): ?>
+
+                            <?php
+                            $url =
+                                '/admin/ticketing/tickets/'
+                                . rawurlencode(
+                                    (string) (
+                                        $ticket[
+                                            'public_reference'
+                                        ]
+                                        ?? ''
+                                    )
+                                );
+                            ?>
+
+                            <tr>
+
+                                <td>
+                                    <?= ticketing_h(
+                                        \App\Support\TicketingDisplay::ticketNumberFromRow(
+                                                $ticket
+                                            )
+                                    ) ?>
+                                </td>
+
+                                <td class="ticketing-dashboard-subject">
+
+                                    <a
+                                        href="<?= ticketing_h(
+                                            $url
+                                        ) ?>"
+                                    >
+                                        <strong>
+                                            <?= ticketing_h(
+                                                $ticket[
+                                                    'subject'
+                                                ]
+                                                ?? ''
+                                            ) ?>
+                                        </strong>
+                                    </a>
+
+                                </td>
+
+                                <td>
                                     <?= ticketing_h(
                                         $ticket[
-                                            'status_title'
+                                            'priority_title'
                                         ]
                                         ?? ''
                                     ) ?>
-                                </span>
-                            </td>
+                                </td>
 
-                            <td>
-                                <?= ticketing_h(
-                                    \App\Support\AdminFormat::jalaliDateTime(
-                                        (string) (
+                                <td>
+                                    <span class="admin-pill">
+                                        <?= ticketing_h(
                                             $ticket[
-                                                'last_activity_at'
+                                                'status_title'
                                             ]
                                             ?? ''
-                                        )
-                                    )
-                                    ?: '—'
-                                ) ?>
-                            </td>
+                                        ) ?>
+                                    </span>
+                                </td>
 
-                            <td>
-                                <a
-                                    class="admin-button admin-button--soft admin-button--compact"
-                                    href="<?= ticketing_h($url) ?>"
-                                >
-                                    مشاهده
-                                </a>
-                            </td>
-                        </tr>
+                                <td>
+                                    <?= ticketing_h(
+                                        \App\Support\AdminFormat
+                                            ::jalaliDateTime(
+                                                (string) (
+                                                    $ticket[
+                                                        'last_activity_at'
+                                                    ]
+                                                    ?? ''
+                                                )
+                                            )
+                                        ?: '—'
+                                    ) ?>
+                                </td>
 
-                    <?php endforeach; ?>
+                                <td>
+                                    <a
+                                        class="admin-button
+                                               admin-button--soft
+                                               admin-button--compact"
+                                        href="<?= ticketing_h(
+                                            $url
+                                        ) ?>"
+                                    >
+                                        مشاهده
+                                    </a>
+                                </td>
 
-                    </tbody>
-                </table>
-            </div>
+                            </tr>
 
-        <?php endif; ?>
+                        <?php endforeach; ?>
 
-    </section>
+                        </tbody>
+                    </table>
 
+                </div>
 
-    <section
-        class="admin-card ticketing-queue-card"
-    >
-        <div class="admin-card-body">
-            <h2>
-                صف پشتیبانی
-            </h2>
+            <?php endif; ?>
 
-            <p class="admin-muted">
-                صف کارشناسان، ارجاع،
-                پاسخ‌گویی و SLA با نقش و
-                دسترسی مستقل در مرحله
-                عملیاتی بعدی فعال می‌شود.
-            </p>
-        </div>
-    </section>
+        </section>
+
+    <?php endif; ?>
 
 </div>
 
 <?php
+
 $content =
     ob_get_clean()
     ?: '';
