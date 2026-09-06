@@ -99,21 +99,58 @@ foreach ([
 }
 
 
-$first =
+/*
+ * TICKETING_STAFF_DETAIL_TEST_ROUTE_SCOPE_V1
+ *
+ * Authorization ordering must be inspected only inside
+ * the generic Ticket Detail route. Other routes are free
+ * to reuse the same service method names.
+ */
+$detailRouteStart =
     strpos(
         $route,
+        "'/admin/ticketing/tickets/{public_reference}',"
+    );
+
+$detailRouteEnd =
+    strpos(
+        $route,
+        'ticketing_staff_operations_a7',
+        is_int($detailRouteStart)
+            ? $detailRouteStart
+            : 0
+    );
+
+$expect(
+    is_int($detailRouteStart)
+    && is_int($detailRouteEnd)
+    && $detailRouteStart < $detailRouteEnd,
+    'staff_detail_route_scope_missing'
+);
+
+$detailRoute =
+    substr(
+        $route,
+        $detailRouteStart,
+        $detailRouteEnd - $detailRouteStart
+    );
+
+
+$first =
+    strpos(
+        $detailRoute,
         '$ticketService->detailForUser('
     );
 
 $second =
     strpos(
-        $route,
+        $detailRoute,
         ')->canViewTicket('
     );
 
 $third =
     strpos(
-        $route,
+        $detailRoute,
         '$ticketService->detail('
     );
 

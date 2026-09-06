@@ -1095,6 +1095,68 @@ class TicketService extends BaseService
 
 
     /*
+     * TICKETING_AUTHORIZED_ATTACHMENT_LOOKUP_V1
+     *
+     * Viewer authorization must already have been established
+     * by the caller. This mirrors the existing unrestricted
+     * detail() helper but remains scoped to one attachment.
+     */
+    public function attachmentForAuthorizedContext(
+        string $publicReference,
+        int $attachmentId
+    ): ?array {
+        if (
+            trim($publicReference) === ''
+            || $attachmentId < 1
+        ) {
+            return null;
+        }
+
+
+        $detail =
+            $this->detail(
+                trim(
+                    $publicReference
+                )
+            );
+
+
+        if (!is_array($detail)) {
+            return null;
+        }
+
+
+        $ticket =
+            is_array(
+                $detail['ticket']
+                ?? null
+            )
+                ? $detail['ticket']
+                : [];
+
+
+        $ticketId =
+            (int) (
+                $ticket['id']
+                ?? 0
+            );
+
+
+        if ($ticketId < 1) {
+            return null;
+        }
+
+
+        return
+            $this->tickets
+                ->attachmentForTicket(
+                    $ticketId,
+                    $attachmentId
+                );
+    }
+
+
+    /*
      * Attachment access deliberately reuses the exact Ticket Detail
      * authorization contract. A user who cannot obtain the Detail
      * cannot obtain its attachment.

@@ -2856,14 +2856,45 @@ $router->get(
 
         try {
 
+            /*
+             * TICKETING_STAFF_ATTACHMENT_VISIBILITY_V1
+             *
+             * Requester / active-assignee authorization stays
+             * first. Scoped staff fallback is permitted only
+             * through canonical staff-cartable visibility.
+             */
+            $ticketService =
+                new \App\Services\Ticketing\TicketService();
+
             $attachment =
-                (
-                    new \App\Services\Ticketing\TicketService()
-                )->attachmentForUser(
+                $ticketService->attachmentForUser(
                     $reference,
                     $attachmentId,
                     (int) $context['user_id']
                 );
+
+
+            if ($attachment === null) {
+
+                $staffCanView =
+                    (
+                        new \App\Services\Ticketing\TicketStaffOperationsService()
+                    )->canViewTicket(
+                        $reference,
+                        (int) $context['user_id']
+                    );
+
+
+                if ($staffCanView) {
+
+                    $attachment =
+                        $ticketService
+                            ->attachmentForAuthorizedContext(
+                                $reference,
+                                $attachmentId
+                            );
+                }
+            }
 
 
             if ($attachment === null) {
