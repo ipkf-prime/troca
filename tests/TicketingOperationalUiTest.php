@@ -264,10 +264,15 @@ foreach ([
     'ticketing-dashboard-page',
     'ticketing-dashboard-metrics',
     'ticketing-dashboard-metric__value',
-    'ticketing-dashboard-section',
     'ticketing-dashboard-role',
     'کارتابل کارشناسی',
-    'کارتابل پشتیبانی',
+    'تیکت‌های باز',
+    'در حال بررسی',
+    'حل‌شده',
+    'بسته‌شده',
+    'ticketing-dashboard-metric--staff',
+    'ticketing-dashboard-metric__hint',
+    'ورود به کارتابل',
     'آخرین درخواست‌های من',
 ] as $needle) {
     $expect(
@@ -279,6 +284,27 @@ foreach ([
         . $needle
     );
 }
+
+$expect(
+    !str_contains(
+        $dashboard,
+        'کارتابل پشتیبانی'
+    )
+    && !str_contains(
+        $dashboard,
+        '$staffRecent'
+    )
+    && !str_contains(
+        $dashboard,
+        '$staffItems'
+    )
+    && !str_contains(
+        $dashboard,
+        '$staffCounts'
+    ),
+    'Obsolete Staff dashboard cartable clone remains.'
+);
+
 
 $expect(
     !str_contains(

@@ -19,6 +19,82 @@ final class TicketStaffOperationsService
     }
 
 
+    /*
+     * Dashboard is deliberately summary-only.
+     * Ticket rows and operational actions belong to cartable.
+     */
+    public function dashboard(
+        int $userId
+    ): array {
+        $userReference =
+            'user:' . $userId;
+
+        $statusCounts =
+            $this->repository
+                ->dashboardStatusCounts(
+                    $userReference
+                );
+
+
+        return [
+            'viewer_user_reference' =>
+                $userReference,
+
+            'is_staff' =>
+                $this->repository->isStaff(
+                    $userReference
+                ),
+
+            /*
+             * Keep the complete status map available for
+             * future dashboard KPIs without changing the
+             * repository contract again.
+             */
+            'status_counts' =>
+                $statusCounts,
+
+            /*
+             * "Open" intentionally means NEW here.
+             * This keeps the four dashboard cards mutually
+             * exclusive instead of overlapping with
+             * in_progress / waiting statuses.
+             */
+            'kpis' => [
+                'open' =>
+                    (int) (
+                        $statusCounts['new']
+                        ?? 0
+                    ),
+
+                'in_progress' =>
+                    (int) (
+                        $statusCounts[
+                            'in_progress'
+                        ]
+                        ?? 0
+                    ),
+
+                'resolved' =>
+                    (int) (
+                        $statusCounts[
+                            'resolved'
+                        ]
+                        ?? 0
+                    ),
+
+                'closed' =>
+                    (int) (
+                        $statusCounts[
+                            'closed'
+                        ]
+                        ?? 0
+                    ),
+            ],
+        ];
+    }
+
+
+
     public function page(
         int $userId,
         array $context = [],

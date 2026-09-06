@@ -356,6 +356,196 @@ final class TicketStaffOperationsRepository
     }
 
 
+    /*
+     * TICKETING_STAFF_DASHBOARD_STATUS_COUNTS_V1
+     *
+     * Aggregate directly in the database.
+     * Visibility must match canonical staff/all scope and
+     * must not inherit cartable() LIMIT 200.
+     */
+    public function dashboardStatusCounts(
+        string $userReference
+    ): array {
+        $userReference =
+            trim($userReference);
+
+        if ($userReference === '') {
+            return [];
+        }
+
+
+        $memberships =
+            $this->actorMemberships(
+                $userReference
+            );
+
+        if ($memberships === []) {
+            return [];
+        }
+
+
+        $memberIds = [];
+
+        foreach (
+            $memberships
+            as $membership
+        ) {
+            $memberId =
+                (int) (
+                    $membership[
+                        'project_member_id'
+                    ]
+                    ?? 0
+                );
+
+            if ($memberId > 0) {
+                $memberIds[$memberId] =
+                    true;
+            }
+        }
+
+
+        $visibleByProject =
+            $this->visibleNodesByProject(
+                $memberships
+            );
+
+
+        $where = [
+            't.archived_at IS NULL',
+        ];
+
+        $parameters = [];
+        $access = [];
+
+
+        if ($memberIds !== []) {
+
+            $marks =
+                implode(
+                    ',',
+                    array_fill(
+                        0,
+                        count($memberIds),
+                        '?'
+                    )
+                );
+
+            $access[] =
+                "t.current_assignee_project_member_id
+                    IN ({$marks})";
+
+            foreach (
+                array_keys($memberIds)
+                as $memberId
+            ) {
+                $parameters[] =
+                    $memberId;
+            }
+        }
+
+
+        $visibleParameters = [];
+
+        $visibleClause =
+            $this->visibleNodeClause(
+                $visibleByProject,
+                $visibleParameters
+            );
+
+        if ($visibleClause !== '') {
+
+            $access[] =
+                $visibleClause;
+
+            foreach (
+                $visibleParameters
+                as $parameter
+            ) {
+                $parameters[] =
+                    $parameter;
+            }
+        }
+
+
+        if ($access === []) {
+            return [];
+        }
+
+
+        $where[] =
+            '('
+            . implode(
+                ' OR ',
+                $access
+            )
+            . ')';
+
+
+        $statement =
+            $this->db->prepare("
+                SELECT
+                    t.status_code,
+                    COUNT(*) AS ticket_count
+
+                FROM ticketing_tickets t
+
+                INNER JOIN ticketing_statuses s
+                    ON s.code =
+                        t.status_code
+
+                WHERE
+                    " . implode(
+                        ' AND ',
+                        $where
+                    ) . "
+
+                GROUP BY
+                    t.status_code
+            ");
+
+        $statement->execute(
+            $parameters
+        );
+
+
+        $counts = [];
+
+        foreach (
+            $statement->fetchAll(
+                PDO::FETCH_ASSOC
+            ) ?: []
+            as $row
+        ) {
+            $code =
+                trim(
+                    (string) (
+                        $row[
+                            'status_code'
+                        ]
+                        ?? ''
+                    )
+                );
+
+            if ($code === '') {
+                continue;
+            }
+
+            $counts[$code] =
+                (int) (
+                    $row[
+                        'ticket_count'
+                    ]
+                    ?? 0
+                );
+        }
+
+
+        return $counts;
+    }
+
+
+
     public function actionContext(
         int $ticketId,
         string $userReference

@@ -258,12 +258,8 @@ $router->get(
              */
             $staffDashboard = (
                 new \App\Services\Ticketing\TicketStaffOperationsService()
-            )->page(
-                (int) $context['user_id'],
-                $context,
-                [
-                    'scope' => 'all',
-                ]
+            )->dashboard(
+                (int) $context['user_id']
             );
 
             $isStaff =

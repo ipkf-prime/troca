@@ -29,9 +29,15 @@ if (!is_string($view)) {
     );
 }
 
+
+/*
+ * ---------------------------------------------------------
+ * Role-aware route contract
+ * ---------------------------------------------------------
+ */
 foreach ([
     'TicketStaffOperationsService()',
-    "'scope' => 'all'",
+    '->dashboard(',
     '$isStaff',
     "'is_staff' =>",
     "'staff_dashboard' =>",
@@ -51,17 +57,23 @@ foreach ([
     }
 }
 
+
+/*
+ * ---------------------------------------------------------
+ * Staff dashboard contract
+ * ---------------------------------------------------------
+ */
 foreach ([
-    '<h1>پشتیبانی و تیکتینگ</h1>',
     '<h1>داشبورد پشتیبانی</h1>',
     'دسترسی فعال در ماژول تیکتینگ',
     'کارتابل کارشناسی',
-    'کارتابل پشتیبانی',
-    'قابل مشاهده',
-    'تحت مسئولیت من',
-    'بدون کارشناس',
-    'درخواست‌کننده',
-    'آخرین درخواست‌های من',
+    'تیکت‌های باز',
+    'در حال بررسی',
+    'حل‌شده',
+    'بسته‌شده',
+    'ورود به کارتابل',
+    'ticketing-dashboard-metric--staff',
+    'ticketing-dashboard-metric__hint',
     '/admin/ticketing/staff',
 ] as $marker) {
 
@@ -72,13 +84,59 @@ foreach ([
         ) === false
     ) {
         throw new RuntimeException(
-            'view_marker_missing:'
+            'staff_view_marker_missing:'
             . $marker
         );
     }
 }
 
+
+/*
+ * ---------------------------------------------------------
+ * Requester dashboard contract
+ * ---------------------------------------------------------
+ */
 foreach ([
+    '<h1>پشتیبانی و تیکتینگ</h1>',
+    'درخواست‌کننده',
+    'همه درخواست‌ها',
+    'آخرین درخواست‌های من',
+    'درخواست‌های من',
+    'درخواست جدید',
+    'ticketing-dashboard-metrics--requester',
+] as $marker) {
+
+    if (
+        strpos(
+            $view,
+            $marker
+        ) === false
+    ) {
+        throw new RuntimeException(
+            'requester_view_marker_missing:'
+            . $marker
+        );
+    }
+}
+
+
+/*
+ * ---------------------------------------------------------
+ * Old Staff dashboard clone/list must remain removed.
+ * ---------------------------------------------------------
+ */
+foreach ([
+    'کارتابل پشتیبانی',
+    '$staffRecent',
+    '$staffItems',
+    '$staffCounts',
+    'ticketing-dashboard-table--staff',
+    'ticketing-dashboard-assignee',
+    'ticketing-dashboard-status-cell',
+    'ticketing-dashboard-actions',
+    'قابل مشاهده',
+    'تحت مسئولیت من',
+    'بدون کارشناس',
     'ticketing-queue-card',
     'در مرحله عملیاتی بعدی فعال می‌شود',
     'آخرین تیکت‌های من',
@@ -96,6 +154,7 @@ foreach ([
         );
     }
 }
+
 
 echo
     "TICKETING_ROLE_AWARE_DASHBOARD_CONTRACT_PASS"
