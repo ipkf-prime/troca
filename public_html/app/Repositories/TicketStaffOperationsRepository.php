@@ -1451,6 +1451,7 @@ final class TicketStaffOperationsRepository
                 SELECT
                     pm.project_id,
                     pm.id AS project_member_id,
+                    pm.role_code AS project_role_code,
                     pm.user_reference,
                     pm.display_name_snapshot,
 
@@ -1468,6 +1469,7 @@ final class TicketStaffOperationsRepository
                     q.sort_order AS queue_sort_order,
 
                     n.layer_id,
+                    l.can_observe_descendants,
 
                     t.title AS team_title
 
@@ -1497,6 +1499,11 @@ final class TicketStaffOperationsRepository
                     ON n.id = q.node_id
                    AND n.status = 'active'
 
+                LEFT JOIN
+                    ticketing_support_layers l
+                    ON l.id = n.layer_id
+                   AND l.status = 'active'
+
                 WHERE
                     " . implode(
                         ' AND ',
@@ -1523,6 +1530,25 @@ final class TicketStaffOperationsRepository
     }
 
 
+    /*
+     * TICKETING_HIERARCHICAL_VISIBILITY_V1
+     *
+     * Canonical Ticketing staff visibility:
+     *
+     * 1. Project-role manager:
+     *      all tickets of that support project.
+     *
+     * 2. Ordinary active staff:
+     *      own operational node.
+     *
+     * 3. If the current Layer explicitly allows observing
+     *    descendants:
+     *      direct hierarchy children only.
+     *
+     * Recursive descendant traversal is intentionally
+     * forbidden here so a staff member cannot see data
+     * several organizational layers below.
+     */
     private function visibleNodesByProject(
         array $memberships
     ): array {
@@ -1541,6 +1567,60 @@ final class TicketStaffOperationsRepository
                     ?? 0
                 );
 
+
+            if ($projectId <= 0) {
+                continue;
+            }
+
+
+            if (!isset($result[$projectId])) {
+                $result[$projectId] = [
+                    'all' => false,
+                    'nodes' => [],
+                ];
+            }
+
+
+            /*
+             * Project management is intentionally distinct
+             * from team staff_role_code=manager.
+             *
+             * A Team manager is still scoped by topology.
+             * A Project manager sees the complete project.
+             */
+            if (
+                trim(
+                    (string) (
+                        $membership[
+                            'project_role_code'
+                        ]
+                        ?? ''
+                    )
+                )
+                === 'manager'
+            ) {
+                $result[$projectId] = [
+                    'all' => true,
+                    'nodes' => [],
+                ];
+
+                continue;
+            }
+
+
+            /*
+             * Another membership of the same actor may
+             * already have granted full project scope.
+             */
+            if (
+                !empty(
+                    $result[$projectId]['all']
+                )
+            ) {
+                continue;
+            }
+
+
             $nodeId =
                 (int) (
                     $membership[
@@ -1550,51 +1630,56 @@ final class TicketStaffOperationsRepository
                 );
 
 
-            if (
-                $projectId <= 0
-                || $nodeId <= 0
-            ) {
+            if ($nodeId <= 0) {
                 continue;
             }
 
 
+            /*
+             * Membership in an active support team is
+             * sufficient to see that team's own node.
+             *
+             * Action permissions such as takeover/transfer
+             * remain independent from read visibility.
+             */
+            $result[
+                $projectId
+            ][
+                'nodes'
+            ][
+                $nodeId
+            ] = true;
+
+
+            /*
+             * Lower-level observation remains dynamically
+             * governed by the current Layer configuration,
+             * but is capped at exactly one hierarchy edge.
+             */
             if (
                 empty(
                     $membership[
-                        'can_observe'
-                    ]
-                )
-                &&
-                empty(
-                    $membership[
-                        'can_takeover'
+                        'can_observe_descendants'
                     ]
                 )
             ) {
                 continue;
             }
-
-
-            if (!isset($result[$projectId])) {
-                $result[$projectId] = [];
-            }
-
-
-            $result[$projectId][$nodeId] =
-                true;
 
 
             foreach (
-                $this->descendantNodes(
+                $this->directChildNodes(
                     $projectId,
                     $nodeId
                 )
-                as $descendantId
+                as $childId
             ) {
                 $result[
                     $projectId
                 ][
-                    $descendantId
+                    'nodes'
+                ][
+                    $childId
                 ] = true;
             }
         }
@@ -1604,84 +1689,56 @@ final class TicketStaffOperationsRepository
     }
 
 
-    private function descendantNodes(
+    private function directChildNodes(
         int $projectId,
-        int $rootNodeId
+        int $parentNodeId
     ): array {
+        if (
+            $projectId <= 0
+            || $parentNodeId <= 0
+        ) {
+            return [];
+        }
+
+
         $statement =
             $this->db->prepare("
-                SELECT
-                    parent_node_id,
+                SELECT DISTINCT
                     child_node_id
 
                 FROM
                     ticketing_support_node_relations
 
                 WHERE project_id = ?
+                  AND parent_node_id = ?
+
                   AND status = 'active'
+
                   AND relation_type_code =
                       'hierarchy'
+
+                  AND is_primary_path = 1
+
+                ORDER BY
+                    child_node_id
             ");
 
         $statement->execute([
             $projectId,
+            $parentNodeId,
         ]);
-
-        $children = [];
-
-        foreach (
-            $statement->fetchAll(
-                PDO::FETCH_ASSOC
-            ) ?: []
-            as $relation
-        ) {
-            $parent =
-                (int) $relation[
-                    'parent_node_id'
-                ];
-
-            $child =
-                (int) $relation[
-                    'child_node_id'
-                ];
-
-            $children[$parent][] =
-                $child;
-        }
-
-
-        $seen = [];
-        $queue = [
-            $rootNodeId,
-        ];
-
-        while ($queue !== []) {
-
-            $current =
-                array_shift($queue);
-
-            foreach (
-                $children[$current]
-                ?? []
-                as $child
-            ) {
-                if (isset($seen[$child])) {
-                    continue;
-                }
-
-                $seen[$child] =
-                    true;
-
-                $queue[] =
-                    $child;
-            }
-        }
 
 
         return
-            array_map(
-                'intval',
-                array_keys($seen)
+            array_values(
+                array_unique(
+                    array_map(
+                        'intval',
+                        $statement->fetchAll(
+                            PDO::FETCH_COLUMN
+                        ) ?: []
+                    )
+                )
             );
     }
 
@@ -1695,17 +1752,72 @@ final class TicketStaffOperationsRepository
 
         foreach (
             $visibleByProject
-            as $projectId => $nodes
+            as $projectId => $scope
         ) {
+            $projectId =
+                (int) $projectId;
+
+
+            if (
+                $projectId <= 0
+                || !is_array($scope)
+            ) {
+                continue;
+            }
+
+
+            /*
+             * Project managers receive full project read
+             * visibility, including routed tickets from all
+             * operational layers.
+             */
+            if (!empty($scope['all'])) {
+
+                $groups[] =
+                    "(
+                        t.support_project_id = ?
+                    )";
+
+                $parameters[] =
+                    $projectId;
+
+                continue;
+            }
+
+
+            $nodes =
+                is_array(
+                    $scope['nodes']
+                    ?? null
+                )
+                    ? $scope['nodes']
+                    : [];
+
+
             if ($nodes === []) {
                 continue;
             }
 
+
             $nodeIds =
-                array_map(
-                    'intval',
-                    array_keys($nodes)
+                array_values(
+                    array_filter(
+                        array_map(
+                            'intval',
+                            array_keys($nodes)
+                        ),
+                        static fn (
+                            int $nodeId
+                        ): bool =>
+                            $nodeId > 0
+                    )
                 );
+
+
+            if ($nodeIds === []) {
+                continue;
+            }
+
 
             $marks =
                 implode(
@@ -1717,6 +1829,7 @@ final class TicketStaffOperationsRepository
                     )
                 );
 
+
             $groups[] =
                 "(
                     t.support_project_id = ?
@@ -1725,10 +1838,15 @@ final class TicketStaffOperationsRepository
                         IN ({$marks})
                 )";
 
-            $parameters[] =
-                (int) $projectId;
 
-            foreach ($nodeIds as $nodeId) {
+            $parameters[] =
+                $projectId;
+
+
+            foreach (
+                $nodeIds
+                as $nodeId
+            ) {
                 $parameters[] =
                     $nodeId;
             }
