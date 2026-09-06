@@ -145,6 +145,58 @@ final class TicketStaffOperationsService
     }
 
 
+    /*
+     * TICKETING_STAFF_DETAIL_VISIBILITY_V1
+     *
+     * Read visibility follows the canonical staff cartable
+     * and is intentionally independent from reply ownership.
+     */
+    public function canViewTicket(
+        string $publicReference,
+        int $userId
+    ): bool {
+        $reference =
+            trim(
+                $publicReference
+            );
+
+        if (
+            $reference === ''
+            || $userId < 1
+        ) {
+            return false;
+        }
+
+
+        $rows =
+            $this->repository->cartable(
+                'user:' . $userId,
+                'all'
+            );
+
+
+        foreach ($rows as $ticket) {
+
+            if (
+                trim(
+                    (string) (
+                        $ticket[
+                            'public_reference'
+                        ]
+                        ?? ''
+                    )
+                )
+                === $reference
+            ) {
+                return true;
+            }
+        }
+
+
+        return false;
+    }
+
+
     public function takeOver(
         string $publicReference,
         int $userId,

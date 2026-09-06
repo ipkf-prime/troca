@@ -3333,12 +3333,45 @@ $router->get(
         }
 
         try {
-            $detail = (
-                new \App\Services\Ticketing\TicketService()
-            )->detailForUser(
-                $reference,
-                (int) $context['user_id']
-            );
+            /*
+             * TICKETING_STAFF_DETAIL_CONTEXT_V1
+             *
+             * Requester / active-assignee visibility remains
+             * the primary and narrowest authorization path.
+             *
+             * Staff receives read visibility only when the same
+             * ticket is already visible in the canonical cartable.
+             * Reply ownership is NOT granted here.
+             */
+            $ticketService =
+                new \App\Services\Ticketing\TicketService();
+
+            $detail =
+                $ticketService->detailForUser(
+                    $reference,
+                    (int) $context['user_id']
+                );
+
+
+            if ($detail === null) {
+
+                $staffCanView =
+                    (
+                        new \App\Services\Ticketing\TicketStaffOperationsService()
+                    )->canViewTicket(
+                        $reference,
+                        (int) $context['user_id']
+                    );
+
+
+                if ($staffCanView) {
+
+                    $detail =
+                        $ticketService->detail(
+                            $reference
+                        );
+                }
+            }
 
         } catch (\Throwable $exception) {
 
