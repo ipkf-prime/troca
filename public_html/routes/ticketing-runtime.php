@@ -5022,3 +5022,465 @@ foreach (
         }
     );
 }
+
+
+/*
+ * ============================================================================
+ * TICKETING_SLA_MANAGEMENT_UI_V1
+ *
+ * SLA configuration belongs to Ticketing administration.
+ * Generic scheduling remains under System Management.
+ *
+ * Existing project-management permission is intentionally reused
+ * until dedicated Ticketing SLA permissions are introduced.
+ * ============================================================================
+ */
+
+$router->get(
+    '/admin/ticketing/sla',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/ticketing/projects'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+
+        try {
+
+            $service =
+                new \App\Services\Ticketing\TicketingSlaPolicyAdminService();
+
+            $page =
+                $service->page(
+                    [],
+                    trim(
+                        (string) $request->input(
+                            'copy',
+                            ''
+                        )
+                    )
+                );
+
+
+            $status =
+                trim(
+                    (string) $request->input(
+                        'status',
+                        ''
+                    )
+                );
+
+
+            $notices = [
+                'saved' =>
+                    'نسخه جدید سیاست SLA ذخیره شد.',
+
+                'disabled' =>
+                    'سیاست SLA برای تیکت‌های جدید غیرفعال شد.',
+            ];
+
+
+            return
+                $adminRender(
+                    $response,
+                    'ticketing-sla-management',
+                    array_merge(
+                        [
+                            'title' =>
+                                'مدیریت SLA',
+
+                            'context' =>
+                                $context,
+
+                            'errors' =>
+                                [],
+
+                            'notice' =>
+                                $notices[
+                                    $status
+                                ]
+                                ?? '',
+                        ],
+                        $page
+                    )
+                );
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'ticketing_sla_management_index',
+                    [
+                        'user_id' =>
+                            (int) (
+                                $context[
+                                    'user_id'
+                                ]
+                                ?? 0
+                            ),
+                    ]
+                );
+
+
+            return
+                $adminRender(
+                    $response,
+                    'placeholder',
+                    [
+                        'title' =>
+                            'مدیریت SLA',
+
+                        'context' =>
+                            $context,
+
+                        'message' =>
+                            'نمایش مدیریت SLA انجام نشد. کد خطا: '
+                            . $incident,
+                    ],
+                    503
+                );
+        }
+    }
+);
+
+
+$router->post(
+    '/admin/ticketing/sla',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminRender,
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/ticketing/projects'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+
+        if (
+            !(new \IPKF\Security\Csrf())
+                ->check(
+                    (string) $request->input(
+                        '_token',
+                        ''
+                    )
+                )
+        ) {
+            return
+                $response->redirect(
+                    '/admin/ticketing/sla'
+                    . '?status=invalid_csrf'
+                );
+        }
+
+
+        $pauseStatuses =
+            $request->input(
+                'pause_statuses',
+                []
+            );
+
+        if (!is_array($pauseStatuses)) {
+            $pauseStatuses = [];
+        }
+
+
+        $input = [
+            'scope_type' =>
+                $request->input(
+                    'scope_type',
+                    'global'
+                ),
+
+            'project_id' =>
+                $request->input(
+                    'project_id',
+                    0
+                ),
+
+            'service_id' =>
+                $request->input(
+                    'service_id',
+                    0
+                ),
+
+            'topic_id' =>
+                $request->input(
+                    'topic_id',
+                    0
+                ),
+
+            'queue_id' =>
+                $request->input(
+                    'queue_id',
+                    0
+                ),
+
+            'priority_code' =>
+                $request->input(
+                    'priority_code',
+                    ''
+                ),
+
+            'calendar_id' =>
+                $request->input(
+                    'calendar_id',
+                    0
+                ),
+
+            'title' =>
+                $request->input(
+                    'title',
+                    ''
+                ),
+
+            'response_minutes' =>
+                $request->input(
+                    'response_minutes',
+                    0
+                ),
+
+            'resolution_minutes' =>
+                $request->input(
+                    'resolution_minutes',
+                    0
+                ),
+
+            'pause_statuses' =>
+                $pauseStatuses,
+
+            'auto_escalate' =>
+                $request->input(
+                    'auto_escalate',
+                    0
+                ),
+
+            'max_auto_escalations' =>
+                $request->input(
+                    'max_auto_escalations',
+                    0
+                ),
+
+            'escalation_repeat_minutes' =>
+                $request->input(
+                    'escalation_repeat_minutes',
+                    0
+                ),
+
+            'sort_order' =>
+                $request->input(
+                    'sort_order',
+                    100
+                ),
+        ];
+
+
+        try {
+
+            $service =
+                new \App\Services\Ticketing\TicketingSlaPolicyAdminService();
+
+            $result =
+                $service->save(
+                    $input,
+                    (int) (
+                        $context[
+                            'user_id'
+                        ]
+                        ?? 0
+                    )
+                );
+
+
+            if (empty($result['ok'])) {
+
+                $page =
+                    $service->page(
+                        $result[
+                            'form'
+                        ]
+                        ?? $input
+                    );
+
+
+                return
+                    $adminRender(
+                        $response,
+                        'ticketing-sla-management',
+                        array_merge(
+                            [
+                                'title' =>
+                                    'مدیریت SLA',
+
+                                'context' =>
+                                    $context,
+
+                                'errors' =>
+                                    $result[
+                                        'errors'
+                                    ]
+                                    ?? [],
+
+                                'notice' =>
+                                    '',
+                            ],
+                            $page
+                        ),
+                        422
+                    );
+            }
+
+
+            return
+                $response->redirect(
+                    '/admin/ticketing/sla'
+                    . '?status=saved'
+                );
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'ticketing_sla_policy_save',
+                    [
+                        'user_id' =>
+                            (int) (
+                                $context[
+                                    'user_id'
+                                ]
+                                ?? 0
+                            ),
+                    ]
+                );
+
+
+            return
+                $response->redirect(
+                    '/admin/ticketing/sla'
+                    . '?status=save_failed'
+                    . '&error='
+                    . rawurlencode(
+                        $incident
+                    )
+                );
+        }
+    }
+);
+
+
+$router->post(
+    '/admin/ticketing/sla/{public_reference}/disable',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard,
+        $ticketingRuntimeReport
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/ticketing/projects'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+
+        if (
+            !(new \IPKF\Security\Csrf())
+                ->check(
+                    (string) $request->input(
+                        '_token',
+                        ''
+                    )
+                )
+        ) {
+            return
+                $response->redirect(
+                    '/admin/ticketing/sla'
+                    . '?status=invalid_csrf'
+                );
+        }
+
+
+        $reference =
+            trim(
+                (string) $request->route(
+                    'public_reference',
+                    ''
+                )
+            );
+
+
+        try {
+
+            (
+                new \App\Services\Ticketing\TicketingSlaPolicyAdminService()
+            )->disable(
+                $reference
+            );
+
+
+            return
+                $response->redirect(
+                    '/admin/ticketing/sla'
+                    . '?status=disabled'
+                );
+
+        } catch (\Throwable $exception) {
+
+            $incident =
+                $ticketingRuntimeReport(
+                    $exception,
+                    'ticketing_sla_policy_disable',
+                    [
+                        'user_id' =>
+                            (int) (
+                                $context[
+                                    'user_id'
+                                ]
+                                ?? 0
+                            ),
+
+                        'policy_reference' =>
+                            $reference,
+                    ]
+                );
+
+
+            return
+                $response->redirect(
+                    '/admin/ticketing/sla'
+                    . '?status=disable_failed'
+                    . '&error='
+                    . rawurlencode(
+                        $incident
+                    )
+                );
+        }
+    }
+);

@@ -93,6 +93,14 @@ ob_start();
                 عنوان وضعیت‌ها
             </a>
 
+            <!-- TICKETING_SLA_MANAGEMENT_ENTRY_V1 -->
+            <a
+                class="admin-button admin-button--soft"
+                href="/admin/ticketing/sla"
+            >
+                مدیریت SLA
+            </a>
+
             <a
                 class="admin-button"
                 href="/admin/ticketing/projects/create"
