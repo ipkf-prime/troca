@@ -56,6 +56,9 @@ final class TicketingSlaRepository
                     t.ticket_number,
 
                     t.support_project_id,
+                    t.support_service_id,
+                    t.support_topic_id,
+
                     t.current_support_queue_id,
 
                     t.priority_code,
@@ -140,6 +143,24 @@ final class TicketingSlaRepository
 
                         AND
                         (
+                            candidate_policy.service_id
+                                IS NULL
+
+                            OR candidate_policy.service_id =
+                                t.support_service_id
+                        )
+
+                        AND
+                        (
+                            candidate_policy.topic_id
+                                IS NULL
+
+                            OR candidate_policy.topic_id =
+                                t.support_topic_id
+                        )
+
+                        AND
+                        (
                             candidate_policy.queue_id
                                 IS NULL
 
@@ -169,6 +190,22 @@ final class TicketingSlaRepository
             (int) (
                 $ticket[
                     'support_project_id'
+                ]
+                ?? 0
+            );
+
+        $serviceId =
+            (int) (
+                $ticket[
+                    'support_service_id'
+                ]
+                ?? 0
+            );
+
+        $topicId =
+            (int) (
+                $ticket[
+                    'support_topic_id'
                 ]
                 ?? 0
             );
@@ -256,12 +293,49 @@ final class TicketingSlaRepository
 
                   AND
                   (
+                      p.service_id IS NULL
+
+                      OR p.service_id = ?
+                  )
+
+                  AND
+                  (
+                      p.topic_id IS NULL
+
+                      OR p.topic_id = ?
+                  )
+
+                  AND
+                  (
                       p.queue_id IS NULL
 
                       OR p.queue_id = ?
                   )
 
                 ORDER BY
+                    /*
+                     * TICKETING_DYNAMIC_SLA_SCOPE_PRECEDENCE_V1
+                     *
+                     * Topic
+                     *   > Service
+                     *   > Queue
+                     *   > Project
+                     *   > Global
+                     */
+                    CASE
+                        WHEN p.topic_id
+                                IS NOT NULL
+                            THEN 1
+                        ELSE 0
+                    END DESC,
+
+                    CASE
+                        WHEN p.service_id
+                                IS NOT NULL
+                            THEN 1
+                        ELSE 0
+                    END DESC,
+
                     CASE
                         WHEN p.queue_id
                                 IS NOT NULL
@@ -288,6 +362,15 @@ final class TicketingSlaRepository
             $createdAt,
             $createdAt,
             $projectId,
+
+            $serviceId > 0
+                ? $serviceId
+                : -1,
+
+            $topicId > 0
+                ? $topicId
+                : -1,
+
             $queueId > 0
                 ? $queueId
                 : -1,

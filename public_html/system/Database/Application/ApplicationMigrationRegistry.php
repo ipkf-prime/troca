@@ -121,6 +121,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateTicketingDynamicSupportTopologyFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingDynamicTopicRoutingFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingSlaFoundation::class,
+                    \IPKF\Database\Migrations\ExtendTicketingSlaPolicyScopes::class,
                     \IPKF\Database\Migrations\CreateTicketingProjectAwareTicketNumber::class,
                     \IPKF\Database\Migrations\CreateSchedulerFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingRequesterOnboardingFoundation::class,

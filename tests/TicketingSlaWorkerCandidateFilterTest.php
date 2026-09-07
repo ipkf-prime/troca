@@ -43,6 +43,8 @@ foreach ([
     '<= t.created_at',
     'candidate_policy.effective_to_at',
     'candidate_policy.project_id',
+    'candidate_policy.service_id',
+    'candidate_policy.topic_id',
     'candidate_policy.queue_id',
 ] as $marker) {
 
