@@ -869,6 +869,30 @@ final class TicketCreateRoutingRepository
                 (int) $this->db->lastInsertId();
 
 
+            /*
+             * TICKETING_TICKET_CREATED_SCOPE_CAPTURE_V1
+             *
+             * Capture is intentionally inside the SAME
+             * ticket-creation transaction.
+             *
+             * Any capture failure reaches the existing catch/rollback
+             * path and therefore prevents a partially-created ticket.
+             */
+            (
+                new TicketScopeSnapshotRepository(
+                    $this->db
+                )
+            )->captureCreatedTicket(
+                $ticketId,
+                (string) (
+                    $data[
+                        'actor_user_reference'
+                    ]
+                    ?? ''
+                )
+            );
+
+
             $ticketPrefix =
                 strtoupper(
                     trim(
