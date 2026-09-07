@@ -7,6 +7,15 @@ namespace App\Repositories;
 use IPKF\Database\Connections\ConnectionResolver;
 use PDO;
 
+/*
+ * TICKETING_REALM_AWARE_TOPOLOGY_ADMIN_V1
+ *
+ * Until Realm selector/context is introduced, existing topology
+ * administration writes to Project.default_realm_id.
+ *
+ * Child/binding rows derive Realm from their parent topology and
+ * reject cross-Realm relationships.
+ */
 final class SupportTopologyAdminRepository
 {
     private PDO $db;
@@ -759,12 +768,18 @@ final class SupportTopologyAdminRepository
     public function createLayer(
         array $data
     ): void {
+        $realmId =
+            $this->defaultRealmIdForProject(
+                (int) $data['project_id']
+            );
+
         $statement =
             $this->db->prepare("
                 INSERT INTO ticketing_support_layers
                 (
                     public_reference,
                     project_id,
+                    realm_id,
                     code,
                     title,
                     description,
@@ -781,7 +796,7 @@ final class SupportTopologyAdminRepository
                 )
                 VALUES
                 (
-                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                     'active',
                     ?,
                     NULL
@@ -791,6 +806,7 @@ final class SupportTopologyAdminRepository
         $statement->execute([
             $data['public_reference'],
             $data['project_id'],
+            $realmId,
             $data['code'],
             $data['title'],
             $data['description'],
@@ -809,12 +825,20 @@ final class SupportTopologyAdminRepository
     public function createNode(
         array $data
     ): void {
+        $realmId =
+            $this->topologyRealmForProject(
+                'ticketing_support_layers',
+                (int) $data['layer_id'],
+                (int) $data['project_id']
+            );
+
         $statement =
             $this->db->prepare("
                 INSERT INTO ticketing_support_nodes
                 (
                     public_reference,
                     project_id,
+                    realm_id,
                     layer_id,
                     code,
                     title,
@@ -830,7 +854,7 @@ final class SupportTopologyAdminRepository
                 )
                 VALUES
                 (
-                    ?, ?, ?, ?, ?, ?, 'support',
+                    ?, ?, ?, ?, ?, ?, ?, 'support',
                     ?, ?, ?, ?,
                     'active',
                     ?,
@@ -841,6 +865,7 @@ final class SupportTopologyAdminRepository
         $statement->execute([
             $data['public_reference'],
             $data['project_id'],
+            $realmId,
             $data['layer_id'],
             $data['code'],
             $data['title'],
@@ -857,6 +882,28 @@ final class SupportTopologyAdminRepository
     public function createRelation(
         array $data
     ): void {
+        $parentRealmId =
+            $this->topologyRealmForProject(
+                'ticketing_support_nodes',
+                (int) $data['parent_node_id'],
+                (int) $data['project_id']
+            );
+
+        $childRealmId =
+            $this->topologyRealmForProject(
+                'ticketing_support_nodes',
+                (int) $data['child_node_id'],
+                (int) $data['project_id']
+            );
+
+        if ($parentRealmId !== $childRealmId) {
+            throw new \RuntimeException(
+                'cross_realm_node_relation_not_allowed'
+            );
+        }
+
+        $realmId = $parentRealmId;
+
         $statement =
             $this->db->prepare("
                 INSERT INTO
@@ -864,6 +911,7 @@ final class SupportTopologyAdminRepository
                 (
                     public_reference,
                     project_id,
+                    realm_id,
                     parent_node_id,
                     child_node_id,
                     relation_type_code,
@@ -876,7 +924,7 @@ final class SupportTopologyAdminRepository
                 )
                 VALUES
                 (
-                    ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
                     'hierarchy',
                     ?, ?, ?,
                     'active',
@@ -888,6 +936,7 @@ final class SupportTopologyAdminRepository
         $statement->execute([
             $data['public_reference'],
             $data['project_id'],
+            $realmId,
             $data['parent_node_id'],
             $data['child_node_id'],
             $data['is_primary_path'],
@@ -900,12 +949,18 @@ final class SupportTopologyAdminRepository
     public function createTeam(
         array $data
     ): void {
+        $realmId =
+            $this->defaultRealmIdForProject(
+                (int) $data['project_id']
+            );
+
         $statement =
             $this->db->prepare("
                 INSERT INTO ticketing_support_teams
                 (
                     public_reference,
                     project_id,
+                    realm_id,
                     code,
                     title,
                     description,
@@ -915,7 +970,7 @@ final class SupportTopologyAdminRepository
                 )
                 VALUES
                 (
-                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?,
                     'active',
                     ?,
                     NULL
@@ -925,6 +980,7 @@ final class SupportTopologyAdminRepository
         $statement->execute([
             $data['public_reference'],
             $data['project_id'],
+            $realmId,
             $data['code'],
             $data['title'],
             $data['description'],
@@ -936,12 +992,20 @@ final class SupportTopologyAdminRepository
     public function createQueue(
         array $data
     ): void {
+        $realmId =
+            $this->topologyRealmForProject(
+                'ticketing_support_nodes',
+                (int) $data['node_id'],
+                (int) $data['project_id']
+            );
+
         $statement =
             $this->db->prepare("
                 INSERT INTO ticketing_support_queues
                 (
                     public_reference,
                     project_id,
+                    realm_id,
                     node_id,
                     code,
                     title,
@@ -956,7 +1020,7 @@ final class SupportTopologyAdminRepository
                 )
                 VALUES
                 (
-                    ?, ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?, ?,
                     'work',
                     ?,
                     ?,
@@ -970,6 +1034,7 @@ final class SupportTopologyAdminRepository
         $statement->execute([
             $data['public_reference'],
             $data['project_id'],
+            $realmId,
             $data['node_id'],
             $data['code'],
             $data['title'],
@@ -986,10 +1051,32 @@ final class SupportTopologyAdminRepository
         int $teamId,
         int $nodeId
     ): void {
+        $team =
+            $this->topologyIdentity(
+                'ticketing_support_teams',
+                $teamId
+            );
+
+        $node =
+            $this->topologyIdentity(
+                'ticketing_support_nodes',
+                $nodeId
+            );
+
+        $this->assertSameTopologyRealm(
+            $team,
+            $node,
+            'team_node'
+        );
+
+        $realmId =
+            (int) $team['realm_id'];
+
         $statement =
             $this->db->prepare("
                 INSERT INTO ticketing_support_team_nodes
                 (
+                    realm_id,
                     team_id,
                     node_id,
                     service_role_code,
@@ -997,6 +1084,7 @@ final class SupportTopologyAdminRepository
                 )
                 VALUES
                 (
+                    ?,
                     ?,
                     ?,
                     'primary',
@@ -1008,6 +1096,7 @@ final class SupportTopologyAdminRepository
             ");
 
         $statement->execute([
+            $realmId,
             $teamId,
             $nodeId,
         ]);
@@ -1018,10 +1107,32 @@ final class SupportTopologyAdminRepository
         int $teamId,
         int $queueId
     ): void {
+        $team =
+            $this->topologyIdentity(
+                'ticketing_support_teams',
+                $teamId
+            );
+
+        $queue =
+            $this->topologyIdentity(
+                'ticketing_support_queues',
+                $queueId
+            );
+
+        $this->assertSameTopologyRealm(
+            $team,
+            $queue,
+            'team_queue'
+        );
+
+        $realmId =
+            (int) $team['realm_id'];
+
         $statement =
             $this->db->prepare("
                 INSERT INTO ticketing_support_team_queues
                 (
+                    realm_id,
                     team_id,
                     queue_id,
                     service_role_code,
@@ -1029,6 +1140,7 @@ final class SupportTopologyAdminRepository
                 )
                 VALUES
                 (
+                    ?,
                     ?,
                     ?,
                     'owner',
@@ -1040,6 +1152,7 @@ final class SupportTopologyAdminRepository
             ");
 
         $statement->execute([
+            $realmId,
             $teamId,
             $queueId,
         ]);
@@ -1049,11 +1162,21 @@ final class SupportTopologyAdminRepository
     public function addTeamMember(
         array $data
     ): void {
+        $team =
+            $this->topologyIdentity(
+                'ticketing_support_teams',
+                (int) $data['team_id']
+            );
+
+        $realmId =
+            (int) $team['realm_id'];
+
         $statement =
             $this->db->prepare("
                 INSERT INTO
                     ticketing_support_team_members
                 (
+                    realm_id,
                     team_id,
                     project_member_id,
                     staff_role_code,
@@ -1070,7 +1193,7 @@ final class SupportTopologyAdminRepository
                 )
                 VALUES
                 (
-                    ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
                     ?, ?, ?, ?, ?,
                     'active',
                     CURRENT_TIMESTAMP,
@@ -1108,6 +1231,7 @@ final class SupportTopologyAdminRepository
             ");
 
         $statement->execute([
+            $realmId,
             $data['team_id'],
             $data['project_member_id'],
             $data['staff_role_code'],
@@ -1118,6 +1242,196 @@ final class SupportTopologyAdminRepository
             $data['can_takeover'],
             $data['can_transfer'],
         ]);
+    }
+
+
+    private function defaultRealmIdForProject(
+        int $projectId
+    ): int {
+
+        if ($projectId < 1) {
+            throw new \RuntimeException(
+                'invalid_support_project'
+            );
+        }
+
+        $statement =
+            $this->db->prepare("
+                SELECT
+                    default_realm_id
+
+                FROM
+                    ticketing_support_projects
+
+                WHERE id = ?
+                  AND default_realm_id
+                        IS NOT NULL
+
+                LIMIT 1
+            ");
+
+        $statement->execute([
+            $projectId,
+        ]);
+
+        $realmId =
+            (int) (
+                $statement->fetchColumn()
+                ?: 0
+            );
+
+        if ($realmId < 1) {
+            throw new \RuntimeException(
+                'support_project_default_realm_missing'
+            );
+        }
+
+        return $realmId;
+    }
+
+
+    private function topologyIdentity(
+        string $table,
+        int $id
+    ): array {
+
+        $allowed = [
+            'ticketing_support_layers',
+            'ticketing_support_nodes',
+            'ticketing_support_teams',
+            'ticketing_support_queues',
+        ];
+
+        if (
+            !in_array(
+                $table,
+                $allowed,
+                true
+            )
+            || $id < 1
+        ) {
+            throw new \InvalidArgumentException(
+                'Invalid topology identity lookup.'
+            );
+        }
+
+        $statement =
+            $this->db->prepare("
+                SELECT
+                    project_id,
+                    realm_id
+
+                FROM {$table}
+
+                WHERE id = ?
+
+                LIMIT 1
+            ");
+
+        $statement->execute([
+            $id,
+        ]);
+
+        $row =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        if (!is_array($row)) {
+            throw new \RuntimeException(
+                'topology_entity_not_found'
+            );
+        }
+
+        $projectId =
+            (int) (
+                $row['project_id']
+                ?? 0
+            );
+
+        $realmId =
+            (int) (
+                $row['realm_id']
+                ?? 0
+            );
+
+        if (
+            $projectId < 1
+            || $realmId < 1
+        ) {
+            throw new \RuntimeException(
+                'topology_realm_binding_missing'
+            );
+        }
+
+        return [
+            'project_id' =>
+                $projectId,
+
+            'realm_id' =>
+                $realmId,
+        ];
+    }
+
+
+    private function topologyRealmForProject(
+        string $table,
+        int $id,
+        int $projectId
+    ): int {
+
+        $identity =
+            $this->topologyIdentity(
+                $table,
+                $id
+            );
+
+        if (
+            (int) $identity['project_id']
+            !== $projectId
+        ) {
+            throw new \RuntimeException(
+                'cross_project_topology_reference'
+            );
+        }
+
+        return
+            (int) $identity['realm_id'];
+    }
+
+
+    private function assertSameTopologyRealm(
+        array $left,
+        array $right,
+        string $context
+    ): void {
+
+        if (
+            (int) (
+                $left['project_id']
+                ?? 0
+            )
+            !==
+            (int) (
+                $right['project_id']
+                ?? -1
+            )
+            ||
+            (int) (
+                $left['realm_id']
+                ?? 0
+            )
+            !==
+            (int) (
+                $right['realm_id']
+                ?? -1
+            )
+        ) {
+            throw new \RuntimeException(
+                'cross_realm_topology_binding_not_allowed:'
+                . $context
+            );
+        }
     }
 
 

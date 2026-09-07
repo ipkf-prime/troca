@@ -131,6 +131,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateTicketingStaffMultiGrantAccessFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingTicketScopeSnapshotFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingSupportRealmFoundation::class,
+                    \IPKF\Database\Migrations\CreateTicketingRealmAwareTopologyBindingFoundation::class,
                 ],
             ],
         ];
