@@ -247,7 +247,8 @@ final class TicketStaffOperationsService
         $rows =
             $this->repository->cartable(
                 'user:' . $userId,
-                'all'
+                'all',
+                $reference
             );
 
 

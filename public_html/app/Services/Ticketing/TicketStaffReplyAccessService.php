@@ -400,6 +400,30 @@ final class TicketStaffReplyAccessService
         }
 
 
+        /*
+         * TICKETING_STAFF_REPLY_DATA_SCOPE_GUARD_V1
+         *
+         * Assignment ownership is necessary but is no longer
+         * sufficient once Dynamic Data Scope is enabled.
+         */
+        $staffCanView =
+            (
+                new TicketStaffOperationsService()
+            )->canViewTicket(
+                $publicReference,
+                $userId
+            );
+
+        if (!$staffCanView) {
+            return [
+                'ok' => true,
+                'can_reply' => false,
+                'state' => 'reply_scope_forbidden',
+                'ticket' => $ticket,
+            ];
+        }
+
+
         return [
             'ok' => true,
             'can_reply' => true,

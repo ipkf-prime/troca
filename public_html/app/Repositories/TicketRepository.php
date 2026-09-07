@@ -202,6 +202,15 @@ class TicketRepository
     }
 
 
+    /*
+     * TICKETING_REQUESTER_ONLY_VIEWER_BOUNDARY_V1
+     *
+     * Generic "My Tickets" / requester routes are requester-only.
+     *
+     * Operational staff ownership is deliberately NOT a bypass here.
+     * Staff visibility belongs exclusively to the canonical staff
+     * authorization path.
+     */
     public function index(
         array $filters = []
     ): array {
@@ -591,22 +600,8 @@ class TicketRepository
 
 
         if ($viewerUserReference !== '') {
-            $where[] = "(
-                t.requester_user_reference = ?
-
-                OR EXISTS
-                (
-                    SELECT 1
-                    FROM ticketing_assignments va
-                    WHERE va.ticket_id = t.id
-                      AND va.assignee_kind = 'user'
-                      AND va.assignee_reference = ?
-                      AND va.unassigned_at IS NULL
-                )
-            )";
-
-            $parameters[] =
-                $viewerUserReference;
+            $where[] =
+                't.requester_user_reference = ?';
 
             $parameters[] =
                 $viewerUserReference;
@@ -959,28 +954,7 @@ class TicketRepository
 
                    AND t.archived_at IS NULL
 
-                   AND
-                   (
-                        t.requester_user_reference = ?
-
-                        OR EXISTS
-                        (
-                            SELECT 1
-
-                            FROM
-                                ticketing_assignments a
-
-                            WHERE a.ticket_id = t.id
-
-                              AND a.assignee_kind =
-                                    'user'
-
-                              AND a.assignee_reference = ?
-
-                              AND a.unassigned_at
-                                    IS NULL
-                        )
-                   )
+                   AND t.requester_user_reference = ?
 
                 LEFT JOIN ticketing_statuses ts
                     ON ts.code =
@@ -1014,7 +988,6 @@ class TicketRepository
         $statement->execute([
             $viewerUserReference,
             $viewerUserReference,
-            $viewerUserReference,
         ]);
 
         return
@@ -1043,27 +1016,7 @@ class TicketRepository
 
                 WHERE t.archived_at IS NULL
 
-                  AND
-                  (
-                        t.requester_user_reference = ?
-
-                        OR EXISTS
-                        (
-                            SELECT 1
-
-                            FROM ticketing_assignments a
-
-                            WHERE a.ticket_id = t.id
-
-                              AND a.assignee_kind =
-                                    'user'
-
-                              AND a.assignee_reference = ?
-
-                              AND a.unassigned_at
-                                    IS NULL
-                        )
-                  )
+                  AND t.requester_user_reference = ?
 
                 ORDER BY
                     sl.rank_order,
@@ -1077,7 +1030,6 @@ class TicketRepository
             );
 
         $statement->execute([
-            $viewer,
             $viewer,
         ]);
 
@@ -1107,27 +1059,7 @@ class TicketRepository
 
                 WHERE t.archived_at IS NULL
 
-                  AND
-                  (
-                        t.requester_user_reference = ?
-
-                        OR EXISTS
-                        (
-                            SELECT 1
-
-                            FROM ticketing_assignments a
-
-                            WHERE a.ticket_id = t.id
-
-                              AND a.assignee_kind =
-                                    'user'
-
-                              AND a.assignee_reference = ?
-
-                              AND a.unassigned_at
-                                    IS NULL
-                        )
-                  )
+                  AND t.requester_user_reference = ?
 
                 ORDER BY
                     pm.display_name_snapshot,
@@ -1140,7 +1072,6 @@ class TicketRepository
             );
 
         $statement->execute([
-            $viewer,
             $viewer,
         ]);
 
@@ -1304,23 +1235,6 @@ class TicketRepository
                         ? IS NULL
 
                         OR t.requester_user_reference = ?
-
-                        OR EXISTS
-                        (
-                            SELECT 1
-
-                            FROM ticketing_assignments va
-
-                            WHERE va.ticket_id = t.id
-
-                              AND va.assignee_kind =
-                                    'user'
-
-                              AND va.assignee_reference = ?
-
-                              AND va.unassigned_at
-                                    IS NULL
-                        )
                   )
 
                 LIMIT 1
@@ -1340,7 +1254,6 @@ class TicketRepository
             trim(
                 $publicReference
             ),
-            $viewer,
             $viewer,
             $viewer,
         ]);

@@ -3001,9 +3001,9 @@ $router->get(
             /*
              * TICKETING_STAFF_ATTACHMENT_VISIBILITY_V1
              *
-             * Requester / active-assignee authorization stays
-             * first. Scoped staff fallback is permitted only
-             * through canonical staff-cartable visibility.
+             * Requester authorization remains direct and unchanged.
+             * Staff assignment never bypasses canonical cartable
+             * visibility or Dynamic Data Scope.
              */
             $ticketService =
                 new \App\Services\Ticketing\TicketService();
@@ -3509,11 +3509,12 @@ $router->get(
             /*
              * TICKETING_STAFF_DETAIL_CONTEXT_V1
              *
-             * Requester / active-assignee visibility remains
-             * the primary and narrowest authorization path.
+             * Requester visibility remains the primary and
+             * narrowest authorization path.
              *
-             * Staff receives read visibility only when the same
-             * ticket is already visible in the canonical cartable.
+             * Staff, including the current assignee, receives read
+             * visibility only when the same ticket is visible in
+             * the canonical scoped cartable.
              * Reply ownership is NOT granted here.
              */
             $ticketService =

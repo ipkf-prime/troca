@@ -68,7 +68,8 @@ final class TicketStaffOperationsRepository
 
     public function cartable(
         string $userReference,
-        string $scope = 'all'
+        string $scope = 'all',
+        ?string $publicReference = null
     ): array {
         $userReference =
             trim($userReference);
@@ -126,6 +127,21 @@ final class TicketStaffOperationsRepository
         ];
 
         $parameters = [];
+
+        $publicReference =
+            $publicReference === null
+                ? ''
+                : trim(
+                    $publicReference
+                );
+
+        if ($publicReference !== '') {
+            $where[] =
+                't.public_reference = ?';
+
+            $parameters[] =
+                $publicReference;
+        }
 
 
         if ($scope === 'my') {
@@ -244,6 +260,22 @@ final class TicketStaffOperationsRepository
         }
 
 
+        /*
+         * Dynamic Data Scope is an intersection with the existing
+         * operational A5G visibility. Assignment never bypasses it.
+         */
+        $where[] =
+            $this->dataScopeClause(
+                $userReference,
+                $parameters
+            );
+
+        $limit =
+            $publicReference !== ''
+                ? 1
+                : 200;
+
+
         $statement =
             $this->db->prepare("
                 SELECT
@@ -341,7 +373,7 @@ final class TicketStaffOperationsRepository
                 pr.severity DESC,
                 t.last_activity_at DESC,
                 t.id DESC
-            LIMIT 200
+            LIMIT {$limit}
             ");
 
         $statement->execute(
@@ -482,6 +514,17 @@ final class TicketStaffOperationsRepository
             . ')';
 
 
+        /*
+         * KPI aggregation must use the exact same Dynamic Data Scope
+         * as staff cartable visibility.
+         */
+        $where[] =
+            $this->dataScopeClause(
+                $userReference,
+                $parameters
+            );
+
+
         $statement =
             $this->db->prepare("
                 SELECT
@@ -556,6 +599,30 @@ final class TicketStaffOperationsRepository
             );
 
         if ($ticket === null) {
+            return [
+                'can_takeover' => false,
+                'can_transfer' => false,
+                'can_escalate' => false,
+                'transfer_targets' => [],
+                'escalation_target_title' => '',
+            ];
+        }
+
+
+        /*
+         * TICKETING_STAFF_DATA_SCOPE_ACTION_CONTEXT_GUARD_V1
+         */
+        if (
+            !$this->staffCanViewTicket(
+                (string) (
+                    $ticket[
+                        'public_reference'
+                    ]
+                    ?? ''
+                ),
+                $userReference
+            )
+        ) {
             return [
                 'can_takeover' => false,
                 'can_transfer' => false,
@@ -724,6 +791,14 @@ final class TicketStaffOperationsRepository
                 $ticket
             );
 
+            /*
+             * TICKETING_STAFF_DATA_SCOPE_MUTATION_GUARD_V1
+             */
+            $this->assertStaffDataScopeVisible(
+                $ticket,
+                $actorUserReference
+            );
+
 
             $memberships =
                 $this->actorMemberships(
@@ -854,6 +929,14 @@ final class TicketStaffOperationsRepository
 
             $this->assertOperational(
                 $ticket
+            );
+
+            /*
+             * TICKETING_STAFF_DATA_SCOPE_MUTATION_GUARD_V1
+             */
+            $this->assertStaffDataScopeVisible(
+                $ticket,
+                $actorUserReference
             );
 
 
@@ -1068,6 +1151,20 @@ final class TicketStaffOperationsRepository
 
 
             if ($authorizeActor) {
+
+                /*
+                 * Manual staff escalation is subject to the same
+                 * canonical Dynamic Data Scope.
+                 *
+                 * escalateSystem() deliberately enters this method
+                 * with authorizeActor=false and remains governed by
+                 * the separate SLA/System contract.
+                 */
+                $this->assertStaffDataScopeVisible(
+                    $ticket,
+                    $actorUserReference
+                );
+
                 $memberships =
                     $this->actorMemberships(
                         $actorUserReference,
@@ -1407,6 +1504,859 @@ final class TicketStaffOperationsRepository
             $value !== ''
                 ? $value
                 : null;
+    }
+
+
+    /*
+     * TICKETING_CANONICAL_STAFF_DATA_SCOPE_SQL_V1
+     *
+     * Compatibility:
+     *   A project with neither an active Scope Dimension nor an
+     *   active/effective staff Grant keeps the pre-A5L5 behaviour.
+     *
+     * Enforcement:
+     *   As soon as a Dimension or Grant becomes active, staff data
+     *   access becomes fail-closed and requires one matching Grant.
+     *
+     * Composition:
+     *   Grant OR Grant.
+     *   Rules inside one Grant use AND.
+     *   Rule values use ANY / ALL.
+     *   Descendant matching uses the normalized closure table.
+     *
+     * Explicit unrestricted:
+     *   Full project data scope is never inferred from manager role.
+     *   It requires is_unrestricted=1 on a Grant with no active
+     *   restrictions.
+     */
+    private function dataScopeClause(
+        string $userReference,
+        array &$parameters
+    ): string {
+        $userReference =
+            trim(
+                $userReference
+            );
+
+        if ($userReference === '') {
+            return '(1 = 0)';
+        }
+
+        /*
+         * Exactly one viewer parameter is consumed by the correlated
+         * matching-Grant EXISTS below.
+         */
+        $parameters[] =
+            $userReference;
+
+        return <<<'SQL'
+(
+    /*
+     * Legacy compatibility is allowed only while the project has
+     * absolutely no active Dynamic Data Scope configuration.
+     */
+    (
+        NOT EXISTS
+        (
+            SELECT 1
+
+            FROM ticketing_scope_dimensions cfg_dimension
+
+            WHERE cfg_dimension.project_id =
+                    t.support_project_id
+
+              AND cfg_dimension.status =
+                    'active'
+        )
+
+        AND
+
+        NOT EXISTS
+        (
+            SELECT 1
+
+            FROM ticketing_access_grants cfg_grant
+
+            INNER JOIN
+                ticketing_support_project_members cfg_member
+                ON cfg_member.id =
+                    cfg_grant.project_member_id
+
+            WHERE cfg_member.project_id =
+                    t.support_project_id
+
+              AND cfg_member.left_at
+                    IS NULL
+
+              AND cfg_member.role_code
+                    IN ('member', 'manager')
+
+              AND cfg_grant.status =
+                    'active'
+
+              AND
+              (
+                    cfg_grant.valid_from IS NULL
+                    OR cfg_grant.valid_from <=
+                        UTC_TIMESTAMP()
+              )
+
+              AND
+              (
+                    cfg_grant.valid_until IS NULL
+                    OR cfg_grant.valid_until >
+                        UTC_TIMESTAMP()
+              )
+        )
+    )
+
+    OR
+
+    /*
+     * Scope-enabled project:
+     * one complete active Grant must match.
+     */
+    EXISTS
+    (
+        SELECT 1
+
+        FROM
+            ticketing_support_project_members scope_member
+
+        INNER JOIN
+            ticketing_access_grants scope_grant
+            ON scope_grant.project_member_id =
+                scope_member.id
+
+        WHERE scope_member.project_id =
+                t.support_project_id
+
+          AND scope_member.user_reference = ?
+
+          AND scope_member.left_at
+                IS NULL
+
+          AND scope_member.role_code
+                IN ('member', 'manager')
+
+          AND scope_grant.status =
+                'active'
+
+          AND
+          (
+                scope_grant.valid_from IS NULL
+                OR scope_grant.valid_from <=
+                    UTC_TIMESTAMP()
+          )
+
+          AND
+          (
+                scope_grant.valid_until IS NULL
+                OR scope_grant.valid_until >
+                    UTC_TIMESTAMP()
+          )
+
+          AND
+          (
+                /*
+                 * Explicit unrestricted Grant.
+                 *
+                 * An unrestricted flag does not override an active
+                 * malformed/restricted rule. This mirrors the pure
+                 * TicketingAccessGrantEvaluator contract.
+                 */
+                (
+                    scope_grant.is_unrestricted = 1
+
+                    AND NOT EXISTS
+                    (
+                        SELECT 1
+
+                        FROM
+                            ticketing_access_grant_dimension_rules
+                                unrestricted_dimension_rule
+
+                        WHERE unrestricted_dimension_rule
+                                .access_grant_id =
+                                    scope_grant.id
+
+                          AND unrestricted_dimension_rule
+                                .status =
+                                    'active'
+                    )
+
+                    AND NOT EXISTS
+                    (
+                        SELECT 1
+
+                        FROM
+                            ticketing_access_grant_resource_rules
+                                unrestricted_resource_rule
+
+                        WHERE unrestricted_resource_rule
+                                .access_grant_id =
+                                    scope_grant.id
+
+                          AND unrestricted_resource_rule
+                                .status =
+                                    'active'
+                    )
+                )
+
+                OR
+
+                /*
+                 * Restricted Grant.
+                 *
+                 * At least one active rule must exist.
+                 */
+                (
+                    (
+                        EXISTS
+                        (
+                            SELECT 1
+
+                            FROM
+                                ticketing_access_grant_dimension_rules
+                                    any_dimension_rule
+
+                            WHERE any_dimension_rule
+                                    .access_grant_id =
+                                        scope_grant.id
+
+                              AND any_dimension_rule
+                                    .status =
+                                        'active'
+                        )
+
+                        OR
+
+                        EXISTS
+                        (
+                            SELECT 1
+
+                            FROM
+                                ticketing_access_grant_resource_rules
+                                    any_resource_rule
+
+                            WHERE any_resource_rule
+                                    .access_grant_id =
+                                        scope_grant.id
+
+                              AND any_resource_rule
+                                    .status =
+                                        'active'
+                        )
+                    )
+
+                    /*
+                     * Every active Dimension Rule must match.
+                     */
+                    AND NOT EXISTS
+                    (
+                        SELECT 1
+
+                        FROM
+                            ticketing_access_grant_dimension_rules
+                                dimension_rule
+
+                        WHERE dimension_rule.access_grant_id =
+                                scope_grant.id
+
+                          AND dimension_rule.status =
+                                'active'
+
+                          AND
+                          (
+                                dimension_rule.match_mode_code
+                                    NOT IN ('any', 'all')
+
+                                OR
+
+                                /*
+                                 * Empty active rule is fail-closed.
+                                 */
+                                NOT EXISTS
+                                (
+                                    SELECT 1
+
+                                    FROM
+                                        ticketing_access_grant_dimension_values
+                                            selected_dimension_value
+
+                                    WHERE selected_dimension_value
+                                            .dimension_rule_id =
+                                                dimension_rule.id
+
+                                      AND selected_dimension_value
+                                            .dimension_id =
+                                                dimension_rule.dimension_id
+
+                                      AND selected_dimension_value
+                                            .status =
+                                                'active'
+                                )
+
+                                OR
+
+                                /*
+                                 * ANY:
+                                 * at least one selected value matches
+                                 * one current immutable snapshot value.
+                                 */
+                                (
+                                    dimension_rule.match_mode_code =
+                                        'any'
+
+                                    AND NOT EXISTS
+                                    (
+                                        SELECT 1
+
+                                        FROM
+                                            ticketing_access_grant_dimension_values
+                                                selected_any
+
+                                        WHERE selected_any
+                                                .dimension_rule_id =
+                                                    dimension_rule.id
+
+                                          AND selected_any
+                                                .dimension_id =
+                                                    dimension_rule.dimension_id
+
+                                          AND selected_any.status =
+                                                'active'
+
+                                          AND EXISTS
+                                          (
+                                                SELECT 1
+
+                                                FROM
+                                                    ticketing_ticket_scope_states
+                                                        scope_state
+
+                                                INNER JOIN
+                                                    ticketing_ticket_scope_snapshot_values
+                                                        actual_scope_value
+
+                                                    ON actual_scope_value
+                                                        .snapshot_id =
+                                                            scope_state
+                                                                .current_snapshot_id
+
+                                                   AND actual_scope_value
+                                                        .dimension_id =
+                                                            dimension_rule
+                                                                .dimension_id
+
+                                                WHERE scope_state.ticket_id =
+                                                        t.id
+
+                                                  AND
+                                                  (
+                                                        actual_scope_value
+                                                            .dimension_value_id =
+                                                                selected_any
+                                                                    .dimension_value_id
+
+                                                        OR
+
+                                                        (
+                                                            dimension_rule
+                                                                .include_descendants = 1
+
+                                                            AND EXISTS
+                                                            (
+                                                                SELECT 1
+
+                                                                FROM
+                                                                    ticketing_scope_dimension_value_paths
+                                                                        descendant_path
+
+                                                                WHERE descendant_path
+                                                                        .dimension_id =
+                                                                            dimension_rule
+                                                                                .dimension_id
+
+                                                                  AND descendant_path
+                                                                        .ancestor_value_id =
+                                                                            selected_any
+                                                                                .dimension_value_id
+
+                                                                  AND descendant_path
+                                                                        .descendant_value_id =
+                                                                            actual_scope_value
+                                                                                .dimension_value_id
+                                                            )
+                                                        )
+                                                  )
+                                          )
+                                    )
+                                )
+
+                                OR
+
+                                /*
+                                 * ALL:
+                                 * no selected value may remain unmatched.
+                                 */
+                                (
+                                    dimension_rule.match_mode_code =
+                                        'all'
+
+                                    AND EXISTS
+                                    (
+                                        SELECT 1
+
+                                        FROM
+                                            ticketing_access_grant_dimension_values
+                                                selected_all
+
+                                        WHERE selected_all
+                                                .dimension_rule_id =
+                                                    dimension_rule.id
+
+                                          AND selected_all
+                                                .dimension_id =
+                                                    dimension_rule.dimension_id
+
+                                          AND selected_all.status =
+                                                'active'
+
+                                          AND NOT EXISTS
+                                          (
+                                                SELECT 1
+
+                                                FROM
+                                                    ticketing_ticket_scope_states
+                                                        scope_state_all
+
+                                                INNER JOIN
+                                                    ticketing_ticket_scope_snapshot_values
+                                                        actual_scope_value_all
+
+                                                    ON actual_scope_value_all
+                                                        .snapshot_id =
+                                                            scope_state_all
+                                                                .current_snapshot_id
+
+                                                   AND actual_scope_value_all
+                                                        .dimension_id =
+                                                            dimension_rule
+                                                                .dimension_id
+
+                                                WHERE scope_state_all.ticket_id =
+                                                        t.id
+
+                                                  AND
+                                                  (
+                                                        actual_scope_value_all
+                                                            .dimension_value_id =
+                                                                selected_all
+                                                                    .dimension_value_id
+
+                                                        OR
+
+                                                        (
+                                                            dimension_rule
+                                                                .include_descendants = 1
+
+                                                            AND EXISTS
+                                                            (
+                                                                SELECT 1
+
+                                                                FROM
+                                                                    ticketing_scope_dimension_value_paths
+                                                                        descendant_path_all
+
+                                                                WHERE descendant_path_all
+                                                                        .dimension_id =
+                                                                            dimension_rule
+                                                                                .dimension_id
+
+                                                                  AND descendant_path_all
+                                                                        .ancestor_value_id =
+                                                                            selected_all
+                                                                                .dimension_value_id
+
+                                                                  AND descendant_path_all
+                                                                        .descendant_value_id =
+                                                                            actual_scope_value_all
+                                                                                .dimension_value_id
+                                                            )
+                                                        )
+                                                  )
+                                          )
+                                    )
+                                )
+                          )
+                    )
+
+                    /*
+                     * Every active Resource Rule must match.
+                     *
+                     * Current canonical resource types:
+                     * project/service/topic/layer/node/queue/team.
+                     * Realm is intentionally deferred until Realm
+                     * Foundation exists.
+                     */
+                    AND NOT EXISTS
+                    (
+                        SELECT 1
+
+                        FROM
+                            ticketing_access_grant_resource_rules
+                                resource_rule
+
+                        WHERE resource_rule.access_grant_id =
+                                scope_grant.id
+
+                          AND resource_rule.status =
+                                'active'
+
+                          AND
+                          (
+                                resource_rule.resource_type_code
+                                    NOT IN
+                                    (
+                                        'project',
+                                        'service',
+                                        'topic',
+                                        'layer',
+                                        'node',
+                                        'queue',
+                                        'team'
+                                    )
+
+                                OR
+
+                                resource_rule.match_mode_code
+                                    NOT IN ('any', 'all')
+
+                                OR
+
+                                NOT EXISTS
+                                (
+                                    SELECT 1
+
+                                    FROM
+                                        ticketing_access_grant_resource_values
+                                            selected_resource_value
+
+                                    WHERE selected_resource_value
+                                            .resource_rule_id =
+                                                resource_rule.id
+
+                                      AND selected_resource_value
+                                            .resource_type_code =
+                                                resource_rule
+                                                    .resource_type_code
+
+                                      AND selected_resource_value
+                                            .status =
+                                                'active'
+                                )
+
+                                OR
+
+                                CASE
+                                    WHEN resource_rule.resource_type_code =
+                                        'project'
+                                    THEN CAST(
+                                        t.support_project_id
+                                        AS CHAR
+                                    )
+
+                                    WHEN resource_rule.resource_type_code =
+                                        'service'
+                                    THEN CAST(
+                                        t.support_service_id
+                                        AS CHAR
+                                    )
+
+                                    WHEN resource_rule.resource_type_code =
+                                        'topic'
+                                    THEN CAST(
+                                        t.support_topic_id
+                                        AS CHAR
+                                    )
+
+                                    WHEN resource_rule.resource_type_code =
+                                        'layer'
+                                    THEN CAST(
+                                        t.current_support_layer_id
+                                        AS CHAR
+                                    )
+
+                                    WHEN resource_rule.resource_type_code =
+                                        'node'
+                                    THEN CAST(
+                                        t.current_support_node_id
+                                        AS CHAR
+                                    )
+
+                                    WHEN resource_rule.resource_type_code =
+                                        'queue'
+                                    THEN CAST(
+                                        t.current_support_queue_id
+                                        AS CHAR
+                                    )
+
+                                    WHEN resource_rule.resource_type_code =
+                                        'team'
+                                    THEN CAST(
+                                        t.current_support_team_id
+                                        AS CHAR
+                                    )
+
+                                    ELSE NULL
+                                END IS NULL
+
+                                OR
+
+                                (
+                                    resource_rule.match_mode_code =
+                                        'any'
+
+                                    AND NOT EXISTS
+                                    (
+                                        SELECT 1
+
+                                        FROM
+                                            ticketing_access_grant_resource_values
+                                                selected_resource_any
+
+                                        WHERE selected_resource_any
+                                                .resource_rule_id =
+                                                    resource_rule.id
+
+                                          AND selected_resource_any
+                                                .resource_type_code =
+                                                    resource_rule
+                                                        .resource_type_code
+
+                                          AND selected_resource_any
+                                                .status =
+                                                    'active'
+
+                                          AND selected_resource_any
+                                                .resource_reference =
+                                                CASE
+                                                    WHEN resource_rule
+                                                        .resource_type_code =
+                                                            'project'
+                                                    THEN CAST(
+                                                        t.support_project_id
+                                                        AS CHAR
+                                                    )
+
+                                                    WHEN resource_rule
+                                                        .resource_type_code =
+                                                            'service'
+                                                    THEN CAST(
+                                                        t.support_service_id
+                                                        AS CHAR
+                                                    )
+
+                                                    WHEN resource_rule
+                                                        .resource_type_code =
+                                                            'topic'
+                                                    THEN CAST(
+                                                        t.support_topic_id
+                                                        AS CHAR
+                                                    )
+
+                                                    WHEN resource_rule
+                                                        .resource_type_code =
+                                                            'layer'
+                                                    THEN CAST(
+                                                        t.current_support_layer_id
+                                                        AS CHAR
+                                                    )
+
+                                                    WHEN resource_rule
+                                                        .resource_type_code =
+                                                            'node'
+                                                    THEN CAST(
+                                                        t.current_support_node_id
+                                                        AS CHAR
+                                                    )
+
+                                                    WHEN resource_rule
+                                                        .resource_type_code =
+                                                            'queue'
+                                                    THEN CAST(
+                                                        t.current_support_queue_id
+                                                        AS CHAR
+                                                    )
+
+                                                    WHEN resource_rule
+                                                        .resource_type_code =
+                                                            'team'
+                                                    THEN CAST(
+                                                        t.current_support_team_id
+                                                        AS CHAR
+                                                    )
+
+                                                    ELSE NULL
+                                                END
+                                    )
+                                )
+
+                                OR
+
+                                (
+                                    resource_rule.match_mode_code =
+                                        'all'
+
+                                    AND EXISTS
+                                    (
+                                        SELECT 1
+
+                                        FROM
+                                            ticketing_access_grant_resource_values
+                                                selected_resource_all
+
+                                        WHERE selected_resource_all
+                                                .resource_rule_id =
+                                                    resource_rule.id
+
+                                          AND selected_resource_all
+                                                .resource_type_code =
+                                                    resource_rule
+                                                        .resource_type_code
+
+                                          AND selected_resource_all
+                                                .status =
+                                                    'active'
+
+                                          AND selected_resource_all
+                                                .resource_reference <>
+                                                CASE
+                                                    WHEN resource_rule
+                                                        .resource_type_code =
+                                                            'project'
+                                                    THEN CAST(
+                                                        t.support_project_id
+                                                        AS CHAR
+                                                    )
+
+                                                    WHEN resource_rule
+                                                        .resource_type_code =
+                                                            'service'
+                                                    THEN CAST(
+                                                        t.support_service_id
+                                                        AS CHAR
+                                                    )
+
+                                                    WHEN resource_rule
+                                                        .resource_type_code =
+                                                            'topic'
+                                                    THEN CAST(
+                                                        t.support_topic_id
+                                                        AS CHAR
+                                                    )
+
+                                                    WHEN resource_rule
+                                                        .resource_type_code =
+                                                            'layer'
+                                                    THEN CAST(
+                                                        t.current_support_layer_id
+                                                        AS CHAR
+                                                    )
+
+                                                    WHEN resource_rule
+                                                        .resource_type_code =
+                                                            'node'
+                                                    THEN CAST(
+                                                        t.current_support_node_id
+                                                        AS CHAR
+                                                    )
+
+                                                    WHEN resource_rule
+                                                        .resource_type_code =
+                                                            'queue'
+                                                    THEN CAST(
+                                                        t.current_support_queue_id
+                                                        AS CHAR
+                                                    )
+
+                                                    WHEN resource_rule
+                                                        .resource_type_code =
+                                                            'team'
+                                                    THEN CAST(
+                                                        t.current_support_team_id
+                                                        AS CHAR
+                                                    )
+
+                                                    ELSE NULL
+                                                END
+                                    )
+                                )
+                          )
+                    )
+                )
+          )
+    )
+)
+SQL;
+    }
+
+
+    private function staffCanViewTicket(
+        string $publicReference,
+        string $userReference
+    ): bool {
+        $publicReference =
+            trim(
+                $publicReference
+            );
+
+        $userReference =
+            trim(
+                $userReference
+            );
+
+        if (
+            $publicReference === ''
+            || $userReference === ''
+        ) {
+            return false;
+        }
+
+        return
+            $this->cartable(
+                $userReference,
+                'all',
+                $publicReference
+            ) !== [];
+    }
+
+
+    private function assertStaffDataScopeVisible(
+        array $ticket,
+        string $userReference
+    ): void {
+        $publicReference =
+            trim(
+                (string) (
+                    $ticket[
+                        'public_reference'
+                    ]
+                    ?? ''
+                )
+            );
+
+        if (
+            !$this->staffCanViewTicket(
+                $publicReference,
+                $userReference
+            )
+        ) {
+            throw new DomainException(
+                'not_allowed'
+            );
+        }
     }
 
 
