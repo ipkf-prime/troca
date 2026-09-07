@@ -129,6 +129,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateTicketingDynamicScopeDimensionFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingScopeSubjectFactsFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingStaffMultiGrantAccessFoundation::class,
+                    \IPKF\Database\Migrations\CreateTicketingTicketScopeSnapshotFoundation::class,
                 ],
             ],
         ];
