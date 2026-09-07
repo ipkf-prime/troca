@@ -126,6 +126,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateSchedulerFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingRequesterOnboardingFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingDynamicMembershipFormFoundation::class,
+                    \IPKF\Database\Migrations\CreateTicketingDynamicScopeDimensionFoundation::class,
                 ],
             ],
         ];
