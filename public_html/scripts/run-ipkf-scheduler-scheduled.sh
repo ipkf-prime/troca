@@ -15,10 +15,21 @@ BASE="$(
 
 WORKER="$BASE/scripts/run-ipkf-scheduler.php"
 
-PHP_BIN="$(
-    command -v php 2>/dev/null ||
-    true
-)"
+#
+# IPKF_SCHEDULER_EXPLICIT_PHP_BIN_V1
+#
+# Respect an explicitly supplied PHP_BIN first.
+# This is required on cPanel hosts where `command -v php`
+# may resolve to a CGI/FastCGI binary rather than CLI PHP.
+#
+PHP_BIN="${PHP_BIN:-}"
+
+if [ -z "$PHP_BIN" ]; then
+    PHP_BIN="$(
+        command -v php 2>/dev/null ||
+        true
+    )"
+fi
 
 LOG_DIR="/home/troca/logs"
 LOG_FILE="$LOG_DIR/ipkf-scheduler-${APPLICATION}.log"
@@ -41,6 +52,27 @@ if [ -z "$PHP_BIN" ]; then
         "IPKF_SCHEDULER_ERROR|UTC=$(timestamp_utc)|APPLICATION=$APPLICATION|REASON=php_not_found"
 
     exit 127
+fi
+
+
+if [ ! -x "$PHP_BIN" ]; then
+    log_line \
+        "IPKF_SCHEDULER_ERROR|UTC=$(timestamp_utc)|APPLICATION=$APPLICATION|REASON=php_not_executable|PHP_BIN=$PHP_BIN"
+
+    exit 126
+fi
+
+
+PHP_SAPI_VALUE="$(
+    "$PHP_BIN" -r 'echo PHP_SAPI;' 2>/dev/null ||
+    true
+)"
+
+if [ "$PHP_SAPI_VALUE" != "cli" ]; then
+    log_line \
+        "IPKF_SCHEDULER_ERROR|UTC=$(timestamp_utc)|APPLICATION=$APPLICATION|REASON=php_not_cli|PHP_BIN=$PHP_BIN|PHP_SAPI=$PHP_SAPI_VALUE"
+
+    exit 126
 fi
 
 if [ ! -f "$WORKER" ]; then
