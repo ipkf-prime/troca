@@ -1442,6 +1442,21 @@ class TicketRepository
     public function create(
         array $data
     ): array {
+        /*
+         * TICKETING_LEGACY_UNSCOPED_CREATE_DISABLED_V1
+         *
+         * Strict operational Realm requires a Project + Realm +
+         * validated operational route.
+         *
+         * Public Ticket creation is owned by
+         * TicketCreateRoutingRepository.
+         *
+         * This legacy writer is intentionally fail-closed.
+         */
+        throw new \RuntimeException(
+            'legacy_unscoped_ticket_create_disabled'
+        );
+
         $this->db->beginTransaction();
 
         try {

@@ -16,6 +16,12 @@ use Throwable;
  * The linked project membership must also be an active
  * member/manager membership of the same support project.
  */
+/*
+ * TICKETING_STRICT_OPERATIONAL_REALM_STAFF_V1
+ *
+ * Normal Takeover / Transfer / Escalation operations are Realm-local.
+ * Cross-Realm movement belongs to the explicit Handoff contract.
+ */
 final class TicketStaffOperationsRepository
 {
     private PDO $db;
@@ -736,6 +742,12 @@ final class TicketStaffOperationsRepository
                     ],
                     (int) (
                         $ticket[
+                            'realm_id'
+                        ]
+                        ?? 0
+                    ),
+                    (int) (
+                        $ticket[
                             'current_support_node_id'
                         ]
                         ?? 0
@@ -1211,6 +1223,12 @@ final class TicketStaffOperationsRepository
                     ],
                     (int) (
                         $ticket[
+                            'realm_id'
+                        ]
+                        ?? 0
+                    ),
+                    (int) (
+                        $ticket[
                             'current_support_node_id'
                         ]
                         ?? 0
@@ -1230,6 +1248,12 @@ final class TicketStaffOperationsRepository
                     (int) $ticket[
                         'support_project_id'
                     ],
+                    (int) (
+                        $ticket[
+                            'realm_id'
+                        ]
+                        ?? 0
+                    ),
                     (int) $relation[
                         'parent_node_id'
                     ]
@@ -1996,9 +2020,7 @@ final class TicketStaffOperationsRepository
                      * Every active Resource Rule must match.
                      *
                      * Current canonical resource types:
-                     * project/service/topic/layer/node/queue/team.
-                     * Realm is intentionally deferred until Realm
-                     * Foundation exists.
+                     * project/realm/service/topic/layer/node/queue/team.
                      */
                     AND NOT EXISTS
                     (
@@ -2020,6 +2042,7 @@ final class TicketStaffOperationsRepository
                                     NOT IN
                                     (
                                         'project',
+                                        'realm',
                                         'service',
                                         'topic',
                                         'layer',
@@ -2109,7 +2132,10 @@ final class TicketStaffOperationsRepository
                                         AS CHAR
                                     )
 
-                                    ELSE NULL
+                                    WHEN resource_rule.resource_type_code = 'realm'
+THEN CAST(t.realm_id AS CHAR)
+
+ELSE NULL
                                 END IS NULL
 
                                 OR
@@ -2198,7 +2224,10 @@ final class TicketStaffOperationsRepository
                                                         AS CHAR
                                                     )
 
-                                                    ELSE NULL
+                                                    WHEN resource_rule.resource_type_code = 'realm'
+THEN CAST(t.realm_id AS CHAR)
+
+ELSE NULL
                                                 END
                                     )
                                 )
@@ -2289,7 +2318,10 @@ final class TicketStaffOperationsRepository
                                                         AS CHAR
                                                     )
 
-                                                    ELSE NULL
+                                                    WHEN resource_rule.resource_type_code = 'realm'
+THEN CAST(t.realm_id AS CHAR)
+
+ELSE NULL
                                                 END
                                     )
                                 )
@@ -2897,6 +2929,20 @@ SQL;
         if (
             (int) (
                 $ticket[
+                    'realm_id'
+                ]
+                ?? 0
+            ) <= 0
+        ) {
+            throw new DomainException(
+                'ticket_realm_missing'
+            );
+        }
+
+
+        if (
+            (int) (
+                $ticket[
                     'current_support_node_id'
                 ]
                 ?? 0
@@ -3198,6 +3244,7 @@ SQL;
      */
     private function nextEscalationRelation(
         int $projectId,
+        int $realmId,
         int $currentNodeId
     ): ?array {
         if ($currentNodeId <= 0) {
@@ -3221,8 +3268,11 @@ SQL;
                     ticketing_support_nodes parent
                     ON parent.id =
                         r.parent_node_id
+                   AND parent.realm_id =
+                        r.realm_id
 
                 WHERE r.project_id = ?
+                  AND r.realm_id = ?
                   AND r.child_node_id = ?
 
                   AND r.status = 'active'
@@ -3244,6 +3294,7 @@ SQL;
 
         $statement->execute([
             $projectId,
+            $realmId,
             $currentNodeId,
         ]);
 
@@ -3261,6 +3312,7 @@ SQL;
 
     private function routeForNode(
         int $projectId,
+        int $realmId,
         int $nodeId
     ): ?array {
         $statement =
@@ -3268,6 +3320,7 @@ SQL;
                 SELECT
                     n.id AS node_id,
                     n.layer_id,
+                    n.realm_id,
 
                     q.id AS queue_id,
                     q.max_open_per_agent,
@@ -3283,10 +3336,14 @@ SQL;
                     ON q.node_id = n.id
                    AND q.project_id =
                         n.project_id
+                   AND q.realm_id =
+                        n.realm_id
 
                 INNER JOIN
                     ticketing_support_team_queues tq
                     ON tq.queue_id = q.id
+                   AND tq.realm_id =
+                        n.realm_id
                    AND tq.status = 'active'
 
                 INNER JOIN
@@ -3294,8 +3351,11 @@ SQL;
                     ON t.id = tq.team_id
                    AND t.project_id =
                         n.project_id
+                   AND t.realm_id =
+                        n.realm_id
 
                 WHERE n.project_id = ?
+                  AND n.realm_id = ?
                   AND n.id = ?
 
                   AND n.status = 'active'
@@ -3314,6 +3374,7 @@ SQL;
 
         $statement->execute([
             $projectId,
+            $realmId,
             $nodeId,
         ]);
 
@@ -3499,6 +3560,99 @@ SQL;
     }
 
 
+    private function routeRealmForAssignmentTarget(
+        array $ticket,
+        array $target
+    ): int {
+
+        $statement =
+            $this->db->prepare("
+                SELECT
+                    n.realm_id
+
+                FROM
+                    ticketing_support_nodes n
+
+                INNER JOIN
+                    ticketing_support_layers l
+                    ON l.id = ?
+                   AND l.project_id =
+                        n.project_id
+                   AND l.realm_id =
+                        n.realm_id
+                   AND l.status = 'active'
+
+                INNER JOIN
+                    ticketing_support_queues q
+                    ON q.id = ?
+                   AND q.project_id =
+                        n.project_id
+                   AND q.node_id =
+                        n.id
+                   AND q.realm_id =
+                        n.realm_id
+                   AND q.status = 'active'
+
+                INNER JOIN
+                    ticketing_support_teams tm
+                    ON tm.id = ?
+                   AND tm.project_id =
+                        n.project_id
+                   AND tm.realm_id =
+                        n.realm_id
+                   AND tm.status = 'active'
+
+                INNER JOIN
+                    ticketing_support_team_nodes tn
+                    ON tn.team_id =
+                        tm.id
+                   AND tn.node_id =
+                        n.id
+                   AND tn.realm_id =
+                        n.realm_id
+                   AND tn.status = 'active'
+
+                INNER JOIN
+                    ticketing_support_team_queues tq
+                    ON tq.team_id =
+                        tm.id
+                   AND tq.queue_id =
+                        q.id
+                   AND tq.realm_id =
+                        n.realm_id
+                   AND tq.status = 'active'
+
+                WHERE n.id = ?
+                  AND n.project_id = ?
+                  AND n.status = 'active'
+
+                LIMIT 1
+            ");
+
+        $statement->execute([
+            (int) $target['layer_id'],
+            (int) $target['queue_id'],
+            (int) $target['team_id'],
+            (int) $target['node_id'],
+            (int) $ticket['support_project_id'],
+        ]);
+
+        $realmId =
+            (int) (
+                $statement->fetchColumn()
+                ?: 0
+            );
+
+        if ($realmId < 1) {
+            throw new DomainException(
+                'target_invalid'
+            );
+        }
+
+        return $realmId;
+    }
+
+
     private function replaceAssignment(
         array $ticket,
         array $target,
@@ -3528,6 +3682,33 @@ SQL;
         }
 
 
+        $ticketRealmId =
+            (int) (
+                $ticket[
+                    'realm_id'
+                ]
+                ?? 0
+            );
+
+        if ($ticketRealmId < 1) {
+            throw new DomainException(
+                'ticket_realm_missing'
+            );
+        }
+
+        $targetRealmId =
+            $this->routeRealmForAssignmentTarget(
+                $ticket,
+                $target
+            );
+
+        if ($targetRealmId !== $ticketRealmId) {
+            throw new DomainException(
+                'cross_realm_handoff_required'
+            );
+        }
+
+
         $close =
             $this->db->prepare("
                 UPDATE
@@ -3538,12 +3719,14 @@ SQL;
                         UTC_TIMESTAMP()
 
                 WHERE ticket_id = ?
+                  AND realm_id = ?
                   AND unassigned_at
                         IS NULL
             ");
 
         $close->execute([
             (int) $ticket['id'],
+            $ticketRealmId,
         ]);
 
 
@@ -3568,6 +3751,7 @@ SQL;
                         CURRENT_TIMESTAMP
 
                 WHERE id = ?
+                  AND realm_id = ?
             ");
 
         $update->execute([
@@ -3583,6 +3767,7 @@ SQL;
             $actorUserReference,
 
             (int) $ticket['id'],
+            $ticketRealmId,
         ]);
 
 
@@ -3592,6 +3777,7 @@ SQL;
                     ticketing_assignments
                 (
                     ticket_id,
+                    realm_id,
 
                     assignee_kind,
                     assignee_reference,
@@ -3613,6 +3799,7 @@ SQL;
                 VALUES
                 (
                     ?,
+                    ?,
                     'user',
                     ?,
                     ?,
@@ -3630,6 +3817,7 @@ SQL;
 
         $insert->execute([
             (int) $ticket['id'],
+            $ticketRealmId,
 
             (string) $target[
                 'user_reference'

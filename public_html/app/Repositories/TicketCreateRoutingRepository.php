@@ -406,6 +406,7 @@ final class TicketCreateRoutingRepository
                         AS project_reference,
                     p.code AS project_code,
                     p.title AS project_title,
+                    p.default_realm_id AS realm_id,
 
                     s.id AS service_id,
                     s.public_reference
@@ -484,6 +485,27 @@ final class TicketCreateRoutingRepository
             }
 
 
+            /*
+             * TICKETING_STRICT_OPERATIONAL_REALM_CREATION_V1
+             *
+             * Until explicit Portal/Realm selection is introduced,
+             * requester creation enters the Project default Realm.
+             */
+            $realmId =
+                (int) (
+                    $selection[
+                        'realm_id'
+                    ]
+                    ?? 0
+                );
+
+            if ($realmId < 1) {
+                throw new RuntimeException(
+                    'Support project default Realm is unavailable.'
+                );
+            }
+
+
             $topicId =
                 (int) (
                     $data[
@@ -550,6 +572,8 @@ final class TicketCreateRoutingRepository
                         'project_id'
                     ],
 
+                    $realmId,
+
                     (int) $selection[
                         'service_id'
                     ],
@@ -573,7 +597,8 @@ final class TicketCreateRoutingRepository
                     $this->intakeRoute(
                         (int) $selection[
                             'project_id'
-                        ]
+                        ],
+                        $realmId
                     );
 
                 if ($route !== null) {
@@ -594,6 +619,21 @@ final class TicketCreateRoutingRepository
             if ($route === null) {
                 throw new RuntimeException(
                     'No operational support route exists for this project.'
+                );
+            }
+
+
+            if (
+                (int) (
+                    $route[
+                        'realm_id'
+                    ]
+                    ?? 0
+                )
+                !== $realmId
+            ) {
+                throw new RuntimeException(
+                    'Resolved support route belongs to another Realm.'
                 );
             }
 
@@ -675,6 +715,7 @@ final class TicketCreateRoutingRepository
                         public_reference,
 
                         support_project_id,
+                        realm_id,
                         support_service_id,
                         support_project_title_snapshot,
                         support_service_title_snapshot,
@@ -719,7 +760,7 @@ final class TicketCreateRoutingRepository
                     (
                         ?,
 
-                        ?, ?, ?, ?,
+                        ?, ?, ?, ?, ?,
 
                         ?, ?, ?,
 
@@ -753,6 +794,8 @@ final class TicketCreateRoutingRepository
                 (int) $selection[
                     'project_id'
                 ],
+
+                $realmId,
 
                 (int) $selection[
                     'service_id'
@@ -1116,6 +1159,7 @@ final class TicketCreateRoutingRepository
                             ticketing_assignments
                         (
                             ticket_id,
+                            realm_id,
 
                             assignee_kind,
                             assignee_reference,
@@ -1136,6 +1180,7 @@ final class TicketCreateRoutingRepository
                         )
                         VALUES
                         (
+                            ?,
                             ?,
 
                             'user',
@@ -1159,6 +1204,7 @@ final class TicketCreateRoutingRepository
 
                 $assignment->execute([
                     $ticketId,
+                    $realmId,
 
                     $assignee[
                         'user_reference'
@@ -1270,6 +1316,9 @@ final class TicketCreateRoutingRepository
                         'project_id'
                     ],
 
+                'realm_id' =>
+                    $realmId,
+
                 'service_id' =>
                     (int) $selection[
                         'service_id'
@@ -1367,9 +1416,14 @@ final class TicketCreateRoutingRepository
             }
 
             $projectId = (int) ($ticket['support_project_id'] ?? 0);
+            $realmId = (int) ($ticket['realm_id'] ?? 0);
             $serviceId = (int) ($ticket['support_service_id'] ?? 0);
 
-            if ($projectId < 1 || $serviceId < 1) {
+            if (
+                $projectId < 1
+                || $realmId < 1
+                || $serviceId < 1
+            ) {
                 throw new \RuntimeException(
                     'routing_recovery_invalid_scope'
                 );
@@ -1425,6 +1479,7 @@ final class TicketCreateRoutingRepository
 
             $route = $this->resolveRoute(
                 $projectId,
+                $realmId,
                 $serviceId,
                 $topicId,
                 $organizationReference
@@ -1433,6 +1488,20 @@ final class TicketCreateRoutingRepository
             if ($route === null) {
                 throw new \RuntimeException(
                     'routing_recovery_no_route'
+                );
+            }
+
+            if (
+                (int) (
+                    $route[
+                        'realm_id'
+                    ]
+                    ?? 0
+                )
+                !== $realmId
+            ) {
+                throw new \RuntimeException(
+                    'routing_recovery_cross_realm_route'
                 );
             }
 
@@ -1546,6 +1615,7 @@ final class TicketCreateRoutingRepository
                 $assignment = $this->db->prepare("
                     INSERT INTO ticketing_assignments (
                         ticket_id,
+                        realm_id,
                         assignee_kind,
                         assignee_reference,
                         assignee_display_name_snapshot,
@@ -1560,6 +1630,7 @@ final class TicketCreateRoutingRepository
                         assignment_mode_code,
                         assignment_reason
                     ) VALUES (
+                        ?,
                         ?,
                         'user',
                         ?,
@@ -1586,6 +1657,7 @@ final class TicketCreateRoutingRepository
 
                 $assignment->execute([
                     (int) $ticket['id'],
+                    $realmId,
                     (string) ($assignee['user_reference'] ?? ''),
                     (string) (
                         $assignee['display_name_snapshot']
@@ -1638,6 +1710,7 @@ final class TicketCreateRoutingRepository
 
             return [
                 'ticket_id' => (int) $ticket['id'],
+                'realm_id' => $realmId,
                 'ticket_number' =>
                     (string) ($ticket['ticket_number'] ?? ''),
                 'public_reference' =>
@@ -1677,6 +1750,7 @@ final class TicketCreateRoutingRepository
                 t.public_reference,
                 t.status_code,
                 t.support_project_id,
+                t.realm_id,
                 t.support_service_id,
                 t.support_topic_id,
                 t.support_topic_title_snapshot,
@@ -1844,6 +1918,7 @@ final class TicketCreateRoutingRepository
 
     private function resolveRoute(
         int $projectId,
+        int $realmId,
         int $serviceId,
         ?int $topicId,
         string $organizationReference
@@ -1863,6 +1938,7 @@ final class TicketCreateRoutingRepository
                     r.fixed_project_member_id,
 
                     l.id AS layer_id,
+                    l.realm_id AS realm_id,
                     n.id AS node_id,
 
                     q.id AS queue_id,
@@ -1890,6 +1966,7 @@ final class TicketCreateRoutingRepository
                    AND n.project_id =
                         r.project_id
                    AND n.layer_id = l.id
+                   AND n.realm_id = l.realm_id
                    AND n.status = 'active'
 
                 INNER JOIN
@@ -1899,6 +1976,7 @@ final class TicketCreateRoutingRepository
                    AND q.project_id =
                         r.project_id
                    AND q.node_id = n.id
+                   AND q.realm_id = l.realm_id
                    AND q.status = 'active'
 
                 INNER JOIN
@@ -1907,21 +1985,25 @@ final class TicketCreateRoutingRepository
                         r.target_team_id
                    AND t.project_id =
                         r.project_id
+                   AND t.realm_id = l.realm_id
                    AND t.status = 'active'
 
                 INNER JOIN
                     ticketing_support_team_nodes tn
                     ON tn.team_id = t.id
                    AND tn.node_id = n.id
+                   AND tn.realm_id = l.realm_id
                    AND tn.status = 'active'
 
                 INNER JOIN
                     ticketing_support_team_queues tq
                     ON tq.team_id = t.id
                    AND tq.queue_id = q.id
+                   AND tq.realm_id = l.realm_id
                    AND tq.status = 'active'
 
                 WHERE r.project_id = ?
+                  AND l.realm_id = ?
                   AND r.status = 'active'
 
                   AND (
@@ -2000,6 +2082,7 @@ final class TicketCreateRoutingRepository
 
         $statement->execute([
             $projectId,
+            $realmId,
             $serviceId,
             $topicValue,
 
@@ -2074,7 +2157,8 @@ final class TicketCreateRoutingRepository
 
 
     private function intakeRoute(
-        int $projectId
+        int $projectId,
+        int $realmId
     ): ?array {
         $statement =
             $this->db->prepare("
@@ -2082,6 +2166,7 @@ final class TicketCreateRoutingRepository
                     l.id AS layer_id,
 
                     n.id AS node_id,
+                    n.realm_id AS realm_id,
 
                     q.id AS queue_id,
                     q.assignment_mode_code,
@@ -2096,33 +2181,39 @@ final class TicketCreateRoutingRepository
                     ticketing_support_layers l
                     ON l.id = n.layer_id
                    AND l.project_id = n.project_id
+                   AND l.realm_id = n.realm_id
                    AND l.status = 'active'
 
                 INNER JOIN
                     ticketing_support_queues q
                     ON q.project_id = n.project_id
                    AND q.node_id = n.id
+                   AND q.realm_id = n.realm_id
                    AND q.is_default = 1
                    AND q.status = 'active'
 
                 INNER JOIN
                     ticketing_support_team_queues tq
                     ON tq.queue_id = q.id
+                   AND tq.realm_id = n.realm_id
                    AND tq.status = 'active'
 
                 INNER JOIN
                     ticketing_support_teams t
                     ON t.id = tq.team_id
                    AND t.project_id = n.project_id
+                   AND t.realm_id = n.realm_id
                    AND t.status = 'active'
 
                 INNER JOIN
                     ticketing_support_team_nodes tn
                     ON tn.team_id = t.id
                    AND tn.node_id = n.id
+                   AND tn.realm_id = n.realm_id
                    AND tn.status = 'active'
 
                 WHERE n.project_id = ?
+                  AND n.realm_id = ?
                   AND n.is_intake_node = 1
                   AND n.status = 'active'
 
@@ -2138,6 +2229,7 @@ final class TicketCreateRoutingRepository
 
         $statement->execute([
             $projectId,
+            $realmId,
         ]);
 
         $row =

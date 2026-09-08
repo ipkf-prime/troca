@@ -132,6 +132,8 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateTicketingTicketScopeSnapshotFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingSupportRealmFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingRealmAwareTopologyBindingFoundation::class,
+                    \IPKF\Database\Migrations\CreateTicketingOperationalRealmBindingFoundation::class,
+                    \IPKF\Database\Migrations\FinalizeTicketingStrictOperationalRealmEnforcement::class,
                 ],
             ],
         ];
