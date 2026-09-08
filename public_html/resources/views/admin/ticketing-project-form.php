@@ -46,6 +46,77 @@ $iconOptions =
         ? $icon_options
         : [];
 
+$autoClose =
+    is_array(
+        $form[
+            'auto_close'
+        ]
+        ?? null
+    )
+        ? $form[
+            'auto_close'
+        ]
+        : [];
+
+$autoCloseEnabled =
+    !empty(
+        $autoClose[
+            'is_enabled'
+        ]
+    );
+
+$autoCloseDelayHours =
+    $autoClose[
+        'delay_hours'
+    ]
+    ?? null;
+
+$autoCloseBoundary =
+    trim(
+        (string) (
+            $autoClose[
+                'eligible_resolved_from'
+            ]
+            ?? ''
+        )
+    );
+
+$autoCloseStatus =
+    trim(
+        (string) (
+            $_GET[
+                'status'
+            ]
+            ?? ''
+        )
+    );
+
+$autoCloseStatusMessages = [
+    'auto_close_enabled' =>
+        'بستن خودکار برای این پروژه فعال شد.',
+
+    'auto_close_disabled' =>
+        'بستن خودکار برای این پروژه غیرفعال شد.',
+
+    'auto_close_delay_required' =>
+        'برای فعال‌سازی، مدت انتظار را بر حسب ساعت وارد کنید.',
+
+    'auto_close_delay_invalid' =>
+        'مدت انتظار معتبر نیست.',
+
+    'auto_close_project_not_found' =>
+        'پروژه پشتیبانی پیدا نشد.',
+
+    'auto_close_request_invalid' =>
+        'درخواست مدیریت بستن خودکار معتبر نیست.',
+
+    'invalid_csrf' =>
+        'اعتبار فرم منقضی شده است. صفحه را دوباره بارگذاری کنید.',
+
+    'auto_close_error' =>
+        'ذخیره تنظیمات بستن خودکار انجام نشد.',
+];
+
 $isEdit =
     $mode === 'edit'
     &&
@@ -101,6 +172,7 @@ if (
         [
             'base',
             'membership',
+            'auto-close',
         ],
         true
     )
@@ -218,6 +290,31 @@ ob_start();
 
                     <small>
                         سیاست ورود و فرم عضویت
+                    </small>
+                </a>
+
+
+                <a
+                    href="/admin/ticketing/projects/<?= ticketing_h(
+                        rawurlencode(
+                            $reference
+                        )
+                    ) ?>/edit?tab=auto-close"
+                    class="<?= $activeProjectTab === 'auto-close'
+                        ? 'is-active'
+                        : '' ?>"
+                    data-project-tab="auto-close"
+                    role="tab"
+                    aria-selected="<?= $activeProjectTab === 'auto-close'
+                        ? 'true'
+                        : 'false' ?>"
+                >
+                    <strong>
+                        بستن خودکار
+                    </strong>
+
+                    <small>
+                        زمان انتظار و فعال‌سازی
                     </small>
                 </a>
             </nav>
@@ -526,6 +623,221 @@ ob_start();
                     . '/partials/'
                     . 'ticketing-project-membership-config.php';
                 ?>
+            </div>
+
+
+            <div
+                class="ticketing-project-panel"
+                data-project-tab-panel="auto-close"
+                <?= $activeProjectTab === 'auto-close'
+                    ? ''
+                    : 'hidden' ?>
+            >
+                <header
+                    class="ticketing-project-panel__header"
+                >
+                    <div>
+                        <h2>
+                            بستن خودکار تیکت‌های حل‌شده
+                        </h2>
+
+                        <p class="admin-muted">
+                            پس از گذشت مدت انتظار تعیین‌شده،
+                            تیکت‌های حل‌شده واجد شرایط
+                            توسط سامانه بسته می‌شوند.
+                        </p>
+                    </div>
+                </header>
+
+
+                <?php if (
+                    isset(
+                        $autoCloseStatusMessages[
+                            $autoCloseStatus
+                        ]
+                    )
+                ): ?>
+
+                    <?php
+                    $autoCloseStatusIsError =
+                        in_array(
+                            $autoCloseStatus,
+                            [
+                                'auto_close_delay_required',
+                                'auto_close_delay_invalid',
+                                'auto_close_project_not_found',
+                                'auto_close_request_invalid',
+                                'invalid_csrf',
+                                'auto_close_error',
+                            ],
+                            true
+                        );
+                    ?>
+
+                    <div
+                        class="admin-alert <?= $autoCloseStatusIsError
+                            ? 'admin-alert--danger'
+                            : '' ?>"
+                        role="status"
+                    >
+                        <?= ticketing_h(
+                            $autoCloseStatusMessages[
+                                $autoCloseStatus
+                            ]
+                        ) ?>
+                    </div>
+
+                <?php endif; ?>
+
+
+                <div
+                    class="admin-alert"
+                    role="note"
+                >
+                    <strong>
+                        محافظت از تیکت‌های قدیمی
+                    </strong>
+
+                    <p>
+                        مرز شروع این سیاست توسط سامانه
+                        مدیریت می‌شود. هر بار که بستن خودکار
+                        از حالت غیرفعال به فعال تغییر کند،
+                        فقط تیکت‌هایی که از همان زمان به بعد
+                        حل شوند وارد دامنه بستن خودکار خواهند شد.
+                    </p>
+
+                    <p>
+                        تیکت‌های حل‌شده قبل از این مرز،
+                        صرف‌نظر از سن آن‌ها، به‌صورت خودکار
+                        بسته نمی‌شوند.
+                    </p>
+                </div>
+
+
+                <form
+                    method="post"
+                    action="/admin/ticketing/projects/<?= ticketing_h(
+                        rawurlencode(
+                            $reference
+                        )
+                    ) ?>/auto-close"
+                    data-ticketing-auto-close-policy-form
+                >
+                    <input
+                        type="hidden"
+                        name="_token"
+                        value="<?= ticketing_h(
+                            (
+                                new \IPKF\Security\Csrf()
+                            )->token()
+                        ) ?>"
+                    >
+
+
+                    <div
+                        class="ticketing-project-form-grid"
+                    >
+                        <label>
+                            <span>
+                                وضعیت
+                            </span>
+
+                            <span class="ticketing-switch">
+                                <input
+                                    type="checkbox"
+                                    name="is_enabled"
+                                    value="1"
+                                    <?= $autoCloseEnabled
+                                        ? 'checked'
+                                        : '' ?>
+                                    data-ticketing-auto-close-enabled
+                                >
+
+                                <span
+                                    class="ticketing-switch__track"
+                                    aria-hidden="true"
+                                ></span>
+
+                                <span
+                                    class="ticketing-switch__label"
+                                >
+                                    بستن خودکار فعال باشد
+                                </span>
+                            </span>
+                        </label>
+
+
+                        <label>
+                            <span>
+                                مدت انتظار
+                            </span>
+
+                            <input
+                                type="number"
+                                name="delay_hours"
+                                min="1"
+                                max="65535"
+                                step="1"
+                                inputmode="numeric"
+                                placeholder="مثلاً 72"
+                                value="<?= ticketing_h(
+                                    $autoCloseDelayHours
+                                    ?? ''
+                                ) ?>"
+                                data-ticketing-auto-close-delay
+                            >
+
+                            <small class="admin-muted">
+                                تعداد ساعت از زمان حل تیکت
+                                تا بستن خودکار.
+                            </small>
+                        </label>
+
+
+                        <div
+                            class="ticketing-project-field--wide"
+                        >
+                            <span
+                                style="
+                                    display:block;
+                                    margin-bottom:.32rem;
+                                    font-size:.75rem;
+                                    font-weight:700;
+                                "
+                            >
+                                مرز شروع
+                            </span>
+
+                            <div
+                                class="admin-muted"
+                            >
+                                <?php if (
+                                    $autoCloseEnabled
+                                    &&
+                                    $autoCloseBoundary !== ''
+                                ): ?>
+                                    مرز ایمن شروع سیاست ثبت شده است.
+                                <?php else: ?>
+                                    در اولین فعال‌سازی بعدی،
+                                    مرز شروع به‌صورت خودکار
+                                    در همان لحظه ثبت می‌شود.
+                                <?php endif; ?>
+                            </div>
+                        </div>
+
+                    </div>
+
+
+                    <div class="admin-form-actions">
+                        <button
+                            type="submit"
+                            class="admin-button"
+                        >
+                            ذخیره تنظیمات بستن خودکار
+                        </button>
+                    </div>
+
+                </form>
             </div>
 
         <?php endif; ?>

@@ -5485,3 +5485,27 @@ $router->post(
         }
     }
 );
+
+
+/*
+ * ============================================================================
+ * TICKETING_AUTO_CLOSE_POLICY_ROUTE_BOOTSTRAP_V1
+ *
+ * Auto-close administration belongs to the Ticketing runtime profile.
+ *
+ * Do not register this route in the global RouteLoader. Individual application
+ * runtimes may intentionally expose different global route subsets.
+ * ============================================================================
+ */
+$ticketingAutoCloseManagementRoute =
+    BASE_PATH
+    . '/routes/ticketing-auto-close-management.php';
+
+if (
+    is_readable(
+        $ticketingAutoCloseManagementRoute
+    )
+) {
+    require
+        $ticketingAutoCloseManagementRoute;
+}

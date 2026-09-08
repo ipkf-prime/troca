@@ -5,15 +5,20 @@ declare(strict_types=1);
 namespace App\Services\Ticketing;
 
 use App\Repositories\SupportProjectAdminRepository;
+use App\Repositories\TicketAutoClosePolicyRepository;
 use App\Support\AdminIcon;
 
 final class SupportProjectAdminService
 {
     public function __construct(
-        private ?SupportProjectAdminRepository $projects = null
+        private ?SupportProjectAdminRepository $projects = null,
+        private ?TicketAutoClosePolicyRepository $autoClosePolicies = null
     ) {
         $this->projects ??=
             new SupportProjectAdminRepository();
+
+        $this->autoClosePolicies ??=
+            new TicketAutoClosePolicyRepository();
     }
 
 
@@ -144,6 +149,21 @@ final class SupportProjectAdminService
                             (int) $project[
                                 'is_active'
                             ],
+
+                        /*
+                         * TICKETING_PROJECT_AUTO_CLOSE_PROJECTION_V1
+                         *
+                         * Keep the Project edit route contract intact:
+                         * policy state travels inside the existing
+                         * form projection.
+                         */
+                        'auto_close' =>
+                            $this->autoClosePolicies
+                                ->policyForProject(
+                                    (int) $project[
+                                        'id'
+                                    ]
+                                ),
                     ],
                     $form
                 ),
