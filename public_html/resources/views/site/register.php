@@ -621,14 +621,51 @@ $success =
                             کلمه عبور
                         </span>
 
-                        <input
-                            name="password"
-                            type="password"
-                            autocomplete="new-password"
-                            minlength="8"
-                            maxlength="128"
-                            required
+                        <span
+                            class="admin-password-visibility"
+                            data-password-visibility
                         >
+                            <input
+                                name="password"
+                                type="password"
+                                autocomplete="new-password"
+                                minlength="8"
+                                maxlength="128"
+                                required
+                                data-password-visibility-input
+                            >
+                            <button
+                                class="admin-password-visibility__toggle"
+                                type="button"
+                                data-password-visibility-toggle
+                                aria-label="نمایش کلمه عبور"
+                                aria-pressed="false"
+                                title="نمایش کلمه عبور"
+                            >
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    aria-hidden="true"
+                                    focusable="false"
+                                >
+                                    <path
+                                        d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="1.8"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    />
+                                    <circle
+                                        cx="12"
+                                        cy="12"
+                                        r="2.7"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="1.8"
+                                    />
+                                </svg>
+                            </button>
+                        </span>
 
                         <small
                             class="register-field__error"
@@ -647,14 +684,51 @@ $success =
                             تکرار کلمه عبور
                         </span>
 
-                        <input
-                            name="password_confirmation"
-                            type="password"
-                            autocomplete="new-password"
-                            minlength="8"
-                            maxlength="128"
-                            required
+                        <span
+                            class="admin-password-visibility"
+                            data-password-visibility
                         >
+                            <input
+                                name="password_confirmation"
+                                type="password"
+                                autocomplete="new-password"
+                                minlength="8"
+                                maxlength="128"
+                                required
+                                data-password-visibility-input
+                            >
+                            <button
+                                class="admin-password-visibility__toggle"
+                                type="button"
+                                data-password-visibility-toggle
+                                aria-label="نمایش کلمه عبور"
+                                aria-pressed="false"
+                                title="نمایش کلمه عبور"
+                            >
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    aria-hidden="true"
+                                    focusable="false"
+                                >
+                                    <path
+                                        d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="1.8"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    />
+                                    <circle
+                                        cx="12"
+                                        cy="12"
+                                        r="2.7"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="1.8"
+                                    />
+                                </svg>
+                            </button>
+                        </span>
 
                         <small
                             class="register-field__error"

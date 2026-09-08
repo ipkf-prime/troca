@@ -1164,3 +1164,96 @@ document.addEventListener("DOMContentLoaded", () => {
         focusTarget.focus({ preventScroll: true });
     }
 });
+
+/* PUBLIC_PASSWORD_VISIBILITY_TOGGLE_V1 */
+(() => {
+    const selector =
+        '[data-password-visibility-toggle]';
+
+    document.addEventListener(
+        'click',
+        (event) => {
+            const target =
+                event.target instanceof Element
+                    ? event.target
+                    : null;
+
+            if (target === null) {
+                return;
+            }
+
+            const toggle =
+                target.closest(
+                    selector
+                );
+
+            if (
+                !(
+                    toggle
+                    instanceof HTMLButtonElement
+                )
+            ) {
+                return;
+            }
+
+            const field =
+                toggle.closest(
+                    '[data-password-visibility]'
+                );
+
+            if (field === null) {
+                return;
+            }
+
+            const input =
+                field.querySelector(
+                    '[data-password-visibility-input]'
+                );
+
+            if (
+                !(
+                    input
+                    instanceof HTMLInputElement
+                )
+            ) {
+                return;
+            }
+
+            event.preventDefault();
+
+            const visible =
+                input.type === 'password';
+
+            input.type =
+                visible
+                    ? 'text'
+                    : 'password';
+
+            const label =
+                visible
+                    ? 'مخفی کردن کلمه عبور'
+                    : 'نمایش کلمه عبور';
+
+            toggle.setAttribute(
+                'aria-pressed',
+                visible
+                    ? 'true'
+                    : 'false'
+            );
+
+            toggle.setAttribute(
+                'aria-label',
+                label
+            );
+
+            toggle.setAttribute(
+                'title',
+                label
+            );
+
+            input.focus({
+                preventScroll: true
+            });
+        }
+    );
+})();
