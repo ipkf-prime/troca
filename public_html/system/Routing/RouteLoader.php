@@ -30,6 +30,7 @@ class RouteLoader
             BASE_PATH . '/routes/system-help-texts.php',
             BASE_PATH . '/routes/system-message-templates.php',
             BASE_PATH . '/routes/ticketing-runtime.php',
+            BASE_PATH . '/routes/ticketing-portal-management.php',
         ] as $routeFile) {
             if (is_readable($routeFile)) {
                 require $routeFile;

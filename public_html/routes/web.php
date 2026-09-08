@@ -3,6 +3,101 @@
 /** @var \IPKF\Routing\Router $router */
 
 $router->get('/', function ($request, $response) {
+    /*
+     * TICKETING_PORTAL_LANDING_DISPATCH_V1
+     *
+     * Only an explicit Portal Host receives the Realm-aware
+     * Ticketing Portal landing projection.
+     *
+     * Unknown / non-Portal hosts fall through to the existing
+     * global root behaviour without inference.
+     */
+    if (
+        class_exists(
+            \App\Services\Ticketing\PortalContextResolverService::class
+        )
+        &&
+        class_exists(
+            \App\Services\Ticketing\TicketingPortalLandingService::class
+        )
+    ) {
+        try {
+
+            $portalContext =
+                (
+                    new \App\Services\Ticketing\PortalContextResolverService()
+                )->resolveByHost(
+                    $request->host()
+                );
+
+
+            if (
+                is_array(
+                    $portalContext
+                )
+            ) {
+                $page =
+                    (
+                        new \App\Services\Ticketing\TicketingPortalLandingService()
+                    )->page(
+                        $portalContext
+                    );
+
+
+                $portalView =
+                    BASE_PATH
+                    . '/resources/views/site/landing.php';
+
+
+                if (
+                    !is_readable(
+                        $portalView
+                    )
+                ) {
+                    throw new \RuntimeException(
+                        'ticketing_portal_landing_view_unavailable'
+                    );
+                }
+
+
+                ob_start();
+
+                require $portalView;
+
+                $content =
+                    ob_get_clean()
+                    ?: '';
+
+
+                return $response
+                    ->header(
+                        'Content-Type',
+                        'text/html; charset=UTF-8'
+                    )
+                    ->header(
+                        'X-IPKF-Portal',
+                        'ticketing-realm'
+                    )
+                    ->send(
+                        $content
+                    );
+            }
+
+        } catch (\Throwable $exception) {
+
+            error_log(
+                'IPKF_TICKETING_PORTAL_LANDING '
+                . get_class($exception)
+                . ': '
+                . $exception->getMessage()
+            );
+
+            /*
+             * Preserve previous global root fallback.
+             */
+        }
+    }
+
     $siteMode = (string) \IPKF\Support\Env::get(
         'SITE_MODE',
         'coming_soon'

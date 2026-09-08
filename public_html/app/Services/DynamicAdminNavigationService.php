@@ -801,6 +801,18 @@ class DynamicAdminNavigationService extends BaseService
                 $this->repository
                     ->items($shellKey);
 
+            /*
+             * TICKETING_PORTAL_ADMIN_NAVIGATION_V1
+             *
+             * Add a virtual Ticketing-shell admin item
+             * without writing shared navigation tables.
+             */
+            $items =
+                $this->withTicketingPortalManagement(
+                    $items,
+                    $shellKey
+                );
+
             return
                 $this->withSystemHelpTexts(
                     $this->withPublicLandingManagement(
@@ -816,6 +828,109 @@ class DynamicAdminNavigationService extends BaseService
         } catch (Throwable) {
             return [];
         }
+    }
+
+
+    private function withTicketingPortalManagement(
+        array $items,
+        string $shellKey
+    ): array {
+
+        if ($shellKey !== 'ticketing') {
+            return $items;
+        }
+
+
+        foreach ($items as $item) {
+
+            if (
+                (string) (
+                    $item[
+                        'item_key'
+                    ]
+                    ?? ''
+                )
+                === 'ticketing-portals'
+            ) {
+                return $items;
+            }
+        }
+
+
+        $items[] = [
+            'id' =>
+                -910001,
+
+            'parent_id' =>
+                null,
+
+            'shell_key' =>
+                'ticketing',
+
+            'item_key' =>
+                'ticketing-portals',
+
+            'item_type' =>
+                'link',
+
+            'placement_code' =>
+                'sidebar',
+
+            'hide_when_badge_empty' =>
+                0,
+
+            'title' =>
+                'مدیریت پورتال‌ها',
+
+            'description' =>
+                'دامنه، برند و محتوای صفحه عمومی پورتال‌ها',
+
+            'route_path' =>
+                '/admin/ticketing/portals',
+
+            'target_application' =>
+                'ticketing',
+
+            'icon_code' =>
+                'globe',
+
+            'color_code' =>
+                null,
+
+            'permission_mode' =>
+                'any',
+
+            'permission_codes_json' =>
+                json_encode(
+                    [
+                        'ticketing.project.manage',
+                    ],
+                    JSON_UNESCAPED_UNICODE
+                    | JSON_UNESCAPED_SLASHES
+                ),
+
+            'badge_source' =>
+                null,
+
+            'active_paths_json' =>
+                json_encode(
+                    [
+                        '/admin/ticketing/portals',
+                        '/admin/ticketing/portals/*',
+                    ],
+                    JSON_UNESCAPED_UNICODE
+                    | JSON_UNESCAPED_SLASHES
+                ),
+
+            'sort_order' =>
+                95,
+
+            'is_active' =>
+                1,
+        ];
+
+
+        return $items;
     }
 
 

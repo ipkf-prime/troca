@@ -47,6 +47,18 @@ class AdminNavigationRbacService extends BaseService
             '/admin/ticketing/tickets' => 'ticketing.ticket.view',
             '/admin/ticketing/tickets/create' => 'ticketing.ticket.view',
             '/admin/ticketing/projects' => 'ticketing.project.manage',
+            /*
+             * TICKETING_PORTAL_ADMIN_RBAC_V1
+             */
+            '/admin/ticketing/portals' => 'ticketing.project.manage',
+            /*
+             * TICKETING_PORTAL_ADMIN_POST_RBAC_V1
+             */
+            '/admin/ticketing/portals/host' => 'ticketing.project.manage',
+            '/admin/ticketing/portals/brand' => 'ticketing.project.manage',
+            '/admin/ticketing/portals/settings' => 'ticketing.project.manage',
+            '/admin/ticketing/portals/items' => 'ticketing.project.manage',
+            '/admin/ticketing/portals/items/delete' => 'ticketing.project.manage',
             '/admin/ticketing/statuses' => 'ticketing.project.manage',
             '/admin/ticketing/projects/create' => 'ticketing.project.manage',
             '/admin/ticketing/projects/{public_reference}' => 'ticketing.project.manage',
