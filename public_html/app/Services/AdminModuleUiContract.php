@@ -9,10 +9,12 @@ class AdminModuleUiContract
     private const SHARED_ASSETS = [
         'css' => [
             '/assets/admin/css/admin.css',
+            '/assets/admin/css/foundation.css',
             '/assets/admin/css/icons.css',
         ],
         'js' => [
             '/assets/admin/js/admin.js',
+            '/assets/admin/js/foundation.js',
         ],
     ];
 

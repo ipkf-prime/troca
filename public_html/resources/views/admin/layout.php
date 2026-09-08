@@ -241,7 +241,7 @@ $accountNav = $themeUserId !== null
     : [];
 ?>
 <!doctype html>
-<html lang="fa" dir="rtl">
+<html lang="fa-IR" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta
@@ -260,6 +260,12 @@ $accountNav = $themeUserId !== null
     <link
         rel="stylesheet"
         href="<?= admin_h($themeAssets['admin_css']) ?>"
+    >
+
+    <link
+        rel="stylesheet"
+        href="<?= admin_h($themeAssets['foundation_css']) ?>"
+        data-platform-foundation="css"
     >
 
     <style id="admin-theme-vars"><?=
@@ -514,6 +520,12 @@ $accountNav = $themeUserId !== null
     <script
         src="<?= admin_h($themeAssets['admin_js']) ?>"
         defer
+    ></script>
+
+    <script
+        src="<?= admin_h($themeAssets['foundation_js']) ?>"
+        defer
+        data-platform-foundation="js"
     ></script>
 
     <?php foreach ($moduleJsAssets as $asset): ?>

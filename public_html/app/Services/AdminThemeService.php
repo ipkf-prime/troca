@@ -604,7 +604,9 @@ class AdminThemeService extends BaseService
     public function assetsCanonical(): bool
     {
         return is_readable(BASE_PATH . '/public/assets/admin/css/admin.css')
+            && is_readable(BASE_PATH . '/public/assets/admin/css/foundation.css')
             && is_readable(BASE_PATH . '/public/assets/admin/js/admin.js')
+            && is_readable(BASE_PATH . '/public/assets/admin/js/foundation.js')
             && is_dir(BASE_PATH . '/public/assets/admin/webfonts')
             && is_dir(BASE_PATH . '/public/assets/admin/images/icons')
             && is_readable(BASE_PATH . '/public/assets/admin/images/logos/default-logo.svg')
@@ -673,8 +675,10 @@ class AdminThemeService extends BaseService
     {
         return [
             'admin_css' => '/assets/admin/css/admin.css?v=' . $this->assetVersion('/public/assets/admin/css/admin.css'),
+            'foundation_css' => '/assets/admin/css/foundation.css?v=' . $this->assetVersion('/public/assets/admin/css/foundation.css'),
             'icons_css' => '/assets/admin/css/icons.css?v=' . $this->assetVersion('/public/assets/admin/css/icons.css'),
             'admin_js' => '/assets/admin/js/admin.js?v=' . $this->assetVersion('/public/assets/admin/js/admin.js'),
+            'foundation_js' => '/assets/admin/js/foundation.js?v=' . $this->assetVersion('/public/assets/admin/js/foundation.js'),
         ];
     }
 
