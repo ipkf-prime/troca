@@ -22,6 +22,10 @@ final class TicketingSchedulerRegistryFactory
             new TicketingSlaJob()
         );
 
+        $registry->register(
+            new TicketAutoCloseJob()
+        );
+
         return
             $registry;
     }

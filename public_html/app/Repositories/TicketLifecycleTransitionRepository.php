@@ -457,6 +457,432 @@ final class TicketLifecycleTransitionRepository
     }
 
 
+    /*
+     * TICKETING_AUTO_CLOSE_SYSTEM_TRANSITION_V1
+     *
+     * This is intentionally separate from the human
+     * transition() authorization path.
+     *
+     * Only the exact internal Auto-close actor is accepted.
+     * Row lock, resolved-state guard, atomic ticket update
+     * and canonical ticket_closed audit event are preserved.
+     */
+    public function closeResolvedBySystem(
+        string $publicReference,
+        int $expectedProjectId,
+        string $actorUserReference,
+        string $actorDisplayName,
+        int $policyId,
+        int $delayHours,
+        string $eligibleResolvedFrom,
+        string $cutoffAt
+    ): array {
+        $publicReference =
+            trim(
+                $publicReference
+            );
+
+        $actorUserReference =
+            trim(
+                $actorUserReference
+            );
+
+        $actorDisplayName =
+            trim(
+                $actorDisplayName
+            );
+
+        $eligibleResolvedFrom =
+            trim(
+                $eligibleResolvedFrom
+            );
+
+        $cutoffAt =
+            trim(
+                $cutoffAt
+            );
+
+        if (
+            $publicReference === ''
+            ||
+            $expectedProjectId < 1
+            ||
+            $actorUserReference !==
+                'system:ticketing-auto-close'
+            ||
+            $policyId < 1
+            ||
+            $delayHours < 1
+            ||
+            $eligibleResolvedFrom === ''
+            ||
+            $cutoffAt === ''
+        ) {
+            throw new RuntimeException(
+                'auto_close_transition_invalid'
+            );
+        }
+
+        if ($actorDisplayName === '') {
+            $actorDisplayName =
+                'بستن خودکار سامانه';
+        }
+
+        $this->db->beginTransaction();
+
+        try {
+            /*
+             * Revalidate the exact policy under row lock.
+             *
+             * This prevents a stale Scheduler execution
+             * from continuing after an operator disables
+             * the policy or changes its delay/boundary.
+             */
+            $policyStatement =
+                $this->db->prepare("
+                    SELECT
+                        id,
+                        support_project_id,
+                        is_enabled,
+                        delay_hours,
+                        eligible_resolved_from
+
+                    FROM
+                        ticketing_auto_close_policies
+
+                    WHERE id = ?
+                      AND support_project_id = ?
+
+                    LIMIT 1
+
+                    FOR UPDATE
+                ");
+
+            $policyStatement->execute([
+                $policyId,
+                $expectedProjectId,
+            ]);
+
+            $activePolicy =
+                $policyStatement->fetch(
+                    PDO::FETCH_ASSOC
+                );
+
+            if (!is_array($activePolicy)) {
+                throw new RuntimeException(
+                    'auto_close_policy_not_found'
+                );
+            }
+
+            if (
+                (int) (
+                    $activePolicy[
+                        'is_enabled'
+                    ]
+                    ?? 0
+                ) !== 1
+            ) {
+                throw new RuntimeException(
+                    'auto_close_policy_disabled'
+                );
+            }
+
+            $activeDelayHours =
+                (int) (
+                    $activePolicy[
+                        'delay_hours'
+                    ]
+                    ?? 0
+                );
+
+            $activeEligibleResolvedFrom =
+                trim(
+                    (string) (
+                        $activePolicy[
+                            'eligible_resolved_from'
+                        ]
+                        ?? ''
+                    )
+                );
+
+            if (
+                $activeDelayHours
+                    !== $delayHours
+                ||
+                $activeEligibleResolvedFrom
+                    === ''
+                ||
+                !hash_equals(
+                    $activeEligibleResolvedFrom,
+                    $eligibleResolvedFrom
+                )
+            ) {
+                throw new RuntimeException(
+                    'auto_close_policy_changed'
+                );
+            }
+
+            $statement =
+                $this->db->prepare("
+                    SELECT
+                        id,
+                        public_reference,
+                        ticket_number,
+                        support_project_id,
+                        status_code,
+                        resolved_at,
+                        closed_at
+
+                    FROM ticketing_tickets
+
+                    WHERE public_reference = ?
+
+                    LIMIT 1
+
+                    FOR UPDATE
+                ");
+
+            $statement->execute([
+                $publicReference,
+            ]);
+
+            $ticket =
+                $statement->fetch(
+                    PDO::FETCH_ASSOC
+                );
+
+            if (!is_array($ticket)) {
+                throw new RuntimeException(
+                    'ticket_not_found'
+                );
+            }
+
+            if (
+                (int) (
+                    $ticket[
+                        'support_project_id'
+                    ]
+                    ?? 0
+                )
+                !==
+                $expectedProjectId
+            ) {
+                throw new RuntimeException(
+                    'auto_close_project_mismatch'
+                );
+            }
+
+            if (
+                trim(
+                    (string) (
+                        $ticket['status_code']
+                        ?? ''
+                    )
+                ) !== 'resolved'
+                ||
+                empty(
+                    $ticket['resolved_at']
+                )
+                ||
+                !empty(
+                    $ticket['closed_at']
+                )
+            ) {
+                throw new RuntimeException(
+                    'auto_close_ticket_not_resolved'
+                );
+            }
+
+            $resolvedAt =
+                trim(
+                    (string)
+                    $ticket['resolved_at']
+                );
+
+            /*
+             * Critical race guard.
+             *
+             * Candidate discovery is only advisory.
+             * The exact eligibility boundary and cutoff
+             * are rechecked after locking the ticket.
+             *
+             * DATETIME values use canonical
+             * YYYY-MM-DD HH:MM:SS storage format, so
+             * strcmp() preserves chronological ordering.
+             */
+            if (
+                strcmp(
+                    $resolvedAt,
+                    $eligibleResolvedFrom
+                ) < 0
+                ||
+                strcmp(
+                    $resolvedAt,
+                    $cutoffAt
+                ) > 0
+            ) {
+                throw new RuntimeException(
+                    'auto_close_ticket_not_due'
+                );
+            }
+
+            $update =
+                $this->db->prepare("
+                    UPDATE ticketing_tickets
+
+                    SET
+                        status_code =
+                            'closed',
+
+                        closed_at =
+                            UTC_TIMESTAMP(),
+
+                        last_activity_at =
+                            UTC_TIMESTAMP(),
+
+                        updated_by_user_reference = ?,
+
+                        updated_at =
+                            UTC_TIMESTAMP()
+
+                    WHERE id = ?
+                      AND support_project_id = ?
+                      AND status_code =
+                            'resolved'
+                      AND resolved_at
+                            IS NOT NULL
+
+                      AND resolved_at >= ?
+                      AND resolved_at <= ?
+
+                      AND closed_at IS NULL
+                ");
+
+            $update->execute([
+                $actorUserReference,
+                (int) $ticket['id'],
+                $expectedProjectId,
+                $eligibleResolvedFrom,
+                $cutoffAt,
+            ]);
+
+            if (
+                $update->rowCount()
+                !== 1
+            ) {
+                throw new RuntimeException(
+                    'auto_close_transition_conflict'
+                );
+            }
+
+            $payload = [
+                'action' =>
+                    'close',
+
+                'previous_status_code' =>
+                    'resolved',
+
+                'resulting_status_code' =>
+                    'closed',
+
+                'assignment_preserved' =>
+                    true,
+
+                'routing_preserved' =>
+                    true,
+
+                'actor_type' =>
+                    'system',
+
+                'automation_key' =>
+                    'ticketing.ticket.auto_close',
+
+                'policy_id' =>
+                    $policyId,
+
+                'project_id' =>
+                    $expectedProjectId,
+
+                'delay_hours' =>
+                    $delayHours,
+
+                'eligible_resolved_from' =>
+                    $eligibleResolvedFrom,
+
+                'cutoff_at' =>
+                    $cutoffAt,
+
+                'ticket_resolved_at' =>
+                    (string)
+                    $ticket['resolved_at'],
+            ];
+
+            $this->recordEvent(
+                (int) $ticket['id'],
+                'ticket_closed',
+                $actorUserReference,
+                $actorDisplayName,
+                'resolved',
+                'closed',
+                $payload
+            );
+
+            $this->db->commit();
+
+            return [
+                'ticket_id' =>
+                    (int) $ticket['id'],
+
+                'public_reference' =>
+                    (string)
+                    $ticket[
+                        'public_reference'
+                    ],
+
+                'ticket_number' =>
+                    (string) (
+                        $ticket[
+                            'ticket_number'
+                        ]
+                        ?? ''
+                    ),
+
+                'action' =>
+                    'close',
+
+                'previous_status_code' =>
+                    'resolved',
+
+                'resulting_status_code' =>
+                    'closed',
+
+                'event_code' =>
+                    'ticket_closed',
+
+                'actor_user_reference' =>
+                    $actorUserReference,
+
+                'assignment_preserved' =>
+                    true,
+
+                'routing_preserved' =>
+                    true,
+            ];
+
+        } catch (Throwable $exception) {
+            if (
+                $this->db
+                    ->inTransaction()
+            ) {
+                $this->db
+                    ->rollBack();
+            }
+
+            throw $exception;
+        }
+    }
+
+
     private function ticketContext(
         string $publicReference,
         string $actorUserReference,

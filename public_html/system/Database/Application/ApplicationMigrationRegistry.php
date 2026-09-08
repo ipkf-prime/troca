@@ -136,6 +136,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\FinalizeTicketingStrictOperationalRealmEnforcement::class,
                     \IPKF\Database\Migrations\CreateTicketingRealmPortalBindingFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingPortalLandingContentOverrideFoundation::class,
+                    \IPKF\Database\Migrations\CreateTicketingAutoClosePolicyFoundation::class,
                 ],
             ],
         ];
