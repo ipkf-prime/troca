@@ -106,5 +106,88 @@ $assert(
 );
 
 
+$viewPath =
+    __DIR__
+    . '/../public_html/resources/views/admin/'
+    . 'ticketing-staff.php';
+
+$viewSource =
+    file_get_contents(
+        $viewPath
+    );
+
+$assert(
+    is_string(
+        $viewSource
+    ),
+    'staff_view_unreadable'
+);
+
+
+$scopeStart =
+    strpos(
+        $viewSource,
+        'class="ticketing-staff-scope-tab'
+    );
+
+$scopeEnd =
+    strpos(
+        $viewSource,
+        '<?php endforeach; ?>',
+        $scopeStart === false
+            ? 0
+            : $scopeStart
+    );
+
+$assert(
+    $scopeStart !== false
+    &&
+    $scopeEnd !== false
+    &&
+    $scopeEnd > $scopeStart,
+    'summary_scope_block_not_found'
+);
+
+
+$scopeBlock =
+    substr(
+        $viewSource,
+        $scopeStart,
+        $scopeEnd - $scopeStart
+    );
+
+
+$assert(
+    str_contains(
+        $scopeBlock,
+        'TICKETING_CARTABLE_SCOPE_PRESET_RESET_V1'
+    ),
+    'summary_scope_preset_reset_marker_missing'
+);
+
+
+foreach (
+    [
+        "'q' =>\n                                        ''",
+        "'ticket_status' =>\n                                        'active'",
+        "'priority' =>\n                                        ''",
+        "'layer_id' =>\n                                        0",
+        "'assignee' =>\n                                        ''",
+        "'sort' =>\n                                        'priority_desc'",
+        "'page' =>\n                                        1",
+    ]
+    as $contract
+) {
+    $assert(
+        str_contains(
+            $scopeBlock,
+            $contract
+        ),
+        'summary_scope_reset_contract_missing:'
+        . $contract
+    );
+}
+
+
 echo
     "TICKETING_STAFF_CARTABLE_FILTER_CONTRACT_PASS\n";

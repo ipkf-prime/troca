@@ -525,17 +525,39 @@ ob_start();
                         href="<?= ticketing_h(
                             $cartableUrl(
                                 [
+                                    /*
+                                     * TICKETING_CARTABLE_SCOPE_PRESET_RESET_V1
+                                     *
+                                     * Summary cards are operational presets.
+                                     * Clicking one starts a clean ACTIVE view
+                                     * for that scope instead of inheriting the
+                                     * current list filters.
+                                     *
+                                     * per_page is intentionally preserved.
+                                     */
                                     'scope' =>
                                         $scopeCode,
 
-                                    'page' =>
-                                        1,
+                                    'q' =>
+                                        '',
+
+                                    'ticket_status' =>
+                                        'active',
+
+                                    'priority' =>
+                                        '',
+
+                                    'layer_id' =>
+                                        0,
 
                                     'assignee' =>
-                                        $scopeCode ===
-                                        'unassigned'
-                                            ? ''
-                                            : $assignee,
+                                        '',
+
+                                    'sort' =>
+                                        'priority_desc',
+
+                                    'page' =>
+                                        1,
                                 ]
                             )
                         ) ?>"
