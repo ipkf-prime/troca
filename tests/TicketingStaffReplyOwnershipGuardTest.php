@@ -149,7 +149,9 @@ foreach ([
     'data-ticketing-detail-ownership-warning',
     'TICKETING_DETAIL_TAKEOVER_CONTEXT_T3C2',
     '$t3c2CanTakeoverHere',
-    'از گزینه «تحویل گرفتن تیکت» در همین صفحه استفاده کنید.',
+            'data-ticketing-open-response-operations',
+        'TICKETING_DETAIL_OWNERSHIP_JUMP_T3C2C',
+        'در تب «پاسخ و عملیات» گزینه «تحویل گرفتن تیکت» را انتخاب کنید.',
 ] as $marker) {
 
     $expect(

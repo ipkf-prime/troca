@@ -1440,7 +1440,7 @@ $lifecycleStatusMessage =
             [
                 'warning',
                 $t3c2CanTakeoverHere
-                    ? 'این تیکت هنوز در اختیار کارشناس مشخصی نیست. برای پاسخ، از گزینه «تحویل گرفتن تیکت» در همین صفحه استفاده کنید.'
+                    ? 'این تیکت هنوز در اختیار کارشناس مشخصی نیست. برای پاسخ، در تب «پاسخ و عملیات» گزینه «تحویل گرفتن تیکت» را انتخاب کنید.'
                     : 'این تیکت هنوز در اختیار کارشناس مشخصی نیست و در وضعیت فعلی امکان تحویل گرفتن آن برای شما وجود ندارد.',
             ],
 
@@ -1448,7 +1448,7 @@ $lifecycleStatusMessage =
             [
                 'warning',
                 $t3c2CanTakeoverHere
-                    ? 'این تیکت در اختیار شما نیست. برای پاسخ، از گزینه «تحویل گرفتن تیکت» در همین صفحه استفاده کنید.'
+                    ? 'این تیکت در اختیار شما نیست. برای پاسخ، در تب «پاسخ و عملیات» گزینه «تحویل گرفتن تیکت» را انتخاب کنید.'
                     : 'این تیکت در اختیار شما نیست و در وضعیت فعلی امکان تحویل گرفتن آن برای شما وجود ندارد.',
             ],
 
@@ -2634,8 +2634,16 @@ $routingRecoveryNoticeMessages = [
                 <?php if ($t3c2CanTakeoverHere): ?>
 
                     این تیکت در اختیار شما نیست.
-                    برای پاسخ ابتدا از گزینه «تحویل گرفتن تیکت»
-                    در بخش «عملیات کارتابل» همین صفحه استفاده کنید.
+                    برای پاسخ، ابتدا در بخش
+
+                    <a
+                        href="#ticketing-detail-staff-operations"
+                        data-ticketing-open-response-operations
+                    >
+                        «پاسخ و عملیات»
+                    </a>
+
+                    گزینه «تحویل گرفتن تیکت» را انتخاب کنید.
 
                 <?php else: ?>
 
@@ -3018,6 +3026,69 @@ $routingRecoveryNoticeMessages = [
                         tab.getAttribute(
                             'data-ticketing-detail-tab'
                         )
+                    );
+                }
+            );
+        }
+    );
+
+    /*
+     * TICKETING_DETAIL_OWNERSHIP_JUMP_T3C2C
+     *
+     * The ownership warning may be visible while another tab is active.
+     * Clicking "پاسخ و عملیات" activates the existing Status panel and
+     * moves focus to the same-page Takeover control.
+     */
+    Array.from(
+        document.querySelectorAll(
+            '[data-ticketing-open-response-operations]'
+        )
+    ).forEach(
+        (link) => {
+
+            link.addEventListener(
+                'click',
+                (event) => {
+
+                    event.preventDefault();
+
+                    activate('status');
+
+                    window.requestAnimationFrame(
+                        () => {
+
+                            const operations =
+                                document.getElementById(
+                                    'ticketing-detail-staff-operations'
+                                );
+
+                            if (!operations) {
+                                return;
+                            }
+
+                            operations.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'center',
+                            });
+
+                            const takeoverButton =
+                                operations.querySelector(
+                                    'form[action$="/takeover"] '
+                                    + 'button[type="submit"]'
+                                );
+
+                            if (!takeoverButton) {
+                                return;
+                            }
+
+                            try {
+                                takeoverButton.focus({
+                                    preventScroll: true,
+                                });
+                            } catch (error) {
+                                takeoverButton.focus();
+                            }
+                        }
                     );
                 }
             );
