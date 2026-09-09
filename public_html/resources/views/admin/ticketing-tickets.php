@@ -360,6 +360,7 @@ ob_start();
             method="get"
             action="/admin/ticketing/tickets"
             class="ticketing-filter-form"
+            data-ticketing-auto-filter-form
         >
 
             <?php if ($projectReference !== ''): ?>
@@ -490,7 +491,15 @@ ob_start();
             </div>
 
 
-            <details class="ticketing-sort-details">
+            <details
+                class="ticketing-sort-details"
+                <?= (
+                    $sort1 !== 'last_activity'
+                    || $dir1 !== 'desc'
+                    || $sort2 !== 'created_at'
+                    || $dir2 !== 'desc'
+                ) ? ' open' : '' ?>
+            >
                 <summary>
                     مرتب‌سازی چندمرحله‌ای
                 </summary>
@@ -594,12 +603,6 @@ ob_start();
 
             <div class="admin-form-actions ticketing-filter-actions">
 
-                <button
-                    class="admin-button"
-                    type="submit"
-                >
-                    اعمال
-                </button>
 
                 <a
                     class="admin-button admin-button--soft"
@@ -636,6 +639,157 @@ ob_start();
             </div>
 
         </form>
+
+        <!-- TICKETING_MY_TICKETS_AUTO_FILTER_T3D_START -->
+        <script>
+        (() => {
+            'use strict';
+
+            const form =
+                document.querySelector(
+                    '[data-ticketing-auto-filter-form]'
+                );
+
+            if (!form) {
+                return;
+            }
+
+            const debounceMs = 500;
+
+            const search =
+                form.querySelector(
+                    'input[name="q"]'
+                );
+
+            const autoSubmitFields = [
+                'status',
+                'priority',
+                'layer',
+                'assignee',
+                'sort1',
+                'dir1',
+                'sort2',
+                'dir2',
+            ];
+
+            let searchTimer = null;
+            let composing = false;
+
+
+            const clearSearchTimer = () => {
+                if (searchTimer === null) {
+                    return;
+                }
+
+                window.clearTimeout(
+                    searchTimer
+                );
+
+                searchTimer = null;
+            };
+
+
+            const submitForm = () => {
+                clearSearchTimer();
+
+                if (
+                    typeof form.requestSubmit
+                        === 'function'
+                ) {
+                    form.requestSubmit();
+                    return;
+                }
+
+                form.submit();
+            };
+
+
+            const scheduleSearchSubmit = () => {
+                clearSearchTimer();
+
+                if (composing) {
+                    return;
+                }
+
+                searchTimer =
+                    window.setTimeout(
+                        submitForm,
+                        debounceMs
+                    );
+            };
+
+
+            autoSubmitFields.forEach(name => {
+                const field =
+                    form.querySelector(
+                        `[name="${name}"]`
+                    );
+
+                if (!field) {
+                    return;
+                }
+
+                field.addEventListener(
+                    'change',
+                    submitForm
+                );
+            });
+
+
+            if (!search) {
+                return;
+            }
+
+
+            search.addEventListener(
+                'compositionstart',
+                () => {
+                    composing = true;
+                    clearSearchTimer();
+                }
+            );
+
+
+            search.addEventListener(
+                'compositionend',
+                () => {
+                    composing = false;
+                    scheduleSearchSubmit();
+                }
+            );
+
+
+            search.addEventListener(
+                'input',
+                () => {
+                    if (!composing) {
+                        scheduleSearchSubmit();
+                    }
+                }
+            );
+
+
+            search.addEventListener(
+                'keydown',
+                event => {
+                    if (
+                        event.key !== 'Enter'
+                        ||
+                        event.isComposing
+                        ||
+                        composing
+                    ) {
+                        return;
+                    }
+
+                    event.preventDefault();
+
+                    submitForm();
+                }
+            );
+        })();
+        </script>
+        <!-- TICKETING_MY_TICKETS_AUTO_FILTER_T3D_END -->
 
 
         <?php if ($items === []): ?>
