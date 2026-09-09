@@ -47,6 +47,265 @@ $q =
         ?? ''
     );
 
+
+$filters =
+    is_array(
+        $page['filters']
+        ?? null
+    )
+        ? $page['filters']
+        : [];
+
+$filterOptions =
+    is_array(
+        $page['filter_options']
+        ?? null
+    )
+        ? $page['filter_options']
+        : [];
+
+$pagination =
+    is_array(
+        $page['pagination']
+        ?? null
+    )
+        ? $page['pagination']
+        : [];
+
+
+$ticketStatus =
+    (string) (
+        $filters['ticket_status']
+        ?? 'active'
+    );
+
+$priority =
+    (string) (
+        $filters['priority']
+        ?? ''
+    );
+
+$layerId =
+    (int) (
+        $filters['layer_id']
+        ?? 0
+    );
+
+$assignee =
+    (string) (
+        $filters['assignee']
+        ?? ''
+    );
+
+$sort =
+    (string) (
+        $filters['sort']
+        ?? 'priority_desc'
+    );
+
+$perPage =
+    (int) (
+        $pagination['per_page']
+        ?? 25
+    );
+
+$currentPage =
+    max(
+        1,
+        (int) (
+            $pagination['page']
+            ?? 1
+        )
+    );
+
+$totalPages =
+    max(
+        1,
+        (int) (
+            $pagination['total_pages']
+            ?? 1
+        )
+    );
+
+$totalItems =
+    max(
+        0,
+        (int) (
+            $pagination['total']
+            ?? count($items)
+        )
+    );
+
+
+$statuses =
+    is_array(
+        $filterOptions['statuses']
+        ?? null
+    )
+        ? $filterOptions['statuses']
+        : [];
+
+$priorities =
+    is_array(
+        $filterOptions['priorities']
+        ?? null
+    )
+        ? $filterOptions['priorities']
+        : [];
+
+$layers =
+    is_array(
+        $filterOptions['layers']
+        ?? null
+    )
+        ? $filterOptions['layers']
+        : [];
+
+$assignees =
+    is_array(
+        $filterOptions['assignees']
+        ?? null
+    )
+        ? $filterOptions['assignees']
+        : [];
+
+
+$sortOptions = [
+    'priority_desc' =>
+        'اولویت بالاتر',
+
+    'activity_desc' =>
+        'فعالیت جدیدتر',
+
+    'activity_asc' =>
+        'فعالیت قدیمی‌تر',
+
+    'created_desc' =>
+        'ثبت جدیدتر',
+
+    'created_asc' =>
+        'ثبت قدیمی‌تر',
+];
+
+
+$cartableUrl =
+    static function (
+        array $overrides = []
+    ) use (
+        $scope,
+        $q,
+        $ticketStatus,
+        $priority,
+        $layerId,
+        $assignee,
+        $sort,
+        $currentPage,
+        $perPage
+    ): string {
+        $params = [
+            'scope' =>
+                $scope,
+
+            'q' =>
+                $q,
+
+            'ticket_status' =>
+                $ticketStatus,
+
+            'priority' =>
+                $priority,
+
+            'layer_id' =>
+                $layerId,
+
+            'assignee' =>
+                $assignee,
+
+            'sort' =>
+                $sort,
+
+            'page' =>
+                $currentPage,
+
+            'per_page' =>
+                $perPage,
+        ];
+
+
+        foreach (
+            $overrides
+            as $key => $value
+        ) {
+            $params[$key] =
+                $value;
+        }
+
+
+        if (
+            ($params['q'] ?? '')
+            === ''
+        ) {
+            unset(
+                $params['q']
+            );
+        }
+
+        if (
+            ($params['priority'] ?? '')
+            === ''
+        ) {
+            unset(
+                $params['priority']
+            );
+        }
+
+        if (
+            (int) (
+                $params['layer_id']
+                ?? 0
+            ) < 1
+        ) {
+            unset(
+                $params['layer_id']
+            );
+        }
+
+        if (
+            ($params['assignee'] ?? '')
+            === ''
+        ) {
+            unset(
+                $params['assignee']
+            );
+        }
+
+        if (
+            (int) (
+                $params['page']
+                ?? 1
+            ) <= 1
+        ) {
+            unset(
+                $params['page']
+            );
+        }
+
+
+        return
+            '/admin/ticketing/staff'
+            . (
+                $params === []
+                    ? ''
+                    : '?'
+                        . http_build_query(
+                            $params,
+                            '',
+                            '&',
+                            PHP_QUERY_RFC3986
+                        )
+            );
+    };
+
 $isStaff =
     !empty(
         $page['is_staff']
@@ -263,9 +522,21 @@ ob_start();
                         class="ticketing-staff-scope-tab <?= $scope === $scopeCode
                             ? 'is-active'
                             : '' ?>"
-                        href="/admin/ticketing/staff?scope=<?= ticketing_h(
-                            rawurlencode(
-                                $scopeCode
+                        href="<?= ticketing_h(
+                            $cartableUrl(
+                                [
+                                    'scope' =>
+                                        $scopeCode,
+
+                                    'page' =>
+                                        1,
+
+                                    'assignee' =>
+                                        $scopeCode ===
+                                        'unassigned'
+                                            ? ''
+                                            : $assignee,
+                                ]
                             )
                         ) ?>"
                     >
@@ -292,7 +563,7 @@ ob_start();
             <form
                 method="get"
                 action="/admin/ticketing/staff"
-                class="ticketing-staff-search"
+                class="ticketing-staff-search ticketing-staff-filter-grid"
             >
                 <input
                     type="hidden"
@@ -302,7 +573,8 @@ ob_start();
                     ) ?>"
                 >
 
-                <label class="ticketing-staff-search__field">
+
+                <label class="ticketing-staff-search__field ticketing-staff-filter--search">
 
                     <span>
                         جستجو
@@ -310,6 +582,7 @@ ob_start();
 
                     <input
                         type="search"
+                        class="ui-input"
                         name="q"
                         maxlength="180"
                         value="<?= ticketing_h(
@@ -321,14 +594,331 @@ ob_start();
                 </label>
 
 
+                <label class="ticketing-staff-search__field">
+
+                    <span>
+                        وضعیت
+                    </span>
+
+                    <select
+                        class="ui-select ticketing-cartable-filter-select"
+                        data-ticketing-filter-auto-submit
+                        name="ticket_status"
+                    >
+                        <option
+                            value="active"
+                            <?= $ticketStatus === 'active'
+                                ? 'selected'
+                                : '' ?>
+                        >
+                            تیکت‌های جاری
+                        </option>
+
+                        <option
+                            value="all"
+                            <?= $ticketStatus === 'all'
+                                ? 'selected'
+                                : '' ?>
+                        >
+                            همه وضعیت‌ها
+                        </option>
+
+                        <?php foreach (
+                            $statuses
+                            as $option
+                        ): ?>
+                            <?php
+                            $optionCode =
+                                (string) (
+                                    $option['code']
+                                    ?? ''
+                                );
+
+                            $optionTitle =
+                                (string) (
+                                    $option['title']
+                                    ?? $optionCode
+                                );
+                            ?>
+
+                            <option
+                                value="<?= ticketing_h(
+                                    $optionCode
+                                ) ?>"
+                                <?= $ticketStatus === $optionCode
+                                    ? 'selected'
+                                    : '' ?>
+                            >
+                                <?= ticketing_h(
+                                    $optionTitle
+                                ) ?>
+                            </option>
+
+                        <?php endforeach; ?>
+
+                    </select>
+
+                </label>
+
+
+                <label class="ticketing-staff-search__field">
+
+                    <span>
+                        اولویت
+                    </span>
+
+                    <select
+                        class="ui-select ticketing-cartable-filter-select"
+                        data-ticketing-filter-auto-submit
+                        name="priority"
+                    >
+                        <option value="">
+                            همه اولویت‌ها
+                        </option>
+
+                        <?php foreach (
+                            $priorities
+                            as $option
+                        ): ?>
+                            <?php
+                            $optionCode =
+                                (string) (
+                                    $option['code']
+                                    ?? ''
+                                );
+
+                            $optionTitle =
+                                (string) (
+                                    $option['title']
+                                    ?? $optionCode
+                                );
+                            ?>
+
+                            <option
+                                value="<?= ticketing_h(
+                                    $optionCode
+                                ) ?>"
+                                <?= $priority === $optionCode
+                                    ? 'selected'
+                                    : '' ?>
+                            >
+                                <?= ticketing_h(
+                                    $optionTitle
+                                ) ?>
+                            </option>
+
+                        <?php endforeach; ?>
+
+                    </select>
+
+                </label>
+
+
+                <label class="ticketing-staff-search__field">
+
+                    <span>
+                        مرحله
+                    </span>
+
+                    <select
+                        class="ui-select ticketing-cartable-filter-select"
+                        data-ticketing-filter-auto-submit
+                        name="layer_id"
+                    >
+                        <option value="0">
+                            همه سطوح
+                        </option>
+
+                        <?php foreach (
+                            $layers
+                            as $option
+                        ): ?>
+                            <?php
+                            $optionId =
+                                (int) (
+                                    $option['id']
+                                    ?? 0
+                                );
+
+                            $optionTitle =
+                                (string) (
+                                    $option['title']
+                                    ?? ''
+                                );
+                            ?>
+
+                            <option
+                                value="<?= ticketing_h(
+                                    (string) $optionId
+                                ) ?>"
+                                <?= $layerId === $optionId
+                                    ? 'selected'
+                                    : '' ?>
+                            >
+                                <?= ticketing_h(
+                                    $optionTitle
+                                ) ?>
+                            </option>
+
+                        <?php endforeach; ?>
+
+                    </select>
+
+                </label>
+
+
+                <label class="ticketing-staff-search__field">
+
+                    <span>
+                        کارشناس جاری
+                    </span>
+
+                    <select
+                        class="ui-select ticketing-cartable-filter-select"
+                        data-ticketing-filter-auto-submit
+                        name="assignee"
+                        <?= $scope === 'unassigned'
+                            ? 'disabled'
+                            : '' ?>
+                    >
+                        <option value="">
+                            همه کارشناسان
+                        </option>
+
+                        <?php foreach (
+                            $assignees
+                            as $option
+                        ): ?>
+                            <?php
+                            $optionReference =
+                                (string) (
+                                    $option[
+                                        'user_reference'
+                                    ]
+                                    ?? ''
+                                );
+
+                            $optionTitle =
+                                trim(
+                                    (string) (
+                                        $option[
+                                            'display_name'
+                                        ]
+                                        ?? ''
+                                    )
+                                );
+
+                            if ($optionTitle === '') {
+                                $optionTitle =
+                                    $optionReference;
+                            }
+                            ?>
+
+                            <option
+                                value="<?= ticketing_h(
+                                    $optionReference
+                                ) ?>"
+                                <?= $assignee === $optionReference
+                                    ? 'selected'
+                                    : '' ?>
+                            >
+                                <?= ticketing_h(
+                                    $optionTitle
+                                ) ?>
+                            </option>
+
+                        <?php endforeach; ?>
+
+                    </select>
+
+                </label>
+
+
+                <label class="ticketing-staff-search__field">
+
+                    <span>
+                        مرتب‌سازی
+                    </span>
+
+                    <select
+                        class="ui-select ticketing-cartable-filter-select"
+                        data-ticketing-filter-auto-submit
+                        name="sort"
+                    >
+                        <?php foreach (
+                            $sortOptions
+                            as $optionCode => $optionTitle
+                        ): ?>
+
+                            <option
+                                value="<?= ticketing_h(
+                                    $optionCode
+                                ) ?>"
+                                <?= $sort === $optionCode
+                                    ? 'selected'
+                                    : '' ?>
+                            >
+                                <?= ticketing_h(
+                                    $optionTitle
+                                ) ?>
+                            </option>
+
+                        <?php endforeach; ?>
+
+                    </select>
+
+                </label>
+
+
+                <label class="ticketing-staff-search__field">
+
+                    <span>
+                        تعداد در صفحه
+                    </span>
+
+                    <select
+                        class="ui-select ticketing-cartable-filter-select"
+                        data-ticketing-filter-auto-submit
+                        name="per_page"
+                    >
+                        <?php foreach (
+                            [
+                                25,
+                                50,
+                            ]
+                            as $perPageOption
+                        ): ?>
+
+                            <option
+                                value="<?= ticketing_h(
+                                    (string) $perPageOption
+                                ) ?>"
+                                <?= $perPage === $perPageOption
+                                    ? 'selected'
+                                    : '' ?>
+                            >
+                                <?= ticketing_h(
+                                    \App\Support\AdminFormat::digits(
+                                        (string) $perPageOption
+                                    )
+                                ) ?>
+                            </option>
+
+                        <?php endforeach; ?>
+
+                    </select>
+
+                </label>
+
+
                 <div class="ticketing-staff-search__actions">
 
                     <button
                         type="submit"
                         class="ticketing-icon-action ticketing-icon-action--primary"
-                        aria-label="اعمال جستجو"
-                        title="اعمال جستجو"
-                        data-tooltip="اعمال جستجو"
+                        aria-label="اعمال فیلترها"
+                        title="اعمال فیلترها"
+                        data-tooltip="اعمال فیلترها"
                     >
                         <?= \App\Support\TicketingIcon::svg(
                             'search'
@@ -338,14 +928,35 @@ ob_start();
 
                     <a
                         class="ticketing-icon-action ticketing-icon-action--soft"
-                        href="/admin/ticketing/staff?scope=<?= ticketing_h(
-                            rawurlencode(
-                                $scope
+                        href="<?= ticketing_h(
+                            $cartableUrl(
+                                [
+                                    'q' =>
+                                        '',
+
+                                    'ticket_status' =>
+                                        'active',
+
+                                    'priority' =>
+                                        '',
+
+                                    'layer_id' =>
+                                        0,
+
+                                    'assignee' =>
+                                        '',
+
+                                    'sort' =>
+                                        'priority_desc',
+
+                                    'page' =>
+                                        1,
+                                ]
                             )
                         ) ?>"
-                        aria-label="بازنشانی جستجو"
-                        title="بازنشانی جستجو"
-                        data-tooltip="بازنشانی جستجو"
+                        aria-label="بازنشانی فیلترها"
+                        title="بازنشانی فیلترها"
+                        data-tooltip="بازنشانی فیلترها"
                     >
                         <?= \App\Support\TicketingIcon::svg(
                             'reset'
@@ -362,7 +973,7 @@ ob_start();
                 <strong>
                     <?= ticketing_h(
                         \App\Support\AdminFormat::digits(
-                            (string) count($items)
+                            (string) $totalItems
                         )
                     ) ?>
                     تیکت
@@ -936,6 +1547,193 @@ ob_start();
 
                 </div>
 
+
+                <?php if ($totalPages > 1): ?>
+
+                    <?php
+                    $pageStart =
+                        max(
+                            1,
+                            $currentPage - 2
+                        );
+
+                    $pageEnd =
+                        min(
+                            $totalPages,
+                            $currentPage + 2
+                        );
+                    ?>
+
+                    <nav
+                        class="ticketing-staff-pagination"
+                        aria-label="صفحه‌بندی کارتابل"
+                    >
+
+                        <a
+                            class="ticketing-staff-page-link <?= $currentPage <= 1
+                                ? 'is-disabled'
+                                : '' ?>"
+                            href="<?= ticketing_h(
+                                $cartableUrl(
+                                    [
+                                        'page' =>
+                                            max(
+                                                1,
+                                                $currentPage - 1
+                                            ),
+                                    ]
+                                )
+                            ) ?>"
+                            <?= $currentPage <= 1
+                                ? 'aria-disabled="true" tabindex="-1"'
+                                : '' ?>
+                        >
+                            قبلی
+                        </a>
+
+
+                        <?php if ($pageStart > 1): ?>
+
+                            <a
+                                class="ticketing-staff-page-link"
+                                href="<?= ticketing_h(
+                                    $cartableUrl(
+                                        [
+                                            'page' => 1,
+                                        ]
+                                    )
+                                ) ?>"
+                            >
+                                <?= ticketing_h(
+                                    \App\Support\AdminFormat::digits(
+                                        '1'
+                                    )
+                                ) ?>
+                            </a>
+
+                            <?php if ($pageStart > 2): ?>
+                                <span
+                                    class="ticketing-staff-page-gap"
+                                    aria-hidden="true"
+                                >
+                                    …
+                                </span>
+                            <?php endif; ?>
+
+                        <?php endif; ?>
+
+
+                        <?php for (
+                            $pageIndex = $pageStart;
+                            $pageIndex <= $pageEnd;
+                            $pageIndex++
+                        ): ?>
+
+                            <?php if (
+                                $pageIndex
+                                === $currentPage
+                            ): ?>
+
+                                <span
+                                    class="ticketing-staff-page-link is-current"
+                                    aria-current="page"
+                                >
+                                    <?= ticketing_h(
+                                        \App\Support\AdminFormat::digits(
+                                            (string) $pageIndex
+                                        )
+                                    ) ?>
+                                </span>
+
+                            <?php else: ?>
+
+                                <a
+                                    class="ticketing-staff-page-link"
+                                    href="<?= ticketing_h(
+                                        $cartableUrl(
+                                            [
+                                                'page' =>
+                                                    $pageIndex,
+                                            ]
+                                        )
+                                    ) ?>"
+                                >
+                                    <?= ticketing_h(
+                                        \App\Support\AdminFormat::digits(
+                                            (string) $pageIndex
+                                        )
+                                    ) ?>
+                                </a>
+
+                            <?php endif; ?>
+
+                        <?php endfor; ?>
+
+
+                        <?php if (
+                            $pageEnd
+                            < $totalPages
+                        ): ?>
+
+                            <?php if (
+                                $pageEnd
+                                < $totalPages - 1
+                            ): ?>
+                                <span
+                                    class="ticketing-staff-page-gap"
+                                    aria-hidden="true"
+                                >
+                                    …
+                                </span>
+                            <?php endif; ?>
+
+                            <a
+                                class="ticketing-staff-page-link"
+                                href="<?= ticketing_h(
+                                    $cartableUrl(
+                                        [
+                                            'page' =>
+                                                $totalPages,
+                                        ]
+                                    )
+                                ) ?>"
+                            >
+                                <?= ticketing_h(
+                                    \App\Support\AdminFormat::digits(
+                                        (string) $totalPages
+                                    )
+                                ) ?>
+                            </a>
+
+                        <?php endif; ?>
+
+
+                        <a
+                            class="ticketing-staff-page-link <?= $currentPage >= $totalPages
+                                ? 'is-disabled'
+                                : '' ?>"
+                            href="<?= ticketing_h(
+                                $cartableUrl(
+                                    [
+                                        'page' =>
+                                            min(
+                                                $totalPages,
+                                                $currentPage + 1
+                                            ),
+                                    ]
+                                )
+                            ) ?>"
+                            <?= $currentPage >= $totalPages
+                                ? 'aria-disabled="true" tabindex="-1"'
+                                : '' ?>
+                        >
+                            بعدی
+                        </a>
+
+                    </nav>
+
+                <?php endif; ?>
+
             <?php endif; ?>
 
         </section>
@@ -943,6 +1741,12 @@ ob_start();
     <?php endif; ?>
 
 </div>
+
+<!-- TICKETING_CARTABLE_AUTO_FILTER_SCRIPT_V1 -->
+<script
+    src="/assets/admin/js/ticketing-cartable.js"
+    defer
+></script>
 
 <?php
 $content = ob_get_clean();

@@ -103,6 +103,7 @@ final class TicketStaffOperationsService
         $userReference =
             'user:' . $userId;
 
+
         $scope =
             trim(
                 (string) (
@@ -122,7 +123,8 @@ final class TicketStaffOperationsService
                 true
             )
         ) {
-            $scope = 'all';
+            $scope =
+                'all';
         }
 
 
@@ -134,31 +136,241 @@ final class TicketStaffOperationsService
                 )
             );
 
-
-        $rows =
-            $this->repository->cartable(
-                $userReference,
-                $scope
-            );
-
-
-        if ($query !== '') {
-            $rows =
-                array_values(
-                    array_filter(
-                        $rows,
-                        fn (
-                            array $ticket
-                        ): bool =>
-                            $this->matchesQuery(
-                                $ticket,
-                                $query
-                            )
-                    )
+        if (
+            mb_strlen(
+                $query,
+                'UTF-8'
+            ) > 180
+        ) {
+            $query =
+                mb_substr(
+                    $query,
+                    0,
+                    180,
+                    'UTF-8'
                 );
         }
 
 
+        $ticketStatus =
+            trim(
+                (string) (
+                    $filters[
+                        'ticket_status'
+                    ]
+                    ?? 'active'
+                )
+            );
+
+        if ($ticketStatus === '') {
+            $ticketStatus =
+                'active';
+        }
+
+        if (
+            !in_array(
+                $ticketStatus,
+                [
+                    'active',
+                    'all',
+                ],
+                true
+            )
+            &&
+            preg_match(
+                '/^[a-zA-Z0-9_.:-]{1,80}$/',
+                $ticketStatus
+            ) !== 1
+        ) {
+            $ticketStatus =
+                'active';
+        }
+
+
+        $priority =
+            trim(
+                (string) (
+                    $filters[
+                        'priority'
+                    ]
+                    ?? ''
+                )
+            );
+
+        if (
+            $priority !== ''
+            &&
+            preg_match(
+                '/^[a-zA-Z0-9_.:-]{1,80}$/',
+                $priority
+            ) !== 1
+        ) {
+            $priority =
+                '';
+        }
+
+
+        $layerId =
+            max(
+                0,
+                (int) (
+                    $filters[
+                        'layer_id'
+                    ]
+                    ?? 0
+                )
+            );
+
+
+        $assignee =
+            trim(
+                (string) (
+                    $filters[
+                        'assignee'
+                    ]
+                    ?? ''
+                )
+            );
+
+        if (
+            strlen($assignee)
+            > 180
+        ) {
+            $assignee =
+                substr(
+                    $assignee,
+                    0,
+                    180
+                );
+        }
+
+        if ($scope === 'unassigned') {
+            $assignee =
+                '';
+        }
+
+
+        $sort =
+            trim(
+                (string) (
+                    $filters[
+                        'sort'
+                    ]
+                    ?? 'priority_desc'
+                )
+            );
+
+        if (
+            !in_array(
+                $sort,
+                [
+                    'priority_desc',
+                    'activity_desc',
+                    'activity_asc',
+                    'created_desc',
+                    'created_asc',
+                ],
+                true
+            )
+        ) {
+            $sort =
+                'priority_desc';
+        }
+
+
+        $pageNumber =
+            max(
+                1,
+                (int) (
+                    $filters[
+                        'page'
+                    ]
+                    ?? 1
+                )
+            );
+
+
+        $perPage =
+            (int) (
+                $filters[
+                    'per_page'
+                ]
+                ?? 25
+            );
+
+        if (
+            !in_array(
+                $perPage,
+                [
+                    25,
+                    50,
+                ],
+                true
+            )
+        ) {
+            $perPage =
+                25;
+        }
+
+
+        $repositoryFilters = [
+            'scope' =>
+                $scope,
+
+            /*
+             * Presentation may accept Persian/Arabic digits while the
+             * database search contract uses normalized Latin digits.
+             */
+            'q' =>
+                TicketingDisplay::latinDigits(
+                    $query
+                ),
+
+            'ticket_status' =>
+                $ticketStatus,
+
+            'priority' =>
+                $priority,
+
+            'layer_id' =>
+                $layerId,
+
+            'assignee' =>
+                $assignee,
+
+            'sort' =>
+                $sort,
+
+            'page' =>
+                $pageNumber,
+
+            'per_page' =>
+                $perPage,
+        ];
+
+
+        $result =
+            $this->repository
+                ->cartablePage(
+                    $userReference,
+                    $repositoryFilters
+                );
+
+        $rows =
+            is_array(
+                $result['items']
+                ?? null
+            )
+                ? $result['items']
+                : [];
+
+
+        /*
+         * ActionContext remains per-row for this stage, but pagination
+         * bounds it to 25/50 rows instead of an unbounded cartable.
+         * A later batch optimization can replace this without changing
+         * the page/filter contract.
+         */
         foreach ($rows as &$ticket) {
             $ticket['staff_actions'] =
                 $this->repository
@@ -171,14 +383,76 @@ final class TicketStaffOperationsService
         unset($ticket);
 
 
+        /*
+         * TICKETING_CARTABLE_SUMMARY_COUNTS_V1
+         *
+         * Summary cards describe the operator's complete active
+         * operational workload.
+         *
+         * They are intentionally independent from the list filters:
+         * - text search
+         * - explicit ticket status
+         * - priority
+         * - support stage
+         * - assignee
+         * - sorting
+         * - pagination
+         *
+         * Clicking a summary card changes only the list scope.
+         * It must never redefine the numbers shown by the cards.
+         */
+        $summaryFilters = [
+            'ticket_status' =>
+                'active',
+
+            'q' =>
+                '',
+
+            'priority' =>
+                '',
+
+            'layer_id' =>
+                0,
+
+            'assignee' =>
+                '',
+        ];
+
+
+        $counts = [];
+
+        foreach (
+            [
+                'all',
+                'my',
+                'unassigned',
+            ]
+            as $countScope
+        ) {
+            $scopeFilters =
+                $summaryFilters;
+
+            $scopeFilters['scope'] =
+                $countScope;
+
+            $counts[$countScope] =
+                $this->repository
+                    ->cartableCount(
+                        $userReference,
+                        $scopeFilters
+                    );
+        }
+
+
         return [
             'viewer_user_reference' =>
-                'user:' . $userId,
+                $userReference,
 
             'is_staff' =>
-                $this->repository->isStaff(
-                    $userReference
-                ),
+                $this->repository
+                    ->isStaff(
+                        $userReference
+                    ),
 
             'items' =>
                 $rows,
@@ -189,34 +463,75 @@ final class TicketStaffOperationsService
             'q' =>
                 $query,
 
-            'counts' => [
-                'all' =>
-                    count(
-                        $this->repository
-                            ->cartable(
-                                $userReference,
-                                'all'
-                            )
+            'filters' => [
+                'scope' =>
+                    $scope,
+
+                'q' =>
+                    $query,
+
+                'ticket_status' =>
+                    $ticketStatus,
+
+                'priority' =>
+                    $priority,
+
+                'layer_id' =>
+                    $layerId,
+
+                'assignee' =>
+                    $assignee,
+
+                'sort' =>
+                    $sort,
+
+                'page' =>
+                    (int) (
+                        $result['page']
+                        ?? 1
                     ),
 
-                'my' =>
-                    count(
-                        $this->repository
-                            ->cartable(
-                                $userReference,
-                                'my'
-                            )
-                    ),
-
-                'unassigned' =>
-                    count(
-                        $this->repository
-                            ->cartable(
-                                $userReference,
-                                'unassigned'
-                            )
+                'per_page' =>
+                    (int) (
+                        $result['per_page']
+                        ?? $perPage
                     ),
             ],
+
+            'pagination' => [
+                'total' =>
+                    (int) (
+                        $result['total']
+                        ?? 0
+                    ),
+
+                'page' =>
+                    (int) (
+                        $result['page']
+                        ?? 1
+                    ),
+
+                'per_page' =>
+                    (int) (
+                        $result['per_page']
+                        ?? $perPage
+                    ),
+
+                'total_pages' =>
+                    (int) (
+                        $result['total_pages']
+                        ?? 1
+                    ),
+            ],
+
+            'filter_options' =>
+                $this->repository
+                    ->cartableFilterOptions(
+                        $userReference
+                    ),
+
+            'counts' =>
+                $counts,
         ];
     }
 
@@ -375,140 +690,6 @@ final class TicketStaffOperationsService
                     ),
             ];
         }
-    }
-
-
-    private function matchesQuery(
-        array $ticket,
-        string $query
-    ): bool {
-        $query =
-            trim($query);
-
-        if ($query === '') {
-            return true;
-        }
-
-
-        $latin =
-            TicketingDisplay::latinDigits(
-                $query
-            );
-
-
-        if (
-            preg_match(
-                '/^0*(\d{1,18})$/',
-                $latin,
-                $match
-            ) === 1
-        ) {
-            $sequence =
-                (int) $match[1];
-
-            if (
-                $sequence > 0
-                &&
-                preg_match(
-                    '/(\d+)$/',
-                    (string) (
-                        $ticket[
-                            'ticket_number'
-                        ]
-                        ?? ''
-                    ),
-                    $numberMatch
-                ) === 1
-            ) {
-                return
-                    (int) $numberMatch[1]
-                    ===
-                    $sequence;
-            }
-        }
-
-
-        $displayNumber =
-            TicketingDisplay
-                ::ticketNumberFromRow(
-                    $ticket
-                );
-
-
-        $haystack =
-            implode(
-                ' ',
-                [
-                    $displayNumber,
-
-                    (string) (
-                        $ticket[
-                            'ticket_number'
-                        ]
-                        ?? ''
-                    ),
-
-                    (string) (
-                        $ticket[
-                            'subject'
-                        ]
-                        ?? ''
-                    ),
-
-                    (string) (
-                        $ticket[
-                            'support_topic_title_snapshot'
-                        ]
-                        ?? ''
-                    ),
-
-                    (string) (
-                        $ticket[
-                            'support_project_title_snapshot'
-                        ]
-                        ?? ''
-                    ),
-
-                    (string) (
-                        $ticket[
-                            'project_title'
-                        ]
-                        ?? ''
-                    ),
-
-                    (string) (
-                        $ticket[
-                            'assignee_name'
-                        ]
-                        ?? ''
-                    ),
-
-                    (string) (
-                        $ticket[
-                            'requester_display_name_snapshot'
-                        ]
-                        ?? ''
-                    ),
-                ]
-            );
-
-
-        return
-            mb_stripos(
-                $haystack,
-                $query,
-                0,
-                'UTF-8'
-            ) !== false
-            ||
-            mb_stripos(
-                TicketingDisplay::latinDigits(
-                    $haystack
-                ),
-                $latin,
-                0,
-                'UTF-8'
-            ) !== false;
     }
 
 

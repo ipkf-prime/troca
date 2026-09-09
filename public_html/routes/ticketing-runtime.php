@@ -3672,6 +3672,52 @@ $router->get(
                                 'q',
                                 ''
                             ),
+
+                        /*
+                         * Do not reuse "status": that query parameter
+                         * already carries operation-result notices.
+                         */
+                        'ticket_status' =>
+                            $request->input(
+                                'ticket_status',
+                                'active'
+                            ),
+
+                        'priority' =>
+                            $request->input(
+                                'priority',
+                                ''
+                            ),
+
+                        'layer_id' =>
+                            $request->input(
+                                'layer_id',
+                                0
+                            ),
+
+                        'assignee' =>
+                            $request->input(
+                                'assignee',
+                                ''
+                            ),
+
+                        'sort' =>
+                            $request->input(
+                                'sort',
+                                'priority_desc'
+                            ),
+
+                        'page' =>
+                            $request->input(
+                                'page',
+                                1
+                            ),
+
+                        'per_page' =>
+                            $request->input(
+                                'per_page',
+                                25
+                            ),
                     ]
                 );
 

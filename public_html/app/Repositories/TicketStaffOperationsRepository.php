@@ -395,6 +395,947 @@ final class TicketStaffOperationsRepository
 
 
     /*
+     * =========================================================================
+     * TICKETING_T1_SERVER_SIDE_CARTABLE_V1
+     *
+     * The operational cartable is intentionally separate from legacy
+     * cartable(), because cartable() is also used as an authorization/
+     * detail-visibility primitive and must continue to see closed tickets.
+     *
+     * List concerns:
+     * - canonical staff visibility
+     * - Dynamic Data Scope
+     * - server-side search/filter
+     * - deterministic sorting
+     * - COUNT + LIMIT/OFFSET pagination
+     * =========================================================================
+     */
+    public function cartablePage(
+        string $userReference,
+        array $filters = []
+    ): array {
+        $perPage =
+            (int) (
+                $filters['per_page']
+                ?? 25
+            );
+
+        if (
+            !in_array(
+                $perPage,
+                [
+                    25,
+                    50,
+                ],
+                true
+            )
+        ) {
+            $perPage = 25;
+        }
+
+
+        $requestedPage =
+            max(
+                1,
+                (int) (
+                    $filters['page']
+                    ?? 1
+                )
+            );
+
+
+        $context =
+            $this->cartableListContext(
+                $userReference,
+                $filters
+            );
+
+
+        if (empty($context['available'])) {
+            return [
+                'items' => [],
+                'total' => 0,
+                'page' => 1,
+                'per_page' => $perPage,
+                'total_pages' => 1,
+            ];
+        }
+
+
+        $total =
+            $this->cartableCountFromContext(
+                $context
+            );
+
+        $totalPages =
+            max(
+                1,
+                (int) ceil(
+                    $total
+                    / $perPage
+                )
+            );
+
+        $page =
+            min(
+                $requestedPage,
+                $totalPages
+            );
+
+        $offset =
+            ($page - 1)
+            * $perPage;
+
+
+        $orderBy =
+            $this->cartableListOrderBy(
+                (string) (
+                    $filters['sort']
+                    ?? 'priority_desc'
+                )
+            );
+
+
+        $sql =
+            "
+                SELECT
+                    t.id,
+                    t.public_reference,
+                    t.ticket_number,
+
+                    t.support_project_id,
+                    t.support_project_title_snapshot,
+                    p.title AS project_title,
+
+                    t.support_topic_title_snapshot,
+
+                    t.subject,
+
+                    t.status_code,
+                    s.title AS status_title,
+
+                    t.priority_code,
+                    pr.title AS priority_title,
+                    pr.color AS priority_color,
+
+                    t.current_support_layer_id,
+                    l.title AS layer_title,
+
+                    t.current_support_node_id,
+                    n.title AS node_title,
+
+                    t.current_support_queue_id,
+                    q.title AS queue_title,
+
+                    t.current_support_team_id,
+                    tm.title AS team_title,
+
+                    t.current_assignee_project_member_id,
+                    assignee.user_reference
+                        AS assignee_user_reference,
+                    assignee.display_name_snapshot
+                        AS assignee_name,
+
+                    t.requester_display_name_snapshot,
+
+                    t.last_activity_at,
+                    t.created_at
+
+                "
+                . $this->cartableListFromSql()
+                . "
+
+                WHERE
+                    "
+                . implode(
+                    ' AND ',
+                    $context['where']
+                )
+                . "
+
+                ORDER BY
+                    "
+                . $orderBy
+                . "
+
+                LIMIT "
+                . $perPage
+                . "
+                OFFSET "
+                . $offset;
+
+
+        $statement =
+            $this->db->prepare(
+                $sql
+            );
+
+        $statement->execute(
+            $context['parameters']
+        );
+
+
+        return [
+            'items' =>
+                $statement->fetchAll(
+                    PDO::FETCH_ASSOC
+                )
+                ?: [],
+
+            'total' =>
+                $total,
+
+            'page' =>
+                $page,
+
+            'per_page' =>
+                $perPage,
+
+            'total_pages' =>
+                $totalPages,
+        ];
+    }
+
+
+    public function cartableCount(
+        string $userReference,
+        array $filters = []
+    ): int {
+        $context =
+            $this->cartableListContext(
+                $userReference,
+                $filters
+            );
+
+        if (empty($context['available'])) {
+            return 0;
+        }
+
+        return
+            $this->cartableCountFromContext(
+                $context
+            );
+    }
+
+
+    public function cartableFilterOptions(
+        string $userReference
+    ): array {
+        $statuses =
+            $this->db->query("
+                SELECT
+                    code,
+                    title,
+                    category,
+                    is_closed,
+                    sort_order
+
+                FROM
+                    ticketing_statuses
+
+                WHERE
+                    is_active = 1
+
+                ORDER BY
+                    sort_order,
+                    id
+            ")->fetchAll(
+                PDO::FETCH_ASSOC
+            )
+            ?: [];
+
+
+        $priorities =
+            $this->db->query("
+                SELECT
+                    code,
+                    title,
+                    severity,
+                    sort_order
+
+                FROM
+                    ticketing_priorities
+
+                WHERE
+                    is_active = 1
+
+                ORDER BY
+                    severity DESC,
+                    sort_order DESC,
+                    id DESC
+            ")->fetchAll(
+                PDO::FETCH_ASSOC
+            )
+            ?: [];
+
+
+        $layers =
+            $this->db->query("
+                SELECT
+                    id,
+                    code,
+                    title
+
+                FROM
+                    ticketing_support_layers
+
+                ORDER BY
+                    id
+            ")->fetchAll(
+                PDO::FETCH_ASSOC
+            )
+            ?: [];
+
+
+        /*
+         * Assignee options are visibility-scoped. Do not expose staff
+         * identities that the current operator cannot encounter in the
+         * canonical all-scope cartable.
+         */
+        $assigneeContext =
+            $this->cartableListContext(
+                $userReference,
+                [
+                    'scope' => 'all',
+                    'ticket_status' => 'all',
+                    'priority' => '',
+                    'layer_id' => 0,
+                    'assignee' => '',
+                    'q' => '',
+                ]
+            );
+
+        $assignees = [];
+
+        if (!empty($assigneeContext['available'])) {
+
+            $statement =
+                $this->db->prepare(
+                    "
+                        SELECT DISTINCT
+                            assignee.user_reference,
+                            assignee.display_name_snapshot
+                                AS display_name
+
+                        "
+                        . $this->cartableListFromSql()
+                        . "
+
+                        WHERE
+                            "
+                        . implode(
+                            ' AND ',
+                            $assigneeContext['where']
+                        )
+                        . "
+                            AND assignee.user_reference
+                                IS NOT NULL
+
+                        ORDER BY
+                            assignee.display_name_snapshot,
+                            assignee.user_reference
+                    "
+                );
+
+            $statement->execute(
+                $assigneeContext[
+                    'parameters'
+                ]
+            );
+
+            $assignees =
+                $statement->fetchAll(
+                    PDO::FETCH_ASSOC
+                )
+                ?: [];
+        }
+
+
+        return [
+            'statuses' =>
+                $statuses,
+
+            'priorities' =>
+                $priorities,
+
+            'layers' =>
+                $layers,
+
+            'assignees' =>
+                $assignees,
+        ];
+    }
+
+
+    private function cartableListContext(
+        string $userReference,
+        array $filters
+    ): array {
+        $userReference =
+            trim(
+                $userReference
+            );
+
+        if ($userReference === '') {
+            return [
+                'available' => false,
+                'where' => [],
+                'parameters' => [],
+            ];
+        }
+
+
+        $memberships =
+            $this->actorMemberships(
+                $userReference
+            );
+
+        if ($memberships === []) {
+            return [
+                'available' => false,
+                'where' => [],
+                'parameters' => [],
+            ];
+        }
+
+
+        $memberIds = [];
+
+        foreach (
+            $memberships
+            as $membership
+        ) {
+            $memberId =
+                (int) (
+                    $membership[
+                        'project_member_id'
+                    ]
+                    ?? 0
+                );
+
+            if ($memberId > 0) {
+                $memberIds[$memberId] =
+                    true;
+            }
+        }
+
+
+        $visibleByProject =
+            $this->visibleNodesByProject(
+                $memberships
+            );
+
+
+        $scope =
+            trim(
+                (string) (
+                    $filters['scope']
+                    ?? 'all'
+                )
+            );
+
+        if (
+            !in_array(
+                $scope,
+                [
+                    'all',
+                    'my',
+                    'unassigned',
+                ],
+                true
+            )
+        ) {
+            $scope = 'all';
+        }
+
+
+        $where = [
+            't.archived_at IS NULL',
+        ];
+
+        $parameters = [];
+
+
+        /*
+         * Keep this visibility contract byte-for-byte equivalent in
+         * meaning to the legacy cartable() implementation.
+         */
+        if ($scope === 'my') {
+
+            if ($memberIds === []) {
+                return [
+                    'available' => false,
+                    'where' => [],
+                    'parameters' => [],
+                ];
+            }
+
+
+            $marks =
+                implode(
+                    ',',
+                    array_fill(
+                        0,
+                        count($memberIds),
+                        '?'
+                    )
+                );
+
+            $where[] =
+                "t.current_assignee_project_member_id
+                    IN ({$marks})";
+
+            foreach (
+                array_keys(
+                    $memberIds
+                )
+                as $memberId
+            ) {
+                $parameters[] =
+                    $memberId;
+            }
+
+        } elseif (
+            $scope === 'unassigned'
+        ) {
+
+            $visibleClause =
+                $this->visibleNodeClause(
+                    $visibleByProject,
+                    $parameters
+                );
+
+            if ($visibleClause === '') {
+                return [
+                    'available' => false,
+                    'where' => [],
+                    'parameters' => [],
+                ];
+            }
+
+            $where[] =
+                $visibleClause;
+
+            $where[] =
+                't.current_assignee_project_member_id
+                    IS NULL';
+
+        } else {
+
+            $access = [];
+
+
+            if ($memberIds !== []) {
+
+                $marks =
+                    implode(
+                        ',',
+                        array_fill(
+                            0,
+                            count($memberIds),
+                            '?'
+                        )
+                    );
+
+                $access[] =
+                    "t.current_assignee_project_member_id
+                        IN ({$marks})";
+
+                foreach (
+                    array_keys(
+                        $memberIds
+                    )
+                    as $memberId
+                ) {
+                    $parameters[] =
+                        $memberId;
+                }
+            }
+
+
+            $visibleParameters = [];
+
+            $visibleClause =
+                $this->visibleNodeClause(
+                    $visibleByProject,
+                    $visibleParameters
+                );
+
+            if ($visibleClause !== '') {
+                $access[] =
+                    $visibleClause;
+
+                foreach (
+                    $visibleParameters
+                    as $parameter
+                ) {
+                    $parameters[] =
+                        $parameter;
+                }
+            }
+
+
+            if ($access === []) {
+                return [
+                    'available' => false,
+                    'where' => [],
+                    'parameters' => [],
+                ];
+            }
+
+
+            $where[] =
+                '('
+                . implode(
+                    ' OR ',
+                    $access
+                )
+                . ')';
+        }
+
+
+        /*
+         * Dynamic Data Scope remains an intersection. Being assigned
+         * to a ticket never bypasses Data Scope.
+         */
+        $where[] =
+            $this->dataScopeClause(
+                $userReference,
+                $parameters
+            );
+
+
+        /*
+         * The default operational cartable contains all non-closed
+         * workflow states, not a hardcoded list of status codes.
+         */
+        $ticketStatus =
+            trim(
+                (string) (
+                    $filters[
+                        'ticket_status'
+                    ]
+                    ?? 'active'
+                )
+            );
+
+        if ($ticketStatus === '') {
+            $ticketStatus =
+                'active';
+        }
+
+
+        if ($ticketStatus === 'active') {
+
+            $where[] =
+                's.is_closed = 0';
+
+        } elseif (
+            $ticketStatus !== 'all'
+        ) {
+
+            $where[] =
+                't.status_code = ?';
+
+            $parameters[] =
+                $ticketStatus;
+        }
+
+
+        $priority =
+            trim(
+                (string) (
+                    $filters[
+                        'priority'
+                    ]
+                    ?? ''
+                )
+            );
+
+        if ($priority !== '') {
+            $where[] =
+                't.priority_code = ?';
+
+            $parameters[] =
+                $priority;
+        }
+
+
+        $layerId =
+            max(
+                0,
+                (int) (
+                    $filters[
+                        'layer_id'
+                    ]
+                    ?? 0
+                )
+            );
+
+        if ($layerId > 0) {
+            $where[] =
+                't.current_support_layer_id = ?';
+
+            $parameters[] =
+                $layerId;
+        }
+
+
+        $assignee =
+            trim(
+                (string) (
+                    $filters[
+                        'assignee'
+                    ]
+                    ?? ''
+                )
+            );
+
+        if (
+            $scope !== 'unassigned'
+            &&
+            $assignee !== ''
+        ) {
+            $where[] =
+                'assignee.user_reference = ?';
+
+            $parameters[] =
+                $assignee;
+        }
+
+
+        $query =
+            trim(
+                (string) (
+                    $filters[
+                        'q'
+                    ]
+                    ?? ''
+                )
+            );
+
+        if ($query !== '') {
+
+            /*
+             * Escape SQL LIKE wildcard characters so free-text search
+             * remains literal and deterministic.
+             */
+            $escapedQuery =
+                str_replace(
+                    [
+                        '\\',
+                        '%',
+                        '_',
+                    ],
+                    [
+                        '\\\\',
+                        '\\%',
+                        '\\_',
+                    ],
+                    $query
+                );
+
+            $like =
+                '%'
+                . $escapedQuery
+                . '%';
+
+
+            $search = [
+                't.ticket_number LIKE ?',
+                't.subject LIKE ?',
+                't.support_topic_title_snapshot LIKE ?',
+                't.support_project_title_snapshot LIKE ?',
+                'p.title LIKE ?',
+                'assignee.display_name_snapshot LIKE ?',
+                't.requester_display_name_snapshot LIKE ?',
+            ];
+
+            $searchParameters =
+                array_fill(
+                    0,
+                    count($search),
+                    $like
+                );
+
+
+            /*
+             * Preserve the former convenience where entering just the
+             * numeric sequence can find e.g. NP-000016 by "16".
+             */
+            if (
+                preg_match(
+                    '/^0*(\d{1,18})$/',
+                    $query,
+                    $match
+                ) === 1
+            ) {
+                array_unshift(
+                    $search,
+                    "CAST(
+                        SUBSTRING_INDEX(
+                            t.ticket_number,
+                            '-',
+                            -1
+                        )
+                        AS UNSIGNED
+                    ) = ?"
+                );
+
+                array_unshift(
+                    $searchParameters,
+                    (int) $match[1]
+                );
+            }
+
+
+            $where[] =
+                '('
+                . implode(
+                    ' OR ',
+                    $search
+                )
+                . ')';
+
+            foreach (
+                $searchParameters
+                as $parameter
+            ) {
+                $parameters[] =
+                    $parameter;
+            }
+        }
+
+
+        return [
+            'available' => true,
+            'where' => $where,
+            'parameters' => $parameters,
+        ];
+    }
+
+
+    private function cartableCountFromContext(
+        array $context
+    ): int {
+        $statement =
+            $this->db->prepare(
+                "
+                    SELECT
+                        COUNT(*)
+
+                    "
+                    . $this->cartableListFromSql()
+                    . "
+
+                    WHERE
+                        "
+                    . implode(
+                        ' AND ',
+                        $context['where']
+                    )
+            );
+
+        $statement->execute(
+            $context['parameters']
+        );
+
+        return
+            (int) $statement->fetchColumn();
+    }
+
+
+    private function cartableListFromSql(): string
+    {
+        return
+            "
+                FROM
+                    ticketing_tickets t
+
+                LEFT JOIN
+                    ticketing_support_projects p
+                    ON p.id =
+                        t.support_project_id
+
+                INNER JOIN
+                    ticketing_statuses s
+                    ON s.code =
+                        t.status_code
+
+                INNER JOIN
+                    ticketing_priorities pr
+                    ON pr.code =
+                        t.priority_code
+
+                LEFT JOIN
+                    ticketing_support_layers l
+                    ON l.id =
+                        t.current_support_layer_id
+
+                LEFT JOIN
+                    ticketing_support_nodes n
+                    ON n.id =
+                        t.current_support_node_id
+
+                LEFT JOIN
+                    ticketing_support_queues q
+                    ON q.id =
+                        t.current_support_queue_id
+
+                LEFT JOIN
+                    ticketing_support_teams tm
+                    ON tm.id =
+                        t.current_support_team_id
+
+                LEFT JOIN
+                    ticketing_support_project_members assignee
+                    ON assignee.id =
+                        t.current_assignee_project_member_id
+            ";
+    }
+
+
+    private function cartableListOrderBy(
+        string $sort
+    ): string {
+        $sort =
+            trim(
+                $sort
+            );
+
+        $orders = [
+            'priority_desc' =>
+                'pr.severity DESC, '
+                . 't.last_activity_at DESC, '
+                . 't.id DESC',
+
+            'activity_desc' =>
+                't.last_activity_at DESC, '
+                . 't.id DESC',
+
+            'activity_asc' =>
+                't.last_activity_at ASC, '
+                . 't.id ASC',
+
+            'created_desc' =>
+                't.created_at DESC, '
+                . 't.id DESC',
+
+            'created_asc' =>
+                't.created_at ASC, '
+                . 't.id ASC',
+        ];
+
+        return
+            $orders[$sort]
+            ?? $orders[
+                'priority_desc'
+            ];
+    }
+
+
+
+    /*
      * TICKETING_STAFF_DASHBOARD_STATUS_COUNTS_V1
      *
      * Aggregate directly in the database.

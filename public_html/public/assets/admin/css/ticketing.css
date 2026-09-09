@@ -3296,3 +3296,124 @@ a.ticketing-attachment-action:focus-visible {
     background: #fff1f2;
     color: #a72c3a;
 }
+
+
+/* TICKETING_T1_CARTABLE_FILTERS_PAGINATION */
+
+.ticketing-staff-filter-grid {
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(150px, 1fr)
+        );
+    align-items: end;
+}
+
+.ticketing-staff-filter--search {
+    grid-column: span 2;
+}
+
+.ticketing-staff-filter-grid select,
+.ticketing-staff-filter-grid input {
+    width: 100%;
+    min-width: 0;
+}
+
+.ticketing-staff-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    margin-top: 16px;
+}
+
+.ticketing-staff-page-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 38px;
+    min-height: 38px;
+    padding: 6px 10px;
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    background: var(--admin-surface);
+    color: var(--admin-text);
+    text-decoration: none;
+    font: inherit;
+    font-weight: 700;
+}
+
+.ticketing-staff-page-link:hover {
+    border-color: var(--admin-primary);
+    color: var(--admin-primary);
+}
+
+.ticketing-staff-page-link.is-current {
+    border-color: var(--admin-primary);
+    background: var(--admin-primary);
+    color: var(--admin-surface);
+}
+
+.ticketing-staff-page-link.is-disabled {
+    opacity: .45;
+    pointer-events: none;
+}
+
+.ticketing-staff-page-gap {
+    color: var(--admin-text-muted);
+    padding-inline: 2px;
+}
+
+
+@media (max-width: 900px) {
+
+    .ticketing-staff-filter-grid {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            );
+    }
+
+    .ticketing-staff-filter--search {
+        grid-column: 1 / -1;
+    }
+
+}
+
+
+@media (max-width: 640px) {
+
+    .ticketing-staff-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ticketing-staff-filter--search {
+        grid-column: auto;
+    }
+
+    .ticketing-staff-search__actions {
+        justify-content: flex-start;
+    }
+
+}
+
+
+/*
+ * TICKETING_CARTABLE_FILTER_CONTROL_HEIGHT_V1
+ *
+ * Selected values may be long, but all filter controls remain
+ * the same canonical height.
+ */
+.ticketing-staff-filter-grid
+.ticketing-cartable-filter-select {
+    box-sizing: border-box;
+    height: var(--ui-control-height, 40px) !important;
+    min-height: var(--ui-control-height, 40px) !important;
+    max-height: var(--ui-control-height, 40px) !important;
+    line-height: 1.35 !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

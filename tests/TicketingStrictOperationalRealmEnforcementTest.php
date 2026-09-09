@@ -634,10 +634,15 @@ $preserving = [
             3,
         ],
 
+    /*
+     * Human resolve / close / reopen contribute three updates.
+     * The dedicated safe Auto-close system transition contributes
+     * the fourth while preserving Realm / Route / Assignment.
+     */
     'TicketLifecycleTransitionRepository' =>
         [
             $transition,
-            3,
+            4,
         ],
 
     'TicketPriorityManagementRepository' =>
