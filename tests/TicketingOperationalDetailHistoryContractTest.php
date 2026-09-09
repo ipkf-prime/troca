@@ -308,5 +308,96 @@ foreach (
 }
 
 
+/*
+ * Browser-proofed tab contract:
+ *
+ * Main View labels `conversation` as "تاریخچه".
+ * Operational audit must not be appended to the `history`
+ * panel because that panel is displayed as "جزئیات".
+ */
+if (
+    !str_contains(
+        $files['partial'],
+        'TICKETING_OPERATIONAL_HISTORY_TARGET_CONVERSATION_V1'
+    )
+) {
+    throw new RuntimeException(
+        'operational_history_target_marker_missing'
+    );
+}
+
+
+if (
+    !str_contains(
+        $files['partial'],
+        '[data-ticketing-detail-panel="conversation"]'
+    )
+) {
+    throw new RuntimeException(
+        'operational_history_not_targeting_conversation'
+    );
+}
+
+
+if (
+    str_contains(
+        $files['partial'],
+        '[data-ticketing-detail-panel="history"]'
+    )
+) {
+    throw new RuntimeException(
+        'operational_history_still_targeting_details_panel'
+    );
+}
+
+
+$conversationTab =
+    strpos(
+        $files['view'],
+        'data-ticketing-detail-tab="conversation"'
+    );
+
+
+$conversationLabel =
+    $conversationTab === false
+        ? false
+        : strpos(
+            $files['view'],
+            'تاریخچه',
+            $conversationTab
+        );
+
+
+$historyTab =
+    strpos(
+        $files['view'],
+        'data-ticketing-detail-tab="history"'
+    );
+
+
+$historyLabel =
+    $historyTab === false
+        ? false
+        : strpos(
+            $files['view'],
+            'جزئیات',
+            $historyTab
+        );
+
+
+if (
+    $conversationTab === false
+    ||
+    $conversationLabel === false
+    ||
+    $historyTab === false
+    ||
+    $historyLabel === false
+) {
+    throw new RuntimeException(
+        'main_view_tab_mapping_contract_missing'
+    );
+}
+
 echo
     "TICKETING_OPERATIONAL_DETAIL_HISTORY_CONTRACT_PASS\n";

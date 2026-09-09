@@ -1036,9 +1036,19 @@ $t3c1SlaStateTitle =
         }
 
 
+        /*
+         * TICKETING_OPERATIONAL_HISTORY_TARGET_CONVERSATION_V1
+         *
+         * Main Detail tabs currently map as:
+         *   status       => پاسخ و عملیات
+         *   conversation => تاریخچه
+         *   history      => جزئیات
+         *
+         * Operational audit belongs to the visible "تاریخچه" tab.
+         */
         const historyPanel =
             workspace.querySelector(
-                '[data-ticketing-detail-panel="history"]'
+                '[data-ticketing-detail-panel="conversation"]'
             );
 
 
