@@ -4,6 +4,10 @@ namespace App\Services;
 
 class AdminModuleUiContract
 {
+    public const FOUNDATION_VERSION = 1;
+
+    public const FOUNDATION_REQUIRED = true;
+
     public const SHARED_LAYOUT = '/resources/views/admin/layout.php';
 
     private const SHARED_ASSETS = [
@@ -34,6 +38,10 @@ class AdminModuleUiContract
             'core_url' => $coreUrl,
             'assets' => self::safeAssets($assets),
             'shared_layout' => self::SHARED_LAYOUT,
+            'platform_foundation' => [
+                'required' => self::FOUNDATION_REQUIRED,
+                'version' => self::FOUNDATION_VERSION,
+            ],
         ];
     }
 

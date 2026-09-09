@@ -250,6 +250,24 @@ $assert(
     'Foundation JS is not protected as a shared module asset.'
 );
 
+$assert(
+    str_contains(
+        (string) $moduleContract,
+        'FOUNDATION_REQUIRED = true'
+    )
+    &&
+    str_contains(
+        (string) $moduleContract,
+        'FOUNDATION_VERSION = 1'
+    )
+    &&
+    str_contains(
+        (string) $moduleContract,
+        "'platform_foundation' => ["
+    ),
+    'Dynamic module Foundation inheritance contract failed.'
+);
+
 
 /*
  * Main Admin shell is the canonical authenticated UI shell and must

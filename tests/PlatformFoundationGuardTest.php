@@ -215,6 +215,17 @@ if ($failures !== []) {
 }
 
 
+/*
+ * Dynamic zero-debt / ratchet enforcement.
+ *
+ * The main Foundation guard invokes the debt guard so future feature work
+ * cannot bypass it by running only the historic Foundation guard.
+ */
+require
+    __DIR__
+    . '/PlatformFoundationDebtGuardTest.php';
+
+
 echo
     "PLATFORM_FOUNDATION_GUARD_PASS"
     . PHP_EOL;

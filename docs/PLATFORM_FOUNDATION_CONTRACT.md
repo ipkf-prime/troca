@@ -150,3 +150,63 @@ Automated Foundation guards prohibit introduction of:
 - duplicate shared Foundation assets.
 
 Existing migration debt is reduced incrementally rather than mass-replaced.
+
+## 13. Dynamic inheritance
+
+Platform Foundation is mandatory-by-default.
+
+Every future user-facing page and every future active module inherits the
+current Platform Foundation contract automatically.
+
+There is no per-page or per-module opt-out for:
+
+- locale and RTL direction
+- theme/design-token inheritance
+- shared UI control rules
+- date/number presentation rules
+- accessibility/responsive baseline
+- runtime dependency restrictions
+- request/correlation logging
+- production error-safety rules
+
+Dynamic modules use the shared Admin module shell rather than copying a
+layout or Foundation assets into the module itself.
+
+A newly added page/module must pass the platform guards before it is
+considered Foundation-compliant.
+
+## 14. Legacy-debt baseline
+
+Historical UI debt is grandfathered only as an explicit migration baseline.
+
+The automated debt guard follows a ratchet rule:
+
+- existing debt may decrease
+- existing debt must not increase
+- a new file starts with zero allowed legacy debt
+
+This prevents new pages/modules from reintroducing page-local styling,
+raw legacy controls, inline event handlers or independent visual palettes
+while allowing controlled migration of the existing application.
+
+A visual HTML control is Foundation-compliant when it uses the canonical
+shared class for that control, such as `ui-input`, `ui-select`,
+`ui-textarea`, `ui-button` or `ui-checkbox`.
+
+Hidden inputs are non-visual and are not counted as UI-control debt.
+
+Existing literal HTML documents that still use a pre-Foundation locale
+declaration are recorded as explicit baseline debt. New files have zero
+allowance and therefore must declare `fa-IR` and `rtl`.
+
+The committed debt baseline is an architecture artifact. Increasing it
+requires explicit Platform Foundation review. Feature development must not
+regenerate the baseline merely to make a guard pass.
+
+## 15. Governance mutations
+
+Platform-governance mutations must use the shared Platform Audit boundary.
+
+A domain module keeps its domain audit/event stream.
+
+A future module does not create a private platform-governance audit store.

@@ -1,0 +1,765 @@
+{
+    "schema_version": 2,
+    "scanner": "PlatformFoundationDebtScanner",
+    "policy": "ratchet",
+    "scope": "public_html/resources/views/**/*.php",
+    "rule": "existing_count_must_not_increase; new_files_have_zero_allowance",
+    "categories": [
+        "legacy_control",
+        "inline_style_attribute",
+        "style_block",
+        "inline_event_handler",
+        "hardcoded_color",
+        "hardcoded_dimension",
+        "html_locale_missing"
+    ],
+    "files": {
+        "public_html/resources/views/admin/access-control.php": {
+            "legacy_control": 23,
+            "inline_style_attribute": 1,
+            "style_block": 2,
+            "inline_event_handler": 1,
+            "hardcoded_color": 10,
+            "hardcoded_dimension": 27,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/access-role-create.php": {
+            "legacy_control": 12,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 11,
+            "hardcoded_dimension": 5,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/access-scope-editor.php": {
+            "legacy_control": 27,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 6,
+            "hardcoded_dimension": 4,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/access.php": {
+            "legacy_control": 1,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 1,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/account.php": {
+            "legacy_control": 8,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 2,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/admin-user-form.php": {
+            "legacy_control": 28,
+            "inline_style_attribute": 1,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 25,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/appointments.php": {
+            "legacy_control": 13,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/automation-correspondence-detail.php": {
+            "legacy_control": 11,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 1,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/automation-correspondence-form.php": {
+            "legacy_control": 45,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 1,
+            "hardcoded_dimension": 17,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/automation-correspondences.php": {
+            "legacy_control": 7,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/automation-external-organizations.php": {
+            "legacy_control": 73,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 14,
+            "hardcoded_dimension": 41,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/automation-secretariat-management.php": {
+            "legacy_control": 47,
+            "inline_style_attribute": 1,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/communication-settings.php": {
+            "legacy_control": 114,
+            "inline_style_attribute": 10,
+            "style_block": 0,
+            "inline_event_handler": 1,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/core-feature-settings.php": {
+            "legacy_control": 10,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 3,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/dashboard.php": {
+            "legacy_control": 0,
+            "inline_style_attribute": 1,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 9,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/file-infrastructure-settings.php": {
+            "legacy_control": 8,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/forgot-password.php": {
+            "legacy_control": 2,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 1
+        },
+        "public_html/resources/views/admin/layout.php": {
+            "legacy_control": 4,
+            "inline_style_attribute": 0,
+            "style_block": 2,
+            "inline_event_handler": 0,
+            "hardcoded_color": 5,
+            "hardcoded_dimension": 16,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/login.php": {
+            "legacy_control": 4,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 1
+        },
+        "public_html/resources/views/admin/message-templates.php": {
+            "legacy_control": 12,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 5,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/messages-compose.php": {
+            "legacy_control": 7,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/messages-inbox.php": {
+            "legacy_control": 0,
+            "inline_style_attribute": 2,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/messages-monitor-thread.php": {
+            "legacy_control": 0,
+            "inline_style_attribute": 1,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/messages-monitor.php": {
+            "legacy_control": 2,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/messages-sent.php": {
+            "legacy_control": 0,
+            "inline_style_attribute": 2,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/messages-thread.php": {
+            "legacy_control": 4,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/mfa-recovery.php": {
+            "legacy_control": 2,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 1
+        },
+        "public_html/resources/views/admin/mfa.php": {
+            "legacy_control": 2,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 1
+        },
+        "public_html/resources/views/admin/my-theme.php": {
+            "legacy_control": 3,
+            "inline_style_attribute": 3,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/notifications.php": {
+            "legacy_control": 2,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 5,
+            "hardcoded_dimension": 1,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/org-units.php": {
+            "legacy_control": 2,
+            "inline_style_attribute": 1,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/organization-chart.php": {
+            "legacy_control": 0,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 1,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/organization-setup.php": {
+            "legacy_control": 31,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/organizational-context.php": {
+            "legacy_control": 1,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/partials/account-nav.php": {
+            "legacy_control": 0,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 4,
+            "hardcoded_dimension": 8,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/partials/automation-correspondence-rich-editor.php": {
+            "legacy_control": 21,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 14,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/partials/communication-style.php": {
+            "legacy_control": 0,
+            "inline_style_attribute": 0,
+            "style_block": 13,
+            "inline_event_handler": 0,
+            "hardcoded_color": 47,
+            "hardcoded_dimension": 138,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/partials/message-list-tools.php": {
+            "legacy_control": 9,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/partials/ticketing-project-membership-config.php": {
+            "legacy_control": 22,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 7,
+            "hardcoded_dimension": 13,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/password.php": {
+            "legacy_control": 7,
+            "inline_style_attribute": 2,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/positions.php": {
+            "legacy_control": 2,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/profile-access.php": {
+            "legacy_control": 2,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 4,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/profile.php": {
+            "legacy_control": 3,
+            "inline_style_attribute": 1,
+            "style_block": 1,
+            "inline_event_handler": 1,
+            "hardcoded_color": 1,
+            "hardcoded_dimension": 8,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/public-page.php": {
+            "legacy_control": 31,
+            "inline_style_attribute": 1,
+            "style_block": 1,
+            "inline_event_handler": 1,
+            "hardcoded_color": 30,
+            "hardcoded_dimension": 12,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/security.php": {
+            "legacy_control": 18,
+            "inline_style_attribute": 6,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 4,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/self-profile-edit.php": {
+            "legacy_control": 17,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 4,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/settings.php": {
+            "legacy_control": 33,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/system-scheduler.php": {
+            "legacy_control": 5,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 2,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/theme.php": {
+            "legacy_control": 19,
+            "inline_style_attribute": 4,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/ticketing-dashboard.php": {
+            "legacy_control": 0,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 4,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/ticketing-participants.php": {
+            "legacy_control": 13,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 2,
+            "hardcoded_dimension": 1,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/ticketing-portal-management.php": {
+            "legacy_control": 44,
+            "inline_style_attribute": 1,
+            "style_block": 1,
+            "inline_event_handler": 1,
+            "hardcoded_color": 12,
+            "hardcoded_dimension": 5,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/ticketing-project-form.php": {
+            "legacy_control": 12,
+            "inline_style_attribute": 1,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 9,
+            "hardcoded_dimension": 12,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/ticketing-project-members.php": {
+            "legacy_control": 22,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 2,
+            "hardcoded_color": 3,
+            "hardcoded_dimension": 25,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/ticketing-project-requester-members.php": {
+            "legacy_control": 1,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 1,
+            "hardcoded_color": 6,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/ticketing-projects.php": {
+            "legacy_control": 3,
+            "inline_style_attribute": 3,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 17,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/ticketing-requester-dashboard.php": {
+            "legacy_control": 0,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 2,
+            "hardcoded_dimension": 8,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/ticketing-requester-onboarding.php": {
+            "legacy_control": 4,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 1,
+            "hardcoded_color": 11,
+            "hardcoded_dimension": 9,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/ticketing-routing.php": {
+            "legacy_control": 34,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 1,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/ticketing-sla-management.php": {
+            "legacy_control": 17,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 1,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 1,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/ticketing-staff.php": {
+            "legacy_control": 6,
+            "inline_style_attribute": 1,
+            "style_block": 0,
+            "inline_event_handler": 1,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/ticketing-statuses.php": {
+            "legacy_control": 2,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/ticketing-ticket-detail.php": {
+            "legacy_control": 20,
+            "inline_style_attribute": 2,
+            "style_block": 0,
+            "inline_event_handler": 3,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/ticketing-ticket-form.php": {
+            "legacy_control": 11,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/ticketing-tickets.php": {
+            "legacy_control": 10,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/ticketing-topology.php": {
+            "legacy_control": 53,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 1,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/user-invite.php": {
+            "legacy_control": 7,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 7,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/users.php": {
+            "legacy_control": 2,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 20,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/work-dashboard.php": {
+            "legacy_control": 3,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/work-item-form.php": {
+            "legacy_control": 16,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 1,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/work-item-show.php": {
+            "legacy_control": 7,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 1,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/work-items.php": {
+            "legacy_control": 4,
+            "inline_style_attribute": 1,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/work-project-form.php": {
+            "legacy_control": 11,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/work-project-members.php": {
+            "legacy_control": 6,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 1,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/work-project-show.php": {
+            "legacy_control": 3,
+            "inline_style_attribute": 1,
+            "style_block": 1,
+            "inline_event_handler": 1,
+            "hardcoded_color": 2,
+            "hardcoded_dimension": 6,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/work-projects.php": {
+            "legacy_control": 3,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/work-settings.php": {
+            "legacy_control": 26,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/work-stage5-ui.php": {
+            "legacy_control": 0,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 13,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/admin/work-ui-styles.php": {
+            "legacy_control": 0,
+            "inline_style_attribute": 0,
+            "style_block": 1,
+            "inline_event_handler": 0,
+            "hardcoded_color": 9,
+            "hardcoded_dimension": 19,
+            "html_locale_missing": 0
+        },
+        "public_html/resources/views/site/coming-soon.php": {
+            "legacy_control": 0,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 1,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 0,
+            "html_locale_missing": 1
+        },
+        "public_html/resources/views/site/landing.php": {
+            "legacy_control": 1,
+            "inline_style_attribute": 0,
+            "style_block": 0,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 1,
+            "html_locale_missing": 1
+        },
+        "public_html/resources/views/site/register-verify.php": {
+            "legacy_control": 6,
+            "inline_style_attribute": 0,
+            "style_block": 2,
+            "inline_event_handler": 0,
+            "hardcoded_color": 0,
+            "hardcoded_dimension": 6,
+            "html_locale_missing": 1
+        },
+        "public_html/resources/views/site/register.php": {
+            "legacy_control": 9,
+            "inline_style_attribute": 0,
+            "style_block": 2,
+            "inline_event_handler": 0,
+            "hardcoded_color": 2,
+            "hardcoded_dimension": 13,
+            "html_locale_missing": 1
+        }
+    }
+}
