@@ -589,6 +589,96 @@ final class TicketStaffOperationsService
     }
 
 
+
+    /*
+     * TICKETING_OPERATIONAL_DETAIL_HISTORY_T3C1
+     *
+     * Reuses the canonical cartable visibility primitive and the
+     * exact existing ActionContext contract. No new business action
+     * or authorization rule is introduced by Detail.
+     */
+    public function detailContext(
+        string $publicReference,
+        int $userId
+    ): array {
+        $reference =
+            trim(
+                $publicReference
+            );
+
+        $empty = [
+            'visible' => false,
+            'ticket' => [],
+            'actions' => [
+                'can_takeover' => false,
+                'can_transfer' => false,
+                'can_escalate' => false,
+                'transfer_targets' => [],
+                'escalation_target_title' => '',
+            ],
+        ];
+
+        if (
+            $reference === ''
+            || $userId < 1
+        ) {
+            return $empty;
+        }
+
+        $userReference =
+            'user:' . $userId;
+
+        $rows =
+            $this->repository->cartable(
+                $userReference,
+                'all',
+                $reference
+            );
+
+        if ($rows === []) {
+            return $empty;
+        }
+
+        $ticket =
+            is_array($rows[0])
+                ? $rows[0]
+                : [];
+
+        if (
+            trim(
+                (string) (
+                    $ticket[
+                        'public_reference'
+                    ]
+                    ?? ''
+                )
+            ) !== $reference
+        ) {
+            return $empty;
+        }
+
+        $ticketId =
+            (int) (
+                $ticket['id']
+                ?? 0
+            );
+
+        if ($ticketId < 1) {
+            return $empty;
+        }
+
+        return [
+            'visible' => true,
+            'ticket' => $ticket,
+            'actions' =>
+                $this->repository
+                    ->actionContext(
+                        $ticketId,
+                        $userReference
+                    ),
+        ];
+    }
+
     public function takeOver(
         string $publicReference,
         int $userId,

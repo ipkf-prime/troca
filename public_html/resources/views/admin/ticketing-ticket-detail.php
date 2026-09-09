@@ -3820,6 +3820,11 @@ $routingRecoveryNoticeMessages = [
 </script>
 
 <?php
+/*
+ * TICKETING_OPERATIONAL_DETAIL_HISTORY_T3C1_INCLUDE
+ */
+require __DIR__ . '/ticketing-ticket-operational-detail.php';
+
 $content =
     ob_get_clean()
     ?: '';

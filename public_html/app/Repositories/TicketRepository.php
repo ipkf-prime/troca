@@ -1439,6 +1439,182 @@ class TicketRepository
     }
 
 
+
+    /*
+     * TICKETING_OPERATIONAL_DETAIL_HISTORY_T3C1
+     *
+     * Presentation-safe operational audit sources.
+     * These methods are only consumed by an already authorized
+     * Staff Detail context.
+     */
+    public function assignments(
+        int $ticketId
+    ): array {
+        if ($ticketId < 1) {
+            return [];
+        }
+
+        $statement =
+            $this->db->prepare("
+                SELECT
+                    id,
+                    ticket_id,
+                    realm_id,
+
+                    assignee_kind,
+                    assignee_reference,
+                    assignee_display_name_snapshot,
+
+                    assignment_role,
+
+                    assigned_by_user_reference,
+                    assigned_at,
+                    unassigned_at,
+
+                    project_member_id,
+
+                    support_node_id,
+                    support_queue_id,
+                    support_team_id,
+
+                    assignment_mode_code,
+                    assignment_reason
+
+                FROM ticketing_assignments
+
+                WHERE ticket_id = ?
+
+                ORDER BY
+                    assigned_at,
+                    id
+            ");
+
+        $statement->execute([
+            $ticketId,
+        ]);
+
+        return
+            $statement->fetchAll(
+                PDO::FETCH_ASSOC
+            )
+            ?: [];
+    }
+
+
+    public function slaState(
+        int $ticketId
+    ): ?array {
+        if ($ticketId < 1) {
+            return null;
+        }
+
+        $statement =
+            $this->db->prepare("
+                SELECT
+                    id,
+                    public_reference,
+                    ticket_id,
+
+                    policy_id,
+                    calendar_id,
+
+                    policy_scope_key_snapshot,
+                    priority_code_snapshot,
+
+                    response_target_minutes,
+                    resolution_target_minutes,
+
+                    response_started_at,
+                    response_due_at,
+                    response_met_at,
+                    response_breached_at,
+
+                    resolution_started_at,
+                    resolution_due_at,
+                    resolution_met_at,
+                    resolution_breached_at,
+
+                    pause_status_code,
+                    paused_at,
+                    accumulated_pause_business_minutes,
+
+                    auto_escalation_count,
+                    last_auto_escalated_at,
+                    last_escalation_node_id,
+
+                    next_action_at,
+                    state_code,
+
+                    initialized_at,
+                    last_calculated_at
+
+                FROM ticketing_ticket_sla_states
+
+                WHERE ticket_id = ?
+
+                LIMIT 1
+            ");
+
+        $statement->execute([
+            $ticketId,
+        ]);
+
+        $row =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        return
+            is_array($row)
+                ? $row
+                : null;
+    }
+
+
+    public function slaEvents(
+        int $ticketId
+    ): array {
+        if ($ticketId < 1) {
+            return [];
+        }
+
+        $statement =
+            $this->db->prepare("
+                SELECT
+                    id,
+                    public_reference,
+                    ticket_id,
+                    sla_state_id,
+
+                    event_code,
+
+                    actor_user_reference,
+                    actor_display_name_snapshot,
+
+                    payload_json,
+                    occurred_at,
+                    created_at
+
+                FROM ticketing_sla_events
+
+                WHERE ticket_id = ?
+
+                ORDER BY
+                    occurred_at,
+                    id
+            ");
+
+        $statement->execute([
+            $ticketId,
+        ]);
+
+        return
+            $statement->fetchAll(
+                PDO::FETCH_ASSOC
+            )
+            ?: [];
+    }
+
     public function create(
         array $data
     ): array {

@@ -1287,6 +1287,27 @@ class TicketService extends BaseService
                 $this->tickets->events(
                     (int) $ticket['id']
                 ),
+
+            /*
+             * TICKETING_OPERATIONAL_DETAIL_HISTORY_T3C1
+             *
+             * These datasets are intentionally absent from
+             * detailForUser(), which remains Requester-only.
+             */
+            'assignments' =>
+                $this->tickets->assignments(
+                    (int) $ticket['id']
+                ),
+
+            'sla_state' =>
+                $this->tickets->slaState(
+                    (int) $ticket['id']
+                ),
+
+            'sla_events' =>
+                $this->tickets->slaEvents(
+                    (int) $ticket['id']
+                ),
         ];
     }
 
