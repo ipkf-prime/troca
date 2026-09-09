@@ -47,6 +47,12 @@ class Response
         return $this;
     }
 
+
+    public function statusCode(): int
+    {
+        return $this->statusCode;
+    }
+
     public function emit(): void
     {
         if (!headers_sent()) {
