@@ -3417,3 +3417,238 @@ a.ticketing-attachment-action:focus-visible {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+
+/* ==========================================================================
+   TICKETING_DETAIL_UX_T3C2
+   Detail operations alignment + compact expert operational audit.
+   ========================================================================== */
+
+.ticketing-shell
+.ticketing-detail-staff-operations
+.ticketing-detail-staff-operations__actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: .6rem;
+    margin-block: 0;
+    width: 100%;
+}
+
+
+.ticketing-shell
+.ticketing-detail-staff-operations
+.ticketing-detail-staff-operations__actions
+> form {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+    gap: .45rem;
+    margin: 0;
+    min-width: 0;
+}
+
+
+.ticketing-shell
+.ticketing-detail-staff-operations
+.ticketing-detail-staff-operations__actions
+> .ticketing-detail-staff-operations__transfer-form {
+    flex: 1 1 auto;
+}
+
+
+.ticketing-shell
+.ticketing-detail-staff-operations
+.ticketing-detail-staff-operations__transfer-form
+.ui-select {
+    flex: 1 1 auto;
+    min-inline-size: 15rem;
+}
+
+
+.ticketing-shell
+.ticketing-detail-staff-operations
+.ticketing-detail-staff-operations__actions
+.ui-button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+
+/*
+ * Internal `ticketing-history` is the visible "جزئیات" panel.
+ * Existing legacy rules hide tables under this host, so explicitly
+ * keep operational assignment history visible.
+ */
+.ticketing-shell
+.ticketing-history
+.ticketing-operational-audit
+.admin-table-wrap {
+    display: block;
+}
+
+
+.ticketing-shell
+.ticketing-operational-audit {
+    display: grid;
+    gap: .75rem;
+}
+
+
+.ticketing-shell
+.ticketing-operational-audit
+> .admin-section__header {
+    margin-block-end: 0;
+}
+
+
+.ticketing-shell
+.ticketing-operational-audit
+.admin-card {
+    margin: 0;
+}
+
+
+.ticketing-shell
+.ticketing-operational-audit
+.ticketing-timeline-event {
+    font-size: .76rem;
+    line-height: 1.65;
+    min-height: 0;
+    padding: .32rem .5rem;
+}
+
+
+.ticketing-shell
+.ticketing-operational-audit
+.ticketing-timeline-event__content {
+    gap: .15rem .55rem;
+}
+
+
+.ticketing-shell
+.ticketing-operational-audit
+.ticketing-timeline-event__content
+> strong {
+    font-size: .8rem;
+    font-weight: 700;
+    line-height: 1.55;
+}
+
+
+.ticketing-shell
+.ticketing-operational-audit
+.ticketing-timeline-event__content
+> .admin-muted {
+    font-size: .7rem;
+    line-height: 1.55;
+}
+
+
+.ticketing-shell
+.ticketing-operational-audit
+.ticketing-timeline-event__content
+> p {
+    flex-basis: 100%;
+    font-size: .74rem;
+    line-height: 1.65;
+    margin: .1rem 0 0;
+}
+
+
+.ticketing-shell
+.ticketing-operational-sla-details {
+    margin: 0;
+}
+
+
+.ticketing-shell
+.ticketing-operational-sla-summary {
+    align-items: center;
+    cursor: pointer;
+    display: flex;
+    font-size: .82rem;
+    font-weight: 700;
+    gap: .4rem;
+    list-style: none;
+}
+
+
+.ticketing-shell
+.ticketing-operational-sla-summary::-webkit-details-marker {
+    display: none;
+}
+
+
+.ticketing-shell
+.ticketing-operational-sla-summary::before {
+    content: "＋";
+    font-size: .8rem;
+}
+
+
+.ticketing-shell
+.ticketing-operational-sla-details[open]
+.ticketing-operational-sla-summary::before {
+    content: "−";
+}
+
+
+.ticketing-shell
+.ticketing-operational-sla-list {
+    display: grid;
+    gap: .35rem;
+    margin-block-start: .65rem;
+}
+
+
+@media (max-width: 900px) {
+
+    .ticketing-shell
+    .ticketing-detail-staff-operations
+    .ticketing-detail-staff-operations__actions {
+        align-items: stretch;
+        flex-wrap: wrap;
+    }
+
+
+    .ticketing-shell
+    .ticketing-detail-staff-operations
+    .ticketing-detail-staff-operations__actions
+    > .ticketing-detail-staff-operations__transfer-form {
+        flex: 1 1 100%;
+    }
+}
+
+
+@media (max-width: 620px) {
+
+    .ticketing-shell
+    .ticketing-detail-staff-operations
+    .ticketing-detail-staff-operations__actions
+    > form {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+
+    .ticketing-shell
+    .ticketing-detail-staff-operations
+    .ticketing-detail-staff-operations__transfer-form {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+
+    .ticketing-shell
+    .ticketing-detail-staff-operations
+    .ticketing-detail-staff-operations__transfer-form
+    .ui-select,
+    .ticketing-shell
+    .ticketing-detail-staff-operations
+    .ticketing-detail-staff-operations__actions
+    .ui-button {
+        min-inline-size: 0;
+        width: 100%;
+    }
+}

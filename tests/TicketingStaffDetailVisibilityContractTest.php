@@ -166,13 +166,20 @@ $expect(
 
 
 /*
- * Existing UI ownership guard must remain.
+ * TICKETING_STAFF_DETAIL_SAME_PAGE_TAKEOVER_T3C2
+ *
+ * Exact reply ownership remains authoritative.
+ * Takeover continues to exist in the Staff cartable, while eligible
+ * Staff may now also take ownership from this Detail page.
  */
 foreach ([
     '$lifecycleStaffOwnsReply',
     'data-ticketing-staff-reply-ownership',
     'این تیکت در اختیار شما نیست.',
-    'رفتن به کارتابل پشتیبانی',
+    'data-ticketing-detail-ownership-warning',
+    'TICKETING_DETAIL_TAKEOVER_CONTEXT_T3C2',
+    '$t3c2CanTakeoverHere',
+    'از گزینه «تحویل گرفتن تیکت» در همین صفحه استفاده کنید.',
 ] as $marker) {
 
     $expect(
@@ -182,6 +189,22 @@ foreach ([
         ),
         'reply_ownership_marker_missing:'
         . $marker
+    );
+}
+
+
+foreach ([
+    'برای پاسخ ابتدا باید آن را در کارتابل پشتیبانی در اختیار بگیرید.',
+    'رفتن به کارتابل پشتیبانی',
+] as $legacyMarker) {
+
+    $expect(
+        !str_contains(
+            $detail,
+            $legacyMarker
+        ),
+        'legacy_cartable_only_guidance_remains:'
+        . $legacyMarker
     );
 }
 

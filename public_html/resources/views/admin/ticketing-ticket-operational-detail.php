@@ -333,11 +333,11 @@ $t3c1SlaStateTitle =
     <div class="admin-section__header">
         <div>
             <h3>
-                تاریخچه عملیاتی
+                جزئیات عملیاتی
             </h3>
 
             <p class="admin-muted">
-                سوابق تخصیص، رخدادهای عملیاتی و رویدادهای SLA
+                وضعیت SLA، سوابق تخصیص و اطلاعات ممیزی تیکت
             </p>
         </div>
     </div>
@@ -702,123 +702,145 @@ $t3c1SlaStateTitle =
 
     <?php if ($t3c1SlaEvents !== []): ?>
 
-        <div class="admin-card">
+        <div class="admin-card ticketing-operational-sla-card">
             <div class="admin-card-body">
 
-                <h4>
-                    رویدادهای SLA
-                </h4>
+                <details class="ticketing-operational-sla-details">
 
+                    <summary class="ticketing-operational-sla-summary">
 
-                <?php foreach (
-                    $t3c1SlaEvents
-                    as $slaEvent
-                ): ?>
+                        رویدادهای SLA
 
-                    <?php
-                    $t3c1SlaEventCode =
-                        trim(
-                            (string) (
-                                $slaEvent[
-                                    'event_code'
-                                ]
-                                ?? ''
-                            )
-                        );
-
-                    $t3c1SlaSummary =
-                        \App\Support\TicketingDisplay
-                            ::slaEventSummary(
-                                $slaEvent
-                            );
-
-                    $t3c1SlaActor =
-                        trim(
-                            (string) (
-                                $slaEvent[
-                                    'actor_display_name_snapshot'
-                                ]
-                                ?? ''
-                            )
-                        );
-
-                    if ($t3c1SlaActor === '') {
-                        $t3c1SlaActor =
-                            trim(
-                                (string) (
-                                    $slaEvent[
-                                        'actor_user_reference'
-                                    ]
-                                    ?? ''
+                        <span class="admin-muted">
+                            (
+                            <?= ticketing_h(
+                                \App\Support\AdminFormat::digits(
+                                    (string) count(
+                                        $t3c1SlaEvents
+                                    )
                                 )
-                            );
-                    }
+                            ) ?>
+                            رویداد
+                            )
+                        </span>
 
-                    if ($t3c1SlaActor === '') {
-                        $t3c1SlaActor =
-                            'موتور SLA تیکتینگ';
-                    }
-                    ?>
+                    </summary>
 
 
-                    <article class="ticketing-timeline-event">
+                    <div class="ticketing-operational-sla-list">
 
-                        <div class="ticketing-timeline-event__content">
+                        <?php foreach (
+                            $t3c1SlaEvents
+                            as $slaEvent
+                        ): ?>
 
-                            <strong>
-                                <?= ticketing_h(
-                                    \App\Support\TicketingDisplay
-                                        ::slaEventTitle(
-                                            $t3c1SlaEventCode
-                                        )
-                                ) ?>
-                            </strong>
+                            <?php
+                            $t3c1SlaEventCode =
+                                trim(
+                                    (string) (
+                                        $slaEvent[
+                                            'event_code'
+                                        ]
+                                        ?? ''
+                                    )
+                                );
 
+                            $t3c1SlaSummary =
+                                \App\Support\TicketingDisplay
+                                    ::slaEventSummary(
+                                        $slaEvent
+                                    );
 
-                            <div class="admin-muted">
+                            $t3c1SlaActor =
+                                trim(
+                                    (string) (
+                                        $slaEvent[
+                                            'actor_display_name_snapshot'
+                                        ]
+                                        ?? ''
+                                    )
+                                );
 
-                                <?= ticketing_h(
-                                    $t3c1SlaActor
-                                ) ?>
-
-                                ·
-
-                                <?= ticketing_h(
-                                    \App\Support\AdminFormat::jalaliDateTime(
+                            if ($t3c1SlaActor === '') {
+                                $t3c1SlaActor =
+                                    trim(
                                         (string) (
                                             $slaEvent[
-                                                'occurred_at'
+                                                'actor_user_reference'
                                             ]
                                             ?? ''
                                         )
-                                    )
-                                    ?: '—'
-                                ) ?>
+                                    );
+                            }
 
-                            </div>
+                            if ($t3c1SlaActor === '') {
+                                $t3c1SlaActor =
+                                    'موتور SLA تیکتینگ';
+                            }
+                            ?>
 
 
-                            <?php if (
-                                $t3c1SlaSummary !== ''
-                            ): ?>
+                            <article class="ticketing-timeline-event">
 
-                                <p>
-                                    <?= ticketing_h(
-                                        $t3c1SlaSummary
-                                    ) ?>
-                                </p>
+                                <div class="ticketing-timeline-event__content">
 
-                            <?php endif; ?>
+                                    <strong>
+                                        <?= ticketing_h(
+                                            \App\Support\TicketingDisplay
+                                                ::slaEventTitle(
+                                                    $t3c1SlaEventCode
+                                                )
+                                        ) ?>
+                                    </strong>
 
-                        </div>
 
-                    </article>
+                                    <div class="admin-muted">
 
-                <?php endforeach; ?>
+                                        <?= ticketing_h(
+                                            $t3c1SlaActor
+                                        ) ?>
+
+                                        ·
+
+                                        <?= ticketing_h(
+                                            \App\Support\AdminFormat::jalaliDateTime(
+                                                (string) (
+                                                    $slaEvent[
+                                                        'occurred_at'
+                                                    ]
+                                                    ?? ''
+                                                )
+                                            )
+                                            ?: '—'
+                                        ) ?>
+
+                                    </div>
+
+
+                                    <?php if (
+                                        $t3c1SlaSummary !== ''
+                                    ): ?>
+
+                                        <p>
+                                            <?= ticketing_h(
+                                                $t3c1SlaSummary
+                                            ) ?>
+                                        </p>
+
+                                    <?php endif; ?>
+
+                                </div>
+
+                            </article>
+
+                        <?php endforeach; ?>
+
+                    </div>
+
+                </details>
 
             </div>
         </div>
-
     <?php endif; ?>
 
 </section>
@@ -831,6 +853,7 @@ $t3c1SlaStateTitle =
 ): ?>
 
     <section
+        id="ticketing-detail-staff-operations"
         class="admin-section ticketing-detail-staff-operations"
         data-ticketing-detail-staff-operations
         hidden
@@ -850,7 +873,7 @@ $t3c1SlaStateTitle =
         </div>
 
 
-        <div class="admin-form-actions">
+        <div class="admin-form-actions ticketing-detail-staff-operations__actions">
 
 
             <?php if ($t3c1CanTakeover): ?>
@@ -887,6 +910,7 @@ $t3c1SlaStateTitle =
             <?php if ($t3c1CanTransfer): ?>
 
                 <form
+                    class="ticketing-detail-staff-operations__transfer-form"
                     method="post"
                     action="<?= ticketing_h(
                         '/admin/ticketing/staff/'
@@ -1037,18 +1061,18 @@ $t3c1SlaStateTitle =
 
 
         /*
-         * TICKETING_OPERATIONAL_HISTORY_TARGET_CONVERSATION_V1
+         * TICKETING_OPERATIONAL_AUDIT_TARGET_DETAILS_T3C2
          *
          * Main Detail tabs currently map as:
          *   status       => پاسخ و عملیات
          *   conversation => تاریخچه
          *   history      => جزئیات
          *
-         * Operational audit belongs to the visible "تاریخچه" tab.
+         * Operational/SLA audit belongs to the visible "جزئیات" tab.
          */
-        const historyPanel =
+        const detailsPanel =
             workspace.querySelector(
-                '[data-ticketing-detail-panel="conversation"]'
+                '[data-ticketing-detail-panel="history"]'
             );
 
 
@@ -1071,11 +1095,11 @@ $t3c1SlaStateTitle =
 
 
         if (
-            historyPanel
+            detailsPanel
             &&
             audit
         ) {
-            historyPanel.append(
+            detailsPanel.append(
                 audit
             );
 

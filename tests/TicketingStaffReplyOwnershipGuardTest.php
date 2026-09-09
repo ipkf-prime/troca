@@ -132,6 +132,13 @@ foreach ([
 }
 
 
+/*
+ * TICKETING_STAFF_REPLY_SAME_PAGE_TAKEOVER_T3C2
+ *
+ * Reply authorization remains exact-assignee based.
+ * The UX no longer forces a cartable round-trip when canonical
+ * actionContext allows Takeover from Detail.
+ */
 foreach ([
     'TICKETING_STAFF_REPLY_UI_OWNERSHIP_GUARD',
     '$lifecycleStaffOwnsReply',
@@ -139,7 +146,10 @@ foreach ([
     'data-ticketing-staff-reply-ownership',
     'تیکت در انتظار پاسخ درخواست‌کننده است.',
     'این تیکت در اختیار شما نیست.',
-    'رفتن به کارتابل پشتیبانی',
+    'data-ticketing-detail-ownership-warning',
+    'TICKETING_DETAIL_TAKEOVER_CONTEXT_T3C2',
+    '$t3c2CanTakeoverHere',
+    'از گزینه «تحویل گرفتن تیکت» در همین صفحه استفاده کنید.',
 ] as $marker) {
 
     $expect(
@@ -149,6 +159,22 @@ foreach ([
         ),
         'Detail ownership contract missing: '
         . $marker
+    );
+}
+
+
+foreach ([
+    'برای پاسخ ابتدا باید آن را در کارتابل پشتیبانی در اختیار بگیرید.',
+    'رفتن به کارتابل پشتیبانی',
+] as $legacyMarker) {
+
+    $expect(
+        !str_contains(
+            $detail,
+            $legacyMarker
+        ),
+        'Legacy cartable-only ownership guidance remains: '
+        . $legacyMarker
     );
 }
 

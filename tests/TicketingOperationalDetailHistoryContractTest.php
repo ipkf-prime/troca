@@ -31,6 +31,14 @@ $paths = [
     'partial' =>
         $root
         . '/public_html/resources/views/admin/ticketing-ticket-operational-detail.php',
+
+    'css' =>
+        $root
+        . '/public_html/public/assets/admin/css/ticketing.css',
+
+    'staff_view' =>
+        $root
+        . '/public_html/resources/views/admin/ticketing-staff.php',
 ];
 
 
@@ -309,20 +317,21 @@ foreach (
 
 
 /*
- * Browser-proofed tab contract:
+ * T3C2 operational placement contract.
  *
- * Main View labels `conversation` as "تاریخچه".
- * Operational audit must not be appended to the `history`
- * panel because that panel is displayed as "جزئیات".
+ * conversation => visible "تاریخچه"
+ * history      => visible "جزئیات"
+ *
+ * SLA / assignment / operational audit belongs to Details.
  */
 if (
     !str_contains(
         $files['partial'],
-        'TICKETING_OPERATIONAL_HISTORY_TARGET_CONVERSATION_V1'
+        'TICKETING_OPERATIONAL_AUDIT_TARGET_DETAILS_T3C2'
     )
 ) {
     throw new RuntimeException(
-        'operational_history_target_marker_missing'
+        'details_audit_marker_missing'
     );
 }
 
@@ -330,11 +339,11 @@ if (
 if (
     !str_contains(
         $files['partial'],
-        '[data-ticketing-detail-panel="conversation"]'
+        '[data-ticketing-detail-panel="history"]'
     )
 ) {
     throw new RuntimeException(
-        'operational_history_not_targeting_conversation'
+        'audit_not_targeting_details'
     );
 }
 
@@ -342,60 +351,165 @@ if (
 if (
     str_contains(
         $files['partial'],
-        '[data-ticketing-detail-panel="history"]'
+        '[data-ticketing-detail-panel="conversation"]'
     )
 ) {
     throw new RuntimeException(
-        'operational_history_still_targeting_details_panel'
+        'audit_still_targeting_business_history'
     );
 }
 
 
-$conversationTab =
-    strpos(
-        $files['view'],
-        'data-ticketing-detail-tab="conversation"'
+/*
+ * Takeover remains on BOTH operational surfaces.
+ */
+if (
+    !str_contains(
+        $files['partial'],
+        '/takeover'
+    )
+    ||
+    !str_contains(
+        $files['staff_view'],
+        '/takeover'
+    )
+) {
+    throw new RuntimeException(
+        'dual_takeover_surface_missing'
     );
+}
 
 
-$conversationLabel =
-    $conversationTab === false
-        ? false
-        : strpos(
-            $files['view'],
-            'تاریخچه',
-            $conversationTab
-        );
+/*
+ * Detail warning must point eligible Staff to the same-page Takeover.
+ */
+foreach (
+    [
+        'TICKETING_DETAIL_TAKEOVER_CONTEXT_T3C2',
+        '$t3c2CanTakeoverHere',
+        'از گزینه «تحویل گرفتن تیکت» در همین صفحه استفاده کنید.',
+        'data-ticketing-detail-ownership-warning',
+    ]
+    as $marker
+) {
 
-
-$historyTab =
-    strpos(
+    if (!str_contains(
         $files['view'],
-        'data-ticketing-detail-tab="history"'
-    );
-
-
-$historyLabel =
-    $historyTab === false
-        ? false
-        : strpos(
-            $files['view'],
-            'جزئیات',
-            $historyTab
+        $marker
+    )) {
+        throw new RuntimeException(
+            'same_page_takeover_contract_missing:'
+            . $marker
         );
+    }
+}
+
+
+foreach (
+    [
+        'برای پاسخ ابتدا باید آن را در کارتابل پشتیبانی در اختیار بگیرید.',
+        'رفتن به کارتابل پشتیبانی',
+    ]
+    as $legacyText
+) {
+
+    if (str_contains(
+        $files['view'],
+        $legacyText
+    )) {
+        throw new RuntimeException(
+            'legacy_cartable_only_warning_remains'
+        );
+    }
+}
+
+
+/*
+ * Navigation context.
+ */
+foreach (
+    [
+        'TICKETING_DETAIL_CONTEXTUAL_BACK_NAV_T3C2',
+        '$t3c2BackHref',
+        "'/admin/ticketing/staff'",
+        "'/admin/ticketing/tickets'",
+    ]
+    as $marker
+) {
+
+    if (!str_contains(
+        $files['view'],
+        $marker
+    )) {
+        throw new RuntimeException(
+            'contextual_back_nav_missing:'
+            . $marker
+        );
+    }
+}
+
+
+/*
+ * Detail operation layout.
+ */
+foreach (
+    [
+        'id="ticketing-detail-staff-operations"',
+        'ticketing-detail-staff-operations__actions',
+        'ticketing-detail-staff-operations__transfer-form',
+        'ticketing-operational-sla-details',
+        'ticketing-operational-sla-summary',
+    ]
+    as $marker
+) {
+
+    if (!str_contains(
+        $files['partial'],
+        $marker
+    )) {
+        throw new RuntimeException(
+            'partial_ux_marker_missing:'
+            . $marker
+        );
+    }
+}
+
+
+/*
+ * External CSS owns presentation.
+ */
+foreach (
+    [
+        'TICKETING_DETAIL_UX_T3C2',
+        '.ticketing-detail-staff-operations__actions',
+        'flex-wrap: nowrap;',
+        '.ticketing-operational-audit',
+        '.ticketing-operational-sla-details',
+        '.ticketing-operational-sla-list',
+    ]
+    as $marker
+) {
+
+    if (!str_contains(
+        $files['css'],
+        $marker
+    )) {
+        throw new RuntimeException(
+            'css_ux_marker_missing:'
+            . $marker
+        );
+    }
+}
 
 
 if (
-    $conversationTab === false
-    ||
-    $conversationLabel === false
-    ||
-    $historyTab === false
-    ||
-    $historyLabel === false
+    !str_contains(
+        $files['css'],
+        ".ticketing-operational-audit\n.admin-table-wrap"
+    )
 ) {
     throw new RuntimeException(
-        'main_view_tab_mapping_contract_missing'
+        'assignment_table_details_override_missing'
     );
 }
 

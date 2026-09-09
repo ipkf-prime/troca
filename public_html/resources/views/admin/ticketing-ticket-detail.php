@@ -79,6 +79,40 @@ $eventLabels[
     'ticket_requester_resolved'
 ] = 'حل‌شدن توسط درخواست‌کننده';
 
+
+/*
+ * TICKETING_DETAIL_CONTEXTUAL_BACK_NAV_T3C2
+ */
+$t3c2StaffDetail =
+    array_key_exists(
+        'assignments',
+        $detail
+    )
+    &&
+    array_key_exists(
+        'sla_events',
+        $detail
+    );
+
+
+$t3c2BackHref =
+    $t3c2StaffDetail
+        ? '/admin/ticketing/staff'
+        : '/admin/ticketing/tickets';
+
+
+$t3c2BackLabel =
+    $t3c2StaffDetail
+        ? 'بازگشت به کارتابل'
+        : 'بازگشت به تیکت‌ها';
+
+
+$t3c2BreadcrumbLabel =
+    $t3c2StaffDetail
+        ? 'کارتابل پشتیبانی'
+        : 'تیکت‌های من';
+
+
 ob_start();
 ?>
 
@@ -96,8 +130,12 @@ ob_start();
     </a>
     <span>/</span>
 
-    <a href="/admin/ticketing/tickets">
-        تیکت‌های من
+    <a href="<?= ticketing_h(
+        $t3c2BackHref
+    ) ?>">
+        <?= ticketing_h(
+            $t3c2BreadcrumbLabel
+        ) ?>
     </a>
     <span>/</span>
 
@@ -138,9 +176,13 @@ ob_start();
 
         <a
             class="admin-button admin-button--soft"
-            href="/admin/ticketing/tickets"
+            href="<?= ticketing_h(
+                $t3c2BackHref
+            ) ?>"
         >
-            بازگشت به تیکت‌ها
+            <?= ticketing_h(
+                $t3c2BackLabel
+            ) ?>
         </a>
 
     </div>
@@ -945,6 +987,87 @@ $lifecycleStaffReplyState =
     );
 
 /*
+ * TICKETING_DETAIL_TAKEOVER_CONTEXT_T3C2
+ *
+ * Takeover remains available in the cartable.
+ * Detail additionally reuses the exact same canonical ActionContext.
+ */
+$t3c2StaffDetailContext = [
+    'visible' => false,
+    'ticket' => [],
+    'actions' => [
+        'can_takeover' => false,
+        'can_transfer' => false,
+        'can_escalate' => false,
+        'transfer_targets' => [],
+        'escalation_target_title' => '',
+    ],
+];
+
+
+if (
+    $t3c2StaffDetail
+    &&
+    !$lifecycleIsRequester
+    &&
+    $lifecycleReference !== ''
+    &&
+    $lifecycleUserId > 0
+) {
+    try {
+
+        $t3c2StaffDetailContext =
+            (
+                new \App\Services\Ticketing\TicketStaffOperationsService()
+            )->detailContext(
+                $lifecycleReference,
+                $lifecycleUserId
+            );
+
+    } catch (\Throwable) {
+
+        $t3c2StaffDetailContext = [
+            'visible' => false,
+            'ticket' => [],
+            'actions' => [
+                'can_takeover' => false,
+                'can_transfer' => false,
+                'can_escalate' => false,
+                'transfer_targets' => [],
+                'escalation_target_title' => '',
+            ],
+        ];
+    }
+}
+
+
+$t3c2StaffActions =
+    is_array(
+        $t3c2StaffDetailContext[
+            'actions'
+        ]
+        ?? null
+    )
+        ? $t3c2StaffDetailContext[
+            'actions'
+        ]
+        : [];
+
+
+$t3c2CanTakeoverHere =
+    !empty(
+        $t3c2StaffDetailContext[
+            'visible'
+        ]
+    )
+    &&
+    !empty(
+        $t3c2StaffActions[
+            'can_takeover'
+        ]
+    );
+
+/*
  * TICKETING_DETAIL_RESOLVE_CLOSE_REOPEN_CAPABILITIES
  */
 $lifecycleTransitionCapabilities = [
@@ -1316,13 +1439,17 @@ $lifecycleStatusMessage =
         'reply_takeover_required' =>
             [
                 'warning',
-                'این تیکت هنوز در اختیار کارشناس مشخصی نیست. ابتدا آن را از کارتابل در اختیار بگیرید.',
+                $t3c2CanTakeoverHere
+                    ? 'این تیکت هنوز در اختیار کارشناس مشخصی نیست. برای پاسخ، از گزینه «تحویل گرفتن تیکت» در همین صفحه استفاده کنید.'
+                    : 'این تیکت هنوز در اختیار کارشناس مشخصی نیست و در وضعیت فعلی امکان تحویل گرفتن آن برای شما وجود ندارد.',
             ],
 
         'reply_not_assignee' =>
             [
                 'warning',
-                'این تیکت در اختیار شما نیست. برای پاسخ ابتدا باید مالکیت عملیاتی تیکت را در کارتابل دریافت کنید.',
+                $t3c2CanTakeoverHere
+                    ? 'این تیکت در اختیار شما نیست. برای پاسخ، از گزینه «تحویل گرفتن تیکت» در همین صفحه استفاده کنید.'
+                    : 'این تیکت در اختیار شما نیست و در وضعیت فعلی امکان تحویل گرفتن آن برای شما وجود ندارد.',
             ],
 
         'reply_assignment_invalid' =>
@@ -2500,16 +2627,22 @@ $routingRecoveryNoticeMessages = [
 
         <?php else: ?>
 
-            <div class="admin-alert admin-alert--warning">
-                این تیکت در اختیار شما نیست.
-                برای پاسخ ابتدا باید آن را در کارتابل پشتیبانی در اختیار بگیرید.
+            <div
+                class="admin-alert admin-alert--warning"
+                data-ticketing-detail-ownership-warning
+            >
+                <?php if ($t3c2CanTakeoverHere): ?>
 
-                <a
-                    class="admin-button admin-button--soft"
-                    href="/admin/ticketing/staff"
-                >
-                    رفتن به کارتابل پشتیبانی
-                </a>
+                    این تیکت در اختیار شما نیست.
+                    برای پاسخ ابتدا از گزینه «تحویل گرفتن تیکت»
+                    در بخش «عملیات کارتابل» همین صفحه استفاده کنید.
+
+                <?php else: ?>
+
+                    این تیکت در اختیار شما نیست و در وضعیت فعلی
+                    امکان تحویل گرفتن آن برای شما وجود ندارد.
+
+                <?php endif; ?>
             </div>
 
         <?php endif; ?>
