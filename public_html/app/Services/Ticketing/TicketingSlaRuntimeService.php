@@ -980,12 +980,16 @@ final class TicketingSlaRuntimeService
 
 
             /*
-             * If resolution is not breached yet, its due time
-             * must still wake the worker before the next repeat
-             * escalation when it is earlier.
+             * TICKETING_SLA_ESCALATION_PAST_DUE_GUARD_V1
+             *
+             * A historical resolution deadline must never replace
+             * the future repeat-escalation time. Otherwise a catch-up
+             * escalation can immediately become due again.
              */
             if (
                 $resolutionMetAt === null
+                &&
+                $resolutionDue > $now
                 &&
                 $resolutionDue < $repeatAt
             ) {
