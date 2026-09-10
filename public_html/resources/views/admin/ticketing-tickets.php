@@ -40,6 +40,12 @@ $priority =
         ?? ''
     );
 
+$topicId =
+    (int) (
+        $list['topic_id']
+        ?? 0
+    );
+
 $projectReference =
     (string) (
         $list['project_reference']
@@ -90,6 +96,10 @@ $priorityOptions =
     $list['priority_options']
     ?? [];
 
+$topicOptions =
+    $list['topic_options']
+    ?? [];
+
 $projectTabs =
     $list['project_tabs']
     ?? [];
@@ -117,6 +127,12 @@ $state = [
     'q' => $q,
     'status' => $status,
     'priority' => $priority,
+
+    'topic' =>
+        $topicId > 0
+            ? $topicId
+            : '',
+
     'project' => $projectReference,
 
     'layer' =>
@@ -140,6 +156,39 @@ $urlWith =
     static function (
         array $changes
     ) use ($state): string {
+
+        /*
+         * TICKETING_MY_TICKETS_PROJECT_TOPIC_RESET_T3G
+         */
+        if (
+            array_key_exists(
+                'project',
+                $changes
+            )
+            &&
+            (string) (
+                $changes[
+                    'project'
+                ]
+                ?? ''
+            )
+            !==
+            (string) (
+                $state[
+                    'project'
+                ]
+                ?? ''
+            )
+            &&
+            !array_key_exists(
+                'topic',
+                $changes
+            )
+        ) {
+            $changes[
+                'topic'
+            ] = '';
+        }
 
         $query =
             array_merge(
@@ -384,7 +433,7 @@ ob_start();
                         name="q"
                         value="<?= ticketing_h($q) ?>"
                         maxlength="120"
-                        placeholder="شماره، عنوان، موضوع، پروژه یا کارشناس"
+                        placeholder="شماره، عنوان، موضوع، پروژه، درخواست‌کننده، سازمان یا کارشناس"
                     >
                 </label>
 
@@ -429,6 +478,31 @@ ob_start();
                             <option
                                 value="<?= ticketing_h($code) ?>"
                                 <?= $priority === (string) $code
+                                    ? ' selected'
+                                    : '' ?>
+                            >
+                                <?= ticketing_h($label) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+
+
+                <label>
+                    <span>موضوع</span>
+
+                    <select name="topic">
+                        <option value="">
+                            همه موضوع‌ها
+                        </option>
+
+                        <?php foreach (
+                            $topicOptions
+                            as $id => $label
+                        ): ?>
+                            <option
+                                value="<?= ticketing_h($id) ?>"
+                                <?= $topicId === (int) $id
                                     ? ' selected'
                                     : '' ?>
                             >
@@ -611,6 +685,7 @@ ob_start();
                             'q' => '',
                             'status' => '',
                             'priority' => '',
+                            'topic' => '',
                             'layer' => '',
                             'assignee' => '',
                             'sort1' =>
@@ -664,6 +739,7 @@ ob_start();
             const autoSubmitFields = [
                 'status',
                 'priority',
+                'topic',
                 'layer',
                 'assignee',
                 'sort1',

@@ -244,6 +244,20 @@ class TicketRepository
                 )
             );
 
+        /*
+         * TICKETING_TOPIC_FILTER_REPOSITORY_T3G
+         */
+        $supportTopicId =
+            max(
+                0,
+                (int) (
+                    $filters[
+                        'support_topic_id'
+                    ]
+                    ?? 0
+                )
+            );
+
         $projectReference =
             trim(
                 (string) (
@@ -482,14 +496,24 @@ class TicketRepository
              */
             if (!$handledAsTicketNumber) {
 
+                /*
+                 * TICKETING_REQUESTER_SEARCH_PARITY_T3G
+                 *
+                 * Searchable business fields are aligned with the
+                 * operational cartable while the requester-only boundary
+                 * remains unchanged.
+                 */
                 $searchClauses = [
                     't.subject LIKE ?',
+                    't.support_topic_title_snapshot LIKE ?',
+                    't.support_project_title_snapshot LIKE ?',
+                    'sp.title LIKE ?',
                     't.requester_display_name_snapshot LIKE ?',
                     't.requester_organization_snapshot LIKE ?',
-                    't.support_project_title_snapshot LIKE ?',
+                    'apm.display_name_snapshot LIKE ?',
                 ];
 
-                for ($i = 0; $i < 4; $i++) {
+                for ($i = 0; $i < 7; $i++) {
                     $parameters[] =
                         '%' . $q . '%';
                 }
@@ -560,6 +584,15 @@ class TicketRepository
 
             $parameters[] =
                 $priority;
+        }
+
+
+        if ($supportTopicId > 0) {
+            $where[] =
+                't.support_topic_id = ?';
+
+            $parameters[] =
+                $supportTopicId;
         }
 
 
@@ -1082,6 +1115,127 @@ class TicketRepository
             ?: [];
     }
 
+
+
+    /*
+     * TICKETING_REQUESTER_TOPIC_OPTIONS_T3G
+     *
+     * Topic options are derived only from this requester's tickets.
+     * An active Project tab narrows the Topic list to that project.
+     */
+    public function viewerTopics(
+        string $viewerUserReference,
+        string $projectReference = ''
+    ): array {
+        $viewer =
+            trim(
+                $viewerUserReference
+            );
+
+        $projectReference =
+            trim(
+                $projectReference
+            );
+
+        if ($viewer === '') {
+            return [];
+        }
+
+
+        $where = [
+            't.archived_at IS NULL',
+            't.requester_user_reference = ?',
+            't.support_topic_id IS NOT NULL',
+            't.support_topic_id > 0',
+        ];
+
+        $parameters = [
+            $viewer,
+        ];
+
+
+        if ($projectReference !== '') {
+            $where[] =
+                'sp.public_reference = ?';
+
+            $parameters[] =
+                $projectReference;
+        }
+
+
+        $statement =
+            $this->db->prepare("
+                SELECT DISTINCT
+                    t.support_topic_id
+                        AS id,
+
+                    COALESCE(
+                        NULLIF(
+                            t.support_topic_title_snapshot,
+                            ''
+                        ),
+                        NULLIF(
+                            tp.title,
+                            ''
+                        ),
+                        CONCAT(
+                            'موضوع #',
+                            t.support_topic_id
+                        )
+                    ) AS title,
+
+                    t.support_project_id
+                        AS project_id,
+
+                    COALESCE(
+                        NULLIF(
+                            sp.title,
+                            ''
+                        ),
+                        t.support_project_title_snapshot,
+                        ''
+                    ) AS project_title,
+
+                    sp.public_reference
+                        AS project_reference
+
+                FROM
+                    ticketing_tickets t
+
+                LEFT JOIN
+                    ticketing_support_topics tp
+                    ON tp.id =
+                        t.support_topic_id
+
+                LEFT JOIN
+                    ticketing_support_projects sp
+                    ON sp.id =
+                        t.support_project_id
+
+                WHERE
+                    "
+                . implode(
+                    ' AND ',
+                    $where
+                )
+                . "
+
+                ORDER BY
+                    project_title,
+                    title,
+                    id
+            ");
+
+        $statement->execute(
+            $parameters
+        );
+
+        return
+            $statement->fetchAll(
+                PDO::FETCH_ASSOC
+            )
+            ?: [];
+    }
 
     public function findByReference(
         string $publicReference,

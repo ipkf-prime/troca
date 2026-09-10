@@ -210,6 +210,18 @@ final class TicketStaffOperationsService
         }
 
 
+        $topicId =
+            max(
+                0,
+                (int) (
+                    $filters[
+                        'topic_id'
+                    ]
+                    ?? 0
+                )
+            );
+
+
         $layerId =
             max(
                 0,
@@ -332,6 +344,9 @@ final class TicketStaffOperationsService
             'priority' =>
                 $priority,
 
+            'topic_id' =>
+                $topicId,
+
             'layer_id' =>
                 $layerId,
 
@@ -411,6 +426,9 @@ final class TicketStaffOperationsService
             'priority' =>
                 '',
 
+            'topic_id' =>
+                0,
+
             'layer_id' =>
                 0,
 
@@ -475,6 +493,9 @@ final class TicketStaffOperationsService
 
                 'priority' =>
                     $priority,
+
+                'topic_id' =>
+                    $topicId,
 
                 'layer_id' =>
                     $layerId,

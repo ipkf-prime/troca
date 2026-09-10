@@ -64,6 +64,7 @@ foreach (
         'name="q"',
         'name="ticket_status"',
         'name="priority"',
+        'name="topic"',
         'name="layer_id"',
         'name="assignee"',
         'name="sort"',
@@ -149,7 +150,7 @@ $expect(
     substr_count(
         $view,
         'data-ticketing-filter-auto-submit'
-    ) === 6,
+    ) === 7,
     'Existing select auto-submit count changed.'
 );
 
@@ -284,7 +285,7 @@ echo
     . PHP_EOL;
 
 echo
-    "SELECT_AUTO_SUBMIT_COUNT=6"
+    "SELECT_AUTO_SUBMIT_COUNT=7"
     . PHP_EOL;
 
 echo

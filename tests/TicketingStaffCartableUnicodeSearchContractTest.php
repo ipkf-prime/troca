@@ -58,6 +58,7 @@ foreach (
         'p.title',
         'assignee.display_name_snapshot',
         't.requester_display_name_snapshot',
+        't.requester_organization_snapshot',
     ]
     as $column
 ) {
@@ -85,7 +86,7 @@ $expect(
     substr_count(
         $source,
         'CONVERT(? USING utf8mb4)'
-    ) >= 7,
+    ) >= 8,
     'unicode search parameter conversion count invalid'
 );
 
@@ -94,7 +95,7 @@ $expect(
     substr_count(
         $source,
         'COLLATE utf8mb4_unicode_ci'
-    ) >= 14,
+    ) >= 16,
     'explicit collation contract incomplete'
 );
 
@@ -173,7 +174,7 @@ echo
     . PHP_EOL;
 
 echo
-    "SEARCH_COLUMNS_NORMALIZED=7"
+    "SEARCH_COLUMNS_NORMALIZED=8"
     . PHP_EOL;
 
 echo

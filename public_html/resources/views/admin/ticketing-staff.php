@@ -85,6 +85,12 @@ $priority =
         ?? ''
     );
 
+$topicId =
+    (int) (
+        $filters['topic_id']
+        ?? 0
+    );
+
 $layerId =
     (int) (
         $filters['layer_id']
@@ -153,6 +159,42 @@ $priorities =
         ? $filterOptions['priorities']
         : [];
 
+$topics =
+    is_array(
+        $filterOptions['topics']
+        ?? null
+    )
+        ? $filterOptions['topics']
+        : [];
+
+
+$topicProjectIds = [];
+
+foreach (
+    $topics
+    as $topicOption
+) {
+    $projectId =
+        (int) (
+            $topicOption[
+                'project_id'
+            ]
+            ?? 0
+        );
+
+    if ($projectId > 0) {
+        $topicProjectIds[
+            $projectId
+        ] = true;
+    }
+}
+
+$showTopicProject =
+    count(
+        $topicProjectIds
+    ) > 1;
+
+
 $layers =
     is_array(
         $filterOptions['layers']
@@ -196,6 +238,7 @@ $cartableUrl =
         $q,
         $ticketStatus,
         $priority,
+        $topicId,
         $layerId,
         $assignee,
         $sort,
@@ -214,6 +257,9 @@ $cartableUrl =
 
             'priority' =>
                 $priority,
+
+            'topic' =>
+                $topicId,
 
             'layer_id' =>
                 $layerId,
@@ -256,6 +302,17 @@ $cartableUrl =
         ) {
             unset(
                 $params['priority']
+            );
+        }
+
+        if (
+            (int) (
+                $params['topic']
+                ?? 0
+            ) < 1
+        ) {
+            unset(
+                $params['topic']
             );
         }
 
@@ -547,6 +604,9 @@ ob_start();
                                     'priority' =>
                                         '',
 
+                                    'topic' =>
+                                        0,
+
                                     'layer_id' =>
                                         0,
 
@@ -611,7 +671,7 @@ ob_start();
                         value="<?= ticketing_h(
                             $q
                         ) ?>"
-                        placeholder="شماره تیکت، عنوان، موضوع، درخواست‌کننده یا کارشناس"
+                        placeholder="شماره تیکت، عنوان، موضوع، پروژه، درخواست‌کننده، سازمان یا کارشناس"
                     >
 
                 </label>
@@ -722,6 +782,92 @@ ob_start();
                                     $optionCode
                                 ) ?>"
                                 <?= $priority === $optionCode
+                                    ? 'selected'
+                                    : '' ?>
+                            >
+                                <?= ticketing_h(
+                                    $optionTitle
+                                ) ?>
+                            </option>
+
+                        <?php endforeach; ?>
+
+                    </select>
+
+                </label>
+
+
+                <label class="ticketing-staff-search__field">
+
+                    <span>
+                        موضوع
+                    </span>
+
+                    <select
+                        class="ui-select ticketing-cartable-filter-select"
+                        data-ticketing-filter-auto-submit
+                        name="topic"
+                    >
+                        <option value="0">
+                            همه موضوع‌ها
+                        </option>
+
+                        <?php foreach (
+                            $topics
+                            as $option
+                        ): ?>
+
+                            <?php
+                            $optionId =
+                                (int) (
+                                    $option[
+                                        'id'
+                                    ]
+                                    ?? 0
+                                );
+
+                            $optionTitle =
+                                trim(
+                                    (string) (
+                                        $option[
+                                            'title'
+                                        ]
+                                        ?? ''
+                                    )
+                                );
+
+                            $optionProjectTitle =
+                                trim(
+                                    (string) (
+                                        $option[
+                                            'project_title'
+                                        ]
+                                        ?? ''
+                                    )
+                                );
+
+                            if ($optionTitle === '') {
+                                $optionTitle =
+                                    'موضوع #'
+                                    . $optionId;
+                            }
+
+                            if (
+                                $showTopicProject
+                                &&
+                                $optionProjectTitle !== ''
+                            ) {
+                                $optionTitle .=
+                                    ' — '
+                                    . $optionProjectTitle;
+                            }
+                            ?>
+
+                            <option
+                                value="<?= ticketing_h(
+                                    (string) $optionId
+                                ) ?>"
+                                <?= $topicId === $optionId
                                     ? 'selected'
                                     : '' ?>
                             >
@@ -950,6 +1096,9 @@ ob_start();
 
                                     'priority' =>
                                         '',
+
+                                    'topic' =>
+                                        0,
 
                                     'layer_id' =>
                                         0,

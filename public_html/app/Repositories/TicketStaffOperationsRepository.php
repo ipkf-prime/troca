@@ -293,6 +293,7 @@ final class TicketStaffOperationsRepository
                     t.support_project_title_snapshot,
                     p.title AS project_title,
 
+                    t.support_topic_id,
                     t.support_topic_title_snapshot,
 
                     t.subject,
@@ -507,6 +508,7 @@ final class TicketStaffOperationsRepository
                     t.support_project_title_snapshot,
                     p.title AS project_title,
 
+                    t.support_topic_id,
                     t.support_topic_title_snapshot,
 
                     t.subject,
@@ -699,6 +701,7 @@ final class TicketStaffOperationsRepository
                     'scope' => 'all',
                     'ticket_status' => 'all',
                     'priority' => '',
+                    'topic_id' => 0,
                     'layer_id' => 0,
                     'assignee' => '',
                     'q' => '',
@@ -751,12 +754,135 @@ final class TicketStaffOperationsRepository
         }
 
 
+        /*
+         * TICKETING_STAFF_TOPIC_FILTER_OPTIONS_T3G
+         *
+         * Topics are derived from the canonical Staff cartable visibility
+         * context. Data Scope therefore remains the option-source boundary.
+         */
+        $topicContext =
+            $this->cartableListContext(
+                $userReference,
+                [
+                    'scope' =>
+                        'all',
+
+                    'ticket_status' =>
+                        'all',
+
+                    'priority' =>
+                        '',
+
+                    'topic_id' =>
+                        0,
+
+                    'layer_id' =>
+                        0,
+
+                    'assignee' =>
+                        '',
+
+                    'q' =>
+                        '',
+                ]
+            );
+
+        $topics = [];
+
+        if (
+            !empty(
+                $topicContext[
+                    'available'
+                ]
+            )
+        ) {
+            $statement =
+                $this->db->prepare(
+                    "
+                        SELECT DISTINCT
+                            t.support_topic_id
+                                AS id,
+
+                            COALESCE(
+                                NULLIF(
+                                    t.support_topic_title_snapshot,
+                                    ''
+                                ),
+                                NULLIF(
+                                    topic_option.title,
+                                    ''
+                                ),
+                                CONCAT(
+                                    'موضوع #',
+                                    t.support_topic_id
+                                )
+                            ) AS title,
+
+                            t.support_project_id
+                                AS project_id,
+
+                            COALESCE(
+                                NULLIF(
+                                    p.title,
+                                    ''
+                                ),
+                                t.support_project_title_snapshot,
+                                ''
+                            ) AS project_title
+
+                        "
+                        . $this->cartableListFromSql()
+                        . "
+
+                        LEFT JOIN
+                            ticketing_support_topics topic_option
+                            ON topic_option.id =
+                                t.support_topic_id
+
+                        WHERE
+                            "
+                        . implode(
+                            ' AND ',
+                            $topicContext[
+                                'where'
+                            ]
+                        )
+                        . "
+
+                            AND t.support_topic_id
+                                IS NOT NULL
+
+                            AND t.support_topic_id > 0
+
+                        ORDER BY
+                            project_title,
+                            title,
+                            id
+                    "
+                );
+
+            $statement->execute(
+                $topicContext[
+                    'parameters'
+                ]
+            );
+
+            $topics =
+                $statement->fetchAll(
+                    PDO::FETCH_ASSOC
+                )
+                ?: [];
+        }
+
         return [
             'statuses' =>
                 $statuses,
 
             'priorities' =>
                 $priorities,
+
+            'topics' =>
+                $topics,
 
             'layers' =>
                 $layers,
@@ -1061,6 +1187,29 @@ final class TicketStaffOperationsRepository
         }
 
 
+        /*
+         * TICKETING_STAFF_TOPIC_FILTER_T3G
+         */
+        $topicId =
+            max(
+                0,
+                (int) (
+                    $filters[
+                        'topic_id'
+                    ]
+                    ?? 0
+                )
+            );
+
+        if ($topicId > 0) {
+            $where[] =
+                't.support_topic_id = ?';
+
+            $parameters[] =
+                $topicId;
+        }
+
+
         $layerId =
             max(
                 0,
@@ -1205,6 +1354,14 @@ final class TicketStaffOperationsRepository
 
                 "CONVERT(
                     t.requester_display_name_snapshot
+                    USING utf8mb4
+                ) COLLATE utf8mb4_unicode_ci
+                    LIKE
+                CONVERT(? USING utf8mb4)
+                    COLLATE utf8mb4_unicode_ci",
+
+                "CONVERT(
+                    t.requester_organization_snapshot
                     USING utf8mb4
                 ) COLLATE utf8mb4_unicode_ci
                     LIKE

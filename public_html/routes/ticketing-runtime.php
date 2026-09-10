@@ -2602,6 +2602,15 @@ $router->get(
                     ''
                 ),
 
+            /*
+             * TICKETING_TOPIC_FILTER_ROUTE_T3G
+             */
+            'topic_id' =>
+                $request->input(
+                    'topic',
+                    0
+                ),
+
             'project_reference' =>
                 $request->input(
                     'project',
@@ -3687,6 +3696,15 @@ $router->get(
                             $request->input(
                                 'priority',
                                 ''
+                            ),
+
+                        /*
+                         * TICKETING_TOPIC_FILTER_ROUTE_T3G
+                         */
+                        'topic_id' =>
+                            $request->input(
+                                'topic',
+                                0
                             ),
 
                         'layer_id' =>

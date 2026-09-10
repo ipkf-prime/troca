@@ -94,6 +94,7 @@ foreach (
         'q',
         'status',
         'priority',
+        'topic',
         'layer',
         'assignee',
         'sort1',
@@ -172,6 +173,7 @@ foreach (
     [
         'status',
         'priority',
+        'topic',
         'layer',
         'assignee',
         'sort1',
@@ -388,7 +390,7 @@ echo
     . PHP_EOL;
 
 echo
-    "AUTO_SELECT_COUNT=8"
+    "AUTO_SELECT_COUNT=9"
     . PHP_EOL;
 
 echo

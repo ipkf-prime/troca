@@ -166,6 +166,17 @@ class TicketService extends BaseService
                 )
             );
 
+        $topicId =
+            max(
+                0,
+                (int) (
+                    $filters[
+                        'topic_id'
+                    ]
+                    ?? 0
+                )
+            );
+
         $projectReference =
             trim(
                 (string) (
@@ -257,6 +268,92 @@ class TicketService extends BaseService
             $projectReference = '';
         }
 
+
+        /*
+         * TICKETING_REQUESTER_TOPIC_FILTER_OPTIONS_T3G
+         */
+        $topicRows =
+            $this->tickets
+                ->viewerTopics(
+                    $viewer,
+                    $projectReference
+                );
+
+        $topicOptions = [];
+
+        $showTopicProject =
+            $projectReference === ''
+            &&
+            count(
+                $projectTabs
+            ) > 1;
+
+
+        foreach (
+            $topicRows
+            as $topic
+        ) {
+            $id =
+                (int) (
+                    $topic['id']
+                    ?? 0
+                );
+
+            if ($id < 1) {
+                continue;
+            }
+
+            $title =
+                trim(
+                    (string) (
+                        $topic['title']
+                        ?? ''
+                    )
+                );
+
+            if ($title === '') {
+                $title =
+                    'موضوع #'
+                    . $id;
+            }
+
+            $projectTitle =
+                trim(
+                    (string) (
+                        $topic[
+                            'project_title'
+                        ]
+                        ?? ''
+                    )
+                );
+
+            if (
+                $showTopicProject
+                &&
+                $projectTitle !== ''
+            ) {
+                $title .=
+                    ' — '
+                    . $projectTitle;
+            }
+
+            $topicOptions[$id] =
+                $title;
+        }
+
+
+        if (
+            $topicId > 0
+            &&
+            !isset(
+                $topicOptions[
+                    $topicId
+                ]
+            )
+        ) {
+            $topicId =
+                0;
+        }
 
         $layerRows =
             $this->tickets
@@ -450,6 +547,9 @@ class TicketService extends BaseService
                 'priority' =>
                     $priority,
 
+                'support_topic_id' =>
+                    $topicId,
+
                 'project_reference' =>
                     $projectReference,
 
@@ -503,6 +603,9 @@ class TicketService extends BaseService
             'priority' =>
                 $priority,
 
+            'topic_id' =>
+                $topicId,
+
             'project_reference' =>
                 $projectReference,
 
@@ -532,6 +635,9 @@ class TicketService extends BaseService
 
             'project_tabs' =>
                 $projectTabs,
+
+            'topic_options' =>
+                $topicOptions,
 
             'layer_options' =>
                 $layerOptions,

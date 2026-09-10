@@ -76,6 +76,14 @@ $assert(
     'summary_priority_reset_missing'
 );
 
+$assert(
+    str_contains(
+        $source,
+        "'topic_id' =>\n                0"
+    ),
+    'summary_topic_reset_missing'
+);
+
 
 $assert(
     str_contains(
@@ -171,6 +179,7 @@ foreach (
         "'q' =>\n                                        ''",
         "'ticket_status' =>\n                                        'active'",
         "'priority' =>\n                                        ''",
+        "'topic' =>\n                                        0",
         "'layer_id' =>\n                                        0",
         "'assignee' =>\n                                        ''",
         "'sort' =>\n                                        'priority_desc'",
