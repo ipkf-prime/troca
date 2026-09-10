@@ -1407,6 +1407,48 @@ $adminRender = function ($response, string $view, array $data = [], int $status 
         ->send($content);
 };
 
+
+/*
+ * T3F_C1_GLOBAL_DYNAMIC_404_V1
+ */
+$router->notFound(
+    function (
+        $request,
+        $response
+    ) {
+        try {
+
+            return
+                (
+                    new \App\Services\UiContent\UiContentHttpPresenter()
+                )->render(
+                    $request,
+                    $response,
+                    'http.404',
+                    404
+                );
+
+        } catch (\Throwable) {
+
+            return
+                $response
+                    ->status(404)
+                    ->header(
+                        'Content-Type',
+                        'text/plain; charset=UTF-8'
+                    )
+                    ->header(
+                        'Cache-Control',
+                        'private, no-store, max-age=0'
+                    )
+                    ->send(
+                        'صفحه موردنظر یافت نشد.'
+                    );
+        }
+    }
+);
+
+
 $adminContext = fn (): ?array => (new \App\Services\AdminPanelService())->context();
 $adminHomeUrl = function ($request): string {
     $urls = new \IPKF\Support\ApplicationUrlRegistry();

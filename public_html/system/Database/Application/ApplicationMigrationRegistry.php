@@ -89,6 +89,8 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateNotificationGatewayFoundation::class,
                     \IPKF\Database\Migrations\EnableNotificationSendCenterFoundation::class,
                     \IPKF\Database\Migrations\EnableNotificationSendExperienceAndBaleEnrollment::class,
+                    \IPKF\Database\Migrations\CreateDynamicUiContentFoundation::class,
+                    \IPKF\Database\Migrations\SeedInitialDynamicUiContent::class,
                     \IPKF\Database\Migrations\CreatePlatformAuditFoundation::class,
                 ],
             ],

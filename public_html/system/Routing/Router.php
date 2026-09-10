@@ -15,6 +15,8 @@ class Router
 
     protected array $pendingMiddleware = [];
 
+    protected $notFoundHandler = null;
+
     public function __construct(Container $container)
     {
         $this->resolver = new ControllerResolver($container);
@@ -48,6 +50,12 @@ class Router
         return $this;
     }
 
+    public function notFound(callable $handler): self
+    {
+        $this->notFoundHandler = $handler;
+        return $this;
+    }
+
     public function count(): int
     {
         return array_sum(array_map('count', $this->routes));
@@ -73,7 +81,22 @@ class Router
         }
 
         if ($route === null) {
-            return $response->status(404)->send("404 - Route not found: {$uri}");
+            if (is_callable($this->notFoundHandler)) {
+                $result = ($this->notFoundHandler)(
+                    $request,
+                    $response
+                );
+
+                return $result instanceof Response
+                    ? $result
+                    : $response;
+            }
+
+            return $response
+                ->status(404)
+                ->send(
+                    "404 - Route not found: {$uri}"
+                );
         }
 
         $action = $route['action'];

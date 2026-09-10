@@ -3027,6 +3027,32 @@ $router->get(
                 );
 
 
+            /*
+             * T3F_C1_ATTACHMENT_ERROR_PARENT_AUTHORIZATION_V1
+             *
+             * Fine Project/Portal UI scope is derived only
+             * after parent Ticket access has been established.
+             */
+            $requesterCanView =
+                $attachment !== null;
+
+
+            if (!$requesterCanView) {
+
+                $requesterCanView =
+                    is_array(
+                        $ticketService
+                            ->detailForUser(
+                                $reference,
+                                (int) $context['user_id']
+                            )
+                    );
+            }
+
+
+            $staffCanView = false;
+
+
             if ($attachment === null) {
 
                 $staffCanView =
@@ -3050,21 +3076,118 @@ $router->get(
             }
 
 
-            if ($attachment === null) {
-                return
-                    $response
-                        ->status(404)
-                        ->header(
-                            'Content-Type',
-                            'text/plain; charset=UTF-8'
-                        )
-                        ->header(
-                            'Cache-Control',
-                            'private, no-store, max-age=0'
-                        )
-                        ->send(
-                            'پیوست موردنظر یافت نشد.'
+            $parentAuthorized =
+                $requesterCanView
+                || $staffCanView;
+
+
+            $uiScopePath = [];
+
+
+            if ($parentAuthorized) {
+
+                try {
+
+                    $attachmentScope =
+                        (
+                            new \App\Services\Ticketing\TicketAttachmentStorageScopeService()
+                        )->forTicket(
+                            $reference
                         );
+
+
+                    if (is_array($attachmentScope)) {
+
+                        $projectReference =
+                            trim(
+                                (string) (
+                                    $attachmentScope[
+                                        'project_reference'
+                                    ]
+                                    ?? ''
+                                )
+                            );
+
+
+                        $portalReference =
+                            trim(
+                                (string) (
+                                    $attachmentScope[
+                                        'portal_reference'
+                                    ]
+                                    ?? ''
+                                )
+                            );
+
+
+                        if ($projectReference !== '') {
+
+                            $uiScopePath[] = [
+                                'type' =>
+                                    'project',
+
+                                'reference' =>
+                                    $projectReference,
+                            ];
+                        }
+
+
+                        if (
+                            $projectReference !== ''
+                            &&
+                            $portalReference !== ''
+                        ) {
+
+                            $uiScopePath[] = [
+                                'type' =>
+                                    'portal',
+
+                                'reference' =>
+                                    $portalReference,
+                            ];
+                        }
+                    }
+
+                } catch (\Throwable) {
+
+                    $uiScopePath = [];
+                }
+            }
+
+
+            if ($attachment === null) {
+
+                try {
+
+                    return
+                        (
+                            new \App\Services\UiContent\UiContentHttpPresenter()
+                        )->render(
+                            $request,
+                            $response,
+                            'ticketing.attachment.not_found',
+                            404,
+                            'ticketing',
+                            $uiScopePath
+                        );
+
+                } catch (\Throwable) {
+
+                    return
+                        $response
+                            ->status(404)
+                            ->header(
+                                'Content-Type',
+                                'text/plain; charset=UTF-8'
+                            )
+                            ->header(
+                                'Cache-Control',
+                                'private, no-store, max-age=0'
+                            )
+                            ->send(
+                                'پیوست موردنظر یافت نشد.'
+                            );
+                }
             }
 
 
@@ -3182,20 +3305,38 @@ $router->get(
 
 
             if ($filePath === null) {
-                return
-                    $response
-                        ->status(404)
-                        ->header(
-                            'Content-Type',
-                            'text/plain; charset=UTF-8'
-                        )
-                        ->header(
-                            'Cache-Control',
-                            'private, no-store, max-age=0'
-                        )
-                        ->send(
-                            'فایل پیوست در فضای ذخیره‌سازی یافت نشد.'
+
+                try {
+
+                    return
+                        (
+                            new \App\Services\UiContent\UiContentHttpPresenter()
+                        )->render(
+                            $request,
+                            $response,
+                            'ticketing.attachment.not_found',
+                            404,
+                            'ticketing',
+                            $uiScopePath
                         );
+
+                } catch (\Throwable) {
+
+                    return
+                        $response
+                            ->status(404)
+                            ->header(
+                                'Content-Type',
+                                'text/plain; charset=UTF-8'
+                            )
+                            ->header(
+                                'Cache-Control',
+                                'private, no-store, max-age=0'
+                            )
+                            ->send(
+                                'پیوست موردنظر یافت نشد.'
+                            );
+                }
             }
 
 
