@@ -1141,14 +1141,75 @@ final class TicketStaffOperationsRepository
                 . '%';
 
 
+            /*
+             * TICKETING_CARTABLE_UTF8_SEARCH_COLLATION_T3E
+             *
+             * Some identifier columns intentionally use ascii_bin while
+             * descriptive text uses utf8mb4. A Persian search parameter
+             * therefore cannot safely participate in one mixed-collation
+             * LIKE expression without an explicit common character set.
+             *
+             * This is query-local normalization only:
+             * - no schema/collation migration
+             * - no identifier storage change
+             * - no Data Scope or visibility change
+             */
             $search = [
-                't.ticket_number LIKE ?',
-                't.subject LIKE ?',
-                't.support_topic_title_snapshot LIKE ?',
-                't.support_project_title_snapshot LIKE ?',
-                'p.title LIKE ?',
-                'assignee.display_name_snapshot LIKE ?',
-                't.requester_display_name_snapshot LIKE ?',
+                "CONVERT(
+                    t.ticket_number
+                    USING utf8mb4
+                ) COLLATE utf8mb4_unicode_ci
+                    LIKE
+                CONVERT(? USING utf8mb4)
+                    COLLATE utf8mb4_unicode_ci",
+
+                "CONVERT(
+                    t.subject
+                    USING utf8mb4
+                ) COLLATE utf8mb4_unicode_ci
+                    LIKE
+                CONVERT(? USING utf8mb4)
+                    COLLATE utf8mb4_unicode_ci",
+
+                "CONVERT(
+                    t.support_topic_title_snapshot
+                    USING utf8mb4
+                ) COLLATE utf8mb4_unicode_ci
+                    LIKE
+                CONVERT(? USING utf8mb4)
+                    COLLATE utf8mb4_unicode_ci",
+
+                "CONVERT(
+                    t.support_project_title_snapshot
+                    USING utf8mb4
+                ) COLLATE utf8mb4_unicode_ci
+                    LIKE
+                CONVERT(? USING utf8mb4)
+                    COLLATE utf8mb4_unicode_ci",
+
+                "CONVERT(
+                    p.title
+                    USING utf8mb4
+                ) COLLATE utf8mb4_unicode_ci
+                    LIKE
+                CONVERT(? USING utf8mb4)
+                    COLLATE utf8mb4_unicode_ci",
+
+                "CONVERT(
+                    assignee.display_name_snapshot
+                    USING utf8mb4
+                ) COLLATE utf8mb4_unicode_ci
+                    LIKE
+                CONVERT(? USING utf8mb4)
+                    COLLATE utf8mb4_unicode_ci",
+
+                "CONVERT(
+                    t.requester_display_name_snapshot
+                    USING utf8mb4
+                ) COLLATE utf8mb4_unicode_ci
+                    LIKE
+                CONVERT(? USING utf8mb4)
+                    COLLATE utf8mb4_unicode_ci",
             ];
 
             $searchParameters =
