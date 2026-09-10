@@ -261,47 +261,85 @@
 
 /*
  * TICKETING_COMPACT_FILTER_TOGGLE_T3G
+ * TICKETING_COMPACT_FILTER_TOGGLE_DELEGATED_T3G
  *
- * Shared compact-filter interaction for Staff cartable.
+ * Staff advanced filters use delegated click handling intentionally.
+ * The asset may be evaluated before the Staff cartable form is present.
  */
 (function () {
     'use strict';
 
-    var form =
-        document.querySelector(
-            'form.ticketing-staff-filter-grid'
-        );
 
-    if (!form) {
-        return;
-    }
-
-    var toggle =
-        form.querySelector(
-            '[data-ticketing-advanced-toggle]'
-        );
-
-    var panel =
-        form.querySelector(
-            '[data-ticketing-advanced-panel]'
-        );
-
-    if (
-        !toggle
-        ||
-        !panel
-    ) {
-        return;
-    }
-
-    toggle.addEventListener(
+    document.addEventListener(
         'click',
-        function () {
-            var open =
-                panel.hidden;
+        function (event) {
 
-            panel.hidden =
-                !open;
+            var target =
+                event.target;
+
+
+            if (
+                !target
+                ||
+                typeof target.closest !== 'function'
+            ) {
+                return;
+            }
+
+
+            var toggle =
+                target.closest(
+                    '[data-ticketing-advanced-toggle]'
+                );
+
+
+            if (!toggle) {
+                return;
+            }
+
+
+            var form =
+                toggle.closest(
+                    'form.ticketing-staff-filter-grid'
+                );
+
+
+            if (!form) {
+                return;
+            }
+
+
+            var panel =
+                form.querySelector(
+                    '[data-ticketing-advanced-panel]'
+                );
+
+
+            if (!panel) {
+                return;
+            }
+
+
+            event.preventDefault();
+
+
+            var open =
+                panel.hasAttribute(
+                    'hidden'
+                );
+
+
+            if (open) {
+                panel.removeAttribute(
+                    'hidden'
+                );
+            } else {
+                panel.setAttribute(
+                    'hidden',
+                    ''
+                );
+            }
+
 
             toggle.setAttribute(
                 'aria-expanded',
@@ -309,6 +347,7 @@
                     ? 'true'
                     : 'false'
             );
-        }
+        },
+        false
     );
 }());
