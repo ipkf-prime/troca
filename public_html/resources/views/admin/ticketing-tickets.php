@@ -267,8 +267,14 @@ if (
     $advancedFilterCount++;
 }
 
+/*
+ * TICKETING_MY_ADVANCED_DEFAULT_COLLAPSED_T3G
+ *
+ * Active advanced filters remain applied and their count remains visible,
+ * but the secondary panel never expands automatically on page load.
+ */
 $advancedFiltersOpen =
-    $advancedFilterCount > 0;
+    false;
 
 
 ob_start();

@@ -237,7 +237,8 @@ foreach (
 
 
 /*
- * Advanced state must survive an auto-submit/reload.
+ * My Tickets advanced values remain active, but the secondary panel
+ * must always start collapsed after a full page render.
  */
 foreach (
     [
@@ -253,10 +254,34 @@ foreach (
             $source['my'],
             $marker
         ),
-        'My Tickets advanced state persistence missing: '
+        'My Tickets advanced active-count logic missing: '
         . $marker
     );
 }
+
+$expect(
+    str_contains(
+        $source['my'],
+        'TICKETING_MY_ADVANCED_DEFAULT_COLLAPSED_T3G'
+    ),
+    'My Tickets default-collapsed marker missing.'
+);
+
+$expect(
+    str_contains(
+        $source['my'],
+        "\$advancedFiltersOpen =\n    false;"
+    ),
+    'My Tickets advanced panel must start collapsed.'
+);
+
+$expect(
+    !str_contains(
+        $source['my'],
+        "\$advancedFiltersOpen =\n    \$advancedFilterCount > 0;"
+    ),
+    'My Tickets advanced panel still auto-opens for active filters.'
+);
 
 
 $expect(
@@ -302,7 +327,7 @@ echo
     . PHP_EOL;
 
 echo
-    "ADVANCED_RELOAD_PERSISTENCE=PASS"
+    "MY_ADVANCED_DEFAULT_COLLAPSED=PASS"
     . PHP_EOL;
 
 echo
