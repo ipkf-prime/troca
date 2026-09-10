@@ -2965,7 +2965,7 @@ $router->post(
  * ---------------------------------------------------------
  */
 $router->get(
-    '/admin/ticketing/tickets/{public_reference}/attachments/{attachment_id}',
+    '/admin/ticketing/tickets/{public_reference}/attachments/{attachment_reference}',
     function (
         $request,
         $response
@@ -2980,9 +2980,11 @@ $router->get(
                 )
             );
 
-        $attachmentId =
-            (int) $request->route(
-                'attachment_id'
+        $attachmentReference =
+            trim(
+                (string) $request->route(
+                    'attachment_reference'
+                )
             );
 
         /*
@@ -3020,7 +3022,7 @@ $router->get(
             $attachment =
                 $ticketService->attachmentForUser(
                     $reference,
-                    $attachmentId,
+                    $attachmentReference,
                     (int) $context['user_id']
                 );
 
@@ -3042,7 +3044,7 @@ $router->get(
                         $ticketService
                             ->attachmentForAuthorizedContext(
                                 $reference,
-                                $attachmentId
+                                $attachmentReference
                             );
                 }
             }
@@ -3161,54 +3163,35 @@ $router->get(
 
 
             /*
-             * Upload contract:
-             * BASE_PATH/storage/uploads/<storage_key>
+             * TICKETING_ATTACHMENT_SHARED_STORAGE_RESOLUTION_V1
+             *
+             * storage_disk + storage_key are logical domain data.
+             * Physical location is resolved by shared infrastructure.
+             *
+             * Legacy Ticketing keys remain readable through
+             * SharedPrivateStorageService::resolveExisting().
              */
-            $storageRoot =
-                realpath(
-                    BASE_PATH
-                    . '/storage/uploads'
-                );
-
-
-            if ($storageRoot === false) {
-                throw new \RuntimeException(
-                    'Private attachment storage root unavailable.'
-                );
-            }
-
+            $storage =
+                new \App\Services\Infrastructure\SharedPrivateStorageService();
 
             $filePath =
-                realpath(
-                    $storageRoot
-                    . DIRECTORY_SEPARATOR
-                    . str_replace(
-                        '/',
-                        DIRECTORY_SEPARATOR,
-                        $storageKey
-                    )
+                $storage->resolveExisting(
+                    'ticketing',
+                    $storageKey
                 );
 
 
-            if (
-                $filePath === false
-                ||
-                !is_file(
-                    $filePath
-                )
-                ||
-                !str_starts_with(
-                    $filePath,
-                    $storageRoot
-                    . DIRECTORY_SEPARATOR
-                )
-            ) {
+            if ($filePath === null) {
                 return
                     $response
                         ->status(404)
                         ->header(
                             'Content-Type',
                             'text/plain; charset=UTF-8'
+                        )
+                        ->header(
+                            'Cache-Control',
+                            'private, no-store, max-age=0'
                         )
                         ->send(
                             'فایل پیوست در فضای ذخیره‌سازی یافت نشد.'
@@ -3452,8 +3435,8 @@ $router->get(
                         'reference' =>
                             $reference,
 
-                        'attachment_id' =>
-                            $attachmentId,
+                        'attachment_reference' =>
+                            $attachmentReference,
                     ]
                 );
 

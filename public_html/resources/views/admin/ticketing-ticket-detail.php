@@ -632,7 +632,7 @@ ob_start();
                                                     . rawurlencode(
                                                         (string) (
                                                             $attachment[
-                                                                'id'
+                                                                'public_reference'
                                                             ]
                                                             ?? ''
                                                         )

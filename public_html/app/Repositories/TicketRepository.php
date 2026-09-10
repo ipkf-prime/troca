@@ -1471,6 +1471,7 @@ class TicketRepository
             $this->db->prepare("
                 SELECT
                     id,
+                    public_reference,
                     ticket_id,
                     message_id,
                     original_name,
@@ -1510,12 +1511,14 @@ class TicketRepository
      */
     public function attachmentForTicket(
         int $ticketId,
-        int $attachmentId
+        string $attachmentReference
     ): ?array {
         if (
             $ticketId < 1
             ||
-            $attachmentId < 1
+            trim(
+                $attachmentReference
+            ) === ''
         ) {
             return null;
         }
@@ -1524,6 +1527,7 @@ class TicketRepository
             $this->db->prepare("
                 SELECT
                     id,
+                    public_reference,
                     ticket_id,
                     message_id,
                     storage_disk,
@@ -1537,7 +1541,7 @@ class TicketRepository
 
                 FROM ticketing_attachments
 
-                WHERE id = ?
+                WHERE public_reference = ?
                   AND ticket_id = ?
                   AND deleted_at IS NULL
 
@@ -1545,7 +1549,9 @@ class TicketRepository
             ");
 
         $statement->execute([
-            $attachmentId,
+            trim(
+                $attachmentReference
+            ),
             $ticketId,
         ]);
 

@@ -1106,6 +1106,26 @@ class TicketService extends BaseService
             );
 
 
+        $ticketReference =
+            $this->reference(
+                'TKT'
+            );
+
+        $attachmentScope =
+            (
+                new TicketAttachmentStorageScopeService()
+            )->forProjectRealm(
+                (int) (
+                    $selection['project_id']
+                    ?? 0
+                ),
+                (int) (
+                    $selection['realm_id']
+                    ?? 0
+                ),
+                $ticketReference
+            );
+
         $attachmentUpload =
             new TicketAttachmentUploadService();
 
@@ -1116,7 +1136,11 @@ class TicketService extends BaseService
                         ? $files
                         : [],
 
-                    'user:' . $userId
+                    'user:' . $userId,
+
+                    is_array($attachmentScope)
+                        ? $attachmentScope
+                        : []
                 );
 
         } catch (\InvalidArgumentException $exception) {
@@ -1140,7 +1164,7 @@ class TicketService extends BaseService
         $created =
             $this->creation->create([
                 'public_reference' =>
-                    $this->reference('TKT'),
+                    $ticketReference,
 
                 'message_reference' =>
                     $this->reference('TMSG'),
@@ -1209,11 +1233,11 @@ class TicketService extends BaseService
      */
     public function attachmentForAuthorizedContext(
         string $publicReference,
-        int $attachmentId
+        string $attachmentReference
     ): ?array {
         if (
             trim($publicReference) === ''
-            || $attachmentId < 1
+            || trim($attachmentReference) === ''
         ) {
             return null;
         }
@@ -1257,7 +1281,9 @@ class TicketService extends BaseService
             $this->tickets
                 ->attachmentForTicket(
                     $ticketId,
-                    $attachmentId
+                    trim(
+                        $attachmentReference
+                    )
                 );
     }
 
@@ -1269,13 +1295,13 @@ class TicketService extends BaseService
      */
     public function attachmentForUser(
         string $publicReference,
-        int $attachmentId,
+        string $attachmentReference,
         int $userId
     ): ?array {
         if (
             trim($publicReference) === ''
             ||
-            $attachmentId < 1
+            trim($attachmentReference) === ''
             ||
             $userId < 1
         ) {
@@ -1316,7 +1342,9 @@ class TicketService extends BaseService
             $this->tickets
                 ->attachmentForTicket(
                     $ticketId,
-                    $attachmentId
+                    trim(
+                        $attachmentReference
+                    )
                 );
     }
 

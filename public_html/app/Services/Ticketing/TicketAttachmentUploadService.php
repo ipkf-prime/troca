@@ -101,7 +101,8 @@ class TicketAttachmentUploadService
 
     public function prepare(
         array $input,
-        string $uploadedByUserReference
+        string $uploadedByUserReference,
+        array $storageScope = []
     ): array {
         $files =
             $this->normalizeFiles(
@@ -118,23 +119,33 @@ class TicketAttachmentUploadService
             );
         }
 
+        /*
+         * TICKETING_ATTACHMENT_PORTAL_PROJECT_RESOURCE_NAMESPACE_V1
+         *
+         * storage_key remains relative and backend-independent.
+         */
+        $namespacePrefix =
+            $this->namespacePrefix(
+                $storageScope
+            );
+
+        $storage =
+            new \App\Services\Infrastructure\SharedPrivateStorageService();
+
         $privateRoot =
-            $this->privateStorageRoot();
+            $storage->rootFor(
+                'ticketing'
+            );
 
         /*
          * TICKETING_ATTACHMENT_QUARANTINE_SCAN_PROMOTE
          *
-         * Final Ticketing uploads live beneath storage/uploads.
-         * Quarantine is a sibling beneath the same storage root.
+         * Keep quarantine under the same resolved filesystem
+         * root so promotion remains atomic.
          */
-        $storageRoot =
-            dirname(
-                $privateRoot
-            );
-
         $quarantineRoot =
-            $storageRoot
-            . '/quarantine/ticketing';
+            $privateRoot
+            . '/ticketing/quarantine/ticketing';
 
         if (
             !is_dir($quarantineRoot)
@@ -391,7 +402,8 @@ class TicketAttachmentUploadService
                     );
 
                 $relativeDirectory =
-                    'ticketing/attachments/'
+                    $namespacePrefix
+                    . '/'
                     . gmdate('Y/m');
 
                 $storageKey =
@@ -405,25 +417,12 @@ class TicketAttachmentUploadService
                     . '.'
                     . $extension;
 
-                $directory =
-                    $privateRoot
-                    . '/'
-                    . $relativeDirectory;
-
-                if (
-                    !is_dir($directory)
-                    && !mkdir($directory, 0750, true)
-                    && !is_dir($directory)
-                ) {
-                    throw new \RuntimeException(
-                        'ticket_attachment_storage_unavailable'
-                    );
-                }
-
                 $finalPath =
-                    $privateRoot
-                    . '/'
-                    . $storageKey;
+                    $storage
+                        ->prepareDirectoryForNew(
+                            'ticketing',
+                            $storageKey
+                        );
 
                 if (is_file($finalPath)) {
                     throw new \RuntimeException(
@@ -576,6 +575,9 @@ class TicketAttachmentUploadService
 
             'ticket_attachment_scan_failed' =>
                 'بررسی امنیتی فایل در حال حاضر انجام نشد. فایل بارگذاری نشد.',
+
+            'ticket_attachment_scope_invalid' =>
+                'محدوده امن ذخیره‌سازی پیوست برای این تیکت مشخص نیست.',
 
             default =>
                 'ذخیره فایل پیوست انجام نشد.',
@@ -765,24 +767,67 @@ class TicketAttachmentUploadService
     }
 
 
-    private function privateStorageRoot(): string
-    {
+    public function namespacePrefix(
+        array $storageScope
+    ): string {
+
+        $portalReference =
+            $this->scopeSegment(
+                $storageScope,
+                'portal_reference'
+            );
+
+        $projectReference =
+            $this->scopeSegment(
+                $storageScope,
+                'project_reference'
+            );
+
+        $ticketReference =
+            $this->scopeSegment(
+                $storageScope,
+                'ticket_reference'
+            );
+
+
+        return
+            'ticketing/portals/'
+            . $portalReference
+            . '/projects/'
+            . $projectReference
+            . '/tickets/'
+            . $ticketReference
+            . '/attachments';
+    }
+
+
+    private function scopeSegment(
+        array $storageScope,
+        string $key
+    ): string {
+
+        $value =
+            trim(
+                (string) (
+                    $storageScope[$key]
+                    ?? ''
+                )
+            );
+
+
         if (
-            !defined('BASE_PATH')
-            || trim(
-                (string) BASE_PATH
-            ) === ''
+            preg_match(
+                '/^[A-Za-z0-9][A-Za-z0-9_-]{1,79}$/',
+                $value
+            )
+            !== 1
         ) {
-            throw new RuntimeException(
-                'ticket_attachment_storage_unavailable'
+            throw new InvalidArgumentException(
+                'ticket_attachment_scope_invalid'
             );
         }
 
-        return
-            rtrim(
-                (string) BASE_PATH,
-                '/'
-            )
-            . '/storage/uploads';
+
+        return $value;
     }
 }

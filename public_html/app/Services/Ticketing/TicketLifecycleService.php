@@ -131,6 +131,13 @@ final class TicketLifecycleService
          * Reuse the same secure/private upload service
          * as initial ticket creation.
          */
+        $attachmentScope =
+            (
+                new TicketAttachmentStorageScopeService()
+            )->forTicket(
+                $publicReference
+            );
+
         $attachmentUpload =
             new TicketAttachmentUploadService();
 
@@ -141,7 +148,11 @@ final class TicketLifecycleService
                         ? $files
                         : [],
 
-                    'user:' . $userId
+                    'user:' . $userId,
+
+                    is_array($attachmentScope)
+                        ? $attachmentScope
+                        : []
                 );
 
         } catch (\InvalidArgumentException $exception) {
@@ -265,6 +276,13 @@ final class TicketLifecycleService
          * Requester updates reuse the canonical private
          * attachment preparation pipeline.
          */
+        $attachmentScope =
+            (
+                new TicketAttachmentStorageScopeService()
+            )->forTicket(
+                $publicReference
+            );
+
         $attachmentUpload =
             new TicketAttachmentUploadService();
 
@@ -274,7 +292,10 @@ final class TicketLifecycleService
                     is_array($files)
                         ? $files
                         : [],
-                    'user:' . $userId
+                    'user:' . $userId,
+                    is_array($attachmentScope)
+                        ? $attachmentScope
+                        : []
                 );
 
         } catch (\InvalidArgumentException $exception) {

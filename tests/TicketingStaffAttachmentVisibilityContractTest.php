@@ -95,7 +95,7 @@ foreach ([
 $routeStart =
     strpos(
         $route,
-        "'/admin/ticketing/tickets/{public_reference}/attachments/{attachment_id}'"
+        "'/admin/ticketing/tickets/{public_reference}/attachments/{attachment_reference}'"
     );
 
 $routeEnd =

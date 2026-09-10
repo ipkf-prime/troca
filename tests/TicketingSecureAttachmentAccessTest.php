@@ -96,7 +96,7 @@ $assert(
 $assert(
     str_contains(
         $route,
-        '/attachments/{attachment_id}'
+        '/attachments/{attachment_reference}'
     ),
     'Secure attachment route missing.'
 );
@@ -105,10 +105,19 @@ $assert(
 $assert(
     str_contains(
         $route,
-        "BASE_PATH\n"
-        . "                    . '/storage/uploads'"
+        'SharedPrivateStorageService'
+    )
+    &&
+    str_contains(
+        $route,
+        '->resolveExisting('
+    )
+    &&
+    str_contains(
+        $route,
+        "'ticketing'"
     ),
-    'Correct private upload root missing.'
+    'Shared private storage resolution missing.'
 );
 
 
