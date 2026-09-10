@@ -258,3 +258,57 @@
         true
     );
 }());
+
+/*
+ * TICKETING_COMPACT_FILTER_TOGGLE_T3G
+ *
+ * Shared compact-filter interaction for Staff cartable.
+ */
+(function () {
+    'use strict';
+
+    var form =
+        document.querySelector(
+            'form.ticketing-staff-filter-grid'
+        );
+
+    if (!form) {
+        return;
+    }
+
+    var toggle =
+        form.querySelector(
+            '[data-ticketing-advanced-toggle]'
+        );
+
+    var panel =
+        form.querySelector(
+            '[data-ticketing-advanced-panel]'
+        );
+
+    if (
+        !toggle
+        ||
+        !panel
+    ) {
+        return;
+    }
+
+    toggle.addEventListener(
+        'click',
+        function () {
+            var open =
+                panel.hidden;
+
+            panel.hidden =
+                !open;
+
+            toggle.setAttribute(
+                'aria-expanded',
+                open
+                    ? 'true'
+                    : 'false'
+            );
+        }
+    );
+}());

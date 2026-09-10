@@ -230,6 +230,29 @@ $sortOptions = [
 ];
 
 
+/*
+ * TICKETING_COMPACT_FILTER_UX_T3G
+ */
+$advancedFilterCount = 0;
+
+if ($layerId > 0) {
+    $advancedFilterCount++;
+}
+
+if ($assignee !== '') {
+    $advancedFilterCount++;
+}
+
+if ($sort !== 'priority_desc') {
+    $advancedFilterCount++;
+}
+
+$advancedFiltersOpen =
+    $advancedFilterCount > 0
+    ||
+    $perPage !== 25;
+
+
 $cartableUrl =
     static function (
         array $overrides = []
@@ -656,474 +679,535 @@ ob_start();
                 >
 
 
-                <label class="ticketing-staff-search__field ticketing-staff-filter--search">
+                <!-- TICKETING_COMPACT_FILTER_UX_T3G -->
+                <!-- TICKETING_COMPACT_FILTER_PRIMARY_T3G_START -->
 
-                    <span>
-                        جستجو
-                    </span>
+                <div
+                    class="ticketing-compact-filter-grid ticketing-compact-filter-grid--staff"
+                >
 
-                    <input
-                        type="search"
-                        class="ui-input"
-                        data-ticketing-search-auto-submit
-                        name="q"
-                        maxlength="180"
-                        value="<?= ticketing_h(
-                            $q
-                        ) ?>"
-                        placeholder="شماره تیکت، عنوان، موضوع، پروژه، درخواست‌کننده، سازمان یا کارشناس"
+                    <label
+                        class="ticketing-staff-search__field ticketing-compact-filter__field ticketing-compact-filter__search"
                     >
+                        <span>
+                            جستجو
+                        </span>
 
-                </label>
-
-
-                <label class="ticketing-staff-search__field">
-
-                    <span>
-                        وضعیت
-                    </span>
-
-                    <select
-                        class="ui-select ticketing-cartable-filter-select"
-                        data-ticketing-filter-auto-submit
-                        name="ticket_status"
-                    >
-                        <option
-                            value="active"
-                            <?= $ticketStatus === 'active'
-                                ? 'selected'
-                                : '' ?>
+                        <input
+                            type="search"
+                            class="ui-input"
+                            data-ticketing-search-auto-submit
+                            name="q"
+                            maxlength="180"
+                            value="<?= ticketing_h(
+                                $q
+                            ) ?>"
+                            placeholder="شماره تیکت، عنوان، موضوع، پروژه، درخواست‌کننده، سازمان یا کارشناس"
                         >
-                            تیکت‌های جاری
-                        </option>
+                    </label>
 
-                        <option
-                            value="all"
-                            <?= $ticketStatus === 'all'
-                                ? 'selected'
-                                : '' ?>
+
+                    <label
+                        class="ticketing-staff-search__field ticketing-compact-filter__field"
+                    >
+                        <span>
+                            وضعیت
+                        </span>
+
+                        <select
+                            class="ui-select ticketing-cartable-filter-select"
+                            data-ticketing-filter-auto-submit
+                            name="ticket_status"
                         >
-                            همه وضعیت‌ها
-                        </option>
-
-                        <?php foreach (
-                            $statuses
-                            as $option
-                        ): ?>
-                            <?php
-                            $optionCode =
-                                (string) (
-                                    $option['code']
-                                    ?? ''
-                                );
-
-                            $optionTitle =
-                                (string) (
-                                    $option['title']
-                                    ?? $optionCode
-                                );
-                            ?>
-
                             <option
-                                value="<?= ticketing_h(
-                                    $optionCode
-                                ) ?>"
-                                <?= $ticketStatus === $optionCode
+                                value="active"
+                                <?= $ticketStatus === 'active'
                                     ? 'selected'
                                     : '' ?>
                             >
-                                <?= ticketing_h(
-                                    $optionTitle
-                                ) ?>
+                                تیکت‌های جاری
                             </option>
 
-                        <?php endforeach; ?>
-
-                    </select>
-
-                </label>
-
-
-                <label class="ticketing-staff-search__field">
-
-                    <span>
-                        اولویت
-                    </span>
-
-                    <select
-                        class="ui-select ticketing-cartable-filter-select"
-                        data-ticketing-filter-auto-submit
-                        name="priority"
-                    >
-                        <option value="">
-                            همه اولویت‌ها
-                        </option>
-
-                        <?php foreach (
-                            $priorities
-                            as $option
-                        ): ?>
-                            <?php
-                            $optionCode =
-                                (string) (
-                                    $option['code']
-                                    ?? ''
-                                );
-
-                            $optionTitle =
-                                (string) (
-                                    $option['title']
-                                    ?? $optionCode
-                                );
-                            ?>
-
                             <option
-                                value="<?= ticketing_h(
-                                    $optionCode
-                                ) ?>"
-                                <?= $priority === $optionCode
+                                value="all"
+                                <?= $ticketStatus === 'all'
                                     ? 'selected'
                                     : '' ?>
                             >
-                                <?= ticketing_h(
-                                    $optionTitle
-                                ) ?>
+                                همه وضعیت‌ها
                             </option>
 
-                        <?php endforeach; ?>
+                            <?php foreach (
+                                $statuses
+                                as $option
+                            ): ?>
 
-                    </select>
-
-                </label>
-
-
-                <label class="ticketing-staff-search__field">
-
-                    <span>
-                        موضوع
-                    </span>
-
-                    <select
-                        class="ui-select ticketing-cartable-filter-select"
-                        data-ticketing-filter-auto-submit
-                        name="topic"
-                    >
-                        <option value="0">
-                            همه موضوع‌ها
-                        </option>
-
-                        <?php foreach (
-                            $topics
-                            as $option
-                        ): ?>
-
-                            <?php
-                            $optionId =
-                                (int) (
-                                    $option[
-                                        'id'
-                                    ]
-                                    ?? 0
-                                );
-
-                            $optionTitle =
-                                trim(
+                                <?php
+                                $optionCode =
                                     (string) (
-                                        $option[
-                                            'title'
-                                        ]
+                                        $option['code']
                                         ?? ''
-                                    )
-                                );
+                                    );
 
-                            $optionProjectTitle =
-                                trim(
-                                    (string) (
-                                        $option[
-                                            'project_title'
-                                        ]
-                                        ?? ''
-                                    )
-                                );
-
-                            if ($optionTitle === '') {
                                 $optionTitle =
-                                    'موضوع #'
-                                    . $optionId;
-                            }
-
-                            if (
-                                $showTopicProject
-                                &&
-                                $optionProjectTitle !== ''
-                            ) {
-                                $optionTitle .=
-                                    ' — '
-                                    . $optionProjectTitle;
-                            }
-                            ?>
-
-                            <option
-                                value="<?= ticketing_h(
-                                    (string) $optionId
-                                ) ?>"
-                                <?= $topicId === $optionId
-                                    ? 'selected'
-                                    : '' ?>
-                            >
-                                <?= ticketing_h(
-                                    $optionTitle
-                                ) ?>
-                            </option>
-
-                        <?php endforeach; ?>
-
-                    </select>
-
-                </label>
-
-
-                <label class="ticketing-staff-search__field">
-
-                    <span>
-                        مرحله
-                    </span>
-
-                    <select
-                        class="ui-select ticketing-cartable-filter-select"
-                        data-ticketing-filter-auto-submit
-                        name="layer_id"
-                    >
-                        <option value="0">
-                            همه سطوح
-                        </option>
-
-                        <?php foreach (
-                            $layers
-                            as $option
-                        ): ?>
-                            <?php
-                            $optionId =
-                                (int) (
-                                    $option['id']
-                                    ?? 0
-                                );
-
-                            $optionTitle =
-                                (string) (
-                                    $option['title']
-                                    ?? ''
-                                );
-                            ?>
-
-                            <option
-                                value="<?= ticketing_h(
-                                    (string) $optionId
-                                ) ?>"
-                                <?= $layerId === $optionId
-                                    ? 'selected'
-                                    : '' ?>
-                            >
-                                <?= ticketing_h(
-                                    $optionTitle
-                                ) ?>
-                            </option>
-
-                        <?php endforeach; ?>
-
-                    </select>
-
-                </label>
-
-
-                <label class="ticketing-staff-search__field">
-
-                    <span>
-                        کارشناس جاری
-                    </span>
-
-                    <select
-                        class="ui-select ticketing-cartable-filter-select"
-                        data-ticketing-filter-auto-submit
-                        name="assignee"
-                        <?= $scope === 'unassigned'
-                            ? 'disabled'
-                            : '' ?>
-                    >
-                        <option value="">
-                            همه کارشناسان
-                        </option>
-
-                        <?php foreach (
-                            $assignees
-                            as $option
-                        ): ?>
-                            <?php
-                            $optionReference =
-                                (string) (
-                                    $option[
-                                        'user_reference'
-                                    ]
-                                    ?? ''
-                                );
-
-                            $optionTitle =
-                                trim(
                                     (string) (
+                                        $option['title']
+                                        ?? $optionCode
+                                    );
+                                ?>
+
+                                <option
+                                    value="<?= ticketing_h(
+                                        $optionCode
+                                    ) ?>"
+                                    <?= $ticketStatus === $optionCode
+                                        ? 'selected'
+                                        : '' ?>
+                                >
+                                    <?= ticketing_h(
+                                        $optionTitle
+                                    ) ?>
+                                </option>
+
+                            <?php endforeach; ?>
+
+                        </select>
+                    </label>
+
+
+                    <label
+                        class="ticketing-staff-search__field ticketing-compact-filter__field"
+                    >
+                        <span>
+                            موضوع
+                        </span>
+
+                        <select
+                            class="ui-select ticketing-cartable-filter-select"
+                            data-ticketing-filter-auto-submit
+                            name="topic"
+                        >
+                            <option value="0">
+                                همه موضوع‌ها
+                            </option>
+
+                            <?php foreach (
+                                $topics
+                                as $option
+                            ): ?>
+
+                                <?php
+                                $optionId =
+                                    (int) (
                                         $option[
-                                            'display_name'
+                                            'id'
                                         ]
-                                        ?? ''
-                                    )
-                                );
+                                        ?? 0
+                                    );
 
-                            if ($optionTitle === '') {
                                 $optionTitle =
-                                    $optionReference;
-                            }
-                            ?>
+                                    trim(
+                                        (string) (
+                                            $option[
+                                                'title'
+                                            ]
+                                            ?? ''
+                                        )
+                                    );
 
-                            <option
-                                value="<?= ticketing_h(
-                                    $optionReference
-                                ) ?>"
-                                <?= $assignee === $optionReference
-                                    ? 'selected'
-                                    : '' ?>
-                            >
-                                <?= ticketing_h(
-                                    $optionTitle
-                                ) ?>
+                                $optionProjectTitle =
+                                    trim(
+                                        (string) (
+                                            $option[
+                                                'project_title'
+                                            ]
+                                            ?? ''
+                                        )
+                                    );
+
+                                if ($optionTitle === '') {
+                                    $optionTitle =
+                                        'موضوع #'
+                                        . $optionId;
+                                }
+
+                                if (
+                                    $showTopicProject
+                                    &&
+                                    $optionProjectTitle !== ''
+                                ) {
+                                    $optionTitle .=
+                                        ' — '
+                                        . $optionProjectTitle;
+                                }
+                                ?>
+
+                                <option
+                                    value="<?= ticketing_h(
+                                        (string) $optionId
+                                    ) ?>"
+                                    <?= $topicId === $optionId
+                                        ? 'selected'
+                                        : '' ?>
+                                >
+                                    <?= ticketing_h(
+                                        $optionTitle
+                                    ) ?>
+                                </option>
+
+                            <?php endforeach; ?>
+
+                        </select>
+                    </label>
+
+
+                    <label
+                        class="ticketing-staff-search__field ticketing-compact-filter__field"
+                    >
+                        <span>
+                            اولویت
+                        </span>
+
+                        <select
+                            class="ui-select ticketing-cartable-filter-select"
+                            data-ticketing-filter-auto-submit
+                            name="priority"
+                        >
+                            <option value="">
+                                همه اولویت‌ها
                             </option>
 
-                        <?php endforeach; ?>
+                            <?php foreach (
+                                $priorities
+                                as $option
+                            ): ?>
 
-                    </select>
+                                <?php
+                                $optionCode =
+                                    (string) (
+                                        $option['code']
+                                        ?? ''
+                                    );
 
-                </label>
+                                $optionTitle =
+                                    (string) (
+                                        $option['title']
+                                        ?? $optionCode
+                                    );
+                                ?>
 
+                                <option
+                                    value="<?= ticketing_h(
+                                        $optionCode
+                                    ) ?>"
+                                    <?= $priority === $optionCode
+                                        ? 'selected'
+                                        : '' ?>
+                                >
+                                    <?= ticketing_h(
+                                        $optionTitle
+                                    ) ?>
+                                </option>
 
-                <label class="ticketing-staff-search__field">
+                            <?php endforeach; ?>
 
-                    <span>
-                        مرتب‌سازی
-                    </span>
-
-                    <select
-                        class="ui-select ticketing-cartable-filter-select"
-                        data-ticketing-filter-auto-submit
-                        name="sort"
-                    >
-                        <?php foreach (
-                            $sortOptions
-                            as $optionCode => $optionTitle
-                        ): ?>
-
-                            <option
-                                value="<?= ticketing_h(
-                                    $optionCode
-                                ) ?>"
-                                <?= $sort === $optionCode
-                                    ? 'selected'
-                                    : '' ?>
-                            >
-                                <?= ticketing_h(
-                                    $optionTitle
-                                ) ?>
-                            </option>
-
-                        <?php endforeach; ?>
-
-                    </select>
-
-                </label>
+                        </select>
+                    </label>
 
 
-                <label class="ticketing-staff-search__field">
+                    <div class="ticketing-compact-filter__actions">
 
-                    <span>
-                        تعداد در صفحه
-                    </span>
+                        <button
+                            type="button"
+                            class="ui-button admin-button admin-button--soft ticketing-compact-more-button"
+                        data-active="<?= $advancedFilterCount ? '1' : '0' ?>"
+                            data-ticketing-advanced-toggle
+                            aria-expanded="<?= $advancedFiltersOpen
+                                ? 'true'
+                                : 'false' ?>"
+                            aria-controls="ticketing-staff-advanced-filters"
+                        >
+                            <span>
+                                فیلترهای بیشتر
+                            </span>
 
-                    <select
-                        class="ui-select ticketing-cartable-filter-select"
-                        data-ticketing-filter-auto-submit
-                        name="per_page"
-                    >
-                        <?php foreach (
-                            [
-                                25,
-                                50,
-                            ]
-                            as $perPageOption
-                        ): ?>
-
-                            <option
-                                value="<?= ticketing_h(
-                                    (string) $perPageOption
-                                ) ?>"
-                                <?= $perPage === $perPageOption
-                                    ? 'selected'
-                                    : '' ?>
-                            >
-                                <?= ticketing_h(
-                                    \App\Support\AdminFormat::digits(
-                                        (string) $perPageOption
-                                    )
-                                ) ?>
-                            </option>
-
-                        <?php endforeach; ?>
-
-                    </select>
-
-                </label>
+                            <?php if ($advancedFilterCount > 0): ?>
+                                <b class="ticketing-compact-more-button__count">
+                                    <?= ticketing_h(
+                                        \App\Support\AdminFormat::digits(
+                                            (string) $advancedFilterCount
+                                        )
+                                    ) ?>
+                                </b>
+                            <?php endif; ?>
+                        </button>
 
 
-                <div class="ticketing-staff-search__actions">
+                        <a
+                            class="ticketing-icon-action ticketing-icon-action--soft ticketing-compact-filter__reset"
+                            href="<?= ticketing_h(
+                                $cartableUrl(
+                                    [
+                                        'q' =>
+                                            '',
 
+                                        'ticket_status' =>
+                                            'active',
 
-                    <a
-                        class="ticketing-icon-action ticketing-icon-action--soft"
-                        href="<?= ticketing_h(
-                            $cartableUrl(
-                                [
-                                    'q' =>
-                                        '',
+                                        'priority' =>
+                                            '',
 
-                                    'ticket_status' =>
-                                        'active',
+                                        'topic' =>
+                                            0,
 
-                                    'priority' =>
-                                        '',
+                                        'layer_id' =>
+                                            0,
 
-                                    'topic' =>
-                                        0,
+                                        'assignee' =>
+                                            '',
 
-                                    'layer_id' =>
-                                        0,
+                                        'sort' =>
+                                            'priority_desc',
 
-                                    'assignee' =>
-                                        '',
+                                        'page' =>
+                                            1,
+                                    ]
+                                )
+                            ) ?>"
+                            aria-label="بازنشانی فیلترها"
+                            title="بازنشانی فیلترها"
+                            data-tooltip="بازنشانی فیلترها"
+                        >
+                            <?= \App\Support\TicketingIcon::svg(
+                                'reset'
+                            ) ?>
+                        </a>
 
-                                    'sort' =>
-                                        'priority_desc',
-
-                                    'page' =>
-                                        1,
-                                ]
-                            )
-                        ) ?>"
-                        aria-label="بازنشانی فیلترها"
-                        title="بازنشانی فیلترها"
-                        data-tooltip="بازنشانی فیلترها"
-                    >
-                        <?= \App\Support\TicketingIcon::svg(
-                            'reset'
-                        ) ?>
-                    </a>
+                    </div>
 
                 </div>
+
+                <!-- TICKETING_COMPACT_FILTER_PRIMARY_T3G_END -->
+
+
+                <!-- TICKETING_COMPACT_FILTER_ADVANCED_T3G_START -->
+
+                <div
+                    id="ticketing-staff-advanced-filters"
+                    class="ticketing-advanced-filter-panel"
+                    data-ticketing-advanced-panel
+                    <?= $advancedFiltersOpen
+                        ? ''
+                        : 'hidden' ?>
+                >
+
+                    <div
+                        class="ticketing-advanced-filter-grid ticketing-advanced-filter-grid--staff"
+                    >
+
+                        <label
+                            class="ticketing-staff-search__field ticketing-compact-filter__field"
+                        >
+                            <span>
+                                مرحله
+                            </span>
+
+                            <select
+                                class="ui-select ticketing-cartable-filter-select"
+                                data-ticketing-filter-auto-submit
+                                name="layer_id"
+                            >
+                                <option value="0">
+                                    همه سطوح
+                                </option>
+
+                                <?php foreach (
+                                    $layers
+                                    as $option
+                                ): ?>
+
+                                    <?php
+                                    $optionId =
+                                        (int) (
+                                            $option['id']
+                                            ?? 0
+                                        );
+
+                                    $optionTitle =
+                                        (string) (
+                                            $option['title']
+                                            ?? ''
+                                        );
+                                    ?>
+
+                                    <option
+                                        value="<?= ticketing_h(
+                                            (string) $optionId
+                                        ) ?>"
+                                        <?= $layerId === $optionId
+                                            ? 'selected'
+                                            : '' ?>
+                                    >
+                                        <?= ticketing_h(
+                                            $optionTitle
+                                        ) ?>
+                                    </option>
+
+                                <?php endforeach; ?>
+
+                            </select>
+                        </label>
+
+
+                        <label
+                            class="ticketing-staff-search__field ticketing-compact-filter__field"
+                        >
+                            <span>
+                                کارشناس جاری
+                            </span>
+
+                            <select
+                                class="ui-select ticketing-cartable-filter-select"
+                                data-ticketing-filter-auto-submit
+                                name="assignee"
+                                <?= $scope === 'unassigned'
+                                    ? 'disabled'
+                                    : '' ?>
+                            >
+                                <option value="">
+                                    همه کارشناسان
+                                </option>
+
+                                <?php foreach (
+                                    $assignees
+                                    as $option
+                                ): ?>
+
+                                    <?php
+                                    $optionReference =
+                                        (string) (
+                                            $option[
+                                                'user_reference'
+                                            ]
+                                            ?? ''
+                                        );
+
+                                    $optionTitle =
+                                        trim(
+                                            (string) (
+                                                $option[
+                                                    'display_name'
+                                                ]
+                                                ?? ''
+                                            )
+                                        );
+
+                                    if ($optionTitle === '') {
+                                        $optionTitle =
+                                            $optionReference;
+                                    }
+                                    ?>
+
+                                    <option
+                                        value="<?= ticketing_h(
+                                            $optionReference
+                                        ) ?>"
+                                        <?= $assignee === $optionReference
+                                            ? 'selected'
+                                            : '' ?>
+                                    >
+                                        <?= ticketing_h(
+                                            $optionTitle
+                                        ) ?>
+                                    </option>
+
+                                <?php endforeach; ?>
+
+                            </select>
+                        </label>
+
+
+                        <label
+                            class="ticketing-staff-search__field ticketing-compact-filter__field"
+                        >
+                            <span>
+                                مرتب‌سازی
+                            </span>
+
+                            <select
+                                class="ui-select ticketing-cartable-filter-select"
+                                data-ticketing-filter-auto-submit
+                                name="sort"
+                            >
+                                <?php foreach (
+                                    $sortOptions
+                                    as $optionCode => $optionTitle
+                                ): ?>
+
+                                    <option
+                                        value="<?= ticketing_h(
+                                            $optionCode
+                                        ) ?>"
+                                        <?= $sort === $optionCode
+                                            ? 'selected'
+                                            : '' ?>
+                                    >
+                                        <?= ticketing_h(
+                                            $optionTitle
+                                        ) ?>
+                                    </option>
+
+                                <?php endforeach; ?>
+
+                            </select>
+                        </label>
+
+
+                        <label
+                            class="ticketing-staff-search__field ticketing-compact-filter__field"
+                        >
+                            <span>
+                                تعداد در صفحه
+                            </span>
+
+                            <select
+                                class="ui-select ticketing-cartable-filter-select"
+                                data-ticketing-filter-auto-submit
+                                name="per_page"
+                            >
+                                <?php foreach (
+                                    [
+                                        25,
+                                        50,
+                                    ]
+                                    as $perPageOption
+                                ): ?>
+
+                                    <option
+                                        value="<?= ticketing_h(
+                                            (string) $perPageOption
+                                        ) ?>"
+                                        <?= $perPage === $perPageOption
+                                            ? 'selected'
+                                            : '' ?>
+                                    >
+                                        <?= ticketing_h(
+                                            \App\Support\AdminFormat::digits(
+                                                (string) $perPageOption
+                                            )
+                                        ) ?>
+                                    </option>
+
+                                <?php endforeach; ?>
+
+                            </select>
+                        </label>
+
+                    </div>
+
+                </div>
+
+                <!-- TICKETING_COMPACT_FILTER_ADVANCED_T3G_END -->
 
             </form>
 

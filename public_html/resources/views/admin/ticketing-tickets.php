@@ -239,6 +239,38 @@ $moreProjects =
     );
 
 
+/*
+ * TICKETING_COMPACT_FILTER_UX_T3G
+ *
+ * The primary row contains only frequent filters.
+ * Secondary workflow controls remain available on demand.
+ */
+$advancedFilterCount = 0;
+
+if ($layerId > 0) {
+    $advancedFilterCount++;
+}
+
+if ($assigneeId > 0) {
+    $advancedFilterCount++;
+}
+
+if (
+    $sort1 !== 'last_activity'
+    ||
+    $dir1 !== 'desc'
+    ||
+    $sort2 !== 'created_at'
+    ||
+    $dir2 !== 'desc'
+) {
+    $advancedFilterCount++;
+}
+
+$advancedFiltersOpen =
+    $advancedFilterCount > 0;
+
+
 ob_start();
 ?>
 
@@ -423,9 +455,16 @@ ob_start();
             <?php endif; ?>
 
 
-            <div class="ticketing-filter-grid">
+            <!-- TICKETING_COMPACT_FILTER_UX_T3G -->
+            <!-- TICKETING_COMPACT_FILTER_PRIMARY_T3G_START -->
 
-                <label>
+            <div
+                class="ticketing-compact-filter-grid ticketing-compact-filter-grid--requester"
+            >
+
+                <label
+                    class="ticketing-compact-filter__field ticketing-compact-filter__search"
+                >
                     <span>جستجو</span>
 
                     <input
@@ -438,7 +477,7 @@ ob_start();
                 </label>
 
 
-                <label>
+                <label class="ticketing-compact-filter__field">
                     <span>وضعیت</span>
 
                     <select name="status">
@@ -463,32 +502,7 @@ ob_start();
                 </label>
 
 
-                <label>
-                    <span>اولویت</span>
-
-                    <select name="priority">
-                        <option value="">
-                            همه اولویت‌ها
-                        </option>
-
-                        <?php foreach (
-                            $priorityOptions
-                            as $code => $label
-                        ): ?>
-                            <option
-                                value="<?= ticketing_h($code) ?>"
-                                <?= $priority === (string) $code
-                                    ? ' selected'
-                                    : '' ?>
-                            >
-                                <?= ticketing_h($label) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
-
-
-                <label>
+                <label class="ticketing-compact-filter__field">
                     <span>موضوع</span>
 
                     <select name="topic">
@@ -513,21 +527,21 @@ ob_start();
                 </label>
 
 
-                <label>
-                    <span>مرحله جاری</span>
+                <label class="ticketing-compact-filter__field">
+                    <span>اولویت</span>
 
-                    <select name="layer">
+                    <select name="priority">
                         <option value="">
-                            همه مراحل
+                            همه اولویت‌ها
                         </option>
 
                         <?php foreach (
-                            $layerOptions
-                            as $id => $label
+                            $priorityOptions
+                            as $code => $label
                         ): ?>
                             <option
-                                value="<?= ticketing_h($id) ?>"
-                                <?= $layerId === (int) $id
+                                value="<?= ticketing_h($code) ?>"
+                                <?= $priority === (string) $code
                                     ? ' selected'
                                     : '' ?>
                             >
@@ -538,49 +552,153 @@ ob_start();
                 </label>
 
 
-                <label>
-                    <span>کارشناس جاری</span>
+                <div class="ticketing-compact-filter__actions">
 
-                    <select name="assignee">
-                        <option value="">
-                            همه کارشناسان
-                        </option>
+                    <button
+                        type="button"
+                        class="ui-button admin-button admin-button--soft ticketing-compact-more-button"
+                        data-active="<?= $advancedFilterCount ? '1' : '0' ?>"
+                        data-ticketing-advanced-toggle
+                        aria-expanded="<?= $advancedFiltersOpen
+                            ? 'true'
+                            : 'false' ?>"
+                        aria-controls="ticketing-my-advanced-filters"
+                    >
+                        <span>
+                            فیلترهای بیشتر
+                        </span>
 
-                        <?php foreach (
-                            $assigneeOptions
-                            as $id => $label
-                        ): ?>
-                            <option
-                                value="<?= ticketing_h($id) ?>"
-                                <?= $assigneeId === (int) $id
-                                    ? ' selected'
-                                    : '' ?>
-                            >
-                                <?= ticketing_h($label) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </label>
+                        <?php if ($advancedFilterCount > 0): ?>
+                            <b class="ticketing-compact-more-button__count">
+                                <?= ticketing_h(
+                                    \App\Support\AdminFormat::digits(
+                                        (string) $advancedFilterCount
+                                    )
+                                ) ?>
+                            </b>
+                        <?php endif; ?>
+                    </button>
+
+
+                    <a
+                        class="ticketing-icon-action ticketing-icon-action--soft ticketing-compact-filter__reset"
+                        href="<?= ticketing_h(
+                            $urlWith([
+                                'q' => '',
+                                'status' => '',
+                                'priority' => '',
+                                'topic' => '',
+                                'layer' => '',
+                                'assignee' => '',
+                                'sort1' =>
+                                    'last_activity',
+                                'dir1' =>
+                                    'desc',
+                                'sort2' =>
+                                    'created_at',
+                                'dir2' =>
+                                    'desc',
+                            ])
+                        ) ?>"
+                        aria-label="بازنشانی فیلترها"
+                        title="بازنشانی فیلترها"
+                        data-tooltip="بازنشانی فیلترها"
+                    >
+                        <?= \App\Support\TicketingIcon::svg(
+                            'reset'
+                        ) ?>
+                    </a>
+
+
+                    <span class="ticketing-compact-filter__result-count">
+                        <?= ticketing_h(
+                            \App\Support\AdminFormat::digits(
+                                $total
+                            )
+                        ) ?>
+                        تیکت
+                    </span>
+
+                </div>
 
             </div>
 
+            <!-- TICKETING_COMPACT_FILTER_PRIMARY_T3G_END -->
 
-            <details
-                class="ticketing-sort-details"
-                <?= (
-                    $sort1 !== 'last_activity'
-                    || $dir1 !== 'desc'
-                    || $sort2 !== 'created_at'
-                    || $dir2 !== 'desc'
-                ) ? ' open' : '' ?>
+
+            <!-- TICKETING_COMPACT_FILTER_ADVANCED_T3G_START -->
+
+            <div
+                id="ticketing-my-advanced-filters"
+                class="ticketing-advanced-filter-panel"
+                data-ticketing-advanced-panel
+                <?= $advancedFiltersOpen
+                    ? ''
+                    : 'hidden' ?>
             >
-                <summary>
-                    مرتب‌سازی چندمرحله‌ای
-                </summary>
 
-                <div class="ticketing-sort-grid">
+                <div class="ticketing-advanced-filter-grid">
 
-                    <label>
+                    <label class="ticketing-compact-filter__field">
+                        <span>مرحله جاری</span>
+
+                        <select name="layer">
+                            <option value="">
+                                همه مراحل
+                            </option>
+
+                            <?php foreach (
+                                $layerOptions
+                                as $id => $label
+                            ): ?>
+                                <option
+                                    value="<?= ticketing_h($id) ?>"
+                                    <?= $layerId === (int) $id
+                                        ? ' selected'
+                                        : '' ?>
+                                >
+                                    <?= ticketing_h($label) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+
+
+                    <label class="ticketing-compact-filter__field">
+                        <span>کارشناس جاری</span>
+
+                        <select name="assignee">
+                            <option value="">
+                                همه کارشناسان
+                            </option>
+
+                            <?php foreach (
+                                $assigneeOptions
+                                as $id => $label
+                            ): ?>
+                                <option
+                                    value="<?= ticketing_h($id) ?>"
+                                    <?= $assigneeId === (int) $id
+                                        ? ' selected'
+                                        : '' ?>
+                                >
+                                    <?= ticketing_h($label) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+
+                </div>
+
+
+                <div class="ticketing-advanced-filter-panel__title">
+                    مرتب‌سازی
+                </div>
+
+
+                <div class="ticketing-advanced-sort-grid">
+
+                    <label class="ticketing-compact-filter__field">
                         <span>مرتب‌سازی اول</span>
 
                         <select name="sort1">
@@ -601,7 +719,7 @@ ob_start();
                     </label>
 
 
-                    <label>
+                    <label class="ticketing-compact-filter__field">
                         <span>جهت</span>
 
                         <select name="dir1">
@@ -626,7 +744,7 @@ ob_start();
                     </label>
 
 
-                    <label>
+                    <label class="ticketing-compact-filter__field">
                         <span>مرتب‌سازی دوم</span>
 
                         <select name="sort2">
@@ -647,7 +765,7 @@ ob_start();
                     </label>
 
 
-                    <label>
+                    <label class="ticketing-compact-filter__field">
                         <span>جهت دوم</span>
 
                         <select name="dir2">
@@ -672,46 +790,10 @@ ob_start();
                     </label>
 
                 </div>
-            </details>
-
-
-            <div class="admin-form-actions ticketing-filter-actions">
-
-
-                <a
-                    class="admin-button admin-button--soft"
-                    href="<?= ticketing_h(
-                        $urlWith([
-                            'q' => '',
-                            'status' => '',
-                            'priority' => '',
-                            'topic' => '',
-                            'layer' => '',
-                            'assignee' => '',
-                            'sort1' =>
-                                'last_activity',
-                            'dir1' =>
-                                'desc',
-                            'sort2' =>
-                                'created_at',
-                            'dir2' =>
-                                'desc',
-                        ])
-                    ) ?>"
-                >
-                    بازنشانی
-                </a>
-
-                <span class="admin-muted ticketing-result-count">
-                    <?= ticketing_h(
-                        \App\Support\AdminFormat::digits(
-                            $total
-                        )
-                    ) ?>
-                    تیکت
-                </span>
 
             </div>
+
+            <!-- TICKETING_COMPACT_FILTER_ADVANCED_T3G_END -->
 
         </form>
 
@@ -728,6 +810,46 @@ ob_start();
             if (!form) {
                 return;
             }
+
+
+            /*
+             * TICKETING_COMPACT_FILTER_TOGGLE_T3G
+             */
+            const advancedToggle =
+                form.querySelector(
+                    '[data-ticketing-advanced-toggle]'
+                );
+
+            const advancedPanel =
+                form.querySelector(
+                    '[data-ticketing-advanced-panel]'
+                );
+
+
+            if (
+                advancedToggle
+                &&
+                advancedPanel
+            ) {
+                advancedToggle.addEventListener(
+                    'click',
+                    () => {
+                        const open =
+                            advancedPanel.hidden;
+
+                        advancedPanel.hidden =
+                            !open;
+
+                        advancedToggle.setAttribute(
+                            'aria-expanded',
+                            open
+                                ? 'true'
+                                : 'false'
+                        );
+                    }
+                );
+            }
+
 
             const debounceMs = 500;
 

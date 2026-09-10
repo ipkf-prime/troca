@@ -3652,3 +3652,176 @@ a.ticketing-attachment-action:focus-visible {
         width: 100%;
     }
 }
+
+/* ==========================================================================
+ * TICKETING_COMPACT_FILTER_UX_T3G
+ * Compact primary filters + on-demand advanced filters
+ * ========================================================================== */
+
+.ticketing-compact-filter-grid {
+    display: grid;
+    grid-template-columns:
+        minmax(320px, 2.2fr)
+        repeat(3, minmax(135px, 1fr))
+        auto;
+    gap: 10px;
+    align-items: end;
+}
+
+.ticketing-compact-filter__field {
+    min-width: 0;
+}
+
+.ticketing-compact-filter__field > span {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.ticketing-compact-filter__field input,
+.ticketing-compact-filter__field select {
+    width: 100%;
+    min-width: 0;
+}
+
+.ticketing-compact-filter__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    min-height: 42px;
+    white-space: nowrap;
+}
+
+.ticketing-compact-more-button {
+    min-height: 42px;
+    padding-inline: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    white-space: nowrap;
+}
+
+.ticketing-compact-more-button[data-active="1"] {
+    font-weight: 700;
+}
+
+.ticketing-compact-more-button__count {
+    min-width: 22px;
+    height: 22px;
+    padding-inline: 6px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e6f3eb;
+    color: #247347;
+    font-size: 12px;
+    line-height: 1;
+}
+
+.ticketing-compact-filter__reset {
+    flex: 0 0 auto;
+}
+
+.ticketing-compact-filter__result-count {
+    color: #607568;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.ticketing-advanced-filter-panel {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e3eee8;
+}
+
+.ticketing-advanced-filter-panel[hidden] {
+    display: none !important;
+}
+
+.ticketing-advanced-filter-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(180px, 1fr));
+    gap: 10px;
+}
+
+.ticketing-advanced-filter-grid--staff {
+    grid-template-columns:
+        repeat(4, minmax(145px, 1fr));
+}
+
+.ticketing-advanced-filter-panel__title {
+    margin-top: 12px;
+    margin-bottom: 7px;
+    font-weight: 700;
+    font-size: 12px;
+    color: #52675a;
+}
+
+.ticketing-advanced-sort-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(145px, 1fr));
+    gap: 10px;
+}
+
+
+/*
+ * Old wide Staff grid rules must not force the compact primary row.
+ */
+.ticketing-staff-filter-grid
+.ticketing-compact-filter-grid {
+    width: 100%;
+}
+
+
+/*
+ * Medium screens.
+ */
+@media (max-width: 1100px) {
+
+    .ticketing-compact-filter-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .ticketing-compact-filter__search {
+        grid-column: 1 / -1;
+    }
+
+    .ticketing-compact-filter__actions {
+        grid-column: 1 / -1;
+    }
+
+    .ticketing-advanced-filter-grid--staff,
+    .ticketing-advanced-sort-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+}
+
+
+/*
+ * Mobile / narrow tablet.
+ */
+@media (max-width: 640px) {
+
+    .ticketing-compact-filter-grid,
+    .ticketing-advanced-filter-grid,
+    .ticketing-advanced-filter-grid--staff,
+    .ticketing-advanced-sort-grid {
+        grid-template-columns:
+            minmax(0, 1fr);
+    }
+
+    .ticketing-compact-filter__search,
+    .ticketing-compact-filter__actions {
+        grid-column: auto;
+    }
+
+    .ticketing-compact-filter__actions {
+        flex-wrap: wrap;
+    }
+}
