@@ -3769,11 +3769,42 @@ a.ticketing-attachment-action:focus-visible {
 
 
 /*
- * Old wide Staff grid rules must not force the compact primary row.
+ * TICKETING_STAFF_ADVANCED_FILTER_CONTAINMENT_R1
+ *
+ * The compact primary group and the advanced panel are direct
+ * children of the outer Staff filter grid.
+ *
+ * When the advanced panel becomes visible, both groups must keep
+ * their own full row. Otherwise the legacy outer auto-fit grid
+ * allocates separate narrow tracks and the nested filter controls
+ * overflow the cartable card.
  */
 .ticketing-staff-filter-grid
-.ticketing-compact-filter-grid {
+> .ticketing-compact-filter-grid,
+.ticketing-staff-filter-grid
+> .ticketing-advanced-filter-panel {
+    grid-column: 1 / -1;
+    min-width: 0;
     width: 100%;
+}
+
+
+/*
+ * Keep intrinsic select/label widths from expanding the advanced
+ * nested grid beyond the full-width parent. The existing responsive
+ * 4 -> 2 -> 1 column rules remain authoritative.
+ */
+.ticketing-staff-filter-grid
+.ticketing-advanced-filter-grid--staff {
+    min-width: 0;
+    width: 100%;
+}
+
+
+.ticketing-staff-filter-grid
+.ticketing-advanced-filter-grid--staff
+> * {
+    min-width: 0;
 }
 
 
