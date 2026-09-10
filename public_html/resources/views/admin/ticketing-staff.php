@@ -605,6 +605,7 @@ ob_start();
                     <input
                         type="search"
                         class="ui-input"
+                        data-ticketing-search-auto-submit
                         name="q"
                         maxlength="180"
                         value="<?= ticketing_h(
@@ -934,18 +935,6 @@ ob_start();
 
 
                 <div class="ticketing-staff-search__actions">
-
-                    <button
-                        type="submit"
-                        class="ticketing-icon-action ticketing-icon-action--primary"
-                        aria-label="اعمال فیلترها"
-                        title="اعمال فیلترها"
-                        data-tooltip="اعمال فیلترها"
-                    >
-                        <?= \App\Support\TicketingIcon::svg(
-                            'search'
-                        ) ?>
-                    </button>
 
 
                     <a

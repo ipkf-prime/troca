@@ -45,3 +45,216 @@
         true
     );
 }());
+
+(function () {
+    'use strict';
+
+    /*
+     * TICKETING_CARTABLE_AUTO_SEARCH_T3E
+     *
+     * Text search follows the same automatic-filter UX as My Tickets:
+     * - 500 ms debounce while typing
+     * - immediate Enter submit
+     * - IME/composition safe
+     * - native GET form submission
+     * - no AJAX
+     *
+     * Existing select auto-submit behavior above remains untouched.
+     */
+
+    var debounceMs = 500;
+    var searchTimer = null;
+    var composing = false;
+
+
+    function clearTimer() {
+        if (searchTimer === null) {
+            return;
+        }
+
+        window.clearTimeout(
+            searchTimer
+        );
+
+        searchTimer = null;
+    }
+
+
+    function searchFieldFromEvent(event) {
+        var field =
+            event.target;
+
+        if (
+            !field
+            || !field.matches
+            || !field.matches(
+                '[data-ticketing-search-auto-submit]'
+            )
+            || field.disabled
+        ) {
+            return null;
+        }
+
+        return field;
+    }
+
+
+    function submitSearch(field) {
+        var form =
+            field.form
+            || field.closest('form');
+
+        if (!form) {
+            return;
+        }
+
+        clearTimer();
+
+        if (
+            typeof form.requestSubmit
+            === 'function'
+        ) {
+            form.requestSubmit();
+            return;
+        }
+
+        form.submit();
+    }
+
+
+    function scheduleSearch(field) {
+        clearTimer();
+
+        if (composing) {
+            return;
+        }
+
+        searchTimer =
+            window.setTimeout(
+                function () {
+                    submitSearch(
+                        field
+                    );
+                },
+                debounceMs
+            );
+    }
+
+
+    document.addEventListener(
+        'compositionstart',
+        function (event) {
+            var field =
+                searchFieldFromEvent(
+                    event
+                );
+
+            if (!field) {
+                return;
+            }
+
+            composing = true;
+            clearTimer();
+        },
+        true
+    );
+
+
+    document.addEventListener(
+        'compositionend',
+        function (event) {
+            var field =
+                searchFieldFromEvent(
+                    event
+                );
+
+            if (!field) {
+                return;
+            }
+
+            composing = false;
+
+            scheduleSearch(
+                field
+            );
+        },
+        true
+    );
+
+
+    document.addEventListener(
+        'input',
+        function (event) {
+            var field =
+                searchFieldFromEvent(
+                    event
+                );
+
+            if (
+                !field
+                || composing
+            ) {
+                return;
+            }
+
+            scheduleSearch(
+                field
+            );
+        },
+        true
+    );
+
+
+    document.addEventListener(
+        'search',
+        function (event) {
+            var field =
+                searchFieldFromEvent(
+                    event
+                );
+
+            if (!field) {
+                return;
+            }
+
+            /*
+             * Native clear button on input[type=search].
+             * Submit immediately after clearing instead of waiting
+             * for a second debounce cycle.
+             */
+            if (field.value === '') {
+                submitSearch(
+                    field
+                );
+            }
+        },
+        true
+    );
+
+
+    document.addEventListener(
+        'keydown',
+        function (event) {
+            var field =
+                searchFieldFromEvent(
+                    event
+                );
+
+            if (
+                !field
+                || event.key !== 'Enter'
+                || event.isComposing
+                || composing
+            ) {
+                return;
+            }
+
+            event.preventDefault();
+
+            submitSearch(
+                field
+            );
+        },
+        true
+    );
+}());
