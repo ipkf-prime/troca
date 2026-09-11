@@ -1281,7 +1281,7 @@ class DynamicAdminNavigationService extends BaseService
             'permission_codes_json' =>
                 json_encode(
                     [
-                        'admin.settings.manage',
+                        'admin.ui_content.manage',
                     ],
                     JSON_UNESCAPED_UNICODE
                     | JSON_UNESCAPED_SLASHES
