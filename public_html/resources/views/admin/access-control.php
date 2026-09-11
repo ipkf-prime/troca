@@ -19,6 +19,20 @@ if (preg_match('/^\d{3}$/', $status) === 1) {
     $status = '';
 }
 $tab = (string) ($page['tab'] ?? 'roles');
+
+$capabilities =
+    is_array(
+        $page['capabilities']
+        ?? null
+    )
+        ? $page['capabilities']
+        : [];
+
+$canRoles = !empty($capabilities['roles']);
+$canUsers = !empty($capabilities['users']);
+$canUsersManage = !empty($capabilities['users_manage']);
+$canAudit = !empty($capabilities['audit']);
+$canScopes = !empty($capabilities['scopes']);
 $roles = is_array($page['roles'] ?? null)
     ? $page['roles']
     : [];
@@ -414,31 +428,37 @@ ob_start();
     </style>
 
     <!-- DYNAMIC_SCOPED_ACCESS_ENTRY_V1 -->
-    <div
-        class="admin-form-actions access-fixed-nav"
-        style="margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:.6rem;justify-content:flex-start;direction:rtl;width:100%"
-    >
-        <a
-            class="admin-button"
-            href="/admin/access-control/roles"
+    <?php if ($canRoles || $canScopes): ?>
+        <div
+            class="admin-form-actions access-fixed-nav"
+            style="margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:.6rem;justify-content:flex-start;direction:rtl;width:100%"
         >
-            مدیریت و ویرایش نقش‌ها
-        </a>
+            <?php if ($canRoles): ?>
+                <a
+                    class="admin-button"
+                    href="/admin/access-control/roles"
+                >
+                    مدیریت و ویرایش نقش‌ها
+                </a>
 
-        <a
-            class="admin-button admin-button--soft"
-            href="/admin/access-control/roles/create"
-        >
-            ایجاد نقش جدید
-        </a>
+                <a
+                    class="admin-button admin-button--soft"
+                    href="/admin/access-control/roles/create"
+                >
+                    ایجاد نقش جدید
+                </a>
+            <?php endif; ?>
 
-        <a
-            class="admin-button admin-button--soft"
-            href="/admin/access-control/scopes"
-        >
-            حوزه و محدودیت انتساب‌ها
-        </a>
-    </div>
+            <?php if ($canScopes): ?>
+                <a
+                    class="admin-button admin-button--soft"
+                    href="/admin/access-control/scopes"
+                >
+                    حوزه و محدودیت انتساب‌ها
+                </a>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 
     <header class="acl-hero">
         <div class="acl-hero__copy">
@@ -466,12 +486,27 @@ ob_start();
         </div>
     </header>
 
+    <?php
+    $tabTitles = [];
+
+    if ($canRoles) {
+        $tabTitles['roles'] =
+            'نقش‌ها و مجوزها';
+    }
+
+    if ($canUsers) {
+        $tabTitles['users'] =
+            'دسترسی اختصاصی کاربران';
+    }
+
+    if ($canAudit) {
+        $tabTitles['audit'] =
+            'تاریخچه تغییرات';
+    }
+    ?>
+
     <nav class="acl-tabs" aria-label="بخش‌های مدیریت دسترسی">
-        <?php foreach ([
-            'roles' => 'نقش‌ها و مجوزها',
-            'users' => 'دسترسی اختصاصی کاربران',
-            'audit' => 'تاریخچه تغییرات',
-        ] as $code => $tabTitle): ?>
+        <?php foreach ($tabTitles as $code => $tabTitle): ?>
             <a
                 href="/admin/access-control?tab=<?= admin_h($code) ?>"
                 class="<?= $tab === $code ? 'is-active' : '' ?>"

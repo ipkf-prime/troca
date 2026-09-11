@@ -839,7 +839,7 @@ class DynamicAdminNavigationService extends BaseService
                     $shellKey
                 );
 
-            return
+            $items =
                 $this->withSystemHelpTexts(
                     $this->withPublicLandingManagement(
                         $this->withSystemScheduler(
@@ -851,9 +851,74 @@ class DynamicAdminNavigationService extends BaseService
                     $shellKey
                 );
 
+            return
+                $this->normalizeSystemManagementItems(
+                    $items,
+                    $shellKey
+                );
+
         } catch (Throwable) {
             return [];
         }
+    }
+
+
+    private function normalizeSystemManagementItems(
+        array $items,
+        string $shellKey
+    ): array {
+        if ($shellKey !== 'core') {
+            return $items;
+        }
+
+        $accessPermissions = [
+            'access.manage',
+            'access.roles.manage',
+            'access.users.search',
+            'access.users.manage',
+            'access.audit.view',
+        ];
+
+        foreach ($items as &$item) {
+            $key =
+                (string) (
+                    $item['item_key']
+                    ?? ''
+                );
+
+            if ($key === 'access-control') {
+                $item['title'] =
+                    'سطوح و نقش‌های دسترسی';
+
+                $item['description'] =
+                    'مرکز یکپارچه نقش‌ها، مجوزها، انتساب‌ها، حوزه‌ها و دسترسی اختصاصی کاربران';
+
+                $item['icon_code'] =
+                    'user-shield';
+
+                $item['permission_mode'] =
+                    'any';
+
+                $item['permission_codes_json'] =
+                    json_encode(
+                        $accessPermissions,
+                        JSON_UNESCAPED_UNICODE
+                        | JSON_UNESCAPED_SLASHES
+                    );
+            }
+
+            if ($key === 'help-texts') {
+                $item['title'] =
+                    'مدیریت راهنما، اعلان و خطا';
+
+                $item['description'] =
+                    'مدیریت متن‌های راهنما، اعلان‌ها و پیام‌های خطای سامانه';
+            }
+        }
+
+        unset($item);
+
+        return $items;
     }
 
 
@@ -1291,9 +1356,10 @@ class DynamicAdminNavigationService extends BaseService
             'item_type' => 'link',
             'placement_code' => 'sidebar',
             'hide_when_badge_empty' => 0,
-            'title' => 'راهنماها',
+            'title' =>
+                'مدیریت راهنما، اعلان و خطا',
             'description' =>
-                'مدیریت متن‌های راهنمای سامانه',
+                'مدیریت متن‌های راهنما، اعلان‌ها و پیام‌های خطای سامانه',
             'route_path' =>
                 '/admin/system/help-texts',
             'target_application' =>

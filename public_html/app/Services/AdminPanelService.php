@@ -948,7 +948,14 @@ class AdminPanelService extends BaseService
                         'icon' => 'user-shield',
                         'color' => 'indigo',
                         'url' => '/admin/access-control',
-                        'permission' => 'access.manage',
+                        'permission_mode' => 'any',
+                        'permissions' => [
+                            'access.manage',
+                            'access.roles.manage',
+                            'access.users.search',
+                            'access.users.manage',
+                            'access.audit.view',
+                        ],
                         'sort_order' => 25,
                     ],                    [
                         'key' => 'public-page',
@@ -1143,12 +1150,78 @@ class AdminPanelService extends BaseService
     {
         $links = array_values(array_filter(
             $module['actions'] ?? [],
-            fn (array $link): bool => $this->navigation->can($userId, (string) $link['permission'])
+            fn (array $link): bool =>
+                $this->actionAllowed(
+                    $userId,
+                    $link
+                )
         ));
 
-        usort($links, fn (array $a, array $b): int => (int) ($a['sort_order'] ?? 0) <=> (int) ($b['sort_order'] ?? 0));
+        usort(
+            $links,
+            fn (array $a, array $b): int =>
+                (int) ($a['sort_order'] ?? 0)
+                <=>
+                (int) ($b['sort_order'] ?? 0)
+        );
 
         return $links;
+    }
+
+    private function actionAllowed(
+        int $userId,
+        array $action
+    ): bool {
+        $permissions =
+            is_array(
+                $action['permissions']
+                ?? null
+            )
+                ? array_values(
+                    array_filter(
+                        array_map(
+                            static fn ($permission): string =>
+                                trim((string) $permission),
+                            $action['permissions']
+                        ),
+                        static fn (string $permission): bool =>
+                            $permission !== ''
+                    )
+                )
+                : [];
+
+        if (
+            $permissions === []
+            && isset($action['permission'])
+        ) {
+            $permission =
+                trim(
+                    (string) $action['permission']
+                );
+
+            if ($permission !== '') {
+                $permissions[] = $permission;
+            }
+        }
+
+        if ($permissions === []) {
+            return true;
+        }
+
+        $results =
+            array_map(
+                fn (string $permission): bool =>
+                    $this->navigation->can(
+                        $userId,
+                        $permission
+                    ),
+                $permissions
+            );
+
+        return
+            ($action['permission_mode'] ?? 'any') === 'all'
+                ? !in_array(false, $results, true)
+                : in_array(true, $results, true);
     }
 
     private function fa(string $entities): string

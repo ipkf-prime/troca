@@ -25,6 +25,14 @@ class AdminNavigationRbacService extends BaseService
             '/admin/password' => 'account.password.change',
             '/admin/my-theme' => 'account.theme.manage',
             '/admin/access' => 'access.manage',
+            '/admin/access-control' => 'access.roles.manage',
+            '/admin/access-control/roles' => 'access.roles.manage',
+            '/admin/access-control/roles/create' => 'access.roles.manage',
+            '/admin/access-control/roles/update' => 'access.roles.manage',
+            '/admin/access-control/scopes' => 'access.scopes.manage',
+            '/admin/access-control/users' => 'access.users.manage',
+            '/admin/access-control/users/default-role' => 'access.users.manage',
+            '/admin/access-control/users/roles' => 'access.users.manage',
             '/admin/automation' => 'automation.correspondence.view',
             '/admin/automation/secretariat' => 'automation.registry.manage',
             '/admin/automation/secretariat/desks' => 'automation.registry.manage',
@@ -103,6 +111,9 @@ class AdminNavigationRbacService extends BaseService
             '/admin/theme/debug' => 'admin.theme.manage',
             '/admin/navigation/debug' => 'admin.navigation.debug',
             '/admin/settings' => 'admin.settings.manage',
+            '/admin/settings/core-features' => 'admin.settings.manage',
+            '/admin/settings/file-infrastructure' => 'admin.settings.manage',
+            '/admin/settings/modules' => 'admin.settings.manage',
             '/admin/public-page' => 'admin.settings.manage',
             '/admin/system/help-texts' => 'admin.ui_content.manage',
             '/admin/system/help-texts/definition/save' => 'admin.ui_content.manage',
@@ -204,6 +215,18 @@ class AdminNavigationRbacService extends BaseService
             }
         }
 
+        $accessControlPermissions =
+            $this->accessControlPermissionsForPath(
+                $path
+            );
+
+        if ($accessControlPermissions !== null) {
+            return $this->canAny(
+                $userId,
+                $accessControlPermissions
+            );
+        }
+
         $permission =
             $this->permissionForPath($path);
 
@@ -214,6 +237,98 @@ class AdminNavigationRbacService extends BaseService
                 $userId,
                 $permission
             );
+    }
+
+
+    public function accessControlPermissionsForPath(
+        string $path
+    ): ?array {
+        $path =
+            rtrim(
+                parse_url($path, PHP_URL_PATH)
+                ?: $path,
+                '/'
+            )
+            ?: '/';
+
+        if ($path === '/admin/access-control') {
+            return [
+                'access.manage',
+                'access.roles.manage',
+                'access.users.search',
+                'access.users.manage',
+                'access.audit.view',
+            ];
+        }
+
+        if (
+            in_array(
+                $path,
+                [
+                    '/admin/access-control/roles',
+                    '/admin/access-control/roles/create',
+                    '/admin/access-control/roles/update',
+                ],
+                true
+            )
+        ) {
+            return [
+                'access.manage',
+                'access.roles.manage',
+            ];
+        }
+
+        if ($path === '/admin/access-control/scopes') {
+            return [
+                'access.manage',
+                'access.scopes.manage',
+                'access.users.manage',
+            ];
+        }
+
+        if (
+            in_array(
+                $path,
+                [
+                    '/admin/access-control/users',
+                    '/admin/access-control/users/default-role',
+                    '/admin/access-control/users/roles',
+                ],
+                true
+            )
+        ) {
+            return [
+                'access.manage',
+                'access.users.manage',
+            ];
+        }
+
+        return null;
+    }
+
+    public function canAny(
+        ?int $userId,
+        array $permissions
+    ): bool {
+        if ($userId === null) {
+            return false;
+        }
+
+        foreach ($permissions as $permission) {
+            $permission = trim((string) $permission);
+
+            if (
+                $permission !== ''
+                && $this->can(
+                    $userId,
+                    $permission
+                )
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 

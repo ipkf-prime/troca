@@ -2019,7 +2019,7 @@ $router->get('/admin/access-control', function (
     $request,
     $response
 ) use ($adminRender, $adminGuard) {
-    $context = $adminGuard($response, '/admin/access');
+    $context = $adminGuard($response, '/admin/access-control');
 
     if (!is_array($context)) {
         return $context;
@@ -2061,7 +2061,7 @@ $router->post('/admin/access-control/roles', function (
     $request,
     $response
 ) use ($adminGuard) {
-    $context = $adminGuard($response, '/admin/access');
+    $context = $adminGuard($response, '/admin/access-control/roles');
 
     if (!is_array($context)) {
         return $context;
@@ -2108,10 +2108,7 @@ $router->post(
         $response
     ) use ($adminGuard) {
         $context =
-            $adminGuard(
-                $response,
-                '/admin/access'
-            );
+            $adminGuard($response, '/admin/access-control/users/roles');
 
         if (!is_array($context)) {
             return $context;
@@ -2181,10 +2178,7 @@ $router->post(
         $response
     ) use ($adminGuard) {
         $context =
-            $adminGuard(
-                $response,
-                '/admin/access'
-            );
+            $adminGuard($response, '/admin/access-control/users/default-role');
 
         if (!is_array($context)) {
             return $context;
@@ -2260,7 +2254,7 @@ $router->post('/admin/access-control/users', function (
     $request,
     $response
 ) use ($adminGuard) {
-    $context = $adminGuard($response, '/admin/access');
+    $context = $adminGuard($response, '/admin/access-control/users');
 
     if (!is_array($context)) {
         return $context;
@@ -7571,10 +7565,7 @@ $router->get(
         $adminRender,
         $adminGuard
     ) {
-        $context = $adminGuard(
-            $response,
-            '/admin/access'
-        );
+        $context = $adminGuard($response, '/admin/access-control/roles/create');
 
         if (!is_array($context)) {
             return $context;
@@ -7619,10 +7610,7 @@ $router->post(
     ) use (
         $adminGuard
     ) {
-        $context = $adminGuard(
-            $response,
-            '/admin/access'
-        );
+        $context = $adminGuard($response, '/admin/access-control/roles/create');
 
         if (!is_array($context)) {
             return $context;
@@ -7730,7 +7718,7 @@ $router->post(
 $router->get(
     '/admin/access-control/roles',
     function ($request, $response) use ($adminRender, $adminGuard) {
-        $context = $adminGuard($response, '/admin/access');
+        $context = $adminGuard($response, '/admin/access-control/roles');
 
         if (!is_array($context)) {
             return $context;
@@ -7767,7 +7755,7 @@ $router->get(
 $router->post(
     '/admin/access-control/roles/update',
     function ($request, $response) use ($adminGuard) {
-        $context = $adminGuard($response, '/admin/access');
+        $context = $adminGuard($response, '/admin/access-control/roles/update');
 
         if (!is_array($context)) {
             return $context;
@@ -7834,10 +7822,7 @@ $router->get(
         $adminRender,
         $adminGuard
     ) {
-        $context = $adminGuard(
-            $response,
-            '/admin/access'
-        );
+        $context = $adminGuard($response, '/admin/access-control/scopes');
 
         if (!is_array($context)) {
             return $context;
@@ -7890,10 +7875,7 @@ $router->post(
     ) use (
         $adminGuard
     ) {
-        $context = $adminGuard(
-            $response,
-            '/admin/access'
-        );
+        $context = $adminGuard($response, '/admin/access-control/scopes');
 
         if (!is_array($context)) {
             return $context;

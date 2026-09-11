@@ -17,33 +17,174 @@ class AccessControlService extends BaseService
 
     public function page(int $actorUserId, array $filters): array
     {
-        $this->authorize(
-            $actorUserId,
-            ['access.manage', 'access.roles.manage',
-                'access.users.search', 'access.audit.view']
-        );
+        /*
+         * access_surface_capabilities
+         *
+         * access.manage is the umbrella permission.
+         * Granular permissions remain independently usable.
+         */
+        $capabilities = [
+            'roles' =>
+                $this->allowedAny(
+                    $actorUserId,
+                    [
+                        'access.manage',
+                        'access.roles.manage',
+                    ]
+                ),
 
-        $tab = strtolower(trim((string) ($filters['tab'] ?? 'roles')));
+            'users' =>
+                $this->allowedAny(
+                    $actorUserId,
+                    [
+                        'access.manage',
+                        'access.users.search',
+                        'access.users.manage',
+                    ]
+                ),
 
-        if (!in_array($tab, ['roles', 'users', 'audit'], true)) {
-            $tab = 'roles';
+            'users_manage' =>
+                $this->allowedAny(
+                    $actorUserId,
+                    [
+                        'access.manage',
+                        'access.users.manage',
+                    ]
+                ),
+
+            'audit' =>
+                $this->allowedAny(
+                    $actorUserId,
+                    [
+                        'access.manage',
+                        'access.audit.view',
+                    ]
+                ),
+
+            'scopes' =>
+                $this->allowedAny(
+                    $actorUserId,
+                    [
+                        'access.manage',
+                        'access.scopes.manage',
+                        'access.users.manage',
+                    ]
+                ),
+        ];
+
+        if (
+            !$capabilities['roles']
+            && !$capabilities['users']
+            && !$capabilities['audit']
+        ) {
+            throw new RuntimeException(
+                'access_management_forbidden'
+            );
         }
 
-        $query = trim((string) ($filters['q'] ?? ''));
-        $userId = max(0, (int) ($filters['user_id'] ?? 0));
-        $assignmentId = max(
-            0,
-            (int) ($filters['assignment_id'] ?? 0)
-        );
-        $data = $this->repository->page($query, $userId);
-        $assignments = $data['assignments'] ?? [];
+        $availableTabs = [];
+
+        foreach (
+            ['roles', 'users', 'audit']
+            as $candidate
+        ) {
+            if (!empty($capabilities[$candidate])) {
+                $availableTabs[] = $candidate;
+            }
+        }
+
+        $tab =
+            strtolower(
+                trim(
+                    (string) (
+                        $filters['tab']
+                        ?? 'roles'
+                    )
+                )
+            );
+
+        if (
+            !in_array(
+                $tab,
+                $availableTabs,
+                true
+            )
+        ) {
+            $tab =
+                (string) (
+                    $availableTabs[0]
+                    ?? 'roles'
+                );
+        }
+
+        $query =
+            $capabilities['users']
+                ? trim(
+                    (string) (
+                        $filters['q']
+                        ?? ''
+                    )
+                )
+                : '';
+
+        $userId =
+            $capabilities['users']
+                ? max(
+                    0,
+                    (int) (
+                        $filters['user_id']
+                        ?? 0
+                    )
+                )
+                : 0;
+
+        $assignmentId =
+            $capabilities['users']
+                ? max(
+                    0,
+                    (int) (
+                        $filters[
+                            'assignment_id'
+                        ]
+                        ?? 0
+                    )
+                )
+                : 0;
+
+        $data =
+            $this->repository->page(
+                $query,
+                $userId
+            );
+
+        if (!$capabilities['roles']) {
+            $data['roles'] = [];
+            $data['permissions'] = [];
+            $data['groups'] = [];
+            $data['role_map'] = [];
+        }
+
+        if (!$capabilities['users']) {
+            $data['users'] = [];
+            $data['selected_user'] = null;
+            $data['assignments'] = [];
+        }
+
+        if (!$capabilities['audit']) {
+            $data['audit'] = [];
+        }
+
+        $assignments =
+            $data['assignments']
+            ?? [];
 
         if (
             $assignmentId > 0
             && !in_array(
                 $assignmentId,
                 array_map(
-                    static fn (array $row): int => (int) $row['id'],
+                    static fn (array $row): int =>
+                        (int) $row['id'],
                     $assignments
                 ),
                 true
@@ -56,24 +197,45 @@ class AccessControlService extends BaseService
         $data['query'] = $query;
         $data['selected_user_id'] = $userId;
         $data['assignment_id'] = $assignmentId;
-        $data['overrides'] = $userId > 0
-            ? $this->repository->overrideMap($userId, $assignmentId)
-            : [];
-        $data['inherited'] = $userId > 0
-            ? $this->repository->inheritedMap($userId, $assignmentId)
-            : [];
-        $data['notification_policy'] = $userId > 0
-            ? $this->repository->notificationPolicy(
-                $userId,
-                $assignmentId
-            )
-            : 'none';
+
+        $data['overrides'] =
+            $userId > 0
+            && $capabilities['users']
+                ? $this->repository
+                    ->overrideMap(
+                        $userId,
+                        $assignmentId
+                    )
+                : [];
+
+        $data['inherited'] =
+            $userId > 0
+            && $capabilities['users']
+                ? $this->repository
+                    ->inheritedMap(
+                        $userId,
+                        $assignmentId
+                    )
+                : [];
+
+        $data['notification_policy'] =
+            $userId > 0
+            && $capabilities['users']
+                ? $this->repository
+                    ->notificationPolicy(
+                        $userId,
+                        $assignmentId
+                    )
+                : 'none';
 
         $data['assignable_roles'] = [];
         $data['selected_role_ids'] = [];
         $data['role_states'] = [];
 
-        if ($userId > 0) {
+        if (
+            $userId > 0
+            && $capabilities['users_manage']
+        ) {
             $roleForm =
                 (new AdminUserManagementService())
                     ->form(
@@ -111,8 +273,15 @@ class AccessControlService extends BaseService
             }
         }
 
+        $data['capabilities'] =
+            $capabilities;
+
+        $data['available_tabs'] =
+            $availableTabs;
+
         return $data;
     }
+
 
     public function saveRole(
         int $actorUserId,
@@ -305,6 +474,26 @@ class AccessControlService extends BaseService
             'assignment_id' =>
                 $assignmentId,
         ];
+    }
+
+
+    private function allowedAny(
+        int $userId,
+        array $permissions
+    ): bool {
+        foreach ($permissions as $permission) {
+            if (
+                $this->authorization
+                    ->hasPermission(
+                        $userId,
+                        (string) $permission
+                    )
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 
