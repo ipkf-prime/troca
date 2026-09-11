@@ -6,6 +6,8 @@ namespace App\Services\UiContent;
 
 use DateTimeImmutable;
 use IPKF\Database\Connections\ConnectionResolver;
+use IPKF\Support\Clock;
+use IPKF\Support\PersianDate;
 use JsonException;
 use PDO;
 use RuntimeException;
@@ -359,10 +361,12 @@ final class UiContentManagementService
         $httpStatus = null;
 
         $httpStatusRaw =
-            trim(
-                (string) (
-                    $input['http_status']
-                    ?? ''
+            PersianDate::normalizeDigits(
+                trim(
+                    (string) (
+                        $input['http_status']
+                        ?? ''
+                    )
                 )
             );
 
@@ -819,15 +823,15 @@ final class UiContentManagementService
             );
 
         $startsAt =
-            $this->dateTime(
-                $input['starts_at']
-                ?? null
+            $this->scheduledDateTime(
+                $input,
+                'starts_at'
             );
 
         $endsAt =
-            $this->dateTime(
-                $input['ends_at']
-                ?? null
+            $this->scheduledDateTime(
+                $input,
+                'ends_at'
             );
 
         if (
@@ -1243,6 +1247,30 @@ final class UiContentManagementService
             $this->db->prepare("
                 SELECT
                     d.*,
+
+                    (
+                        SELECT
+                            o.title
+
+                        FROM
+                            ui_content_overrides o
+
+                        WHERE
+                            o.definition_id = d.id
+                            AND o.locale = d.default_locale
+                            AND o.title IS NOT NULL
+                            AND TRIM(o.title) <> ''
+
+                        ORDER BY
+                            CASE o.scope_type
+                                WHEN 'global' THEN 0
+                                WHEN 'module' THEN 1
+                                ELSE 2
+                            END,
+                            o.id
+
+                        LIMIT 1
+                    ) AS display_title,
 
                     (
                         SELECT COUNT(*)
@@ -1728,6 +1756,147 @@ final class UiContentManagementService
                 JSON_UNESCAPED_UNICODE
                 | JSON_UNESCAPED_SLASHES
                 | JSON_THROW_ON_ERROR
+            );
+    }
+
+
+    private function scheduledDateTime(
+        array $input,
+        string $prefix
+    ): ?string {
+
+        $jalaliDate =
+            trim(
+                (string) (
+                    $input[
+                        $prefix
+                        . '_jalali'
+                    ]
+                    ?? ''
+                )
+            );
+
+        $gregorianDate =
+            trim(
+                (string) (
+                    $input[
+                        $prefix
+                        . '_date'
+                    ]
+                    ?? ''
+                )
+            );
+
+        $time =
+            PersianDate::normalizeDigits(
+                trim(
+                    (string) (
+                        $input[
+                            $prefix
+                            . '_time'
+                        ]
+                        ?? ''
+                    )
+                )
+            );
+
+        $structuredInput =
+            $jalaliDate !== ''
+            || $gregorianDate !== ''
+            || $time !== '';
+
+        if (!$structuredInput) {
+            return
+                $this->dateTime(
+                    $input[$prefix]
+                    ?? null
+                );
+        }
+
+        if ($jalaliDate !== '') {
+            $gregorianDate =
+                (string) (
+                    PersianDate::toGregorianDate(
+                        $jalaliDate
+                    )
+                    ?? ''
+                );
+        }
+
+        if (
+            $gregorianDate === ''
+            && $time === ''
+        ) {
+            return null;
+        }
+
+        if (
+            $gregorianDate === ''
+            || $time === ''
+        ) {
+            throw new RuntimeException(
+                'ui_content_datetime_incomplete'
+            );
+        }
+
+        if (
+            preg_match(
+                '/^\\d{4}-\\d{2}-\\d{2}$/D',
+                $gregorianDate
+            ) !== 1
+        ) {
+            throw new RuntimeException(
+                'ui_content_datetime_invalid'
+            );
+        }
+
+        if (
+            preg_match(
+                '/^(?:[01]\\d|2[0-3]):[0-5]\\d$/D',
+                $time
+            ) !== 1
+        ) {
+            throw new RuntimeException(
+                'ui_content_datetime_invalid'
+            );
+        }
+
+        $localValue =
+            $gregorianDate
+            . ' '
+            . $time;
+
+        $date =
+            DateTimeImmutable::createFromFormat(
+                '!Y-m-d H:i',
+                $localValue,
+                Clock::displayTimezone()
+            );
+
+        $errors =
+            DateTimeImmutable::getLastErrors();
+
+        if (
+            !$date
+            || (
+                is_array($errors)
+                && (
+                    $errors['warning_count'] > 0
+                    || $errors['error_count'] > 0
+                )
+            )
+            || $date->format(
+                'Y-m-d H:i'
+            ) !== $localValue
+        ) {
+            throw new RuntimeException(
+                'ui_content_datetime_invalid'
+            );
+        }
+
+        return
+            Clock::databaseTimestamp(
+                $date
             );
     }
 

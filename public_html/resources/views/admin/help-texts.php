@@ -213,37 +213,75 @@ $overrideLocale =
         ?? 'fa'
     );
 
-$startsAt =
-    str_replace(
-        ' ',
-        'T',
-        substr(
-            (string) (
-                $override[
-                    'starts_at'
-                ]
-                ?? ''
-            ),
-            0,
-            16
-        )
+$scheduleParts =
+    static function (
+        mixed $value
+    ) use (
+        $digits
+    ): array {
+
+        $local =
+            \IPKF\Support\Clock::formatDateTime(
+                $value,
+                'Y-m-d H:i'
+            )
+            ?? '';
+
+        if ($local === '') {
+            return [
+                'jalali' => '',
+                'gregorian' => '',
+                'time' => '',
+            ];
+        }
+
+        $gregorian =
+            substr(
+                $local,
+                0,
+                10
+            );
+
+        $time =
+            substr(
+                $local,
+                11,
+                5
+            );
+
+        return [
+            'jalali' =>
+                \IPKF\Support\PersianDate::fromGregorianDate(
+                    $gregorian,
+                    true
+                ),
+
+            'gregorian' =>
+                $gregorian,
+
+            'time' =>
+                $digits(
+                    $time
+                ),
+        ];
+    };
+
+$startsSchedule =
+    $scheduleParts(
+        $override[
+            'starts_at'
+        ]
+        ?? null
     );
 
-$endsAt =
-    str_replace(
-        ' ',
-        'T',
-        substr(
-            (string) (
-                $override[
-                    'ends_at'
-                ]
-                ?? ''
-            ),
-            0,
-            16
-        )
+$endsSchedule =
+    $scheduleParts(
+        $override[
+            'ends_at'
+        ]
+        ?? null
     );
+
 
 ob_start();
 ?>
@@ -352,6 +390,27 @@ textarea.ui-content-body {
     font-size: .84rem;
     opacity: .76;
     line-height: 1.9;
+}
+
+.ui-content-code--title {
+    direction: rtl;
+    font-family: inherit;
+    font-size: .9rem;
+}
+
+.ui-content-schedule-field {
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1.45fr)
+        minmax(110px, .55fr);
+    gap: 8px;
+    align-items: start;
+}
+
+@media (max-width: 640px) {
+    .ui-content-schedule-field {
+        grid-template-columns: 1fr;
+    }
 }
 
 .ui-content-divider {
@@ -690,9 +749,15 @@ textarea.ui-content-body {
                         ) ?>
                     </strong>
 
-                    <div class="ui-content-code">
+                    <div class="ui-content-code ui-content-code--title">
                         <?= $escape(
-                            $itemKey
+                            $item[
+                                'display_title'
+                            ]
+                            ?? $item[
+                                'description'
+                            ]
+                            ?? 'محتوای سیستمی'
                         ) ?>
                     </div>
 
@@ -734,7 +799,7 @@ textarea.ui-content-body {
                         ): ?>
 
                             <span>
-                                HTTP
+                                کد وضعیت
                                 <?= $escape(
                                     $digits(
                                         $item[
@@ -833,7 +898,7 @@ textarea.ui-content-body {
                             value="<?= $escape(
                                 $definitionKey
                             ) ?>"
-                            placeholder="ticketing.example.guide"
+                            placeholder="شناسه فنی محتوا"
                         >
 
                     </div>
@@ -896,16 +961,17 @@ textarea.ui-content-body {
                         </label>
 
                         <input
-                            id="definition-locale"
+                            type="hidden"
                             name="default_locale"
+                            value="fa"
+                        >
+
+                        <input
+                            id="definition-locale"
                             type="text"
-                            dir="ltr"
-                            value="<?= $escape(
-                                $definition[
-                                    'default_locale'
-                                ]
-                                ?? 'fa'
-                            ) ?>"
+                            value="فارسی"
+                            readonly
+                            aria-readonly="true"
                         >
 
                     </div>
@@ -914,21 +980,22 @@ textarea.ui-content-body {
                     <div class="admin-field">
 
                         <label for="definition-http">
-                            HTTP Status
+                            کد وضعیت وب
                         </label>
 
                         <input
                             id="definition-http"
                             name="http_status"
-                            type="number"
-                            min="400"
-                            max="599"
-                            dir="ltr"
+                            type="text"
+                            inputmode="numeric"
+                            data-persian-number-input
                             value="<?= $escape(
-                                $definition[
-                                    'http_status'
-                                ]
-                                ?? ''
+                                $digits(
+                                    $definition[
+                                        'http_status'
+                                    ]
+                                    ?? ''
+                                )
                             ) ?>"
                         >
 
@@ -963,7 +1030,7 @@ textarea.ui-content-body {
                 <div class="admin-field">
 
                     <label for="definition-metadata">
-                        Metadata JSON
+                        اطلاعات تکمیلی فنی
                     </label>
 
                     <textarea
@@ -1138,33 +1205,40 @@ textarea.ui-content-body {
                             class="ui-content-item<?= $overrideSelected ? ' is-active' : '' ?>"
                         >
 
-                            <strong>
-                                <?= $escape(
+                            <?php
+                            $itemScopeType =
+                                (string) (
                                     $item[
                                         'scope_type'
                                     ]
                                     ?? ''
+                                );
+
+                            $itemScopeLabel =
+                                match (
+                                    $itemScopeType
+                                ) {
+                                    'global' =>
+                                        'عمومی',
+
+                                    'module' =>
+                                        'ماژول',
+
+                                    default =>
+                                        'محدوده تخصصی',
+                                };
+                            ?>
+
+                            <strong>
+                                <?= $escape(
+                                    $itemScopeLabel
                                 ) ?>
                             </strong>
-
-                            <div class="ui-content-scope-code">
-                                <?= $escape(
-                                    $item[
-                                        'scope_key'
-                                    ]
-                                    ?? ''
-                                ) ?>
-                            </div>
 
                             <div class="ui-content-meta">
 
                                 <span>
-                                    <?= $escape(
-                                        $item[
-                                            'locale'
-                                        ]
-                                        ?? ''
-                                    ) ?>
+                                    فارسی
                                 </span>
 
                                 <span>
@@ -1297,7 +1371,7 @@ textarea.ui-content-body {
                                         : ''
                                     ?>
                                 >
-                                    عمومی / Base
+                                    عمومی
                                 </option>
 
                                 <option
@@ -1391,13 +1465,17 @@ textarea.ui-content-body {
                             </label>
 
                             <input
-                                id="override-locale"
+                                type="hidden"
                                 name="locale"
+                                value="fa"
+                            >
+
+                            <input
+                                id="override-locale"
                                 type="text"
-                                dir="ltr"
-                                value="<?= $escape(
-                                    $overrideLocale
-                                ) ?>"
+                                value="فارسی"
+                                readonly
+                                aria-readonly="true"
                             >
 
                         </div>
@@ -1408,7 +1486,7 @@ textarea.ui-content-body {
                     <div class="admin-field">
 
                         <label for="scope-path">
-                            Scope Path JSON
+                            ساختار فنی محدوده تخصصی
                         </label>
 
                         <textarea
@@ -1476,7 +1554,7 @@ textarea.ui-content-body {
                         <div class="admin-field">
 
                             <label for="override-icon">
-                                Icon Code
+                                شناسه آیکون
                             </label>
 
                             <input
@@ -1781,36 +1859,136 @@ textarea.ui-content-body {
 
                         <div class="admin-field">
 
-                            <label for="starts-at">
+                            <label for="starts-at-jalali">
                                 شروع نمایش
                             </label>
 
-                            <input
-                                id="starts-at"
-                                name="starts_at"
-                                type="datetime-local"
-                                value="<?= $escape(
-                                    $startsAt
-                                ) ?>"
-                            >
+                            <div class="ui-content-schedule-field">
+
+                                <div
+                                    class="admin-persian-date"
+                                    data-persian-datepicker
+                                >
+
+                                    <input
+                                        id="starts-at-jalali"
+                                        name="starts_at_jalali"
+                                        type="text"
+                                        inputmode="numeric"
+                                        autocomplete="off"
+                                        data-persian-date-input
+                                        placeholder="۱۴۰۵/۰۶/۲۰"
+                                        value="<?= $escape(
+                                            $startsSchedule[
+                                                'jalali'
+                                            ]
+                                        ) ?>"
+                                    >
+
+                                    <input
+                                        type="hidden"
+                                        name="starts_at_date"
+                                        data-persian-date-output
+                                        value="<?= $escape(
+                                            $startsSchedule[
+                                                'gregorian'
+                                            ]
+                                        ) ?>"
+                                    >
+
+                                    <button
+                                        type="button"
+                                        class="admin-persian-date__toggle"
+                                        data-persian-date-toggle
+                                        aria-label="انتخاب تاریخ شروع"
+                                        title="انتخاب تاریخ شمسی"
+                                    >📅</button>
+
+                                </div>
+
+                                <input
+                                    name="starts_at_time"
+                                    type="text"
+                                    inputmode="numeric"
+                                    autocomplete="off"
+                                    data-persian-number-input
+                                    placeholder="ساعت، نمونه: ۰۹:۳۰"
+                                    value="<?= $escape(
+                                        $startsSchedule[
+                                            'time'
+                                        ]
+                                    ) ?>"
+                                >
+
+                            </div>
 
                         </div>
 
 
                         <div class="admin-field">
 
-                            <label for="ends-at">
+                            <label for="ends-at-jalali">
                                 پایان نمایش
                             </label>
 
-                            <input
-                                id="ends-at"
-                                name="ends_at"
-                                type="datetime-local"
-                                value="<?= $escape(
-                                    $endsAt
-                                ) ?>"
-                            >
+                            <div class="ui-content-schedule-field">
+
+                                <div
+                                    class="admin-persian-date"
+                                    data-persian-datepicker
+                                >
+
+                                    <input
+                                        id="ends-at-jalali"
+                                        name="ends_at_jalali"
+                                        type="text"
+                                        inputmode="numeric"
+                                        autocomplete="off"
+                                        data-persian-date-input
+                                        placeholder="۱۴۰۵/۰۶/۲۰"
+                                        value="<?= $escape(
+                                            $endsSchedule[
+                                                'jalali'
+                                            ]
+                                        ) ?>"
+                                    >
+
+                                    <input
+                                        type="hidden"
+                                        name="ends_at_date"
+                                        data-persian-date-output
+                                        value="<?= $escape(
+                                            $endsSchedule[
+                                                'gregorian'
+                                            ]
+                                        ) ?>"
+                                    >
+
+                                    <button
+                                        type="button"
+                                        class="admin-persian-date__toggle"
+                                        data-persian-date-toggle
+                                        aria-label="انتخاب تاریخ پایان"
+                                        title="انتخاب تاریخ شمسی"
+                                    >📅</button>
+
+                                </div>
+
+                                <input
+                                    name="ends_at_time"
+                                    type="text"
+                                    inputmode="numeric"
+                                    autocomplete="off"
+                                    data-persian-number-input
+                                    placeholder="ساعت، نمونه: ۱۷:۰۰"
+                                    value="<?= $escape(
+                                        $endsSchedule[
+                                            'time'
+                                        ]
+                                    ) ?>"
+                                >
+
+                            </div>
 
                         </div>
 
@@ -1820,7 +1998,7 @@ textarea.ui-content-body {
                     <div class="admin-field">
 
                         <label for="override-metadata">
-                            Metadata JSON
+                            اطلاعات تکمیلی فنی
                         </label>
 
                         <textarea
