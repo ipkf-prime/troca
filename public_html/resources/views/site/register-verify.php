@@ -642,13 +642,16 @@ $csrf =
                         class="admin-btn"
                         disabled
                     >
-                        ارسال مجدد پس از
-                        <?= $h(
-                            $digits(
-                                $resendWait
-                            )
+                        <?= \App\Services\UiContent\UiContentInlineGuide::guideTemplateHtml(
+                            'core.register-verify.guide.03',
+                            'core',
+                            'register-verify',
+                            [
+                                'seconds' => $digits(
+                                    $resendWait
+                                ),
+                            ]
                         ) ?>
-                        ثانیه
                     </button>
                 <?php else: ?>
                     <form

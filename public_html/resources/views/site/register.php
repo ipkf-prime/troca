@@ -437,18 +437,24 @@ $success =
             <?php if ($invited): ?>
                 <div class="admin-notice register-alert">
                     <strong>
-                        دعوت اختصاصی
+                        <?= \App\Services\UiContent\UiContentInlineGuide::titleHtml(
+                            'core.register.guide.02',
+                            'core',
+                            'register'
+                        ) ?>
                     </strong>
                     <div>
-                        این دعوت برای
-                        <?= public_register_h(
-                            $invitation['mobile']
-                            ?? ''
+                        <?= \App\Services\UiContent\UiContentInlineGuide::guideTemplateHtml(
+                            'core.register.guide.02',
+                            'core',
+                            'register',
+                            [
+                                'mobile' => (string) (
+                                    $invitation['mobile']
+                                    ?? ''
+                                ),
+                            ]
                         ) ?>
-                        صادر شده است.
-                        پس از تأیید شماره همراه،
-                        حساب با نقش پایه «کاربر»
-                        فعال می‌شود.
                     </div>
                 </div>
             <?php endif; ?>

@@ -54,6 +54,10 @@ foreach ($catalog as $item) {
         continue;
     }
 
+    if (($item['parameterized'] ?? false) === true) {
+        continue;
+    }
+
     if (($item['consumer_bound'] ?? false) !== true) {
         throw new RuntimeException('Guide not marked bound: ' . ($item['key'] ?? ''));
     }

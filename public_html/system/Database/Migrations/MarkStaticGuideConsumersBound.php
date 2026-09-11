@@ -61,7 +61,7 @@ final class MarkStaticGuideConsumersBound extends Migration
         $path = dirname(__DIR__, 3) . '/resources/ui-content/platform-guides.json';
         $catalog = json_decode((string) file_get_contents($path), true);
         if (!is_array($catalog)) throw new RuntimeException('Catalog invalid.');
-        $guides = array_values(array_filter($catalog, static fn(mixed $item): bool => is_array($item) && ($item['content_type'] ?? null) === 'guide'));
+        $guides = array_values(array_filter($catalog, static fn(mixed $item): bool => is_array($item) && ($item['content_type'] ?? null) === 'guide' && ($item['parameterized'] ?? false) !== true));
         foreach ($guides as $item) {
             if (($item['consumer_bound'] ?? false) !== true) throw new RuntimeException('Catalog guide not bound: ' . ($item['key'] ?? ''));
         }

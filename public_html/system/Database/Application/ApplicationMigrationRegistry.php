@@ -96,6 +96,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\MarkStaticGuideConsumersBound::class,
                     \IPKF\Database\Migrations\NormalizeStaticNoticeErrorRenderContract::class,
                     \IPKF\Database\Migrations\MarkStaticNoticeErrorConsumersBound::class,
+                    \IPKF\Database\Migrations\SeedAndBindParameterizedGuides::class,
                     \IPKF\Database\Migrations\CreatePlatformAuditFoundation::class,
                 ],
             ],

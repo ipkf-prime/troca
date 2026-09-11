@@ -505,6 +505,12 @@ final class NormalizeStaticGuideRenderContract
                             ?? null
                         )
                         === 'guide'
+                        &&
+                        (
+                            $item['parameterized']
+                            ?? false
+                        )
+                        !== true
                 )
             );
     }

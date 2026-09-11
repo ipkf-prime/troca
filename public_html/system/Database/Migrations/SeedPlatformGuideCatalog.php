@@ -28,7 +28,7 @@ final class SeedPlatformGuideCatalog
         $catalog =
             $this->catalog();
 
-        if (count($catalog) !== 53) {
+        if (count($catalog) !== 55) {
             throw new RuntimeException(
                 'Platform guide catalog count is invalid.'
             );
@@ -294,6 +294,27 @@ final class SeedPlatformGuideCatalog
                         ]
                         ?? false
                     ),
+                'parameterized' =>
+                    (bool) (
+                        $item[
+                            'parameterized'
+                        ]
+                        ?? false
+                    ),
+
+                'template_parameters' =>
+                    array_values(
+                        is_array(
+                            $item[
+                                'template_parameters'
+                            ]
+                            ?? null
+                        )
+                            ? $item[
+                                'template_parameters'
+                            ]
+                            : []
+                    ),
             ];
 
 
@@ -539,6 +560,27 @@ final class SeedPlatformGuideCatalog
                             'consumer_bound'
                         ]
                         ?? false
+                    ),
+                'parameterized' =>
+                    (bool) (
+                        $item[
+                            'parameterized'
+                        ]
+                        ?? false
+                    ),
+
+                'template_parameters' =>
+                    array_values(
+                        is_array(
+                            $item[
+                                'template_parameters'
+                            ]
+                            ?? null
+                        )
+                            ? $item[
+                                'template_parameters'
+                            ]
+                            : []
                     ),
             ];
 

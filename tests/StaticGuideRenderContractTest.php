@@ -45,6 +45,10 @@ foreach ($catalog as $item) {
     }
 
 
+    if (($item['parameterized'] ?? false) === true) {
+        continue;
+    }
+
     $guideCount++;
 
 

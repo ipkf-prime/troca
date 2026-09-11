@@ -52,6 +52,40 @@ final class UiContentInlineGuide
         return self::escape(self::bodyText($contentKey, $moduleKey, $surface));
     }
 
+    public static function guideTemplateText(
+        string $contentKey,
+        string $moduleKey,
+        string $surface,
+        array $parameters
+    ): string {
+        try {
+            self::$shared ??= new self();
+            return self::$shared->renderGuideTemplate($contentKey, $moduleKey, $surface, $parameters);
+        } catch (Throwable) {
+            try {
+                $fallback = self::fallbackGuide(strtolower(trim($contentKey)));
+                return self::renderTemplateForKey(
+                    strtolower(trim($contentKey)),
+                    (string) ($fallback['body'] ?? ''),
+                    $parameters
+                );
+            } catch (Throwable) {
+                return '';
+            }
+        }
+    }
+
+    public static function guideTemplateHtml(
+        string $contentKey,
+        string $moduleKey,
+        string $surface,
+        array $parameters
+    ): string {
+        return self::escape(
+            self::guideTemplateText($contentKey, $moduleKey, $surface, $parameters)
+        );
+    }
+
     public static function noticeTitleText(string $contentKey, string $moduleKey, string $surface): string
     {
         return self::fieldText('notice', 'title', $contentKey, $moduleKey, $surface);
@@ -95,6 +129,37 @@ final class UiContentInlineGuide
     public function resolveGuide(string $contentKey, string $moduleKey, string $surface): array
     {
         return $this->resolveTyped($contentKey, $moduleKey, $surface, 'guide');
+    }
+
+    public function renderGuideTemplate(
+        string $contentKey,
+        string $moduleKey,
+        string $surface,
+        array $parameters
+    ): string {
+        $contentKey = strtolower(trim($contentKey));
+        $payload = $this->resolveGuide($contentKey, $moduleKey, $surface);
+
+        if (($payload['visible'] ?? true) !== true) {
+            return '';
+        }
+
+        try {
+            return self::renderTemplateForKey(
+                $contentKey,
+                (string) ($payload['body'] ?? ''),
+                $parameters
+            );
+        } catch (Throwable) {
+            $fallback = self::fallbackGuide($contentKey);
+            if (($fallback['visible'] ?? true) !== true) return '';
+
+            return self::renderTemplateForKey(
+                $contentKey,
+                (string) ($fallback['body'] ?? ''),
+                $parameters
+            );
+        }
     }
 
     public function resolveNotice(string $contentKey, string $moduleKey, string $surface): array
@@ -349,6 +414,82 @@ final class UiContentInlineGuide
         return self::$fallbackCatalog;
     }
 
+    private static function renderTemplateForKey(
+        string $contentKey,
+        string $template,
+        array $parameters
+    ): string {
+        $allowed = self::templateParameters($contentKey);
+
+        if ($allowed === []) {
+            throw new RuntimeException('ui_content_template_parameters_missing');
+        }
+
+        $provided = array_keys($parameters);
+        sort($provided);
+        $expected = $allowed;
+        sort($expected);
+
+        if ($provided !== $expected) {
+            throw new RuntimeException('ui_content_template_parameter_set_invalid');
+        }
+
+        preg_match_all('/\{\{([a-z][a-z0-9_]*)\}\}/D', $template, $matches);
+        $placeholders = array_values(array_unique($matches[1] ?? []));
+        sort($placeholders);
+
+        if ($placeholders !== $expected) {
+            throw new RuntimeException('ui_content_template_placeholder_set_invalid');
+        }
+
+        foreach ($allowed as $name) {
+            $placeholder = '{{' . $name . '}}';
+            if (substr_count($template, $placeholder) !== 1) {
+                throw new RuntimeException('ui_content_template_placeholder_count_invalid');
+            }
+
+            $value = $parameters[$name] ?? null;
+            if (!is_scalar($value) && $value !== null) {
+                throw new RuntimeException('ui_content_template_parameter_value_invalid');
+            }
+
+            $template = str_replace($placeholder, (string) ($value ?? ''), $template);
+        }
+
+        if (str_contains($template, '{{') || str_contains($template, '}}')) {
+            throw new RuntimeException('ui_content_template_unresolved_placeholder');
+        }
+
+        return $template;
+    }
+
+    private static function templateParameters(string $contentKey): array
+    {
+        $item = self::fallbackCatalog()[$contentKey] ?? null;
+        if (!is_array($item) || ($item['parameterized'] ?? false) !== true) {
+            return [];
+        }
+
+        $raw = $item['template_parameters'] ?? null;
+        if (!is_array($raw) || $raw === []) {
+            return [];
+        }
+
+        $parameters = [];
+        foreach ($raw as $name) {
+            $name = strtolower(trim((string) $name));
+            if (preg_match('/^[a-z][a-z0-9_]{0,63}$/D', $name) !== 1) {
+                throw new RuntimeException('ui_content_template_parameter_name_invalid');
+            }
+            $parameters[] = $name;
+        }
+
+        if (count(array_unique($parameters)) !== count($parameters)) {
+            throw new RuntimeException('ui_content_template_parameter_duplicate');
+        }
+
+        return array_values($parameters);
+    }
     private static function hidden(): array
     {
         return [

@@ -392,6 +392,78 @@
         "title": "تغییر رمز عبور"
     },
     {
+        "key": "core.register-verify.guide.01",
+        "content_type": "guide",
+        "module": "core",
+        "surface": "register-verify",
+        "body": "اگر پیامک تأیید را دریافت نمی‌کنید، می‌توانید مالکیت همین شماره همراه را از طریق بله تأیید کنید.",
+        "source_file": "public_html\/resources\/views\/site\/register-verify.php",
+        "source_line": 580,
+        "fingerprint": "f644a5e9",
+        "consumer_bound": true,
+        "render_mode": "body"
+    },
+    {
+        "key": "core.register-verify.guide.02",
+        "content_type": "guide",
+        "module": "core",
+        "surface": "register-verify",
+        "body": "در بله گزینه «اشتراک شماره همراه من» را انتخاب کنید. شماره‌ای که بله ارسال می‌کند باید دقیقاً با شماره این ثبت‌نام یکسان باشد. پس از تأیید در بله، به این صفحه برگردید و دکمه بررسی وضعیت را بزنید.",
+        "source_file": "public_html\/resources\/views\/site\/register-verify.php",
+        "source_line": 612,
+        "fingerprint": "21619d52",
+        "consumer_bound": true,
+        "render_mode": "body"
+    },
+    {
+        "key": "core.register-verify.guide.03",
+        "content_type": "guide",
+        "module": "core",
+        "surface": "register-verify",
+        "body": "ارسال مجدد پس از {{seconds}} ثانیه",
+        "source_file": "public_html\/resources\/views\/site\/register-verify.php",
+        "source_line": 645,
+        "fingerprint": "bf501352",
+        "consumer_bound": true,
+        "render_mode": "body",
+        "parameterized": true,
+        "template_parameters": [
+            "seconds"
+        ],
+        "title": "ارسال مجدد کد تأیید"
+    },
+    {
+        "key": "core.register.guide.01",
+        "content_type": "notice",
+        "module": "core",
+        "surface": "register",
+        "body": "حساب شما با نقش پایه «کاربر» ایجاد شد. برای ادامه وارد سامانه شوید.",
+        "source_file": "public_html\/resources\/views\/site\/register.php",
+        "source_line": 411,
+        "fingerprint": "a45efade",
+        "consumer_bound": true,
+        "render_mode": "title_body",
+        "legacy_body": "ثبت‌نام با موفقیت انجام شد حساب شما با نقش پایه «کاربر» ایجاد شد. برای ادامه وارد سامانه شوید.",
+        "title": "ثبت‌نام با موفقیت انجام شد"
+    },
+    {
+        "key": "core.register.guide.02",
+        "content_type": "guide",
+        "module": "core",
+        "surface": "register",
+        "body": "این دعوت برای {{mobile}} صادر شده است. پس از تأیید شماره همراه، حساب با نقش پایه «کاربر» فعال می‌شود.",
+        "source_file": "public_html\/resources\/views\/site\/register.php",
+        "source_line": 440,
+        "fingerprint": "20c2e821",
+        "consumer_bound": true,
+        "render_mode": "title_body",
+        "parameterized": true,
+        "template_parameters": [
+            "mobile"
+        ],
+        "title": "دعوت اختصاصی"
+    },
+    {
         "key": "core.security.guide.01",
         "content_type": "guide",
         "module": "core",
@@ -470,44 +542,6 @@
         "fingerprint": "386071a6",
         "consumer_bound": true,
         "render_mode": "body"
-    },
-    {
-        "key": "core.register-verify.guide.01",
-        "content_type": "guide",
-        "module": "core",
-        "surface": "register-verify",
-        "body": "اگر پیامک تأیید را دریافت نمی‌کنید، می‌توانید مالکیت همین شماره همراه را از طریق بله تأیید کنید.",
-        "source_file": "public_html\/resources\/views\/site\/register-verify.php",
-        "source_line": 580,
-        "fingerprint": "f644a5e9",
-        "consumer_bound": true,
-        "render_mode": "body"
-    },
-    {
-        "key": "core.register-verify.guide.02",
-        "content_type": "guide",
-        "module": "core",
-        "surface": "register-verify",
-        "body": "در بله گزینه «اشتراک شماره همراه من» را انتخاب کنید. شماره‌ای که بله ارسال می‌کند باید دقیقاً با شماره این ثبت‌نام یکسان باشد. پس از تأیید در بله، به این صفحه برگردید و دکمه بررسی وضعیت را بزنید.",
-        "source_file": "public_html\/resources\/views\/site\/register-verify.php",
-        "source_line": 612,
-        "fingerprint": "21619d52",
-        "consumer_bound": true,
-        "render_mode": "body"
-    },
-    {
-        "key": "core.register.guide.01",
-        "content_type": "notice",
-        "module": "core",
-        "surface": "register",
-        "body": "حساب شما با نقش پایه «کاربر» ایجاد شد. برای ادامه وارد سامانه شوید.",
-        "source_file": "public_html\/resources\/views\/site\/register.php",
-        "source_line": 411,
-        "fingerprint": "a45efade",
-        "consumer_bound": true,
-        "render_mode": "title_body",
-        "legacy_body": "ثبت‌نام با موفقیت انجام شد حساب شما با نقش پایه «کاربر» ایجاد شد. برای ادامه وارد سامانه شوید.",
-        "title": "ثبت‌نام با موفقیت انجام شد"
     },
     {
         "key": "ticketing.ticketing-dashboard.guide.01",
