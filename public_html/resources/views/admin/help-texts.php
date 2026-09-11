@@ -42,6 +42,21 @@ $items =
         ? $page['items']
         : [];
 
+$pagination =
+    is_array(
+        $page['pagination']
+        ?? null
+    )
+        ? $page['pagination']
+        : [
+            'page' => 1,
+            'per_page' => 20,
+            'total' => count($items),
+            'total_pages' => 1,
+            'from' => $items === [] ? 0 : 1,
+            'to' => count($items),
+        ];
+
 $filters =
     is_array($page['filters'] ?? null)
         ? $page['filters']
@@ -108,6 +123,53 @@ $modules =
     is_array($page['modules'] ?? null)
         ? $page['modules']
         : [];
+
+$moduleLabels = [
+    'core' =>
+        'هسته سامانه',
+
+    'ticketing' =>
+        'تیکتینگ',
+
+    'automation' =>
+        'اتوماسیون',
+
+    'work' =>
+        'مدیریت کار',
+];
+
+foreach ($modules as $module) {
+
+    $moduleKey =
+        trim(
+            (string) (
+                $module[
+                    'module_key'
+                ]
+                ?? ''
+            )
+        );
+
+    $moduleTitle =
+        trim(
+            (string) (
+                $module[
+                    'display_name'
+                ]
+                ?? ''
+            )
+        );
+
+    if (
+        $moduleKey !== ''
+        && $moduleTitle !== ''
+    ) {
+        $moduleLabels[
+            $moduleKey
+        ] = $moduleTitle;
+    }
+}
+
 
 $contentTypes =
     is_array(
@@ -441,6 +503,151 @@ ob_start();
     opacity: .78;
 }
 
+.ui-content-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    border:
+        1px solid
+        var(--admin-border, #dfe4ea);
+    border-radius: 12px;
+    background:
+        var(--admin-surface, #fff);
+}
+
+.ui-content-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+}
+
+.ui-content-table th,
+.ui-content-table td {
+    padding: 11px 12px;
+    border-bottom:
+        1px solid
+        var(--admin-border, #e7ebe8);
+    text-align: right;
+    vertical-align: middle;
+}
+
+.ui-content-table th {
+    font-size: .82rem;
+    font-weight: 700;
+    white-space: nowrap;
+    opacity: .72;
+    background:
+        var(--admin-surface-soft, #f8faf9);
+}
+
+.ui-content-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.ui-content-table__row {
+    cursor: pointer;
+}
+
+.ui-content-table__row:hover {
+    background:
+        var(--admin-surface-soft, #f8faf9);
+}
+
+.ui-content-table__title {
+    width: 100%;
+    max-width: 0;
+}
+
+.ui-content-table__title-link {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: inherit;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.ui-content-table__title-link:hover {
+    color:
+        var(--admin-primary, #27845b);
+}
+
+.ui-content-table__compact {
+    width: 1%;
+    white-space: nowrap;
+}
+
+.ui-content-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    padding: 4px 9px;
+    border:
+        1px solid
+        var(--admin-border, #dfe4ea);
+    border-radius: 999px;
+    background:
+        var(--admin-surface-soft, #f3f6f4);
+    font-size: .78rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.ui-content-badge--active {
+    color:
+        var(--admin-primary, #27845b);
+}
+
+.ui-content-browser-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.ui-content-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.ui-content-page {
+    display: inline-flex;
+    min-width: 36px;
+    min-height: 34px;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 9px;
+    border:
+        1px solid
+        var(--admin-border, #dfe4ea);
+    border-radius: 8px;
+    background:
+        var(--admin-surface, #fff);
+    color: inherit;
+    text-decoration: none;
+}
+
+.ui-content-page:hover,
+.ui-content-page.is-active {
+    border-color:
+        var(--admin-primary, #27845b);
+}
+
+.ui-content-page.is-active {
+    font-weight: 800;
+}
+
+.ui-content-page.is-disabled {
+    opacity: .45;
+    pointer-events: none;
+}
+
+
 .ui-content-filter {
     grid-template-columns:
         minmax(220px, 1.4fr)
@@ -717,6 +924,7 @@ $workspaceQuery =
 
 <?php if (
     $definitionKey !== ''
+    && $workspaceTab !== 'browser'
 ): ?>
 
     <div class="ui-content-selected-head">
@@ -1064,7 +1272,7 @@ $workspaceQuery =
 </section>
 
 
-<div class="ui-content-layout<?= $workspaceTab !== 'browser' ? ' ui-content-layout--single' : '' ?>">
+<div class="ui-content-layout ui-content-layout--single">
 
     <section
         class="admin-section<?= $workspaceTab !== 'browser' ? ' ui-content-hidden' : '' ?>"
@@ -1081,7 +1289,10 @@ $workspaceQuery =
                 <p class="admin-muted">
                     <?= $escape(
                         $digits(
-                            count($items)
+                            $pagination[
+                                'total'
+                            ]
+                            ?? count($items)
                         )
                     ) ?>
                     مورد
@@ -1092,149 +1303,580 @@ $workspaceQuery =
         </div>
 
 
-        <div class="ui-content-list">
+        <?php
+        $browserPageUrl =
+            static function (
+                int $targetPage
+            ) use (
+                $filters,
+                $browseMode
+            ): string {
 
-            <?php foreach (
-                $items
-                as $item
-            ): ?>
+                $query = [
+                    'tab' =>
+                        'browser',
 
-                <?php
+                    'browse' =>
+                        $browseMode,
 
-                $itemKey =
-                    (string) (
-                        $item[
-                            'content_key'
-                        ]
-                        ?? ''
-                    );
+                    'page' =>
+                        max(
+                            1,
+                            $targetPage
+                        ),
+                ];
 
-                $link =
+
+                $filterMap = [
+                    'q' =>
+                        'q',
+
+                    'type' =>
+                        'content_type',
+
+                    'status' =>
+                        'content_status',
+
+                    'module' =>
+                        'module',
+
+                    'placement' =>
+                        'placement',
+                ];
+
+
+                foreach (
+                    $filterMap
+                    as $filterKey => $queryKey
+                ) {
+
+                    $value =
+                        trim(
+                            (string) (
+                                $filters[
+                                    $filterKey
+                                ]
+                                ?? ''
+                            )
+                        );
+
+
+                    if ($value !== '') {
+                        $query[
+                            $queryKey
+                        ] = $value;
+                    }
+                }
+
+
+                return
                     '/admin/system/help-texts?'
                     . http_build_query(
-                        [
-                            'key' =>
-                                $itemKey,
-
-                            'tab' =>
-                                'definition',
-                        ],
+                        $query,
                         '',
                         '&',
                         PHP_QUERY_RFC3986
                     );
+            };
 
-                $isSelected =
-                    is_array($definition)
-                    && $definitionKey
-                        === $itemKey;
 
-                $typeCode =
-                    (string) (
-                        $item[
-                            'content_type'
-                        ]
-                        ?? ''
-                    );
+        $currentPage =
+            max(
+                1,
+                (int) (
+                    $pagination['page']
+                    ?? 1
+                )
+            );
 
-                ?>
 
-                <a
-                    href="<?= $escape(
-                        $link
-                    ) ?>"
-                    class="ui-content-item<?= $isSelected ? ' is-active' : '' ?>"
-                >
+        $totalPages =
+            max(
+                1,
+                (int) (
+                    $pagination[
+                        'total_pages'
+                    ]
+                    ?? 1
+                )
+            );
+        ?>
 
-                    <strong>
-                        <?= $escape(
-                            $contentTypes[
-                                $typeCode
-                            ]
-                            ?? $typeCode
-                        ) ?>
-                    </strong>
 
-                    <div class="ui-content-code ui-content-code--title">
-                        <?= $escape(
-                            $item[
-                                'display_title'
-                            ]
-                            ?? $item[
-                                'description'
-                            ]
-                            ?? 'محتوای سیستمی'
-                        ) ?>
-                    </div>
+        <?php if ($items !== []): ?>
 
-                    <div class="ui-content-meta">
+            <div class="ui-content-table-wrap">
 
-                        <span>
-                            <?= (
+                <table class="ui-content-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                عنوان
+                            </th>
+
+                            <th class="ui-content-table__compact">
+                                نوع
+                            </th>
+
+                            <th class="ui-content-table__compact">
+                                ماژول
+                            </th>
+
+                            <th class="ui-content-table__compact">
+                                محل نمایش
+                            </th>
+
+                            <th class="ui-content-table__compact">
+                                وضعیت
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        <?php foreach (
+                            $items
+                            as $item
+                        ): ?>
+
+                            <?php
+
+                            $itemKey =
+                                (string) (
+                                    $item[
+                                        'content_key'
+                                    ]
+                                    ?? ''
+                                );
+
+
+                            $link =
+                                '/admin/system/help-texts?'
+                                . http_build_query(
+                                    [
+                                        'key' =>
+                                            $itemKey,
+
+                                        'tab' =>
+                                            'definition',
+                                    ],
+                                    '',
+                                    '&',
+                                    PHP_QUERY_RFC3986
+                                );
+
+
+                            $typeCode =
+                                (string) (
+                                    $item[
+                                        'content_type'
+                                    ]
+                                    ?? ''
+                                );
+
+
+                            $moduleKey =
+                                trim(
+                                    (string) (
+                                        $item[
+                                            'primary_module_key'
+                                        ]
+                                        ?? ''
+                                    )
+                                );
+
+
+                            $moduleTitle =
+                                $moduleKey !== ''
+                                    ? (
+                                        $moduleLabels[
+                                            $moduleKey
+                                        ]
+                                        ?? $moduleKey
+                                    )
+                                    : 'عمومی';
+
+
+                            $scopeType =
+                                trim(
+                                    (string) (
+                                        $item[
+                                            'primary_scope_type'
+                                        ]
+                                        ?? ''
+                                    )
+                                );
+
+
+                            $scopePath =
+                                trim(
+                                    (string) (
+                                        $item[
+                                            'primary_scope_path_json'
+                                        ]
+                                        ?? ''
+                                    )
+                                );
+
+
+                            if ($scopeType === 'global') {
+
+                                $placementCode =
+                                    'global';
+
+                            } elseif (
+                                $scopeType === 'module'
+                            ) {
+
+                                $placementCode =
+                                    'module';
+
+                            } elseif (
+                                preg_match(
+                                    '/"type"\s*:\s*"project"/',
+                                    $scopePath
+                                )
+                                === 1
+                            ) {
+
+                                $placementCode =
+                                    'project';
+
+                            } elseif (
+                                preg_match(
+                                    '/"type"\s*:\s*"portal"/',
+                                    $scopePath
+                                )
+                                === 1
+                            ) {
+
+                                $placementCode =
+                                    'portal';
+
+                            } else {
+
+                                $placementCode =
+                                    'fine';
+                            }
+
+
+                            $placementTitle =
+                                $placementLabels[
+                                    $placementCode
+                                ]
+                                ?? $placementCode;
+
+
+                            $displayTitle =
+                                trim(
+                                    (string) (
+                                        $item[
+                                            'display_title'
+                                        ]
+                                        ?? $item[
+                                            'description'
+                                        ]
+                                        ?? ''
+                                    )
+                                );
+
+
+                            if ($displayTitle === '') {
+                                $displayTitle =
+                                    'محتوای سیستمی';
+                            }
+
+
+                            $isActive =
                                 (int) (
                                     $item[
                                         'is_active'
                                     ]
                                     ?? 0
                                 )
-                                === 1
-                            )
-                                ? 'فعال'
-                                : 'غیرفعال'
+                                === 1;
+
                             ?>
-                        </span>
 
-                        <span>
-                            محدوده‌ها:
-                            <?= $escape(
-                                $digits(
-                                    $item[
-                                        'override_count'
-                                    ]
-                                    ?? 0
-                                )
-                            ) ?>
-                        </span>
 
-                        <?php if (
-                            !empty(
-                                $item[
-                                    'http_status'
-                                ]
-                            )
-                        ): ?>
+                            <tr
+                                class="ui-content-table__row"
+                                data-href="<?= $escape(
+                                    $link
+                                ) ?>"
+                            >
 
-                            <span>
-                                کد وضعیت
-                                <?= $escape(
-                                    $digits(
-                                        $item[
-                                            'http_status'
-                                        ]
+                                <td class="ui-content-table__title">
+
+                                    <a
+                                        href="<?= $escape(
+                                            $link
+                                        ) ?>"
+                                        class="ui-content-table__title-link"
+                                        title="<?= $escape(
+                                            $displayTitle
+                                        ) ?>"
+                                    >
+                                        <?= $escape(
+                                            $displayTitle
+                                        ) ?>
+                                    </a>
+
+                                </td>
+
+
+                                <td class="ui-content-table__compact">
+
+                                    <span class="ui-content-badge">
+
+                                        <?= $escape(
+                                            $contentTypes[
+                                                $typeCode
+                                            ]
+                                            ?? $typeCode
+                                        ) ?>
+
+                                    </span>
+
+                                </td>
+
+
+                                <td class="ui-content-table__compact">
+
+                                    <?= $escape(
+                                        $moduleTitle
+                                    ) ?>
+
+                                </td>
+
+
+                                <td class="ui-content-table__compact">
+
+                                    <?= $escape(
+                                        $placementTitle
+                                    ) ?>
+
+                                </td>
+
+
+                                <td class="ui-content-table__compact">
+
+                                    <span
+                                        class="ui-content-badge<?= $isActive ? ' ui-content-badge--active' : '' ?>"
+                                    >
+                                        <?= $isActive
+                                            ? 'فعال'
+                                            : 'غیرفعال'
+                                        ?>
+                                    </span>
+
+                                </td>
+
+                            </tr>
+
+                        <?php endforeach; ?>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <div class="ui-content-browser-summary">
+
+                <div class="admin-muted">
+
+                    نمایش
+
+                    <?= $escape(
+                        $digits(
+                            $pagination[
+                                'from'
+                            ]
+                            ?? 0
+                        )
+                    ) ?>
+
+                    تا
+
+                    <?= $escape(
+                        $digits(
+                            $pagination[
+                                'to'
+                            ]
+                            ?? 0
+                        )
+                    ) ?>
+
+                    از
+
+                    <?= $escape(
+                        $digits(
+                            $pagination[
+                                'total'
+                            ]
+                            ?? 0
+                        )
+                    ) ?>
+
+                    مورد
+
+                </div>
+
+
+                <?php if ($totalPages > 1): ?>
+
+                    <nav
+                        class="ui-content-pagination"
+                        aria-label="صفحه‌بندی محتوا"
+                    >
+
+                        <?php if ($currentPage > 1): ?>
+
+                            <a
+                                class="ui-content-page"
+                                href="<?= $escape(
+                                    $browserPageUrl(
+                                        $currentPage - 1
                                     )
-                                ) ?>
+                                ) ?>"
+                            >
+                                قبلی
+                            </a>
+
+                        <?php else: ?>
+
+                            <span class="ui-content-page is-disabled">
+                                قبلی
                             </span>
 
                         <?php endif; ?>
 
-                    </div>
 
-                </a>
+                        <?php
+                        $pageStart =
+                            max(
+                                1,
+                                $currentPage - 2
+                            );
 
-            <?php endforeach; ?>
+                        $pageEnd =
+                            min(
+                                $totalPages,
+                                $currentPage + 2
+                            );
+                        ?>
 
 
-            <?php if (
-                $items === []
-            ): ?>
+                        <?php for (
+                            $pageIndex = $pageStart;
+                            $pageIndex <= $pageEnd;
+                            $pageIndex++
+                        ): ?>
 
-                <div class="admin-empty-state">
-                    محتوایی با این فیلتر پیدا نشد.
-                </div>
+                            <a
+                                class="ui-content-page<?= $pageIndex === $currentPage ? ' is-active' : '' ?>"
+                                href="<?= $escape(
+                                    $browserPageUrl(
+                                        $pageIndex
+                                    )
+                                ) ?>"
+                                <?= $pageIndex === $currentPage
+                                    ? 'aria-current="page"'
+                                    : ''
+                                ?>
+                            >
+                                <?= $escape(
+                                    $digits(
+                                        $pageIndex
+                                    )
+                                ) ?>
+                            </a>
 
-            <?php endif; ?>
+                        <?php endfor; ?>
 
-        </div>
+
+                        <?php if (
+                            $currentPage
+                            < $totalPages
+                        ): ?>
+
+                            <a
+                                class="ui-content-page"
+                                href="<?= $escape(
+                                    $browserPageUrl(
+                                        $currentPage + 1
+                                    )
+                                ) ?>"
+                            >
+                                بعدی
+                            </a>
+
+                        <?php else: ?>
+
+                            <span class="ui-content-page is-disabled">
+                                بعدی
+                            </span>
+
+                        <?php endif; ?>
+
+                    </nav>
+
+                <?php endif; ?>
+
+            </div>
+
+
+        <?php else: ?>
+
+            <div class="admin-empty-state">
+                محتوایی با این فیلتر پیدا نشد.
+            </div>
+
+        <?php endif; ?>
+
+
+        <script>
+        document.addEventListener(
+            'click',
+            function (event) {
+
+                var row =
+                    event.target.closest(
+                        '.ui-content-table__row'
+                    );
+
+                if (!row) {
+                    return;
+                }
+
+                if (
+                    event.target.closest(
+                        'a,button,input,select,textarea,label'
+                    )
+                ) {
+                    return;
+                }
+
+                var href =
+                    row.getAttribute(
+                        'data-href'
+                    );
+
+                if (href) {
+                    window.location.href =
+                        href;
+                }
+            }
+        );
+        </script>
 
     </section>
 

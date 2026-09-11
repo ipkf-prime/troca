@@ -104,6 +104,12 @@ $router->get(
                             ''
                         ),
 
+                    'page' =>
+                        $request->input(
+                            'page',
+                            '1'
+                        ),
+
                     'tab' =>
                         $request->input(
                             'tab',

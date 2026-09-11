@@ -205,6 +205,18 @@ final class UiContentManagementService
         }
 
 
+        $pageNumber =
+            max(
+                1,
+                (int) (
+                    $filters['page']
+                    ?? 1
+                )
+            );
+
+        $perPage = 20;
+
+
         $selectedKey =
             strtolower(
                 trim(
@@ -235,14 +247,26 @@ final class UiContentManagementService
                 ?? false
             );
 
-        $items =
+        $definitionPage =
             $this->definitions(
                 $q,
                 $type,
                 $status,
                 $moduleFilter,
-                $placementFilter
+                $placementFilter,
+                $pageNumber,
+                $perPage
             );
+
+        $items =
+            $definitionPage[
+                'items'
+            ];
+
+        $pagination =
+            $definitionPage[
+                'pagination'
+            ];
 
         $selected = null;
 
@@ -364,12 +388,20 @@ final class UiContentManagementService
                 'placement' =>
                     $placementFilter,
 
+                'page' =>
+                    $pagination[
+                        'page'
+                    ],
+
                 'tab' =>
                     $workspaceTab,
             ],
 
             'items' =>
                 $items,
+
+            'pagination' =>
+                $pagination,
 
             'selected' =>
                 $selected,
@@ -1381,7 +1413,9 @@ final class UiContentManagementService
         string $type,
         string $status,
         string $moduleFilter,
-        string $placementFilter
+        string $placementFilter,
+        int $pageNumber,
+        int $perPage
     ): array {
 
         $where = [
@@ -1390,11 +1424,15 @@ final class UiContentManagementService
 
         $params = [];
 
+
         if ($q !== '') {
-            $where[] = "(
-                d.content_key LIKE ?
-                OR d.description LIKE ?
-            )";
+
+            $where[] = "
+                (
+                    d.content_key LIKE ?
+                    OR d.description LIKE ?
+                )
+            ";
 
             $like =
                 '%' . $q . '%';
@@ -1403,25 +1441,33 @@ final class UiContentManagementService
             $params[] = $like;
         }
 
+
         if ($type !== '') {
+
             $where[] =
                 'd.content_type = ?';
 
-            $params[] = $type;
+            $params[] =
+                $type;
         }
 
+
         if ($status === 'active') {
+
             $where[] =
                 'd.is_active = 1';
         }
 
+
         if ($status === 'inactive') {
+
             $where[] =
                 'd.is_active = 0';
         }
 
 
         if ($moduleFilter !== '') {
+
             $where[] = "
                 EXISTS (
                     SELECT 1
@@ -1443,6 +1489,7 @@ final class UiContentManagementService
             $placementFilter === 'global'
             || $placementFilter === 'module'
         ) {
+
             $where[] = "
                 EXISTS (
                     SELECT 1
@@ -1464,6 +1511,7 @@ final class UiContentManagementService
             $placementFilter === 'project'
             || $placementFilter === 'portal'
         ) {
+
             $where[] = "
                 EXISTS (
                     SELECT 1
@@ -1472,10 +1520,12 @@ final class UiContentManagementService
 
                     WHERE
                         fp.definition_id = d.id
+
                         AND fp.scope_type NOT IN (
                             'global',
                             'module'
                         )
+
                         AND fp.scope_path_json
                             LIKE ?
                 )
@@ -1489,6 +1539,7 @@ final class UiContentManagementService
 
 
         if ($placementFilter === 'fine') {
+
             $where[] = "
                 EXISTS (
                     SELECT 1
@@ -1497,6 +1548,7 @@ final class UiContentManagementService
 
                     WHERE
                         fp.definition_id = d.id
+
                         AND fp.scope_type NOT IN (
                             'global',
                             'module'
@@ -1504,6 +1556,71 @@ final class UiContentManagementService
                 )
             ";
         }
+
+
+        $whereSql =
+            implode(
+                ' AND ',
+                $where
+            );
+
+
+        $countStatement =
+            $this->db->prepare("
+                SELECT
+                    COUNT(*)
+
+                FROM
+                    ui_content_definitions d
+
+                WHERE
+                    {$whereSql}
+            ");
+
+
+        $countStatement->execute(
+            $params
+        );
+
+
+        $total =
+            (int) $countStatement
+                ->fetchColumn();
+
+
+        $perPage =
+            max(
+                1,
+                min(
+                    100,
+                    $perPage
+                )
+            );
+
+
+        $totalPages =
+            max(
+                1,
+                (int) ceil(
+                    $total
+                    / $perPage
+                )
+            );
+
+
+        $pageNumber =
+            min(
+                max(
+                    1,
+                    $pageNumber
+                ),
+                $totalPages
+            );
+
+
+        $offset =
+            ($pageNumber - 1)
+            * $perPage;
 
 
         $statement =
@@ -1520,56 +1637,206 @@ final class UiContentManagementService
 
                         WHERE
                             o.definition_id = d.id
-                            AND o.locale = d.default_locale
-                            AND o.title IS NOT NULL
-                            AND TRIM(o.title) <> ''
+
+                            AND
+                            o.locale =
+                            d.default_locale
+
+                            AND o.title
+                                IS NOT NULL
+
+                            AND TRIM(
+                                o.title
+                            ) <> ''
 
                         ORDER BY
-                            CASE o.scope_type
-                                WHEN 'global' THEN 0
-                                WHEN 'module' THEN 1
+                            CASE
+                                o.scope_type
+
+                                WHEN 'global'
+                                    THEN 0
+
+                                WHEN 'module'
+                                    THEN 1
+
                                 ELSE 2
                             END,
+
                             o.id
 
                         LIMIT 1
                     ) AS display_title,
 
                     (
-                        SELECT COUNT(*)
+                        SELECT
+                            COUNT(*)
 
-                        FROM ui_content_overrides o
+                        FROM
+                            ui_content_overrides o
 
                         WHERE
                             o.definition_id =
                             d.id
-                    ) AS override_count
+                    ) AS override_count,
+
+                    (
+                        SELECT
+                            o.module_key
+
+                        FROM
+                            ui_content_overrides o
+
+                        WHERE
+                            o.definition_id = d.id
+
+                            AND
+                            o.module_key
+                            IS NOT NULL
+
+                            AND TRIM(
+                                o.module_key
+                            ) <> ''
+
+                        ORDER BY
+                            CASE
+                                o.scope_type
+
+                                WHEN 'global'
+                                    THEN 0
+
+                                WHEN 'module'
+                                    THEN 1
+
+                                ELSE 2
+                            END,
+
+                            o.id
+
+                        LIMIT 1
+                    ) AS primary_module_key,
+
+                    (
+                        SELECT
+                            o.scope_type
+
+                        FROM
+                            ui_content_overrides o
+
+                        WHERE
+                            o.definition_id = d.id
+
+                        ORDER BY
+                            CASE
+                                o.scope_type
+
+                                WHEN 'global'
+                                    THEN 0
+
+                                WHEN 'module'
+                                    THEN 1
+
+                                ELSE 2
+                            END,
+
+                            o.id
+
+                        LIMIT 1
+                    ) AS primary_scope_type,
+
+                    (
+                        SELECT
+                            o.scope_path_json
+
+                        FROM
+                            ui_content_overrides o
+
+                        WHERE
+                            o.definition_id = d.id
+
+                        ORDER BY
+                            CASE
+                                o.scope_type
+
+                                WHEN 'global'
+                                    THEN 0
+
+                                WHEN 'module'
+                                    THEN 1
+
+                                ELSE 2
+                            END,
+
+                            o.id
+
+                        LIMIT 1
+                    ) AS primary_scope_path_json
 
                 FROM
                     ui_content_definitions d
 
-                WHERE "
-                . implode(
-                    ' AND ',
-                    $where
-                )
-                . "
+                WHERE
+                    {$whereSql}
 
                 ORDER BY
                     d.content_type,
                     d.content_key,
                     d.id
-            ");
+
+                LIMIT "
+                . (int) $perPage
+                . "
+
+                OFFSET "
+                . (int) $offset
+            );
+
 
         $statement->execute(
             $params
         );
 
-        return
+
+        $items =
             $statement->fetchAll(
                 PDO::FETCH_ASSOC
             )
             ?: [];
+
+
+        return [
+            'items' =>
+                $items,
+
+            'pagination' => [
+                'page' =>
+                    $pageNumber,
+
+                'per_page' =>
+                    $perPage,
+
+                'total' =>
+                    $total,
+
+                'total_pages' =>
+                    $totalPages,
+
+                'from' =>
+                    $total === 0
+                        ? 0
+                        : $offset + 1,
+
+                'to' =>
+                    $total === 0
+                        ? 0
+                        : min(
+                            $total,
+                            $offset
+                            + count(
+                                $items
+                            )
+                        ),
+            ],
+        ];
     }
 
 
