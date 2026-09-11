@@ -376,18 +376,44 @@ class DynamicAdminNavigationService extends BaseService
                 $item['parent_id'] !== null
                 || (string) ($item['placement_code'] ?? 'sidebar')
                     !== 'sidebar'
-                || !$this->allowed($item, $userId)
             ) {
                 continue;
             }
 
-            $presented = $this->present($item, $userId);
-            $presented['children'] = $this->childrenByParentId(
+            /*
+             * UNIFIED_PARENT_CHILD_ACCESS_SURFACE_V1
+             *
+             * Dashboard cards and Sidebar roots must follow
+             * the same permission model:
+             *
+             * Parent:
+             * own permission OR any permitted direct child.
+             *
+             * Child:
+             * own permission.
+             *
+             * Route:
+             * own permission.
+             *
+             * A structural parent must not force its broader
+             * permission onto an otherwise valid child.
+             */
+            $children = $this->childrenByParentId(
                 $items,
                 $userId,
                 (int) $item['id'],
                 'sidebar'
             );
+
+            if (
+                !$this->allowed($item, $userId)
+                && $children === []
+            ) {
+                continue;
+            }
+
+            $presented = $this->present($item, $userId);
+            $presented['children'] = $children;
             $result[] = $presented;
         }
 
