@@ -430,7 +430,7 @@ ob_start();
 
                         <?php if ($isEdit): ?>
                             <small class="admin-muted">
-                                کد پروژه پس از ایجاد قابل تغییر نیست.
+                                <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('ticketing.ticketing-project-form.guide.01', 'ticketing', 'ticketing-project-form') ?>
                             </small>
                         <?php endif; ?>
                     </label>
@@ -638,13 +638,11 @@ ob_start();
                 >
                     <div>
                         <h2>
-                            بستن خودکار تیکت‌های حل‌شده
+                            <?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('ticketing.ticketing-project-form.guide.02', 'ticketing', 'ticketing-project-form') ?>
                         </h2>
 
                         <p class="admin-muted">
-                            پس از گذشت مدت انتظار تعیین‌شده،
-                            تیکت‌های حل‌شده واجد شرایط
-                            توسط سامانه بسته می‌شوند.
+                            <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('ticketing.ticketing-project-form.guide.02', 'ticketing', 'ticketing-project-form') ?>
                         </p>
                     </div>
                 </header>
@@ -707,9 +705,7 @@ ob_start();
                     </p>
 
                     <p>
-                        تیکت‌های حل‌شده قبل از این مرز،
-                        صرف‌نظر از سن آن‌ها، به‌صورت خودکار
-                        بسته نمی‌شوند.
+                        <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('ticketing.ticketing-project-form.guide.03', 'ticketing', 'ticketing-project-form') ?>
                     </p>
                 </div>
 

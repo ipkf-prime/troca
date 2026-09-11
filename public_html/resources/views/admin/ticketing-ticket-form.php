@@ -410,8 +410,7 @@ ob_start();
         <header>
             <h3>پیوست‌ها</h3>
             <p>
-                فایل‌های مرتبط با درخواست را می‌توانید
-                همراه تیکت ارسال کنید.
+                <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('ticketing.ticketing-ticket-form.guide.01', 'ticketing', 'ticketing-ticket-form') ?>
             </p>
         </header>
 

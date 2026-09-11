@@ -208,10 +208,9 @@ ob_start();
 
     <header class="active-access-hero">
         <div>
-            <h2>نقش فعال من</h2>
+            <h2><?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('core.access.guide.01', 'core', 'access') ?></h2>
             <p>
-                این صفحه فقط برای انتخاب Context فعال کاربر است.
-                تعریف نقش، مجوز، حوزه و انتساب از مرکز کنترل دسترسی انجام می‌شود.
+                <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.access.guide.01', 'core', 'access') ?>
             </p>
         </div>
 
@@ -225,10 +224,9 @@ ob_start();
 
     <section class="active-access-card">
         <div class="active-access-card__head">
-            <h3>انتخاب نقش فعال</h3>
+            <h3><?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('core.access.guide.02', 'core', 'access') ?></h3>
             <p>
-                در صورت داشتن چند نقش، نقشی را که می‌خواهید
-                پنل با آن اجرا شود انتخاب کنید.
+                <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.access.guide.02', 'core', 'access') ?>
             </p>
         </div>
 
@@ -362,10 +360,9 @@ ob_start();
     <?php if ($canManageAccessControl): ?>
         <section class="active-access-governance">
             <div>
-                <strong>مدیریت نقش و دسترسی</strong>
+                <strong><?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('core.access.guide.03', 'core', 'access') ?></strong>
                 <small>
-                    تعریف نقش، مجوزها، انتساب کاربر،
-                    حوزه و محدودیت فقط در مرکز کنترل دسترسی انجام می‌شود.
+                    <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.access.guide.03', 'core', 'access') ?>
                 </small>
             </div>
 

@@ -6,7 +6,7 @@ require BASE_PATH . '/resources/views/admin/partials/communication-style.php';
 ?>
 <div class="message-page-shell message-page-shell--wide">
     <section class="communication-panel communication-compact-head">
-        <div><h2>نظارت بر پیام‌ها</h2><p class="communication-muted">فهرست فقط‌خواندنی است؛ مشاهده متن هر گفتگو پس از ثبت دلیل در لاگ ممیزی انجام می‌شود.</p></div>
+        <div><h2><?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('core.messages-monitor.guide.01', 'core', 'messages-monitor') ?></h2><p class="communication-muted"><?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.messages-monitor.guide.01', 'core', 'messages-monitor') ?></p></div>
     </section>
     <section class="communication-panel">
         <?php

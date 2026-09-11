@@ -136,7 +136,7 @@ ob_start();
                     </div>
 
                     <small class="admin-field-help">
-                        رنگ انتخاب‌شده مستقیماً روی کارت داشبورد اعمال می‌شود.
+                        <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.settings.guide.01', 'core', 'settings') ?>
                     </small>
                 </label>
 
@@ -179,7 +179,7 @@ ob_start();
         </section>
 
         <section class="admin-tab-panel" data-admin-tab-panel="database" hidden>
-            <div class="admin-panel-heading"><div><h3>اتصال دیتابیس</h3><p>مشخصات فنی اینجا ثبت می‌شود؛ مقدار واقعی رمز فقط در ENV باقی می‌ماند.</p></div></div>
+            <div class="admin-panel-heading"><div><h3><?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('core.settings.guide.02', 'core', 'settings') ?></h3><p><?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.settings.guide.02', 'core', 'settings') ?></p></div></div>
             <div class="admin-form-grid admin-module-database-grid">
                 <label><span>نام اتصال</span><input name="database_connection_name" dir="ltr" data-module-field="connection"></label>
                 <label><span>میزبان</span><input name="database_host" value="localhost" dir="ltr"></label>

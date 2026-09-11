@@ -582,9 +582,7 @@ $csrf =
                 data-public-registration-bale-verify
             >
                 <p class="admin-muted">
-                    اگر پیامک تأیید را دریافت نمی‌کنید،
-                    می‌توانید مالکیت همین شماره همراه را
-                    از طریق بله تأیید کنید.
+                    <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.register-verify.guide.01', 'core', 'register-verify') ?>
                 </p>
 
                 <form
@@ -610,12 +608,7 @@ $csrf =
                 </form>
 
                 <p class="admin-muted">
-                    در بله گزینه «اشتراک شماره همراه من»
-                    را انتخاب کنید.
-                    شماره‌ای که بله ارسال می‌کند باید
-                    دقیقاً با شماره این ثبت‌نام یکسان باشد.
-                    پس از تأیید در بله، به این صفحه برگردید
-                    و دکمه بررسی وضعیت را بزنید.
+                    <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.register-verify.guide.02', 'core', 'register-verify') ?>
                 </p>
 
                 <form

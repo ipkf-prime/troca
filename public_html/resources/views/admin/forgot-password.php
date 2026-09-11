@@ -32,7 +32,7 @@ $themeAssets = $themeService->assetUrls();
                     <h1>بازیابی کلمه عبور</h1>
                 </div>
             </div>
-            <p class="admin-muted">شناسه حساب را وارد کنید. اگر حساب معتبر باشد، راهنمای بازیابی از مسیرهای تنظیم‌شده ارسال می‌شود.</p>
+            <p class="admin-muted"><?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.forgot-password.guide.01', 'core', 'forgot-password') ?></p>
 
             <?php if ($sent): ?>
                 <div class="admin-notice">اگر این حساب در سامانه وجود داشته باشد، راهنمای بازیابی برای آن ارسال می‌شود.</div>

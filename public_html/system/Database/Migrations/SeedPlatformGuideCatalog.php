@@ -288,7 +288,12 @@ final class SeedPlatformGuideCatalog
                     ),
 
                 'consumer_bound' =>
-                    false,
+                    (bool) (
+                        $item[
+                            'consumer_bound'
+                        ]
+                        ?? false
+                    ),
             ];
 
 
@@ -529,7 +534,12 @@ final class SeedPlatformGuideCatalog
                     ),
 
                 'consumer_bound' =>
-                    false,
+                    (bool) (
+                        $item[
+                            'consumer_bound'
+                        ]
+                        ?? false
+                    ),
             ];
 
 

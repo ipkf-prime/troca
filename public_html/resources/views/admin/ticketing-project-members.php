@@ -512,7 +512,7 @@ ob_start();
         </button>
 
         <span class="admin-muted ticketing-member-selection-toolbar__hint">
-            انتخاب‌ها برای عملیات گروهی بعدی آماده می‌شوند.
+            <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('ticketing.ticketing-project-members.guide.01', 'ticketing', 'ticketing-project-members') ?>
         </span>
     </div>
 

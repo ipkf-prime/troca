@@ -113,9 +113,9 @@ ob_start();
         <section class="account-card">
             <div class="account-card__head">
                 <div>
-                    <h2>اطلاعات هویتی من</h2>
+                    <h2><?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('core.self-profile-edit.guide.01', 'core', 'self-profile-edit') ?></h2>
                     <p>
-                        هر کاربر می‌تواند پرونده هویتی خودش را مشاهده و اصلاح کند.
+                        <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.self-profile-edit.guide.01', 'core', 'self-profile-edit') ?>
                     </p>
                 </div>
             </div>

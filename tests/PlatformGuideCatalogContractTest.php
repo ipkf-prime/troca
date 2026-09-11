@@ -126,9 +126,11 @@ foreach ($catalog as $item) {
 
 
     $expect(
-        ($item['consumer_bound'] ?? null)
-        === false,
-        'A1 records must not claim consumer binding.'
+        $type === 'guide'
+            ? (($item['consumer_bound'] ?? null) === true)
+            : (($item['consumer_bound'] ?? null) === false),
+        'Consumer binding state mismatch: '
+        . $key
     );
 
 
@@ -239,4 +241,5 @@ echo "ERROR_COUNT=1\n";
 echo "DYNAMIC_GUIDES_DEFERRED=2\n";
 echo "FALSE_POSITIVE_GUIDES_EXCLUDED=2\n";
 echo "GENERIC_SURFACE_SCOPE=PASS\n";
-echo "CONSUMER_BINDING=DEFERRED_TO_G4_C1_A2\n";
+echo "STATIC_GUIDES_BOUND=47\n";
+echo "NOTICE_ERROR_BINDING=DEFERRED_TO_G4_C1_A2_2\n";

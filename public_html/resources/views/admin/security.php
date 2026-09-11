@@ -530,10 +530,9 @@ ob_start();
         <section class="account-card">
             <div class="account-card__head">
                 <div>
-                    <h3>کدهای بازیابی و غیرفعال‌سازی</h3>
+                    <h3><?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('core.security.guide.01', 'core', 'security') ?></h3>
                     <p>
-                        عملیات حساس فقط پس از تأیید رمز عبور و کد جاری
-                        انجام می‌شود.
+                        <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.security.guide.01', 'core', 'security') ?>
                     </p>
                 </div>
             </div>

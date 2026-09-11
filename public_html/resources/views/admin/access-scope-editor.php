@@ -171,8 +171,8 @@ $scopeOptionsJson = json_encode(
 <section class="admin-section scope-governance" data-access-scope-editor data-scope-options='<?= admin_h($scopeOptionsJson) ?>'>
     <div class="scope-toolbar">
         <div>
-            <h2>حوزه و محدودیت انتساب نقش</h2>
-            <p class="admin-muted">هر انتساب می‌تواند حوزه‌ای متفاوت از همان نقش داشته باشد.</p>
+            <h2><?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('core.access-scope-editor.guide.01', 'core', 'access-scope-editor') ?></h2>
+            <p class="admin-muted"><?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.access-scope-editor.guide.01', 'core', 'access-scope-editor') ?></p>
         </div>
         <div class="admin-form-actions" data-access-page="assignment-scope">
             <a class="admin-button admin-button--soft" href="/admin/access-control">بازگشت</a>
@@ -243,7 +243,7 @@ $scopeOptionsJson = json_encode(
                     </div>
                     <button type="button" class="admin-button admin-button--soft" data-add-constraint>افزودن محدودیت</button>
 
-                    <p class="scope-note">اعمال خودکار این حوزه‌ها روی داده‌های هر ماژول، پس از اتصال همان ماژول به کنترل دسترسی زمینه‌محور فعال می‌شود.</p>
+                    <p class="scope-note"><?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.access-scope-editor.guide.02', 'core', 'access-scope-editor') ?></p>
                     <div class="scope-actions">
                         <textarea name="reason" required minlength="3" maxlength="500" placeholder="دلیل تغییر برای ثبت در تاریخچه"></textarea>
                         <button class="admin-button" type="submit">ذخیره حوزه و محدودیت‌ها</button>

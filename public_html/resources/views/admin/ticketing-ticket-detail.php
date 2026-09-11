@@ -2460,10 +2460,10 @@ $routingRecoveryNoticeMessages = [
     >
         <div class="admin-section__header">
             <div>
-                <h3>افزودن توضیح</h3>
+                <h3><?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('ticketing.ticketing-ticket-detail.guide.01', 'ticketing', 'ticketing-ticket-detail') ?></h3>
 
                 <p class="admin-muted">
-                    تا پیش از بسته‌شدن یا لغو تیکت می‌توانید توضیح یا فایل تکمیلی اضافه کنید. مسیر ارجاع و کارشناس فعلی حفظ می‌شود.
+                    <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('ticketing.ticketing-ticket-detail.guide.01', 'ticketing', 'ticketing-ticket-detail') ?>
                 </p>
 
                 <?php if (

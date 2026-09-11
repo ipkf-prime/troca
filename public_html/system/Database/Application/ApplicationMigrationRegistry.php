@@ -93,6 +93,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\SeedInitialDynamicUiContent::class,
                     \IPKF\Database\Migrations\SeedPlatformGuideCatalog::class,
                     \IPKF\Database\Migrations\NormalizeStaticGuideRenderContract::class,
+                    \IPKF\Database\Migrations\MarkStaticGuideConsumersBound::class,
                     \IPKF\Database\Migrations\CreatePlatformAuditFoundation::class,
                 ],
             ],

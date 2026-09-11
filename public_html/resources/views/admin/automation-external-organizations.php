@@ -2400,12 +2400,11 @@ $directoryTabUrl =
     <div class="admin-section__header">
         <div>
             <h2>
-                دبیرخانه‌ها و نقاط مکاتباتی
+                <?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('automation.automation-external-organizations.guide.01', 'automation', 'automation-external-organizations') ?>
             </h2>
 
             <p class="admin-muted">
-                هر سازمان می‌تواند چند مقصد مستقل
-                برای مکاتبه داشته باشد.
+                <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('automation.automation-external-organizations.guide.01', 'automation', 'automation-external-organizations') ?>
             </p>
         </div>
 

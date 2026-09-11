@@ -492,7 +492,7 @@ ob_start();
 
             <?php /* attachment-per-file-metadata-v1 */ ?>
             <p class="admin-muted automation-attachment-metadata-help">
-                عنوان و نوع هر فایل را پس از انتخاب، در ردیف همان فایل مشخص کنید.
+                <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('automation.automation-correspondence-form.guide.01', 'automation', 'automation-correspondence-form') ?>
             </p>
 
             <div

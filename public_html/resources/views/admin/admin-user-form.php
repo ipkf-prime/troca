@@ -419,10 +419,9 @@ ob_start();
                 <?php if (!$isEdit): ?>
                     <div class="permission-next">
                         <div>
-                            <strong>نقش پایه کاربر</strong>
+                            <strong><?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('core.admin-user-form.guide.01', 'core', 'admin-user-form') ?></strong>
                             <small>
-                                حساب جدید فقط با نقش پایه «کاربر» ایجاد می‌شود.
-                                پس از ایجاد حساب، نقش‌های تکمیلی را از مرکز کنترل دسترسی اضافه کنید.
+                                <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.admin-user-form.guide.01', 'core', 'admin-user-form') ?>
                             </small>
                         </div>
                         <span class="admin-pill">
@@ -518,10 +517,9 @@ ob_start();
 
                     <div class="permission-next" style="margin-top:.75rem">
                         <div>
-                            <strong>مرجع تغییرات دسترسی</strong>
+                            <strong><?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('core.admin-user-form.guide.02', 'core', 'admin-user-form') ?></strong>
                             <small>
-                                افزودن یا حذف نقش، تعیین حوزه، محدودیت،
-                                نقش پیش‌فرض و Permission فقط در مرکز کنترل دسترسی انجام می‌شود.
+                                <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.admin-user-form.guide.02', 'core', 'admin-user-form') ?>
                             </small>
                         </div>
 

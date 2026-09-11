@@ -566,8 +566,7 @@ ob_start();
                 <div>
                     <h3>دبیرخانه</h3>
                     <p class="admin-muted">
-                        دبیرخانه می‌تواند سازمانی باشد؛ در سطح ریشه نیز
-                        امکان تعریف دبیرخانه مشترک برای چند سازمان وجود دارد.
+                        <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('automation.automation-secretariat-management.guide.01', 'automation', 'automation-secretariat-management') ?>
                     </p>
                 </div>
             </div>
@@ -932,10 +931,9 @@ ob_start();
         <div class="automation-secretariat-step__body">
             <div class="automation-secretariat-step__head">
                 <div>
-                    <h3>دوره ثبت</h3>
+                    <h3><?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('automation.automation-secretariat-management.guide.02', 'automation', 'automation-secretariat-management') ?></h3>
                     <p class="admin-muted">
-                        بازه زمانی معتبر برای دفتر و شماره‌گذاری؛
-                        می‌تواند سازمانی یا در سطح ریشه مشترک باشد.
+                        <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('automation.automation-secretariat-management.guide.02', 'automation', 'automation-secretariat-management') ?>
                     </p>
                 </div>
             </div>
@@ -1653,11 +1651,9 @@ ob_start();
         <div class="automation-secretariat-step__body">
             <div class="automation-secretariat-step__head">
                 <div>
-                    <h3>دفتر ثبت</h3>
+                    <h3><?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('automation.automation-secretariat-management.guide.03', 'automation', 'automation-secretariat-management') ?></h3>
                     <p class="admin-muted">
-                        یک دفتر ثبت می‌تواند یک یا چند نوع مکاتبه
-                        وارده، صادره و داخلی را پوشش دهد و همه آن‌ها
-                        از منبع شماره متصل به همان دفتر استفاده کنند.
+                        <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('automation.automation-secretariat-management.guide.03', 'automation', 'automation-secretariat-management') ?>
                     </p>
                 </div>
             </div>
@@ -1839,10 +1835,7 @@ ob_start();
                         </div>
 
                         <small class="admin-muted">
-                            می‌توانید بیش از یک نوع را انتخاب کنید.
-                            در این حالت همه انواع انتخاب‌شده از همین
-                            دفتر و منبع شماره استفاده می‌کنند و توالی
-                            شماره میان آن‌ها مشترک خواهد بود.
+                            <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('automation.automation-secretariat-management.guide.04', 'automation', 'automation-secretariat-management') ?>
                         </small>
                     </div>
 

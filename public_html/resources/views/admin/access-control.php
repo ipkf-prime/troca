@@ -1280,10 +1280,7 @@ ob_start();
                         <span>نقش پیش‌فرض</span>
                         <strong>نقش فعال پس از ورود</strong>
                         <small>
-                            اگر نقش پیش‌فرض فعال باشد، کاربر پس از ورود
-                            مستقیماً با همان نقش وارد می‌شود. در صورت
-                            غیرفعال یا منقضی شدن آن، سامانه به انتخاب
-                            خودکار برمی‌گردد.
+                            <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.access-control.guide.01', 'core', 'access-control') ?>
                         </small>
                     </div>
 

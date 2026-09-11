@@ -39,10 +39,9 @@ ob_start();
     <section class="account-card">
         <div class="account-card__head">
             <div>
-                <h2>تغییر رمز عبور</h2>
+                <h2><?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('core.password.guide.01', 'core', 'password') ?></h2>
                 <p>
-                    پس از ذخیره، شناسه نشست جاری برای امنیت بیشتر
-                    نوسازی می‌شود.
+                    <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.password.guide.01', 'core', 'password') ?>
                 </p>
             </div>
             <a

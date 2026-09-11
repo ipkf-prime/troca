@@ -1167,8 +1167,7 @@ ob_start();
             <div class="admin-card-body">
 
                 <div class="portal-admin__warning">
-                    تغییر دامنه یا میزبان می‌تواند دسترسی به صفحه عمومی همین پورتال را تغییر دهد.
-                    برای دامنه واقعی محیط توسعه فعلاً مقدار موجود را تغییر ندهید مگر در تست کنترل‌شده.
+                    <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('ticketing.ticketing-portal-management.guide.01', 'ticketing', 'ticketing-portal-management') ?>
                 </div>
 
 

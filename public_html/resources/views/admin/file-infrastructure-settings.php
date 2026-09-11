@@ -286,12 +286,11 @@ ob_start();
         <div>
 
             <h3>
-                تنظیمات اجرایی
+                <?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('core.file-infrastructure-settings.guide.01', 'core', 'file-infrastructure-settings') ?>
             </h3>
 
             <p>
-                برای استفاده از NAS، NFS یا File Server دیگر،
-                فضای مقصد را روی سیستم Mount کرده و مسیر Mount را ثبت کنید.
+                <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.file-infrastructure-settings.guide.01', 'core', 'file-infrastructure-settings') ?>
             </p>
 
         </div>
@@ -329,7 +328,7 @@ ob_start();
                 >
 
                 <small class="admin-field-help">
-                    فضای محلی یا فضای Mount شده قابل استفاده است.
+                    <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.file-infrastructure-settings.guide.02', 'core', 'file-infrastructure-settings') ?>
                 </small>
 
             </label>
@@ -353,8 +352,7 @@ ob_start();
                 >
 
                 <small class="admin-field-help">
-                    خالی بودن یعنی استفاده از ENV یا مسیر سازگار قدیمی ماژول.
-                    مسیر نباید داخل Document Root باشد.
+                    <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.file-infrastructure-settings.guide.03', 'core', 'file-infrastructure-settings') ?>
                 </small>
 
             </label>
@@ -394,8 +392,7 @@ ob_start();
                 >
 
                 <small class="admin-field-help">
-                    ENV مشترک، تنظیم قدیمی Automation، PATH و
-                    مسیرهای استاندارد به‌ترتیب بررسی می‌شوند.
+                    <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.file-infrastructure-settings.guide.04', 'core', 'file-infrastructure-settings') ?>
                 </small>
 
             </label>
@@ -419,7 +416,7 @@ ob_start();
                 >
 
                 <small class="admin-field-help">
-                    بین ۵ تا ۳۰۰ ثانیه
+                    <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.file-infrastructure-settings.guide.05', 'core', 'file-infrastructure-settings') ?>
                 </small>
 
             </label>

@@ -384,13 +384,10 @@ ob_start();
                 data-ticketing-topic-governance
             >
                 <div class="ticketing-topic-governance__header">
-                    <h3>ویرایش دسته و موضوع</h3>
+                    <h3><?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('ticketing.ticketing-routing.guide.01', 'ticketing', 'ticketing-routing') ?></h3>
 
                     <p class="admin-muted">
-                        عنوان، توضیح و ترتیب کم‌ریسک هستند.
-                        تغییر والد، زیرسامانه، وضعیت، قابل‌انتخاب‌بودن یا پیش‌فرض‌بودن
-                        قبل از ذخیره با اثر آن روی تیکت‌ها و قوانین کنترل می‌شود.
-                        حذف فیزیکی موضوع استفاده‌شده انجام نمی‌شود؛ در صورت نیاز آن را غیرفعال کنید.
+                        <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('ticketing.ticketing-routing.guide.01', 'ticketing', 'ticketing-routing') ?>
                     </p>
                 </div>
 

@@ -222,9 +222,9 @@ ob_start();
             </span>
 
             <div>
-                <h2>دعوت کاربر</h2>
+                <h2><?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('core.user-invite.guide.01', 'core', 'user-invite') ?></h2>
                 <p>
-                    ایجاد لینک اختصاصی و یک‌بارمصرف برای ثبت‌نام کاربر
+                    <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.user-invite.guide.01', 'core', 'user-invite') ?>
                 </p>
             </div>
         </div>
@@ -291,9 +291,7 @@ ob_start();
         <header class="user-invite-card__head">
             <h2>مشخصات دعوت</h2>
             <p>
-                موبایل اجباری است.
-                نقش کاربر از این فرم قابل انتخاب نیست و حساب پس از ثبت‌نام
-                فقط نقش پایه «کاربر» خواهد داشت.
+                <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.user-invite.guide.02', 'core', 'user-invite') ?>
             </p>
         </header>
 

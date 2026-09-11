@@ -369,7 +369,7 @@ ob_start();
                         ?? 0,
 
                     'hint' =>
-                        'ثبت‌شده و آماده شروع رسیدگی',
+                        \App\Services\UiContent\UiContentInlineGuide::bodyText('ticketing.ticketing-dashboard.guide.01', 'ticketing', 'ticketing-dashboard'),
                 ],
                 [
                     'label' =>
@@ -382,7 +382,7 @@ ob_start();
                         ?? 0,
 
                     'hint' =>
-                        'در حال رسیدگی توسط کارشناسان',
+                        \App\Services\UiContent\UiContentInlineGuide::bodyText('ticketing.ticketing-dashboard.guide.02', 'ticketing', 'ticketing-dashboard'),
                 ],
                 [
                     'label' =>
@@ -393,7 +393,7 @@ ob_start();
                         ?? 0,
 
                     'hint' =>
-                        'مسئله حل شده و نتیجه ثبت شده است',
+                        \App\Services\UiContent\UiContentInlineGuide::bodyText('ticketing.ticketing-dashboard.guide.03', 'ticketing', 'ticketing-dashboard'),
                 ],
                 [
                     'label' =>
@@ -404,7 +404,7 @@ ob_start();
                         ?? 0,
 
                     'hint' =>
-                        'چرخه رسیدگی به پایان رسیده است',
+                        \App\Services\UiContent\UiContentInlineGuide::bodyText('ticketing.ticketing-dashboard.guide.04', 'ticketing', 'ticketing-dashboard'),
                 ],
             ] as $metric): ?>
 

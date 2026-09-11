@@ -385,10 +385,9 @@ require BASE_PATH
                     <section class="provider-management-card">
                         <header class="provider-management-card__head">
                             <div>
-                                <h3>حساب‌ها و بات‌های ثبت‌شده</h3>
+                                <h3><?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('core.communication-settings.guide.01', 'core', 'communication-settings') ?></h3>
                                 <p class="communication-muted">
-                                    برای هر سرویس‌دهنده می‌توان چند حساب، بات یا
-                                    شماره مستقل ثبت کرد.
+                                    <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.communication-settings.guide.01', 'core', 'communication-settings') ?>
                                 </p>
                             </div>
                             <?php if ($isProviderEdit): ?>
@@ -823,7 +822,7 @@ require BASE_PATH
                                                 <?php endforeach; ?>
                                             </select>
                                             <small>
-                                                سرویس‌دهنده پس از ثبت قابل تغییر نیست.
+                                                <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.communication-settings.guide.02', 'core', 'communication-settings') ?>
                                             </small>
                                         </label>
 
@@ -2132,7 +2131,7 @@ require BASE_PATH
 
             <span>
                 <strong>
-                    ارسال پیامک به‌صورت ۲۴ ساعته
+                    <?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('core.communication-settings.guide.03', 'core', 'communication-settings') ?>
                 </strong>
 
                 <small
@@ -2141,8 +2140,7 @@ require BASE_PATH
                         margin-top:.2rem;
                     "
                 >
-                    پس از خدماتی‌شدن خط پیامکی این گزینه
-                    را فعال کنید.
+                    <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.communication-settings.guide.03', 'core', 'communication-settings') ?>
                 </small>
             </span>
         </label>
@@ -3488,10 +3486,9 @@ require BASE_PATH
             >
                 <header class="provider-management-card__head">
                     <div>
-                        <h3>کارتابل تأیید اعلان‌ها</h3>
+                        <h3><?= \App\Services\UiContent\UiContentInlineGuide::titleHtml('core.communication-settings.guide.04', 'core', 'communication-settings') ?></h3>
                         <p class="communication-muted">
-                            درخواست‌های در انتظار را بررسی کنید.
-                            فقط درخواست تأییدشده وارد فرایند ارسال می‌شود.
+                            <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.communication-settings.guide.04', 'core', 'communication-settings') ?>
                         </p>
                     </div>
 
@@ -5969,9 +5966,7 @@ require BASE_PATH
                     <fieldset class="notification-send-section">
                         <legend>۳. مقصدهای دستی</legend>
                         <p class="communication-muted">
-                            هر مقصد را در یک خط وارد کنید. جداکردن با
-                            ویرگول نیز پشتیبانی می‌شود. مقصدهای تکراری
-                            قبل از ارسال حذف می‌شوند.
+                            <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.communication-settings.guide.06', 'core', 'communication-settings') ?>
                         </p>
 
                         <div class="notification-send-manual-grid">
