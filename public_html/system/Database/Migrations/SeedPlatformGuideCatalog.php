@@ -217,7 +217,8 @@ final class SeedPlatformGuideCatalog
 
 
         $title =
-            $this->shortTitle(
+            $this->itemTitle(
+                $item,
                 $body
             );
 
@@ -276,6 +277,14 @@ final class SeedPlatformGuideCatalog
                             'fingerprint'
                         ]
                         ?? ''
+                    ),
+
+                'render_mode' =>
+                    (string) (
+                        $item[
+                            'render_mode'
+                        ]
+                        ?? 'body'
                     ),
 
                 'consumer_bound' =>
@@ -380,6 +389,12 @@ final class SeedPlatformGuideCatalog
                     $item['body']
                     ?? ''
                 )
+            );
+
+        $title =
+            $this->itemTitle(
+                $item,
+                $body
             );
 
 
@@ -505,6 +520,14 @@ final class SeedPlatformGuideCatalog
                         ?? ''
                     ),
 
+                'render_mode' =>
+                    (string) (
+                        $item[
+                            'render_mode'
+                        ]
+                        ?? 'body'
+                    ),
+
                 'consumer_bound' =>
                     false,
             ];
@@ -588,9 +611,7 @@ final class SeedPlatformGuideCatalog
                 | JSON_UNESCAPED_SLASHES
             ),
 
-            $this->shortTitle(
-                $body
-            ),
+            $title,
 
             $body,
 
@@ -600,6 +621,29 @@ final class SeedPlatformGuideCatalog
                 | JSON_UNESCAPED_SLASHES
             ),
         ]);
+    }
+
+
+    private function itemTitle(
+        array $item,
+        string $body
+    ): string {
+
+        $title =
+            trim(
+                (string) (
+                    $item['title']
+                    ?? ''
+                )
+            );
+
+
+        return
+            $title !== ''
+                ? $title
+                : $this->shortTitle(
+                    $body
+                );
     }
 
 
