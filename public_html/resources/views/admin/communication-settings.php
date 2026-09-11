@@ -3505,11 +3505,10 @@ require BASE_PATH
                 <?php if ($approvalItems === []): ?>
                     <div class="provider-empty-state">
                         <strong>
-                            درخواست در انتظار تأییدی وجود ندارد.
+                            <?= \App\Services\UiContent\UiContentInlineGuide::noticeTitleHtml('core.communication-settings.guide.05', 'core', 'communication-settings') ?>
                         </strong>
                         <p>
-                            درخواست‌های جدید کاربران پس از ثبت،
-                            در این کارتابل نمایش داده می‌شوند.
+                            <?= \App\Services\UiContent\UiContentInlineGuide::noticeBodyHtml('core.communication-settings.guide.05', 'core', 'communication-settings') ?>
                         </p>
                     </div>
                 <?php else: ?>

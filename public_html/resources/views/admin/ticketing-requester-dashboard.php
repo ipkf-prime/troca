@@ -98,12 +98,11 @@ ob_start();
 
                 <div>
                     <h2>
-                        هنوز عضو پروژه پشتیبانی نیستید
+                        <?= \App\Services\UiContent\UiContentInlineGuide::noticeTitleHtml('ticketing.ticketing-requester-dashboard.guide.01', 'ticketing', 'ticketing-requester-dashboard') ?>
                     </h2>
 
                     <p class="admin-muted">
-                        برای ثبت تیکت ابتدا از بخش عضویت در پروژه‌ها
-                        پروژه موردنظر را انتخاب کنید.
+                        <?= \App\Services\UiContent\UiContentInlineGuide::noticeBodyHtml('ticketing.ticketing-requester-dashboard.guide.01', 'ticketing', 'ticketing-requester-dashboard') ?>
                     </p>
                 </div>
 

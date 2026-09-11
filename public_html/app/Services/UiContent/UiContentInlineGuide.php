@@ -11,13 +11,10 @@ use RuntimeException;
 use Throwable;
 
 /**
- * G4-C1-A2.1-S2
+ * Static managed content adapter.
  *
- * View-facing adapter for managed static guides.
- *
- * HTML consumers call titleHtml/bodyHtml.
- * PHP data consumers call titleText/bodyText and keep their existing
- * escaping at the render boundary.
+ * A2.1 bound guide consumers.
+ * A2.2 adds notice/error consumers while preserving all guide APIs.
  */
 final class UiContentInlineGuide
 {
@@ -37,55 +34,113 @@ final class UiContentInlineGuide
 
     public static function titleText(string $contentKey, string $moduleKey, string $surface): string
     {
-        $payload = self::sharedPayload($contentKey, $moduleKey, $surface);
-        return (string) ($payload['title'] ?? '');
+        return self::fieldText('guide', 'title', $contentKey, $moduleKey, $surface);
     }
 
     public static function bodyText(string $contentKey, string $moduleKey, string $surface): string
     {
-        $payload = self::sharedPayload($contentKey, $moduleKey, $surface);
-        return (string) ($payload['body'] ?? '');
+        return self::fieldText('guide', 'body', $contentKey, $moduleKey, $surface);
     }
 
     public static function titleHtml(string $contentKey, string $moduleKey, string $surface): string
     {
-        return self::escape(
-            self::titleText($contentKey, $moduleKey, $surface)
-        );
+        return self::escape(self::titleText($contentKey, $moduleKey, $surface));
     }
 
     public static function bodyHtml(string $contentKey, string $moduleKey, string $surface): string
     {
-        return self::escape(
-            self::bodyText($contentKey, $moduleKey, $surface)
-        );
+        return self::escape(self::bodyText($contentKey, $moduleKey, $surface));
+    }
+
+    public static function noticeTitleText(string $contentKey, string $moduleKey, string $surface): string
+    {
+        return self::fieldText('notice', 'title', $contentKey, $moduleKey, $surface);
+    }
+
+    public static function noticeBodyText(string $contentKey, string $moduleKey, string $surface): string
+    {
+        return self::fieldText('notice', 'body', $contentKey, $moduleKey, $surface);
+    }
+
+    public static function noticeTitleHtml(string $contentKey, string $moduleKey, string $surface): string
+    {
+        return self::escape(self::noticeTitleText($contentKey, $moduleKey, $surface));
+    }
+
+    public static function noticeBodyHtml(string $contentKey, string $moduleKey, string $surface): string
+    {
+        return self::escape(self::noticeBodyText($contentKey, $moduleKey, $surface));
+    }
+
+    public static function errorTitleText(string $contentKey, string $moduleKey, string $surface): string
+    {
+        return self::fieldText('error', 'title', $contentKey, $moduleKey, $surface);
+    }
+
+    public static function errorBodyText(string $contentKey, string $moduleKey, string $surface): string
+    {
+        return self::fieldText('error', 'body', $contentKey, $moduleKey, $surface);
+    }
+
+    public static function errorTitleHtml(string $contentKey, string $moduleKey, string $surface): string
+    {
+        return self::escape(self::errorTitleText($contentKey, $moduleKey, $surface));
+    }
+
+    public static function errorBodyHtml(string $contentKey, string $moduleKey, string $surface): string
+    {
+        return self::escape(self::errorBodyText($contentKey, $moduleKey, $surface));
     }
 
     public function resolveGuide(string $contentKey, string $moduleKey, string $surface): array
     {
+        return $this->resolveTyped($contentKey, $moduleKey, $surface, 'guide');
+    }
+
+    public function resolveNotice(string $contentKey, string $moduleKey, string $surface): array
+    {
+        return $this->resolveTyped($contentKey, $moduleKey, $surface, 'notice');
+    }
+
+    public function resolveError(string $contentKey, string $moduleKey, string $surface): array
+    {
+        return $this->resolveTyped($contentKey, $moduleKey, $surface, 'error');
+    }
+
+    private function resolveTyped(
+        string $contentKey,
+        string $moduleKey,
+        string $surface,
+        string $expectedType
+    ): array {
         $contentKey = strtolower(trim($contentKey));
         $moduleKey = strtolower(trim($moduleKey));
         $surface = strtolower(trim($surface));
+        $expectedType = strtolower(trim($expectedType));
+
+        if (!in_array($expectedType, ['guide', 'notice', 'error'], true)) {
+            throw new RuntimeException('ui_content_inline_type_invalid');
+        }
 
         if (preg_match('/^[a-z0-9][a-z0-9._-]{2,189}$/D', $contentKey) !== 1) {
-            throw new RuntimeException('ui_content_inline_guide_key_invalid');
+            throw new RuntimeException('ui_content_inline_key_invalid');
         }
 
         if (preg_match('/^[a-z][a-z0-9_-]{1,99}$/D', $moduleKey) !== 1) {
-            throw new RuntimeException('ui_content_inline_guide_module_invalid');
+            throw new RuntimeException('ui_content_inline_module_invalid');
         }
 
         if (preg_match('/^[a-z0-9][a-z0-9_-]{1,119}$/D', $surface) !== 1) {
-            throw new RuntimeException('ui_content_inline_guide_surface_invalid');
+            throw new RuntimeException('ui_content_inline_surface_invalid');
         }
 
-        $cacheKey = $contentKey . '|' . $moduleKey . '|' . $surface;
+        $cacheKey = $expectedType . '|' . $contentKey . '|' . $moduleKey . '|' . $surface;
 
         if (array_key_exists($cacheKey, $this->cache)) {
             return $this->cache[$cacheKey];
         }
 
-        $fallback = self::fallbackGuide($contentKey);
+        $fallback = self::fallbackContent($contentKey, $expectedType);
 
         try {
             if (!$this->repository->available()) {
@@ -98,7 +153,7 @@ final class UiContentInlineGuide
                 return $this->cache[$cacheKey] = $fallback;
             }
 
-            if ((string) ($definition['content_type'] ?? '') !== 'guide') {
+            if ((string) ($definition['content_type'] ?? '') !== $expectedType) {
                 return $this->cache[$cacheKey] = $fallback;
             }
 
@@ -136,6 +191,10 @@ final class UiContentInlineGuide
                 return $this->cache[$cacheKey] = self::hidden();
             }
 
+            if ((string) ($resolved['content_type'] ?? '') !== $expectedType) {
+                return $this->cache[$cacheKey] = $fallback;
+            }
+
             return $this->cache[$cacheKey] = [
                 'available' => true,
                 'visible' => true,
@@ -145,6 +204,7 @@ final class UiContentInlineGuide
                 'body' => array_key_exists('body', $resolved) && $resolved['body'] !== null
                     ? (string) $resolved['body']
                     : (string) ($fallback['body'] ?? ''),
+                'content_type' => $expectedType,
                 'source' => 'managed',
             ];
         } catch (Throwable) {
@@ -152,13 +212,39 @@ final class UiContentInlineGuide
         }
     }
 
-    private static function sharedPayload(string $contentKey, string $moduleKey, string $surface): array
-    {
+    private static function fieldText(
+        string $expectedType,
+        string $field,
+        string $contentKey,
+        string $moduleKey,
+        string $surface
+    ): string {
+        $payload = self::sharedPayload($expectedType, $contentKey, $moduleKey, $surface);
+        return (string) ($payload[$field] ?? '');
+    }
+
+    private static function sharedPayload(
+        string $expectedType,
+        string $contentKey,
+        string $moduleKey,
+        string $surface
+    ): array {
         try {
             self::$shared ??= new self();
-            return self::$shared->resolveGuide($contentKey, $moduleKey, $surface);
+
+            return match ($expectedType) {
+                'guide' => self::$shared->resolveGuide($contentKey, $moduleKey, $surface),
+                'notice' => self::$shared->resolveNotice($contentKey, $moduleKey, $surface),
+                'error' => self::$shared->resolveError($contentKey, $moduleKey, $surface),
+                default => self::hidden(),
+            };
         } catch (Throwable) {
-            return self::fallbackGuide(strtolower(trim($contentKey)));
+            return match ($expectedType) {
+                'guide' => self::fallbackGuide(strtolower(trim($contentKey))),
+                'notice' => self::fallbackNotice(strtolower(trim($contentKey))),
+                'error' => self::fallbackError(strtolower(trim($contentKey))),
+                default => self::hidden(),
+            };
         }
     }
 
@@ -187,30 +273,38 @@ final class UiContentInlineGuide
 
     private function overrideEligible(array $row, DateTimeImmutable $now): bool
     {
-        if ((int) ($row['is_active'] ?? 0) !== 1) {
-            return false;
-        }
+        if ((int) ($row['is_active'] ?? 0) !== 1) return false;
 
         $timestamp = $now->format('Y-m-d H:i:s');
         $startsAt = trim((string) ($row['starts_at'] ?? ''));
         $endsAt = trim((string) ($row['ends_at'] ?? ''));
 
-        if ($startsAt !== '' && $startsAt > $timestamp) {
-            return false;
-        }
-
-        if ($endsAt !== '' && $endsAt < $timestamp) {
-            return false;
-        }
+        if ($startsAt !== '' && $startsAt > $timestamp) return false;
+        if ($endsAt !== '' && $endsAt < $timestamp) return false;
 
         return true;
     }
 
     private static function fallbackGuide(string $contentKey): array
     {
+        return self::fallbackContent($contentKey, 'guide');
+    }
+
+    private static function fallbackNotice(string $contentKey): array
+    {
+        return self::fallbackContent($contentKey, 'notice');
+    }
+
+    private static function fallbackError(string $contentKey): array
+    {
+        return self::fallbackContent($contentKey, 'error');
+    }
+
+    private static function fallbackContent(string $contentKey, string $expectedType): array
+    {
         $item = self::fallbackCatalog()[$contentKey] ?? null;
 
-        if (!is_array($item)) {
+        if (!is_array($item) || (string) ($item['content_type'] ?? '') !== $expectedType) {
             return self::hidden();
         }
 
@@ -226,40 +320,30 @@ final class UiContentInlineGuide
             'visible' => true,
             'title' => $title,
             'body' => $body,
+            'content_type' => $expectedType,
             'source' => 'catalog_fallback',
         ];
     }
 
     private static function fallbackCatalog(): array
     {
-        if (self::$fallbackCatalog !== null) {
-            return self::$fallbackCatalog;
-        }
+        if (self::$fallbackCatalog !== null) return self::$fallbackCatalog;
 
         self::$fallbackCatalog = [];
-
         $path = dirname(__DIR__, 3) . '/resources/ui-content/platform-guides.json';
 
-        if (!is_readable($path)) {
-            return self::$fallbackCatalog;
-        }
+        if (!is_readable($path)) return self::$fallbackCatalog;
 
         $decoded = json_decode((string) file_get_contents($path), true);
-
-        if (!is_array($decoded)) {
-            return self::$fallbackCatalog;
-        }
+        if (!is_array($decoded)) return self::$fallbackCatalog;
 
         foreach ($decoded as $item) {
-            if (!is_array($item) || ($item['content_type'] ?? null) !== 'guide') {
+            if (!is_array($item) || !in_array(($item['content_type'] ?? null), ['guide', 'notice', 'error'], true)) {
                 continue;
             }
 
             $key = strtolower(trim((string) ($item['key'] ?? '')));
-
-            if ($key !== '') {
-                self::$fallbackCatalog[$key] = $item;
-            }
+            if ($key !== '') self::$fallbackCatalog[$key] = $item;
         }
 
         return self::$fallbackCatalog;
@@ -272,6 +356,7 @@ final class UiContentInlineGuide
             'visible' => false,
             'title' => '',
             'body' => '',
+            'content_type' => null,
             'source' => 'hidden',
         ];
     }
@@ -280,20 +365,12 @@ final class UiContentInlineGuide
     {
         $body = trim(preg_replace('/\s+/u', ' ', $body) ?? $body);
         $characters = preg_split('//u', $body, -1, PREG_SPLIT_NO_EMPTY);
-
-        if (!is_array($characters) || count($characters) <= 72) {
-            return $body;
-        }
-
+        if (!is_array($characters) || count($characters) <= 72) return $body;
         return implode('', array_slice($characters, 0, 72)) . '…';
     }
 
     private static function escape(string $value): string
     {
-        return htmlspecialchars(
-            $value,
-            ENT_QUOTES | ENT_SUBSTITUTE,
-            'UTF-8'
-        );
+        return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     }
 }

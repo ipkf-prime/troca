@@ -35,7 +35,7 @@ $themeAssets = $themeService->assetUrls();
             <p class="admin-muted"><?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.forgot-password.guide.01', 'core', 'forgot-password') ?></p>
 
             <?php if ($sent): ?>
-                <div class="admin-notice">اگر این حساب در سامانه وجود داشته باشد، راهنمای بازیابی برای آن ارسال می‌شود.</div>
+                <div class="admin-notice"><?= \App\Services\UiContent\UiContentInlineGuide::noticeBodyHtml('core.forgot-password.guide.02', 'core', 'forgot-password') ?></div>
             <?php endif; ?>
 
             <form method="post" action="/admin/forgot-password" class="admin-form">

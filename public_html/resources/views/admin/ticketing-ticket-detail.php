@@ -2612,7 +2612,7 @@ $routingRecoveryNoticeMessages = [
         ): ?>
 
             <div class="admin-alert admin-alert--info">
-                تیکت در انتظار پاسخ درخواست‌کننده است. پس از پاسخ درخواست‌کننده، رسیدگی توسط کارشناس فعلی ادامه پیدا می‌کند.
+                <?= \App\Services\UiContent\UiContentInlineGuide::noticeBodyHtml('ticketing.ticketing-ticket-detail.guide.02', 'ticketing', 'ticketing-ticket-detail') ?>
             </div>
 
         <?php elseif (

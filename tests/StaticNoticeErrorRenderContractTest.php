@@ -15,11 +15,12 @@ $notices = 0;
 $errors = 0;
 $body = 0;
 $titleBody = 0;
+$bound = 0;
 
 foreach ($items as $item) {
     if (($item['content_type'] ?? null) === 'notice') $notices++;
     if (($item['content_type'] ?? null) === 'error') $errors++;
-    if (($item['consumer_bound'] ?? null) !== false) throw new RuntimeException('Consumer bound prematurely: ' . ($item['key'] ?? ''));
+    if (($item['consumer_bound'] ?? null) === true) $bound++;
 
     $mode = (string) ($item['render_mode'] ?? '');
     if ($mode === 'body') {
@@ -35,17 +36,19 @@ foreach ($items as $item) {
     }
 }
 
-if (count($items) !== 6 || $notices !== 5 || $errors !== 1 || $body !== 3 || $titleBody !== 3) {
+if (count($items) !== 6 || $notices !== 5 || $errors !== 1 || $body !== 3 || $titleBody !== 3 || $bound !== 6) {
     throw new RuntimeException('Notice/error render counts invalid.');
 }
 
 $registry = (string) file_get_contents($root . '/public_html/system/Database/Application/ApplicationMigrationRegistry.php');
 if (!str_contains($registry, 'NormalizeStaticNoticeErrorRenderContract::class')) throw new RuntimeException('Normalization migration not registered.');
+if (!str_contains($registry, 'MarkStaticNoticeErrorConsumersBound::class')) throw new RuntimeException('Binding migration not registered.');
 if (!is_file($root . '/public_html/system/Database/Migrations/NormalizeStaticNoticeErrorRenderContract.php')) throw new RuntimeException('Normalization migration missing.');
+if (!is_file($root . '/public_html/system/Database/Migrations/MarkStaticNoticeErrorConsumersBound.php')) throw new RuntimeException('Binding migration missing.');
 
 echo "STATIC_NOTICE_ERROR_RENDER_CONTRACT=PASS\n";
 echo "NOTICE_COUNT=5\n";
 echo "ERROR_COUNT=1\n";
 echo "BODY_ONLY=3\n";
 echo "TITLE_BODY=3\n";
-echo "CONSUMER_BOUND=NO_NOT_YET\n";
+echo "CONSUMER_BOUND=6\n";

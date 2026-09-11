@@ -410,13 +410,11 @@ $success =
 
                 <div>
                     <h2>
-                        ثبت‌نام با موفقیت انجام شد
+                        <?= \App\Services\UiContent\UiContentInlineGuide::noticeTitleHtml('core.register.guide.01', 'core', 'register') ?>
                     </h2>
 
                     <p class="admin-muted">
-                        حساب شما با نقش پایه
-                        «کاربر» ایجاد شد.
-                        برای ادامه وارد سامانه شوید.
+                        <?= \App\Services\UiContent\UiContentInlineGuide::noticeBodyHtml('core.register.guide.01', 'core', 'register') ?>
                     </p>
                 </div>
 

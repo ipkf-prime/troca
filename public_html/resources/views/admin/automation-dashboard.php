@@ -25,7 +25,7 @@ ob_start();
     <a class="admin-module-hub__back" href="/admin/automation/correspondences/create?direction=outgoing">ایجاد پیش نویس</a>
 </section>
 <?php if (($dashboard['ok'] ?? false) !== true): ?>
-    <section class="admin-section"><div class="admin-alert">زیرساخت عملیاتی اتوماسیون در دسترس نیست. لطفاً وضعیت اتصال اختصاصی Automation را بررسی کنید.</div></section>
+    <section class="admin-section"><div class="admin-alert"><?= \App\Services\UiContent\UiContentInlineGuide::errorBodyHtml('automation.automation-dashboard.guide.01', 'automation', 'automation-dashboard') ?></div></section>
 <?php else: ?>
 <section class="admin-grid">
     <?php foreach ([
