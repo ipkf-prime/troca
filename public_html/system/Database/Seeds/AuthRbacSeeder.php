@@ -225,6 +225,7 @@ class AuthRbacSeeder extends Seeder
             ['account.theme.manage', 'account', 'theme', 'manage', 'Manage personal admin theme'],
             ['access.manage', 'admin', 'access', 'manage', 'Manage active access'],
             ['admin.settings.manage', 'admin', 'settings', 'manage', 'Manage admin settings'],
+            ['admin.ui_content.manage', 'admin', 'ui_content', 'manage', 'Manage dynamic UI content'],
             ['admin.pages.manage', 'admin', 'pages', 'manage', 'Manage admin pages'],
             ['admin.reports.view', 'admin', 'reports', 'view', 'View admin reports'],
             ['support.view', 'support', 'support', 'view', 'View support area'],
@@ -288,6 +289,7 @@ class AuthRbacSeeder extends Seeder
                 'positions.manage',
                 'user_org_assignments.manage',
                 'admin.reports.view',
+                'admin.ui_content.manage',
                 'support.view',
             ],
             'province_admin' => [

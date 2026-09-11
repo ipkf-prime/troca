@@ -1,9 +1,393 @@
 <?php
 
-$title = 'مدیریت راهنماها';
+declare(strict_types=1);
+
+$title =
+    'مدیریت راهنماها و پیام‌های سیستمی';
+
+$escape =
+    static fn (
+        mixed $value
+    ): string =>
+        htmlspecialchars(
+            (string) ($value ?? ''),
+            ENT_QUOTES
+            | ENT_SUBSTITUTE,
+            'UTF-8'
+        );
+
+$digits =
+    static fn (
+        mixed $value
+    ): string =>
+        \App\Support\AdminFormat::digits(
+            $value
+        );
+
+$jalaliDateTime =
+    static fn (
+        mixed $value
+    ): string =>
+        \App\Support\AdminFormat::jalaliDateTime(
+            $value
+        );
+
+$page =
+    is_array($page ?? null)
+        ? $page
+        : [];
+
+$items =
+    is_array($page['items'] ?? null)
+        ? $page['items']
+        : [];
+
+$filters =
+    is_array($page['filters'] ?? null)
+        ? $page['filters']
+        : [];
+
+$selected =
+    is_array($page['selected'] ?? null)
+        ? $page['selected']
+        : null;
+
+$overrides =
+    is_array($page['overrides'] ?? null)
+        ? $page['overrides']
+        : [];
+
+$selectedOverride =
+    is_array(
+        $page['selected_override']
+        ?? null
+    )
+        ? $page['selected_override']
+        : null;
+
+$modules =
+    is_array($page['modules'] ?? null)
+        ? $page['modules']
+        : [];
+
+$contentTypes =
+    is_array(
+        $page['content_types']
+        ?? null
+    )
+        ? $page['content_types']
+        : [];
+
+$severityCodes =
+    is_array(
+        $page['severity_codes']
+        ?? null
+    )
+        ? $page['severity_codes']
+        : [];
+
+$layoutVariants =
+    is_array(
+        $page['layout_variants']
+        ?? null
+    )
+        ? $page['layout_variants']
+        : [];
+
+$actionCodes =
+    is_array(
+        $page['action_codes']
+        ?? null
+    )
+        ? $page['action_codes']
+        : [];
+
+$newDefinition =
+    (bool) (
+        $page['new_definition']
+        ?? false
+    );
+
+$newOverride =
+    (bool) (
+        $page['new_override']
+        ?? false
+    );
+
+$status =
+    trim(
+        (string) (
+            $status
+            ?? ''
+        )
+    );
+
+$statusMessages = [
+    'definition_saved' =>
+        'تعریف محتوا با موفقیت ذخیره شد.',
+
+    'override_saved' =>
+        'متن و تنظیمات محدوده با موفقیت ذخیره شد.',
+
+    'invalid_form' =>
+        'اعتبار فرم منقضی شده است. صفحه را تازه‌سازی و دوباره تلاش کنید.',
+
+    'save_failed' =>
+        'ذخیره انجام نشد. مقادیر فرم، کلیدها و محدوده انتخاب‌شده را بررسی کنید.',
+];
+
+$csrf =
+    (
+        new \IPKF\Security\Csrf()
+    )->token();
+
+$definition =
+    $newDefinition
+        ? null
+        : $selected;
+
+$definitionKey =
+    (string) (
+        $definition[
+            'content_key'
+        ]
+        ?? ''
+    );
+
+$definitionReference =
+    (string) (
+        $definition[
+            'public_reference'
+        ]
+        ?? ''
+    );
+
+$override =
+    $newOverride
+        ? null
+        : $selectedOverride;
+
+$scopeType =
+    (string) (
+        $override[
+            'scope_type'
+        ]
+        ?? ''
+    );
+
+$scopeMode =
+    $scopeType === 'global'
+        ? 'global'
+        : (
+            $scopeType === 'module'
+                ? 'module'
+                : (
+                    $override !== null
+                        ? 'fine'
+                        : 'global'
+                )
+        );
+
+$overrideModule =
+    (string) (
+        $override[
+            'module_key'
+        ]
+        ?? ''
+    );
+
+$scopePathJson =
+    (string) (
+        $override[
+            'scope_path_json'
+        ]
+        ?? ''
+    );
+
+$overrideLocale =
+    (string) (
+        $override['locale']
+        ?? $definition[
+            'default_locale'
+        ]
+        ?? 'fa'
+    );
+
+$startsAt =
+    str_replace(
+        ' ',
+        'T',
+        substr(
+            (string) (
+                $override[
+                    'starts_at'
+                ]
+                ?? ''
+            ),
+            0,
+            16
+        )
+    );
+
+$endsAt =
+    str_replace(
+        ' ',
+        'T',
+        substr(
+            (string) (
+                $override[
+                    'ends_at'
+                ]
+                ?? ''
+            ),
+            0,
+            16
+        )
+    );
 
 ob_start();
 ?>
+
+<style>
+.ui-content-layout {
+    display: grid;
+    grid-template-columns:
+        minmax(280px, .85fr)
+        minmax(0, 1.65fr);
+    gap: 18px;
+    align-items: start;
+}
+
+.ui-content-list {
+    display: grid;
+    gap: 8px;
+}
+
+.ui-content-item {
+    display: block;
+    padding: 12px 14px;
+    border: 1px solid
+        var(--admin-border, #dfe4ea);
+    border-radius: 10px;
+    color: inherit;
+    text-decoration: none;
+    background:
+        var(--admin-surface, #fff);
+}
+
+.ui-content-item:hover,
+.ui-content-item.is-active {
+    border-color:
+        var(--admin-primary, #27845b);
+}
+
+.ui-content-code,
+.ui-content-scope-code {
+    direction: ltr;
+    unicode-bidi: plaintext;
+    font-family: monospace;
+    font-size: .82rem;
+    overflow-wrap: anywhere;
+}
+
+.ui-content-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px 12px;
+    margin-top: 7px;
+    font-size: .82rem;
+    opacity: .78;
+}
+
+.ui-content-filter {
+    grid-template-columns:
+        minmax(220px, 1.4fr)
+        minmax(150px, .8fr)
+        minmax(150px, .8fr)
+        auto;
+    align-items: end;
+}
+
+.ui-content-editor {
+    display: grid;
+    gap: 16px;
+}
+
+.ui-content-fields {
+    display: grid;
+    gap: 13px;
+}
+
+.ui-content-fields textarea {
+    min-height: 110px;
+    resize: vertical;
+}
+
+.ui-content-fields
+textarea.ui-content-body {
+    min-height: 180px;
+}
+
+.ui-content-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ui-content-two-column {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.ui-content-three-column {
+    display: grid;
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.ui-content-note {
+    font-size: .84rem;
+    opacity: .76;
+    line-height: 1.9;
+}
+
+.ui-content-divider {
+    height: 1px;
+    background:
+        var(--admin-border, #e3e8e5);
+    margin: 6px 0;
+}
+
+@media (max-width: 1100px) {
+    .ui-content-filter {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .ui-content-three-column {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .ui-content-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .ui-content-filter,
+    .ui-content-two-column,
+    .ui-content-three-column {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
 
 <nav
     class="admin-breadcrumb"
@@ -12,15 +396,20 @@ ob_start();
     <a href="/admin/dashboard">
         داشبورد
     </a>
+
     <span>/</span>
 
     <a href="/admin/modules/system">
         مدیریت سامانه
     </a>
+
     <span>/</span>
 
-    <span>راهنماها</span>
+    <span>
+        راهنماها و پیام‌های سیستمی
+    </span>
 </nav>
+
 
 <section
     class="admin-module-hub admin-module-hub--green"
@@ -32,38 +421,1490 @@ ob_start();
     </div>
 
     <div>
-        <h2>مدیریت راهنماها</h2>
+        <h2>
+            مدیریت راهنما، اعلان و خطا
+        </h2>
+
         <p>
-            مدیریت متمرکز متن‌های راهنما،
-            توضیحات فرم‌ها و پیام‌های آموزشی
+            مدیریت متمرکز متن‌های قابل نمایش
+            با پشتیبانی از سطح عمومی، ماژول
+            و محدوده‌های تخصصی هر ماژول
         </p>
     </div>
 </section>
 
+
+<?php if (
+    $status !== ''
+    && isset(
+        $statusMessages[$status]
+    )
+): ?>
+
+    <div class="admin-alert">
+        <?= $escape(
+            $statusMessages[$status]
+        ) ?>
+    </div>
+
+<?php endif; ?>
+
+
 <section class="admin-section">
+
     <div class="admin-section__header">
+
         <div>
-            <h2>مخزن راهنماهای سامانه</h2>
-
-            <p class="admin-muted">
-                این بخش برای انتقال تدریجی
-                راهنماهای هاردکدشده به مدیریت
-                متمرکز آماده شده است.
-            </p>
+            <h2>
+                جستجو و فیلتر
+            </h2>
         </div>
+
+        <a
+            href="/admin/system/help-texts?new=1"
+            class="admin-btn admin-btn--primary"
+        >
+            تعریف محتوای جدید
+        </a>
+
     </div>
 
-    <div class="admin-empty-state">
-        در مرحله بعد، هر راهنما با
-        کلید یکتا، محدوده کاربرد،
-        متن قابل ویرایش، ترتیب نمایش
-        و وضعیت فعال/غیرفعال
-        در این صفحه مدیریت خواهد شد.
-    </div>
+
+    <form
+        method="get"
+        action="/admin/system/help-texts"
+        class="admin-form-grid ui-content-filter"
+    >
+
+        <div class="admin-field">
+
+            <label for="ui-content-q">
+                جستجو
+            </label>
+
+            <input
+                id="ui-content-q"
+                type="search"
+                name="q"
+                value="<?= $escape(
+                    $filters['q']
+                    ?? ''
+                ) ?>"
+                placeholder="کلید یا توضیحات"
+            >
+
+        </div>
+
+
+        <div class="admin-field">
+
+            <label for="ui-content-type">
+                نوع محتوا
+            </label>
+
+            <select
+                id="ui-content-type"
+                name="content_type"
+            >
+
+                <option value="">
+                    همه
+                </option>
+
+                <?php foreach (
+                    $contentTypes
+                    as $code => $label
+                ): ?>
+
+                    <option
+                        value="<?= $escape(
+                            $code
+                        ) ?>"
+                        <?= (
+                            ($filters['type'] ?? '')
+                            === $code
+                        )
+                            ? 'selected'
+                            : ''
+                        ?>
+                    >
+                        <?= $escape(
+                            $label
+                        ) ?>
+                    </option>
+
+                <?php endforeach; ?>
+
+            </select>
+
+        </div>
+
+
+        <div class="admin-field">
+
+            <label for="ui-content-status">
+                وضعیت
+            </label>
+
+            <select
+                id="ui-content-status"
+                name="content_status"
+            >
+
+                <option value="">
+                    همه
+                </option>
+
+                <option
+                    value="active"
+                    <?= (
+                        ($filters['status'] ?? '')
+                        === 'active'
+                    )
+                        ? 'selected'
+                        : ''
+                    ?>
+                >
+                    فعال
+                </option>
+
+                <option
+                    value="inactive"
+                    <?= (
+                        ($filters['status'] ?? '')
+                        === 'inactive'
+                    )
+                        ? 'selected'
+                        : ''
+                    ?>
+                >
+                    غیرفعال
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <div class="admin-field">
+
+            <label>&nbsp;</label>
+
+            <button
+                type="submit"
+                class="admin-btn admin-btn--primary"
+            >
+                اعمال فیلتر
+            </button>
+
+        </div>
+
+    </form>
+
 </section>
+
+
+<div class="ui-content-layout">
+
+    <section class="admin-section">
+
+        <div class="admin-section__header">
+
+            <div>
+
+                <h2>
+                    محتواها
+                </h2>
+
+                <p class="admin-muted">
+                    <?= $escape(
+                        $digits(
+                            count($items)
+                        )
+                    ) ?>
+                    مورد
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="ui-content-list">
+
+            <?php foreach (
+                $items
+                as $item
+            ): ?>
+
+                <?php
+
+                $itemKey =
+                    (string) (
+                        $item[
+                            'content_key'
+                        ]
+                        ?? ''
+                    );
+
+                $link =
+                    '/admin/system/help-texts?'
+                    . http_build_query(
+                        [
+                            'key' =>
+                                $itemKey,
+                        ],
+                        '',
+                        '&',
+                        PHP_QUERY_RFC3986
+                    );
+
+                $isSelected =
+                    is_array($definition)
+                    && $definitionKey
+                        === $itemKey;
+
+                $typeCode =
+                    (string) (
+                        $item[
+                            'content_type'
+                        ]
+                        ?? ''
+                    );
+
+                ?>
+
+                <a
+                    href="<?= $escape(
+                        $link
+                    ) ?>"
+                    class="ui-content-item<?= $isSelected ? ' is-active' : '' ?>"
+                >
+
+                    <strong>
+                        <?= $escape(
+                            $contentTypes[
+                                $typeCode
+                            ]
+                            ?? $typeCode
+                        ) ?>
+                    </strong>
+
+                    <div class="ui-content-code">
+                        <?= $escape(
+                            $itemKey
+                        ) ?>
+                    </div>
+
+                    <div class="ui-content-meta">
+
+                        <span>
+                            <?= (
+                                (int) (
+                                    $item[
+                                        'is_active'
+                                    ]
+                                    ?? 0
+                                )
+                                === 1
+                            )
+                                ? 'فعال'
+                                : 'غیرفعال'
+                            ?>
+                        </span>
+
+                        <span>
+                            محدوده‌ها:
+                            <?= $escape(
+                                $digits(
+                                    $item[
+                                        'override_count'
+                                    ]
+                                    ?? 0
+                                )
+                            ) ?>
+                        </span>
+
+                        <?php if (
+                            !empty(
+                                $item[
+                                    'http_status'
+                                ]
+                            )
+                        ): ?>
+
+                            <span>
+                                HTTP
+                                <?= $escape(
+                                    $digits(
+                                        $item[
+                                            'http_status'
+                                        ]
+                                    )
+                                ) ?>
+                            </span>
+
+                        <?php endif; ?>
+
+                    </div>
+
+                </a>
+
+            <?php endforeach; ?>
+
+
+            <?php if (
+                $items === []
+            ): ?>
+
+                <div class="admin-empty-state">
+                    محتوایی با این فیلتر پیدا نشد.
+                </div>
+
+            <?php endif; ?>
+
+        </div>
+
+    </section>
+
+
+    <div class="ui-content-editor">
+
+        <section class="admin-section">
+
+            <div class="admin-section__header">
+
+                <div>
+                    <h2>
+                        <?= $newDefinition
+                            ? 'تعریف محتوای جدید'
+                            : 'مشخصات محتوا'
+                        ?>
+                    </h2>
+                </div>
+
+            </div>
+
+
+            <form
+                method="post"
+                action="/admin/system/help-texts/definition/save"
+                class="ui-content-fields"
+            >
+
+                <input
+                    type="hidden"
+                    name="_token"
+                    value="<?= $escape(
+                        $csrf
+                    ) ?>"
+                >
+
+                <input
+                    type="hidden"
+                    name="definition_reference"
+                    value="<?= $escape(
+                        $definitionReference
+                    ) ?>"
+                >
+
+
+                <div class="ui-content-two-column">
+
+                    <div class="admin-field">
+
+                        <label for="definition-key">
+                            کلید یکتا
+                        </label>
+
+                        <input
+                            id="definition-key"
+                            name="content_key"
+                            type="text"
+                            dir="ltr"
+                            required
+                            <?= (
+                                !$newDefinition
+                                && $definitionReference !== ''
+                            )
+                                ? 'readonly'
+                                : ''
+                            ?>
+                            value="<?= $escape(
+                                $definitionKey
+                            ) ?>"
+                            placeholder="ticketing.example.guide"
+                        >
+
+                    </div>
+
+
+                    <div class="admin-field">
+
+                        <label for="definition-type">
+                            نوع محتوا
+                        </label>
+
+                        <select
+                            id="definition-type"
+                            name="content_type"
+                            required
+                        >
+
+                            <?php foreach (
+                                $contentTypes
+                                as $code => $label
+                            ): ?>
+
+                                <option
+                                    value="<?= $escape(
+                                        $code
+                                    ) ?>"
+                                    <?= (
+                                        (string) (
+                                            $definition[
+                                                'content_type'
+                                            ]
+                                            ?? 'guide'
+                                        )
+                                        === $code
+                                    )
+                                        ? 'selected'
+                                        : ''
+                                    ?>
+                                >
+                                    <?= $escape(
+                                        $label
+                                    ) ?>
+                                </option>
+
+                            <?php endforeach; ?>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <div class="ui-content-two-column">
+
+                    <div class="admin-field">
+
+                        <label for="definition-locale">
+                            زبان پیش‌فرض
+                        </label>
+
+                        <input
+                            id="definition-locale"
+                            name="default_locale"
+                            type="text"
+                            dir="ltr"
+                            value="<?= $escape(
+                                $definition[
+                                    'default_locale'
+                                ]
+                                ?? 'fa'
+                            ) ?>"
+                        >
+
+                    </div>
+
+
+                    <div class="admin-field">
+
+                        <label for="definition-http">
+                            HTTP Status
+                        </label>
+
+                        <input
+                            id="definition-http"
+                            name="http_status"
+                            type="number"
+                            min="400"
+                            max="599"
+                            dir="ltr"
+                            value="<?= $escape(
+                                $definition[
+                                    'http_status'
+                                ]
+                                ?? ''
+                            ) ?>"
+                        >
+
+                        <div class="ui-content-note">
+                            فقط برای نوع «خطا» استفاده می‌شود.
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="admin-field">
+
+                    <label for="definition-description">
+                        توضیحات مدیریتی
+                    </label>
+
+                    <textarea
+                        id="definition-description"
+                        name="description"
+                    ><?= $escape(
+                        $definition[
+                            'description'
+                        ]
+                        ?? ''
+                    ) ?></textarea>
+
+                </div>
+
+
+                <div class="admin-field">
+
+                    <label for="definition-metadata">
+                        Metadata JSON
+                    </label>
+
+                    <textarea
+                        id="definition-metadata"
+                        name="metadata_json"
+                        dir="ltr"
+                        placeholder="{}"
+                    ><?= $escape(
+                        $definition[
+                            'metadata_json'
+                        ]
+                        ?? ''
+                    ) ?></textarea>
+
+                </div>
+
+
+                <input
+                    type="hidden"
+                    name="is_active"
+                    value="0"
+                >
+
+
+                <label class="admin-field">
+
+                    <span>
+                        وضعیت
+                    </span>
+
+                    <span>
+
+                        <input
+                            type="checkbox"
+                            name="is_active"
+                            value="1"
+                            <?= (
+                                $newDefinition
+                                || (int) (
+                                    $definition[
+                                        'is_active'
+                                    ]
+                                    ?? 0
+                                )
+                                === 1
+                            )
+                                ? 'checked'
+                                : ''
+                            ?>
+                        >
+
+                        فعال باشد
+
+                    </span>
+
+                </label>
+
+
+                <div class="ui-content-actions">
+
+                    <button
+                        type="submit"
+                        class="admin-btn admin-btn--primary"
+                    >
+                        ذخیره تعریف
+                    </button>
+
+                </div>
+
+            </form>
+
+        </section>
+
+
+        <?php if (
+            is_array($selected)
+            && !$newDefinition
+        ): ?>
+
+            <section class="admin-section">
+
+                <div class="admin-section__header">
+
+                    <div>
+
+                        <h2>
+                            محدوده‌های محتوا
+                        </h2>
+
+                        <p class="admin-muted">
+                            مقدار خالی یعنی ارث‌بری از
+                            محدوده عمومی‌تر.
+                        </p>
+
+                    </div>
+
+
+                    <a
+                        href="<?= $escape(
+                            '/admin/system/help-texts?'
+                            . http_build_query(
+                                [
+                                    'key' =>
+                                        $definitionKey,
+
+                                    'new_override' =>
+                                        '1',
+                                ],
+                                '',
+                                '&',
+                                PHP_QUERY_RFC3986
+                            )
+                        ) ?>"
+                        class="admin-btn admin-btn--primary"
+                    >
+                        محدوده جدید
+                    </a>
+
+                </div>
+
+
+                <div class="ui-content-list">
+
+                    <?php foreach (
+                        $overrides
+                        as $item
+                    ): ?>
+
+                        <?php
+
+                        $itemReference =
+                            (string) (
+                                $item[
+                                    'public_reference'
+                                ]
+                                ?? ''
+                            );
+
+                        $overrideLink =
+                            '/admin/system/help-texts?'
+                            . http_build_query(
+                                [
+                                    'key' =>
+                                        $definitionKey,
+
+                                    'override' =>
+                                        $itemReference,
+                                ],
+                                '',
+                                '&',
+                                PHP_QUERY_RFC3986
+                            );
+
+                        $overrideSelected =
+                            is_array($override)
+                            && (
+                                (string) (
+                                    $override[
+                                        'public_reference'
+                                    ]
+                                    ?? ''
+                                )
+                                === $itemReference
+                            );
+
+                        ?>
+
+                        <a
+                            href="<?= $escape(
+                                $overrideLink
+                            ) ?>"
+                            class="ui-content-item<?= $overrideSelected ? ' is-active' : '' ?>"
+                        >
+
+                            <strong>
+                                <?= $escape(
+                                    $item[
+                                        'scope_type'
+                                    ]
+                                    ?? ''
+                                ) ?>
+                            </strong>
+
+                            <div class="ui-content-scope-code">
+                                <?= $escape(
+                                    $item[
+                                        'scope_key'
+                                    ]
+                                    ?? ''
+                                ) ?>
+                            </div>
+
+                            <div class="ui-content-meta">
+
+                                <span>
+                                    <?= $escape(
+                                        $item[
+                                            'locale'
+                                        ]
+                                        ?? ''
+                                    ) ?>
+                                </span>
+
+                                <span>
+                                    <?= (
+                                        (int) (
+                                            $item[
+                                                'is_active'
+                                            ]
+                                            ?? 0
+                                        )
+                                        === 1
+                                    )
+                                        ? 'فعال'
+                                        : 'غیرفعال'
+                                    ?>
+                                </span>
+
+                                <?php if (
+                                    !empty(
+                                        $item[
+                                            'updated_at'
+                                        ]
+                                    )
+                                ): ?>
+
+                                    <span>
+                                        <?= $escape(
+                                            $jalaliDateTime(
+                                                $item[
+                                                    'updated_at'
+                                                ]
+                                            )
+                                        ) ?>
+                                    </span>
+
+                                <?php endif; ?>
+
+                            </div>
+
+                        </a>
+
+                    <?php endforeach; ?>
+
+
+                    <?php if (
+                        $overrides === []
+                    ): ?>
+
+                        <div class="admin-empty-state">
+                            هنوز محدوده‌ای برای این محتوا ثبت نشده است.
+                        </div>
+
+                    <?php endif; ?>
+
+                </div>
+
+            </section>
+
+
+            <section class="admin-section">
+
+                <div class="admin-section__header">
+
+                    <div>
+                        <h2>
+                            <?= (
+                                $newOverride
+                                || $override === null
+                            )
+                                ? 'تنظیم محدوده محتوا'
+                                : 'ویرایش محدوده محتوا'
+                            ?>
+                        </h2>
+                    </div>
+
+                </div>
+
+
+                <form
+                    method="post"
+                    action="/admin/system/help-texts/override/save"
+                    class="ui-content-fields"
+                >
+
+                    <input
+                        type="hidden"
+                        name="_token"
+                        value="<?= $escape(
+                            $csrf
+                        ) ?>"
+                    >
+
+                    <input
+                        type="hidden"
+                        name="definition_key"
+                        value="<?= $escape(
+                            $definitionKey
+                        ) ?>"
+                    >
+
+                    <input
+                        type="hidden"
+                        name="override_reference"
+                        value="<?= $escape(
+                            $override[
+                                'public_reference'
+                            ]
+                            ?? ''
+                        ) ?>"
+                    >
+
+
+                    <div class="ui-content-three-column">
+
+                        <div class="admin-field">
+
+                            <label for="scope-mode">
+                                نوع محدوده
+                            </label>
+
+                            <select
+                                id="scope-mode"
+                                name="scope_mode"
+                            >
+
+                                <option
+                                    value="global"
+                                    <?= $scopeMode === 'global'
+                                        ? 'selected'
+                                        : ''
+                                    ?>
+                                >
+                                    عمومی / Base
+                                </option>
+
+                                <option
+                                    value="module"
+                                    <?= $scopeMode === 'module'
+                                        ? 'selected'
+                                        : ''
+                                    ?>
+                                >
+                                    ماژول
+                                </option>
+
+                                <option
+                                    value="fine"
+                                    <?= $scopeMode === 'fine'
+                                        ? 'selected'
+                                        : ''
+                                    ?>
+                                >
+                                    محدوده تخصصی
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="admin-field">
+
+                            <label for="override-module">
+                                ماژول
+                            </label>
+
+                            <select
+                                id="override-module"
+                                name="module_key"
+                            >
+
+                                <option value="">
+                                    —
+                                </option>
+
+                                <?php foreach (
+                                    $modules
+                                    as $module
+                                ): ?>
+
+                                    <?php
+
+                                    $moduleKey =
+                                        (string) (
+                                            $module[
+                                                'module_key'
+                                            ]
+                                            ?? ''
+                                        );
+
+                                    ?>
+
+                                    <option
+                                        value="<?= $escape(
+                                            $moduleKey
+                                        ) ?>"
+                                        <?= (
+                                            $overrideModule
+                                            === $moduleKey
+                                        )
+                                            ? 'selected'
+                                            : ''
+                                        ?>
+                                    >
+                                        <?= $escape(
+                                            $module[
+                                                'display_name'
+                                            ]
+                                            ?? $moduleKey
+                                        ) ?>
+                                    </option>
+
+                                <?php endforeach; ?>
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="admin-field">
+
+                            <label for="override-locale">
+                                زبان
+                            </label>
+
+                            <input
+                                id="override-locale"
+                                name="locale"
+                                type="text"
+                                dir="ltr"
+                                value="<?= $escape(
+                                    $overrideLocale
+                                ) ?>"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="admin-field">
+
+                        <label for="scope-path">
+                            Scope Path JSON
+                        </label>
+
+                        <textarea
+                            id="scope-path"
+                            name="scope_path_json"
+                            dir="ltr"
+                            placeholder='[{"type":"project","reference":"TSP-NEP"},{"type":"portal","reference":"TSPT-..."}]'
+                        ><?= $escape(
+                            $scopePathJson
+                        ) ?></textarea>
+
+                        <div class="ui-content-note">
+                            فقط برای «محدوده تخصصی» لازم است.
+                        </div>
+
+                    </div>
+
+
+                    <div class="ui-content-divider"></div>
+
+
+                    <div class="admin-field">
+
+                        <label for="override-title">
+                            عنوان
+                        </label>
+
+                        <input
+                            id="override-title"
+                            name="title"
+                            type="text"
+                            value="<?= $escape(
+                                $override[
+                                    'title'
+                                ]
+                                ?? ''
+                            ) ?>"
+                        >
+
+                    </div>
+
+
+                    <div class="admin-field">
+
+                        <label for="override-body">
+                            متن
+                        </label>
+
+                        <textarea
+                            id="override-body"
+                            class="ui-content-body"
+                            name="body"
+                        ><?= $escape(
+                            $override[
+                                'body'
+                            ]
+                            ?? ''
+                        ) ?></textarea>
+
+                    </div>
+
+
+                    <div class="ui-content-three-column">
+
+                        <div class="admin-field">
+
+                            <label for="override-icon">
+                                Icon Code
+                            </label>
+
+                            <input
+                                id="override-icon"
+                                name="icon_code"
+                                type="text"
+                                dir="ltr"
+                                value="<?= $escape(
+                                    $override[
+                                        'icon_code'
+                                    ]
+                                    ?? ''
+                                ) ?>"
+                            >
+
+                        </div>
+
+
+                        <div class="admin-field">
+
+                            <label for="override-severity">
+                                شدت
+                            </label>
+
+                            <select
+                                id="override-severity"
+                                name="severity_code"
+                            >
+
+                                <option value="">
+                                    ارث‌بری
+                                </option>
+
+                                <?php foreach (
+                                    $severityCodes
+                                    as $code => $label
+                                ): ?>
+
+                                    <option
+                                        value="<?= $escape(
+                                            $code
+                                        ) ?>"
+                                        <?= (
+                                            (string) (
+                                                $override[
+                                                    'severity_code'
+                                                ]
+                                                ?? ''
+                                            )
+                                            === $code
+                                        )
+                                            ? 'selected'
+                                            : ''
+                                        ?>
+                                    >
+                                        <?= $escape(
+                                            $label
+                                        ) ?>
+                                    </option>
+
+                                <?php endforeach; ?>
+
+                            </select>
+
+                        </div>
+
+
+                        <div class="admin-field">
+
+                            <label for="override-layout">
+                                چیدمان
+                            </label>
+
+                            <select
+                                id="override-layout"
+                                name="layout_variant"
+                            >
+
+                                <option value="">
+                                    ارث‌بری
+                                </option>
+
+                                <?php foreach (
+                                    $layoutVariants
+                                    as $code => $label
+                                ): ?>
+
+                                    <option
+                                        value="<?= $escape(
+                                            $code
+                                        ) ?>"
+                                        <?= (
+                                            (string) (
+                                                $override[
+                                                    'layout_variant'
+                                                ]
+                                                ?? ''
+                                            )
+                                            === $code
+                                        )
+                                            ? 'selected'
+                                            : ''
+                                        ?>
+                                    >
+                                        <?= $escape(
+                                            $label
+                                        ) ?>
+                                    </option>
+
+                                <?php endforeach; ?>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="admin-field">
+
+                        <label for="override-visibility">
+                            نمایش
+                        </label>
+
+                        <?php
+                        $visibility =
+                            (string) (
+                                $override[
+                                    'visibility_mode'
+                                ]
+                                ?? 'inherit'
+                            );
+                        ?>
+
+                        <select
+                            id="override-visibility"
+                            name="visibility_mode"
+                        >
+
+                            <option
+                                value="inherit"
+                                <?= $visibility === 'inherit'
+                                    ? 'selected'
+                                    : ''
+                                ?>
+                            >
+                                ارث‌بری
+                            </option>
+
+                            <option
+                                value="show"
+                                <?= $visibility === 'show'
+                                    ? 'selected'
+                                    : ''
+                                ?>
+                            >
+                                نمایش
+                            </option>
+
+                            <option
+                                value="hide"
+                                <?= $visibility === 'hide'
+                                    ? 'selected'
+                                    : ''
+                                ?>
+                            >
+                                عدم نمایش
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="ui-content-two-column">
+
+                        <div class="admin-field">
+
+                            <label for="primary-action">
+                                اقدام اصلی
+                            </label>
+
+                            <select
+                                id="primary-action"
+                                name="primary_action_code"
+                            >
+
+                                <option value="">
+                                    بدون اقدام
+                                </option>
+
+                                <?php foreach (
+                                    $actionCodes
+                                    as $code => $label
+                                ): ?>
+
+                                    <option
+                                        value="<?= $escape(
+                                            $code
+                                        ) ?>"
+                                        <?= (
+                                            (string) (
+                                                $override[
+                                                    'primary_action_code'
+                                                ]
+                                                ?? ''
+                                            )
+                                            === $code
+                                        )
+                                            ? 'selected'
+                                            : ''
+                                        ?>
+                                    >
+                                        <?= $escape(
+                                            $label
+                                        ) ?>
+                                    </option>
+
+                                <?php endforeach; ?>
+
+                            </select>
+
+                            <input
+                                name="primary_action_label"
+                                type="text"
+                                placeholder="عنوان دکمه"
+                                value="<?= $escape(
+                                    $override[
+                                        'primary_action_label'
+                                    ]
+                                    ?? ''
+                                ) ?>"
+                            >
+
+                        </div>
+
+
+                        <div class="admin-field">
+
+                            <label for="secondary-action">
+                                اقدام دوم
+                            </label>
+
+                            <select
+                                id="secondary-action"
+                                name="secondary_action_code"
+                            >
+
+                                <option value="">
+                                    بدون اقدام
+                                </option>
+
+                                <?php foreach (
+                                    $actionCodes
+                                    as $code => $label
+                                ): ?>
+
+                                    <option
+                                        value="<?= $escape(
+                                            $code
+                                        ) ?>"
+                                        <?= (
+                                            (string) (
+                                                $override[
+                                                    'secondary_action_code'
+                                                ]
+                                                ?? ''
+                                            )
+                                            === $code
+                                        )
+                                            ? 'selected'
+                                            : ''
+                                        ?>
+                                    >
+                                        <?= $escape(
+                                            $label
+                                        ) ?>
+                                    </option>
+
+                                <?php endforeach; ?>
+
+                            </select>
+
+                            <input
+                                name="secondary_action_label"
+                                type="text"
+                                placeholder="عنوان دکمه"
+                                value="<?= $escape(
+                                    $override[
+                                        'secondary_action_label'
+                                    ]
+                                    ?? ''
+                                ) ?>"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="ui-content-two-column">
+
+                        <div class="admin-field">
+
+                            <label for="starts-at">
+                                شروع نمایش
+                            </label>
+
+                            <input
+                                id="starts-at"
+                                name="starts_at"
+                                type="datetime-local"
+                                value="<?= $escape(
+                                    $startsAt
+                                ) ?>"
+                            >
+
+                        </div>
+
+
+                        <div class="admin-field">
+
+                            <label for="ends-at">
+                                پایان نمایش
+                            </label>
+
+                            <input
+                                id="ends-at"
+                                name="ends_at"
+                                type="datetime-local"
+                                value="<?= $escape(
+                                    $endsAt
+                                ) ?>"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="admin-field">
+
+                        <label for="override-metadata">
+                            Metadata JSON
+                        </label>
+
+                        <textarea
+                            id="override-metadata"
+                            name="metadata_json"
+                            dir="ltr"
+                            placeholder="{}"
+                        ><?= $escape(
+                            $override[
+                                'metadata_json'
+                            ]
+                            ?? ''
+                        ) ?></textarea>
+
+                    </div>
+
+
+                    <input
+                        type="hidden"
+                        name="is_active"
+                        value="0"
+                    >
+
+
+                    <label class="admin-field">
+
+                        <span>
+                            وضعیت محدوده
+                        </span>
+
+                        <span>
+
+                            <input
+                                type="checkbox"
+                                name="is_active"
+                                value="1"
+                                <?= (
+                                    $override === null
+                                    || (int) (
+                                        $override[
+                                            'is_active'
+                                        ]
+                                        ?? 0
+                                    )
+                                    === 1
+                                )
+                                    ? 'checked'
+                                    : ''
+                                ?>
+                            >
+
+                            فعال باشد
+
+                        </span>
+
+                    </label>
+
+
+                    <div class="ui-content-actions">
+
+                        <button
+                            type="submit"
+                            class="admin-btn admin-btn--primary"
+                        >
+                            ذخیره محدوده
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </section>
+
+        <?php endif; ?>
+
+    </div>
+
+</div>
 
 <?php
 
-$content = ob_get_clean();
+$content =
+    ob_get_clean();
 
-require __DIR__ . '/layout.php';
+require
+    __DIR__
+    . '/layout.php';

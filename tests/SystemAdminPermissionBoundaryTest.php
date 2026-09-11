@@ -30,6 +30,7 @@ $operationalPermissions = [
     'positions.manage',
     'user_org_assignments.manage',
     'admin.reports.view',
+    'admin.ui_content.manage',
 ];
 $failures = [];
 

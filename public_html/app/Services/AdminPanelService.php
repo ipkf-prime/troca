@@ -744,17 +744,121 @@ class AdminPanelService extends BaseService
 
 
         /*
-         * Core/internal cards are projected from the
-         * Core Feature Registry. Route and permission
-         * identity remain immutable in navigation data.
+         * Registry-authorized Core cards are emitted first.
          */
-        foreach (
+        $coreRegistryCards =
             (
                 new CoreFeatureRegistryService()
-            )->dashboardCards($userId)
+            )->dashboardCards(
+                $userId
+            );
+
+        $coreRegistryKeys = [];
+
+        foreach (
+            $coreRegistryCards
             as $module
         ) {
-            $modules[] = $module;
+            $key =
+                trim(
+                    (string) (
+                        $module['key']
+                        ?? ''
+                    )
+                );
+
+            if ($key !== '') {
+                $coreRegistryKeys[$key] =
+                    true;
+            }
+
+            $modules[] =
+                $module;
+        }
+
+
+        /*
+         * UNIVERSAL_CORE_PARENT_VISIBILITY_BY_CHILD_PERMISSION
+         *
+         * Parent:
+         * own permission OR any permitted child.
+         *
+         * Child:
+         * own permission.
+         *
+         * Route:
+         * own permission.
+         *
+         * Data:
+         * Permission + Scope.
+         *
+         * No role-code-specific presentation bypass.
+         */
+        foreach (
+            $this->moduleDefinitions()
+            as $module
+        ) {
+            $moduleKey =
+                trim(
+                    (string) (
+                        $module['key']
+                        ?? ''
+                    )
+                );
+
+            if ($moduleKey === '') {
+                continue;
+            }
+
+            if (
+                in_array(
+                    $moduleKey,
+                    [
+                        'automation',
+                        'work',
+                        'ticketing',
+                    ],
+                    true
+                )
+            ) {
+                continue;
+            }
+
+            if (
+                isset(
+                    $module[
+                        'core_dashboard_enabled'
+                    ]
+                )
+                && (int) $module[
+                    'core_dashboard_enabled'
+                ] !== 1
+            ) {
+                continue;
+            }
+
+            if (
+                isset(
+                    $coreRegistryKeys[
+                        $moduleKey
+                    ]
+                )
+            ) {
+                continue;
+            }
+
+            $resolvedModule =
+                $this->resolveDashboardModule(
+                    $userId,
+                    $module
+                );
+
+            if ($resolvedModule === null) {
+                continue;
+            }
+
+            $modules[] =
+                $resolvedModule;
         }
 
 
@@ -865,7 +969,7 @@ class AdminPanelService extends BaseService
                             'color' => 'teal',
                             'url' => '/admin/system/help-texts',
                             'permission' =>
-                                'admin.settings.manage',
+                                'admin.ui_content.manage',
                             'sort_order' => 40,
                         ],
                 ],
@@ -950,6 +1054,13 @@ class AdminPanelService extends BaseService
             ] =
                 $appearance[
                     'sidebar_enabled'
+                ];
+
+            $definition[
+                'core_dashboard_enabled'
+            ] =
+                $appearance[
+                    'dashboard_enabled'
                 ];
         }
 
