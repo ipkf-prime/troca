@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 $title =
-    'مدیریت راهنماها و پیام‌های سیستمی';
+    'مدیریت راهنما، اعلان و خطا';
 
 $escape =
     static fn (
@@ -569,7 +569,7 @@ textarea.ui-content-body {
     <span>/</span>
 
     <span>
-        راهنماها و پیام‌های سیستمی
+        مدیریت راهنما، اعلان و خطا
     </span>
 </nav>
 

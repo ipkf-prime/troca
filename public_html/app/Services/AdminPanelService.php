@@ -962,9 +962,10 @@ class AdminPanelService extends BaseService
                     ],
                         [
                             'key' => 'help-texts',
-                            'title' => 'راهنماها',
+                            'title' =>
+                                'مدیریت راهنما، اعلان و خطا',
                             'description' =>
-                                'مدیریت متن‌های راهنما و پیام‌های آموزشی سامانه',
+                                'مدیریت متن‌های راهنما، اعلان‌ها و پیام‌های خطای سامانه',
                             'icon' => 'book-open',
                             'color' => 'teal',
                             'url' => '/admin/system/help-texts',
