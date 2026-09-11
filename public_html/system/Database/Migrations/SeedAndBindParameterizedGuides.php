@@ -211,12 +211,9 @@ final class SeedAndBindParameterizedGuides extends Migration
         $title = trim((string) ($item['title'] ?? ''));
         if ($title !== '') return $title;
 
-        $body = trim((string) ($item['body'] ?? ''));
-        $characters = preg_split('//u', $body, -1, PREG_SPLIT_NO_EMPTY);
-        if (!is_array($characters) || count($characters) <= 72) return $body;
-        return implode('', array_slice($characters, 0, 72)) . '…';
+        $body = (string) ($item['body'] ?? '');
+        return trim(preg_replace('/\s+/u', ' ', $body) ?? $body);
     }
-
     private function metadata(mixed $value): array
     {
         $decoded = json_decode((string) $value, true);

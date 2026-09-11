@@ -693,17 +693,17 @@ final class SeedPlatformGuideCatalog
         return
             $title !== ''
                 ? $title
-                : $this->shortTitle(
+                : $this->fullTitle(
                     $body
                 );
     }
 
 
-    private function shortTitle(
+    private function fullTitle(
         string $body
     ): string {
 
-        $body =
+        return
             trim(
                 preg_replace(
                     '/\s+/u',
@@ -712,34 +712,5 @@ final class SeedPlatformGuideCatalog
                 )
                 ?? $body
             );
-
-
-        $characters =
-            preg_split(
-                '//u',
-                $body,
-                -1,
-                PREG_SPLIT_NO_EMPTY
-            );
-
-
-        if (
-            !is_array($characters)
-            || count($characters) <= 72
-        ) {
-            return $body;
-        }
-
-
-        return
-            implode(
-                '',
-                array_slice(
-                    $characters,
-                    0,
-                    72
-                )
-            )
-            . '…';
     }
 }

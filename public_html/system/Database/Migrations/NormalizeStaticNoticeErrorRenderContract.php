@@ -37,8 +37,8 @@ final class NormalizeStaticNoticeErrorRenderContract extends Migration
         $newBody = trim((string) $item['body']);
         $legacyBody = trim((string) ($item['legacy_body'] ?? $newBody));
         $newTitle = trim((string) ($item['title'] ?? ''));
-        if ($newTitle === '') $newTitle = $this->shortTitle($newBody);
-        $legacyTitle = $this->shortTitle($legacyBody);
+        if ($newTitle === '') $newTitle = $this->fullTitle($newBody);
+        $legacyTitle = $this->fullTitle($legacyBody);
 
         $definitionQuery = $this->db->prepare(
             'SELECT id, content_type, description, metadata_json FROM ui_content_definitions WHERE content_key = ? LIMIT 1 FOR UPDATE'
@@ -141,11 +141,8 @@ final class NormalizeStaticNoticeErrorRenderContract extends Migration
         return $decoded;
     }
 
-    private function shortTitle(string $body): string
+    private function fullTitle(string $body): string
     {
-        $body = trim(preg_replace('/\s+/u', ' ', $body) ?? $body);
-        $characters = preg_split('//u', $body, -1, PREG_SPLIT_NO_EMPTY);
-        if (!is_array($characters) || count($characters) <= 72) return $body;
-        return implode('', array_slice($characters, 0, 72)) . '…';
+        return trim(preg_replace('/\s+/u', ' ', $body) ?? $body);
     }
 }

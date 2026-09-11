@@ -156,14 +156,14 @@ final class NormalizeStaticGuideRenderContract
         if ($newTitle === '') {
 
             $newTitle =
-                $this->shortTitle(
+                $this->fullTitle(
                     $newBody
                 );
         }
 
 
         $legacyTitle =
-            $this->shortTitle(
+            $this->fullTitle(
                 $legacyBody
             );
 
@@ -550,11 +550,11 @@ final class NormalizeStaticGuideRenderContract
     }
 
 
-    private function shortTitle(
+    private function fullTitle(
         string $body
     ): string {
 
-        $body =
+        return
             trim(
                 preg_replace(
                     '/\s+/u',
@@ -563,35 +563,5 @@ final class NormalizeStaticGuideRenderContract
                 )
                 ?? $body
             );
-
-
-        $characters =
-            preg_split(
-                '//u',
-                $body,
-                -1,
-                PREG_SPLIT_NO_EMPTY
-            );
-
-
-        if (
-            !is_array($characters)
-            ||
-            count($characters) <= 72
-        ) {
-            return $body;
-        }
-
-
-        return
-            implode(
-                '',
-                array_slice(
-                    $characters,
-                    0,
-                    72
-                )
-            )
-            . '…';
     }
 }

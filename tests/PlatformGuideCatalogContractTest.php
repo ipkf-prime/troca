@@ -62,6 +62,7 @@ foreach ([
     'NormalizeStaticNoticeErrorRenderContract::class',
     'MarkStaticNoticeErrorConsumersBound::class',
     'SeedAndBindParameterizedGuides::class',
+    'NormalizeFullUiContentTitles::class',
 ] as $marker) {
     if (!str_contains($registry, $marker)) throw new RuntimeException('Registry marker missing: ' . $marker);
 }
