@@ -86,6 +86,30 @@ $router->get(
                             ''
                         ),
 
+                    'browse_mode' =>
+                        $request->input(
+                            'browse',
+                            'content'
+                        ),
+
+                    'module' =>
+                        $request->input(
+                            'module',
+                            ''
+                        ),
+
+                    'placement' =>
+                        $request->input(
+                            'placement',
+                            ''
+                        ),
+
+                    'tab' =>
+                        $request->input(
+                            'tab',
+                            ''
+                        ),
+
                     'key' =>
                         $request->input(
                             'key',

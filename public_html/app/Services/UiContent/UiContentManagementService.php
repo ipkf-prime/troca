@@ -100,6 +100,111 @@ final class UiContentManagementService
             $status = '';
         }
 
+        $browseMode =
+            strtolower(
+                trim(
+                    (string) (
+                        $filters[
+                            'browse_mode'
+                        ]
+                        ?? 'content'
+                    )
+                )
+            );
+
+        if (
+            !in_array(
+                $browseMode,
+                [
+                    'content',
+                    'module',
+                    'placement',
+                ],
+                true
+            )
+        ) {
+            $browseMode =
+                'content';
+        }
+
+
+        $moduleFilter =
+            strtolower(
+                trim(
+                    (string) (
+                        $filters['module']
+                        ?? ''
+                    )
+                )
+            );
+
+        if (
+            $moduleFilter !== ''
+            && preg_match(
+                '/^[a-z][a-z0-9_-]{1,99}$/D',
+                $moduleFilter
+            ) !== 1
+        ) {
+            $moduleFilter = '';
+        }
+
+
+        $placementFilter =
+            strtolower(
+                trim(
+                    (string) (
+                        $filters[
+                            'placement'
+                        ]
+                        ?? ''
+                    )
+                )
+            );
+
+        if (
+            !in_array(
+                $placementFilter,
+                [
+                    '',
+                    'global',
+                    'module',
+                    'project',
+                    'portal',
+                    'fine',
+                ],
+                true
+            )
+        ) {
+            $placementFilter = '';
+        }
+
+
+        $requestedTab =
+            strtolower(
+                trim(
+                    (string) (
+                        $filters['tab']
+                        ?? ''
+                    )
+                )
+            );
+
+        if (
+            !in_array(
+                $requestedTab,
+                [
+                    '',
+                    'browser',
+                    'definition',
+                    'scope',
+                ],
+                true
+            )
+        ) {
+            $requestedTab = '';
+        }
+
+
         $selectedKey =
             strtolower(
                 trim(
@@ -134,7 +239,9 @@ final class UiContentManagementService
             $this->definitions(
                 $q,
                 $type,
-                $status
+                $status,
+                $moduleFilter,
+                $placementFilter
             );
 
         $selected = null;
@@ -195,6 +302,40 @@ final class UiContentManagementService
             }
         }
 
+        $workspaceTab =
+            $requestedTab;
+
+        if ($workspaceTab === '') {
+            if (
+                $newOverride
+                || $selectedOverrideReference !== ''
+            ) {
+                $workspaceTab =
+                    'scope';
+            } elseif (
+                $newDefinition
+                || $selectedKey !== ''
+            ) {
+                $workspaceTab =
+                    'definition';
+            } else {
+                $workspaceTab =
+                    'browser';
+            }
+        }
+
+        if (
+            $workspaceTab === 'scope'
+            && (
+                !is_array($selected)
+                || $newDefinition
+            )
+        ) {
+            $workspaceTab =
+                'definition';
+        }
+
+
         try {
             $modules =
                 $this->modules
@@ -205,9 +346,26 @@ final class UiContentManagementService
 
         return [
             'filters' => [
-                'q' => $q,
-                'type' => $type,
-                'status' => $status,
+                'q' =>
+                    $q,
+
+                'type' =>
+                    $type,
+
+                'status' =>
+                    $status,
+
+                'browse_mode' =>
+                    $browseMode,
+
+                'module' =>
+                    $moduleFilter,
+
+                'placement' =>
+                    $placementFilter,
+
+                'tab' =>
+                    $workspaceTab,
             ],
 
             'items' =>
@@ -230,6 +388,23 @@ final class UiContentManagementService
 
             'modules' =>
                 $modules,
+
+            'placement_labels' => [
+                'global' =>
+                    'عمومی سامانه',
+
+                'module' =>
+                    'کل ماژول',
+
+                'project' =>
+                    'پروژه',
+
+                'portal' =>
+                    'پرتال',
+
+                'fine' =>
+                    'محدوده تخصصی',
+            ],
 
             'content_types' => [
                 'guide' =>
@@ -1204,7 +1379,9 @@ final class UiContentManagementService
     private function definitions(
         string $q,
         string $type,
-        string $status
+        string $status,
+        string $moduleFilter,
+        string $placementFilter
     ): array {
 
         $where = [
@@ -1242,6 +1419,92 @@ final class UiContentManagementService
             $where[] =
                 'd.is_active = 0';
         }
+
+
+        if ($moduleFilter !== '') {
+            $where[] = "
+                EXISTS (
+                    SELECT 1
+
+                    FROM ui_content_overrides fm
+
+                    WHERE
+                        fm.definition_id = d.id
+                        AND fm.module_key = ?
+                )
+            ";
+
+            $params[] =
+                $moduleFilter;
+        }
+
+
+        if (
+            $placementFilter === 'global'
+            || $placementFilter === 'module'
+        ) {
+            $where[] = "
+                EXISTS (
+                    SELECT 1
+
+                    FROM ui_content_overrides fp
+
+                    WHERE
+                        fp.definition_id = d.id
+                        AND fp.scope_type = ?
+                )
+            ";
+
+            $params[] =
+                $placementFilter;
+        }
+
+
+        if (
+            $placementFilter === 'project'
+            || $placementFilter === 'portal'
+        ) {
+            $where[] = "
+                EXISTS (
+                    SELECT 1
+
+                    FROM ui_content_overrides fp
+
+                    WHERE
+                        fp.definition_id = d.id
+                        AND fp.scope_type NOT IN (
+                            'global',
+                            'module'
+                        )
+                        AND fp.scope_path_json
+                            LIKE ?
+                )
+            ";
+
+            $params[] =
+                '%"type":"'
+                . $placementFilter
+                . '"%';
+        }
+
+
+        if ($placementFilter === 'fine') {
+            $where[] = "
+                EXISTS (
+                    SELECT 1
+
+                    FROM ui_content_overrides fp
+
+                    WHERE
+                        fp.definition_id = d.id
+                        AND fp.scope_type NOT IN (
+                            'global',
+                            'module'
+                        )
+                )
+            ";
+        }
+
 
         $statement =
             $this->db->prepare("

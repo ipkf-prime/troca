@@ -47,6 +47,45 @@ $filters =
         ? $page['filters']
         : [];
 
+$browseMode =
+    (string) (
+        $filters[
+            'browse_mode'
+        ]
+        ?? 'content'
+    );
+
+$workspaceTab =
+    (string) (
+        $filters['tab']
+        ?? 'browser'
+    );
+
+$moduleFilter =
+    (string) (
+        $filters['module']
+        ?? ''
+    );
+
+$placementFilter =
+    (string) (
+        $filters['placement']
+        ?? ''
+    );
+
+$placementLabels =
+    is_array(
+        $page[
+            'placement_labels'
+        ]
+        ?? null
+    )
+        ? $page[
+            'placement_labels'
+        ]
+        : [];
+
+
 $selected =
     is_array($page['selected'] ?? null)
         ? $page['selected']
@@ -296,6 +335,71 @@ ob_start();
     align-items: start;
 }
 
+.ui-content-layout--single {
+    grid-template-columns: 1fr;
+}
+
+.ui-content-hidden {
+    display: none !important;
+}
+
+.ui-content-workspace-tabs,
+.ui-content-browse-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 16px;
+}
+
+.ui-content-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 8px 14px;
+    border: 1px solid var(--admin-border, #dfe4ea);
+    border-radius: 10px;
+    background: var(--admin-surface, #fff);
+    color: inherit;
+    text-decoration: none;
+    font: inherit;
+    cursor: pointer;
+}
+
+.ui-content-tab:hover,
+.ui-content-tab.is-active {
+    border-color: var(--admin-primary, #27845b);
+}
+
+.ui-content-tab.is-active {
+    font-weight: 700;
+}
+
+.ui-content-tab.is-disabled {
+    opacity: .48;
+    pointer-events: none;
+}
+
+.ui-content-selected-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    align-items: center;
+    padding: 10px 14px;
+    margin: 0 0 16px;
+    border: 1px solid var(--admin-border, #dfe4ea);
+    border-radius: 10px;
+    background: var(--admin-surface, #fff);
+}
+
+.ui-content-selected-head__key {
+    direction: ltr;
+    unicode-bidi: plaintext;
+    font-family: monospace;
+    font-size: .8rem;
+    opacity: .72;
+}
+
 .ui-content-list {
     display: grid;
     gap: 8px;
@@ -509,7 +613,149 @@ textarea.ui-content-body {
 <?php endif; ?>
 
 
-<section class="admin-section">
+<?php
+$workspaceQuery =
+    static function (
+        string $tab
+    ) use (
+        $definitionKey,
+        $override,
+        $browseMode
+    ): string {
+
+        $query = [
+            'tab' =>
+                $tab,
+
+            'browse' =>
+                $browseMode,
+        ];
+
+        if ($definitionKey !== '') {
+            $query['key'] =
+                $definitionKey;
+        }
+
+        if (
+            $tab === 'scope'
+            && is_array($override)
+            && !empty(
+                $override[
+                    'public_reference'
+                ]
+            )
+        ) {
+            $query['override'] =
+                (string) $override[
+                    'public_reference'
+                ];
+        }
+
+        return
+            '/admin/system/help-texts?'
+            . http_build_query(
+                $query,
+                '',
+                '&',
+                PHP_QUERY_RFC3986
+            );
+    };
+?>
+
+<nav
+    class="ui-content-workspace-tabs"
+    aria-label="بخش‌های مدیریت محتوا"
+>
+
+    <a
+        href="<?= $escape(
+            $workspaceQuery(
+                'browser'
+            )
+        ) ?>"
+        class="ui-content-tab<?= $workspaceTab === 'browser' ? ' is-active' : '' ?>"
+    >
+        مرور و جستجو
+    </a>
+
+    <a
+        href="<?= $escape(
+            $workspaceQuery(
+                'definition'
+            )
+        ) ?>"
+        class="ui-content-tab<?= $workspaceTab === 'definition' ? ' is-active' : '' ?>"
+    >
+        تعریف اصلی
+    </a>
+
+    <?php if (
+        $definitionKey !== ''
+    ): ?>
+
+        <a
+            href="<?= $escape(
+                $workspaceQuery(
+                    'scope'
+                )
+            ) ?>"
+            class="ui-content-tab<?= $workspaceTab === 'scope' ? ' is-active' : '' ?>"
+        >
+            نمایش و محدوده
+        </a>
+
+    <?php else: ?>
+
+        <span class="ui-content-tab is-disabled">
+            نمایش و محدوده
+        </span>
+
+    <?php endif; ?>
+
+</nav>
+
+
+<?php if (
+    $definitionKey !== ''
+): ?>
+
+    <div class="ui-content-selected-head">
+
+        <strong>
+            <?= $escape(
+                $definition[
+                    'description'
+                ]
+                ?? 'محتوای انتخاب‌شده'
+            ) ?>
+        </strong>
+
+        <span class="ui-content-selected-head__key">
+            <?= $escape(
+                $definitionKey
+            ) ?>
+        </span>
+
+        <span>
+            <?= $escape(
+                $contentTypes[
+                    $definition[
+                        'content_type'
+                    ]
+                    ?? ''
+                ]
+                ?? ''
+            ) ?>
+        </span>
+
+    </div>
+
+<?php endif; ?>
+
+
+<section
+    class="admin-section<?= $workspaceTab !== 'browser' ? ' ui-content-hidden' : '' ?>"
+>
 
     <div class="admin-section__header">
 
@@ -520,7 +766,7 @@ textarea.ui-content-body {
         </div>
 
         <a
-            href="/admin/system/help-texts?new=1"
+            href="/admin/system/help-texts?new=1&amp;tab=definition"
             class="admin-btn admin-btn--primary"
         >
             تعریف محتوای جدید
@@ -529,11 +775,55 @@ textarea.ui-content-body {
     </div>
 
 
+    <nav
+        class="ui-content-browse-tabs"
+        aria-label="شیوه دسته‌بندی محتوا"
+    >
+
+        <a
+            href="/admin/system/help-texts?tab=browser&amp;browse=content"
+            class="ui-content-tab<?= $browseMode === 'content' ? ' is-active' : '' ?>"
+        >
+            بر اساس محتوا
+        </a>
+
+        <a
+            href="/admin/system/help-texts?tab=browser&amp;browse=module"
+            class="ui-content-tab<?= $browseMode === 'module' ? ' is-active' : '' ?>"
+        >
+            بر اساس ماژول
+        </a>
+
+        <a
+            href="/admin/system/help-texts?tab=browser&amp;browse=placement"
+            class="ui-content-tab<?= $browseMode === 'placement' ? ' is-active' : '' ?>"
+        >
+            بر اساس محل نمایش
+        </a>
+
+    </nav>
+
+
     <form
         method="get"
         action="/admin/system/help-texts"
         class="admin-form-grid ui-content-filter"
     >
+
+        <input
+            type="hidden"
+            name="tab"
+            value="browser"
+        >
+
+        <input
+            type="hidden"
+            name="browse"
+            value="<?= $escape(
+                $browseMode
+            ) ?>"
+        >
+
 
         <div class="admin-field">
 
@@ -549,54 +839,165 @@ textarea.ui-content-body {
                     $filters['q']
                     ?? ''
                 ) ?>"
-                placeholder="کلید یا توضیحات"
+                placeholder="عنوان، کلید یا توضیحات"
             >
 
         </div>
 
 
-        <div class="admin-field">
+        <?php if (
+            $browseMode === 'content'
+        ): ?>
 
-            <label for="ui-content-type">
-                نوع محتوا
-            </label>
+            <div class="admin-field">
 
-            <select
-                id="ui-content-type"
-                name="content_type"
-            >
+                <label for="ui-content-type">
+                    نوع محتوا
+                </label>
 
-                <option value="">
-                    همه
-                </option>
+                <select
+                    id="ui-content-type"
+                    name="content_type"
+                >
 
-                <?php foreach (
-                    $contentTypes
-                    as $code => $label
-                ): ?>
-
-                    <option
-                        value="<?= $escape(
-                            $code
-                        ) ?>"
-                        <?= (
-                            ($filters['type'] ?? '')
-                            === $code
-                        )
-                            ? 'selected'
-                            : ''
-                        ?>
-                    >
-                        <?= $escape(
-                            $label
-                        ) ?>
+                    <option value="">
+                        همه انواع محتوا
                     </option>
 
-                <?php endforeach; ?>
+                    <?php foreach (
+                        $contentTypes
+                        as $code => $label
+                    ): ?>
 
-            </select>
+                        <option
+                            value="<?= $escape(
+                                $code
+                            ) ?>"
+                            <?= (
+                                ($filters['type'] ?? '')
+                                === $code
+                            )
+                                ? 'selected'
+                                : ''
+                            ?>
+                        >
+                            <?= $escape(
+                                $label
+                            ) ?>
+                        </option>
 
-        </div>
+                    <?php endforeach; ?>
+
+                </select>
+
+            </div>
+
+        <?php elseif (
+            $browseMode === 'module'
+        ): ?>
+
+            <div class="admin-field">
+
+                <label for="ui-content-module">
+                    ماژول
+                </label>
+
+                <select
+                    id="ui-content-module"
+                    name="module"
+                >
+
+                    <option value="">
+                        همه ماژول‌ها
+                    </option>
+
+                    <?php foreach (
+                        $modules
+                        as $module
+                    ): ?>
+
+                        <?php
+                        $filterModuleKey =
+                            (string) (
+                                $module[
+                                    'module_key'
+                                ]
+                                ?? ''
+                            );
+                        ?>
+
+                        <option
+                            value="<?= $escape(
+                                $filterModuleKey
+                            ) ?>"
+                            <?= (
+                                $moduleFilter
+                                === $filterModuleKey
+                            )
+                                ? 'selected'
+                                : ''
+                            ?>
+                        >
+                            <?= $escape(
+                                $module[
+                                    'display_name'
+                                ]
+                                ?? 'ماژول بدون عنوان'
+                            ) ?>
+                        </option>
+
+                    <?php endforeach; ?>
+
+                </select>
+
+            </div>
+
+        <?php else: ?>
+
+            <div class="admin-field">
+
+                <label for="ui-content-placement">
+                    محل نمایش
+                </label>
+
+                <select
+                    id="ui-content-placement"
+                    name="placement"
+                >
+
+                    <option value="">
+                        همه محل‌های نمایش
+                    </option>
+
+                    <?php foreach (
+                        $placementLabels
+                        as $code => $label
+                    ): ?>
+
+                        <option
+                            value="<?= $escape(
+                                $code
+                            ) ?>"
+                            <?= (
+                                $placementFilter
+                                === $code
+                            )
+                                ? 'selected'
+                                : ''
+                            ?>
+                        >
+                            <?= $escape(
+                                $label
+                            ) ?>
+                        </option>
+
+                    <?php endforeach; ?>
+
+                </select>
+
+            </div>
+
+        <?php endif; ?>
 
 
         <div class="admin-field">
@@ -611,7 +1012,7 @@ textarea.ui-content-body {
             >
 
                 <option value="">
-                    همه
+                    همه وضعیت‌ها
                 </option>
 
                 <option
@@ -663,9 +1064,11 @@ textarea.ui-content-body {
 </section>
 
 
-<div class="ui-content-layout">
+<div class="ui-content-layout<?= $workspaceTab !== 'browser' ? ' ui-content-layout--single' : '' ?>">
 
-    <section class="admin-section">
+    <section
+        class="admin-section<?= $workspaceTab !== 'browser' ? ' ui-content-hidden' : '' ?>"
+    >
 
         <div class="admin-section__header">
 
@@ -712,6 +1115,9 @@ textarea.ui-content-body {
                         [
                             'key' =>
                                 $itemKey,
+
+                            'tab' =>
+                                'definition',
                         ],
                         '',
                         '&',
@@ -833,9 +1239,11 @@ textarea.ui-content-body {
     </section>
 
 
-    <div class="ui-content-editor">
+    <div class="ui-content-editor<?= $workspaceTab === 'browser' ? ' ui-content-hidden' : '' ?>">
 
-        <section class="admin-section">
+        <section
+            class="admin-section<?= $workspaceTab !== 'definition' ? ' ui-content-hidden' : '' ?>"
+        >
 
             <div class="admin-section__header">
 
@@ -1106,7 +1514,8 @@ textarea.ui-content-body {
 
 
         <?php if (
-            is_array($selected)
+            $workspaceTab === 'scope'
+            && is_array($selected)
             && !$newDefinition
         ): ?>
 
@@ -1138,6 +1547,9 @@ textarea.ui-content-body {
 
                                     'new_override' =>
                                         '1',
+
+                                    'tab' =>
+                                        'scope',
                                 ],
                                 '',
                                 '&',
@@ -1178,6 +1590,9 @@ textarea.ui-content-body {
 
                                     'override' =>
                                         $itemReference,
+
+                                    'tab' =>
+                                        'scope',
                                 ],
                                 '',
                                 '&',
