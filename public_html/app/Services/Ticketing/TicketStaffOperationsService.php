@@ -20,6 +20,37 @@ final class TicketStaffOperationsService
 
 
     /*
+     * TICKETING_PROJECT_LOCAL_EFFECTIVE_ACCESS_SERVICE_V1
+     */
+    public function isStaff(
+        int $userId
+    ): bool {
+        return
+            $userId > 0
+            &&
+            $this->repository
+                ->isStaff(
+                    'user:' . $userId
+                );
+    }
+
+
+    public function accessScopes(
+        int $userId
+    ): array {
+        if ($userId < 1) {
+            return [];
+        }
+
+        return
+            $this->repository
+                ->staffAccessScopes(
+                    'user:' . $userId
+                );
+    }
+
+
+    /*
      * Dashboard is deliberately summary-only.
      * Ticket rows and operational actions belong to cartable.
      */

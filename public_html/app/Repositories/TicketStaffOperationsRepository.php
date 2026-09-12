@@ -72,6 +72,332 @@ final class TicketStaffOperationsRepository
     }
 
 
+    /*
+     * TICKETING_PROJECT_LOCAL_EFFECTIVE_SCOPE_SUMMARY_V1
+     *
+     * This is a menu/interface projection of the canonical Ticketing
+     * project/team memberships. It does NOT replace cartable/resource
+     * authorization.
+     *
+     * Project manager:
+     *   topology_full_project = true
+     *
+     * Project member:
+     *   topology_node_ids = own/direct-child operational topology
+     *
+     * Dynamic Data Scope remains an additional intersection inside
+     * cartable/dataScopeClause for actual ticket visibility.
+     */
+    public function staffAccessScopes(
+        string $userReference
+    ): array {
+        $userReference =
+            trim(
+                $userReference
+            );
+
+        if ($userReference === '') {
+            return [];
+        }
+
+        $memberships =
+            $this->actorMemberships(
+                $userReference
+            );
+
+        if ($memberships === []) {
+            return [];
+        }
+
+        $visibleByProject =
+            $this->visibleNodesByProject(
+                $memberships
+            );
+
+        $result = [];
+
+        foreach (
+            $memberships
+            as $membership
+        ) {
+            $projectId =
+                (int) (
+                    $membership[
+                        'project_id'
+                    ]
+                    ?? 0
+                );
+
+            if ($projectId < 1) {
+                continue;
+            }
+
+            $projectRole =
+                trim(
+                    (string) (
+                        $membership[
+                            'project_role_code'
+                        ]
+                        ?? ''
+                    )
+                );
+
+            if (
+                !in_array(
+                    $projectRole,
+                    [
+                        'member',
+                        'manager',
+                    ],
+                    true
+                )
+            ) {
+                continue;
+            }
+
+            if (!isset($result[$projectId])) {
+                $topology =
+                    is_array(
+                        $visibleByProject[
+                            $projectId
+                        ]
+                        ?? null
+                    )
+                        ? $visibleByProject[
+                            $projectId
+                        ]
+                        : [
+                            'all' => false,
+                            'nodes' => [],
+                        ];
+
+                $result[$projectId] = [
+                    'scope_type' =>
+                        'project',
+
+                    'scope_reference' =>
+                        (string) $projectId,
+
+                    'project_id' =>
+                        $projectId,
+
+                    'project_role_code' =>
+                        $projectRole,
+
+                    'is_project_manager' =>
+                        $projectRole ===
+                            'manager',
+
+                    /*
+                     * Topology visibility only.
+                     * Dynamic Data Scope is still applied
+                     * independently per resource.
+                     */
+                    'topology_full_project' =>
+                        !empty(
+                            $topology[
+                                'all'
+                            ]
+                        ),
+
+                    'topology_node_ids' =>
+                        array_values(
+                            array_map(
+                                'intval',
+                                array_keys(
+                                    is_array(
+                                        $topology[
+                                            'nodes'
+                                        ]
+                                        ?? null
+                                    )
+                                        ? $topology[
+                                            'nodes'
+                                        ]
+                                        : []
+                                )
+                            )
+                        ),
+
+                    'team_ids' => [],
+                    'team_role_codes' => [],
+
+                    'capabilities' => [
+                        'can_assign' => false,
+                        'can_observe' => false,
+                        'can_assist' => false,
+                        'can_takeover' => false,
+                        'can_transfer' => false,
+                    ],
+
+                    'resource_scope_authority' =>
+                        'ticketing_cartable_plus_dynamic_data_scope',
+                ];
+            }
+
+            /*
+             * One user normally has one project role per
+             * active project membership. If duplicated legacy
+             * membership rows exist, manager is the stronger
+             * project-local presentation role.
+             */
+            if ($projectRole === 'manager') {
+                $result[
+                    $projectId
+                ][
+                    'project_role_code'
+                ] = 'manager';
+
+                $result[
+                    $projectId
+                ][
+                    'is_project_manager'
+                ] = true;
+            }
+
+            $teamId =
+                (int) (
+                    $membership[
+                        'team_id'
+                    ]
+                    ?? 0
+                );
+
+            if ($teamId > 0) {
+                $result[
+                    $projectId
+                ][
+                    'team_ids'
+                ][
+                    $teamId
+                ] = true;
+            }
+
+            $teamRole =
+                trim(
+                    (string) (
+                        $membership[
+                            'staff_role_code'
+                        ]
+                        ?? ''
+                    )
+                );
+
+            if ($teamRole !== '') {
+                $result[
+                    $projectId
+                ][
+                    'team_role_codes'
+                ][
+                    $teamRole
+                ] = true;
+            }
+
+            foreach (
+                [
+                    'can_assign',
+                    'can_observe',
+                    'can_assist',
+                    'can_takeover',
+                    'can_transfer',
+                ]
+                as $capability
+            ) {
+                if (
+                    !empty(
+                        $membership[
+                            $capability
+                        ]
+                    )
+                ) {
+                    $result[
+                        $projectId
+                    ][
+                        'capabilities'
+                    ][
+                        $capability
+                    ] = true;
+                }
+            }
+        }
+
+        foreach (
+            $result
+            as &$scope
+        ) {
+            $scope['team_ids'] =
+                array_values(
+                    array_map(
+                        'intval',
+                        array_keys(
+                            $scope[
+                                'team_ids'
+                            ]
+                        )
+                    )
+                );
+
+            sort(
+                $scope[
+                    'team_ids'
+                ]
+            );
+
+            $scope['team_role_codes'] =
+                array_values(
+                    array_map(
+                        'strval',
+                        array_keys(
+                            $scope[
+                                'team_role_codes'
+                            ]
+                        )
+                    )
+                );
+
+            sort(
+                $scope[
+                    'team_role_codes'
+                ]
+            );
+
+            $scope['topology_node_ids'] =
+                array_values(
+                    array_unique(
+                        array_filter(
+                            array_map(
+                                'intval',
+                                $scope[
+                                    'topology_node_ids'
+                                ]
+                                ?? []
+                            ),
+                            static fn (
+                                int $nodeId
+                            ): bool =>
+                                $nodeId > 0
+                        )
+                    )
+                );
+
+            sort(
+                $scope[
+                    'topology_node_ids'
+                ]
+            );
+        }
+
+        unset($scope);
+
+        ksort($result);
+
+        return
+            array_values(
+                $result
+            );
+    }
+
+
     public function cartable(
         string $userReference,
         string $scope = 'all',

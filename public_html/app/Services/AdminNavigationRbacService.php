@@ -192,6 +192,22 @@ class AdminNavigationRbacService extends BaseService
 
     public function canAccessPath(?int $userId, string $path): bool
     {
+        if ($userId !== null) {
+            try {
+                if (
+                    (
+                        new \App\Services\Ticketing\TicketingProjectScopedAccessService()
+                    )->canAccessPath(
+                        $userId,
+                        $path
+                    )
+                ) {
+                    return true;
+                }
+            } catch (\Throwable) {
+            }
+        }
+
         if (
             $userId !== null
             &&

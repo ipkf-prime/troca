@@ -21,6 +21,20 @@ class DynamicRouteAccessService extends BaseService
         string $path
     ): bool {
         try {
+            if (
+                (
+                    new \App\Services\Ticketing\TicketingProjectScopedAccessService()
+                )->canAccessPath(
+                    $userId,
+                    $path
+                )
+            ) {
+                return true;
+            }
+        } catch (\Throwable) {
+        }
+
+        try {
             $rules = $this->repository->routeRules($method);
         } catch (Throwable) {
             return false;

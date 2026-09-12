@@ -208,11 +208,18 @@ class AdminPanelService extends BaseService
          * Active role decides the interface.
          * Project membership only enables project operations.
          */
-        $requesterInterface =
-            !$this->navigation->can(
+        $staffInterface =
+            $this->navigation->can(
                 $userId,
                 'ticketing.ticket.view'
             )
+            ||
+            $this->ticketingProjectScopedStaff(
+                $userId
+            );
+
+        $requesterInterface =
+            !$staffInterface
             &&
             $this->navigation->can(
                 $userId,
@@ -358,6 +365,15 @@ class AdminPanelService extends BaseService
             array_filter(
                 $items,
                 fn (array $item): bool =>
+                    (
+                        $staffInterface
+                        &&
+                        (string) (
+                            $item['key']
+                            ?? ''
+                        ) === 'ticketing-dashboard'
+                    )
+                    ||
                     $this->navigation->can(
                         $userId,
                         (string) $item['permission']
@@ -436,12 +452,25 @@ class AdminPanelService extends BaseService
                 continue;
             }
 
-            if (
-                $permission !== ''
-                && !$this->navigation->can(
+            $permissionAllowed =
+                $permission === ''
+                ||
+                $this->navigation->can(
                     $userId,
                     $permission
-                )
+                );
+
+            $ticketingProjectScopedAllowed =
+                $moduleKey === 'ticketing'
+                &&
+                $this->ticketingProjectScopedStaff(
+                    $userId
+                );
+
+            if (
+                !$permissionAllowed
+                &&
+                !$ticketingProjectScopedAllowed
             ) {
                 continue;
             }
@@ -611,13 +640,23 @@ class AdminPanelService extends BaseService
                  * Therefore this is the same RBAC context used
                  * by the currently active menu.
                  */
-                $staffInterfaceAllowed =
+                $coreStaffInterfaceAllowed =
                     $permission !== ''
                     &&
                     $this->navigation->can(
                         $userId,
                         $permission
                     );
+
+                $projectScopedStaffInterfaceAllowed =
+                    $this->ticketingProjectScopedStaff(
+                        $userId
+                    );
+
+                $staffInterfaceAllowed =
+                    $coreStaffInterfaceAllowed
+                    ||
+                    $projectScopedStaffInterfaceAllowed;
 
                 $requesterInterfaceAllowed =
                     $this->navigation->can(
@@ -642,7 +681,8 @@ class AdminPanelService extends BaseService
                     );
 
                 $resolvedPermission =
-                    $permission !== ''
+                    $coreStaffInterfaceAllowed
+                    && $permission !== ''
                         ? $permission
                         : null;
 
@@ -1223,6 +1263,25 @@ class AdminPanelService extends BaseService
                 ? !in_array(false, $results, true)
                 : in_array(true, $results, true);
     }
+
+    /*
+     * TICKETING_PROJECT_SCOPED_PANEL_BRIDGE_V1
+     */
+    private function ticketingProjectScopedStaff(
+        int $userId
+    ): bool {
+        try {
+            return
+                (
+                    new \App\Services\Ticketing\TicketingProjectScopedAccessService()
+                )->isOperationalStaff(
+                    $userId
+                );
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
 
     private function fa(string $entities): string
     {

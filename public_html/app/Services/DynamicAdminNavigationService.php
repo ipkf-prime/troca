@@ -37,6 +37,10 @@ class DynamicAdminNavigationService extends BaseService
                 $this->authorization->hasPermission(
                     $userId,
                     'ticketing.ticket.view'
+                )
+                ||
+                $this->ticketingProjectScopedStaff(
+                    $userId
                 );
 
             $requesterInterface =
@@ -440,6 +444,10 @@ class DynamicAdminNavigationService extends BaseService
                 $this->authorization->hasPermission(
                     $userId,
                     'ticketing.ticket.view'
+                )
+                ||
+                $this->ticketingProjectScopedStaff(
+                    $userId
                 );
 
             $requesterInterface =
@@ -1420,6 +1428,15 @@ class DynamicAdminNavigationService extends BaseService
 
     private function allowed(array $item, int $userId): bool
     {
+        if (
+            $this->ticketingProjectScopedNavigationAllowed(
+                $item,
+                $userId
+            )
+        ) {
+            return true;
+        }
+
         $permissions = $this->jsonArray(
             $item['permission_codes_json'] ?? null
         );
@@ -1441,6 +1458,85 @@ class DynamicAdminNavigationService extends BaseService
             ? !in_array(false, $results, true)
             : in_array(true, $results, true);
     }
+
+    /*
+     * TICKETING_PROJECT_SCOPED_NAVIGATION_BRIDGE_V1
+     *
+     * The item identity still comes from the shared navigation registry.
+     * Only the effective allow decision for module-owned operational items
+     * is delegated back to Ticketing's project-local access model.
+     */
+    private function ticketingProjectScopedNavigationAllowed(
+        array $item,
+        int $userId
+    ): bool {
+        $targetApplication =
+            trim(
+                (string) (
+                    $item[
+                        'target_application'
+                    ]
+                    ?? ''
+                )
+            );
+
+        $shellKey =
+            trim(
+                (string) (
+                    $item[
+                        'shell_key'
+                    ]
+                    ?? ''
+                )
+            );
+
+        if (
+            $targetApplication !== 'ticketing'
+            &&
+            $shellKey !== 'ticketing'
+        ) {
+            return false;
+        }
+
+        $itemKey =
+            trim(
+                (string) (
+                    $item[
+                        'item_key'
+                    ]
+                    ?? ''
+                )
+            );
+
+        try {
+            return
+                (
+                    new \App\Services\Ticketing\TicketingProjectScopedAccessService()
+                )->navigationItemAllowed(
+                    $userId,
+                    $itemKey
+                );
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+
+    private function ticketingProjectScopedStaff(
+        int $userId
+    ): bool {
+        try {
+            return
+                (
+                    new \App\Services\Ticketing\TicketingProjectScopedAccessService()
+                )->isOperationalStaff(
+                    $userId
+                );
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
 
     private function qualifyUrl(array $item): string
     {
