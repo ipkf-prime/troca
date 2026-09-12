@@ -105,7 +105,7 @@ $expect(str_contains($routes, $workRouteNeedle), 'GET /admin/work route must be 
 $expect(str_contains($routes, "'work-dashboard'"), '/admin/work must render the Work admin view.');
 $expect(str_contains($routes, "adminGuard(\$response, '/admin/work')"), '/admin/work must keep the existing admin guard.');
 $expect(str_contains($rbac, "'/admin/work' => 'work.project.view'"), '/admin/work must keep RBAC route protection.');
-$expect(str_contains($routes, 'isWorkHost') && str_contains($routes, 'module-sso/start'), 'Guest Work host access must keep the existing module SSO redirect behavior.');
+$expect(str_contains($routes, 'isApplicationModuleHost') && str_contains($routes, 'module-sso/start'), 'Guest Work host access must keep the generic application-module SSO redirect behavior.');
 $expect(str_contains($router, '$lookupMethod = $method === \'HEAD\' ? \'GET\' : $method;'), 'Router must dispatch HEAD requests through GET route lookup.');
 $expect(str_contains($response, "REQUEST_METHOD") && str_contains($response, "HEAD") && str_contains($response, "return;") && str_contains($response, 'echo $this->content;'), 'Response must suppress the body for HEAD requests.');
 
@@ -116,7 +116,7 @@ $expect(str_contains($workView, 'data-admin-module-page="work"'), 'Work view mus
 $expect(str_contains($repository, "'statuses' =>") && str_contains($repository, 'FROM work_statuses'), 'Work dashboard status summary must be available.');
 
 $expect(str_contains($layout, '<meta charset="UTF-8">'), 'Shared admin layout must declare UTF-8.');
-$expect(str_contains($layout, '<html lang="fa" dir="rtl">'), 'Shared admin layout must declare Persian RTL document direction.');
+$expect(str_contains($layout, '<html lang="fa-IR" dir="rtl">'), 'Shared admin layout must declare Persian fa-IR RTL document direction.');
 $expect(str_contains($layout, 'AdminModuleUiContract::safeAssets'), 'Shared admin layout must defensively enforce module asset validation.');
 $expect(str_contains($layout, "data-admin-shell-kind"), 'Shared admin layout must expose the active shell kind.');
 $expect(str_contains($layout, 'data-admin-module-ui-contract="shared-admin-shell"'), 'Shared admin layout must expose the module UI contract marker.');

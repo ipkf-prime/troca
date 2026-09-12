@@ -20,6 +20,21 @@ class DynamicRouteAccessService extends BaseService
         string $method,
         string $path
     ): bool {
+        return
+            $this->decision(
+                $userId,
+                $method,
+                $path
+            )
+            ?? false;
+    }
+
+
+    public function decision(
+        int $userId,
+        string $method,
+        string $path
+    ): ?bool {
         try {
             if (
                 (
@@ -35,40 +50,79 @@ class DynamicRouteAccessService extends BaseService
         }
 
         try {
-            $rules = $this->repository->routeRules($method);
+            $rules =
+                $this->repository
+                    ->routeRules(
+                        $method
+                    );
         } catch (Throwable) {
+            /*
+             * Dynamic authority failure is a deny,
+             * never an ownership miss.
+             */
             return false;
         }
 
         foreach ($rules as $rule) {
-            if (!$this->matches((string) $rule['route_pattern'], $path)) {
+            if (
+                !$this->matches(
+                    (string) $rule[
+                        'route_pattern'
+                    ],
+                    $path
+                )
+            ) {
                 continue;
             }
 
-            $permissions = json_decode(
-                (string) $rule['permission_codes_json'],
-                true
-            );
+            $permissions =
+                json_decode(
+                    (string) $rule[
+                        'permission_codes_json'
+                    ],
+                    true
+                );
 
             if (!is_array($permissions)) {
                 return false;
             }
 
-            $results = array_map(
-                fn ($permission): bool =>
-                    $this->authorization->hasPermission(
-                        $userId,
-                        (string) $permission
-                    ),
-                $permissions
-            );
+            $results =
+                array_map(
+                    fn ($permission): bool =>
+                        $this->authorization
+                            ->hasPermission(
+                                $userId,
+                                (string) $permission
+                            ),
+                    $permissions
+                );
 
-            return ($rule['permission_mode'] ?? 'any') === 'all'
-                ? !in_array(false, $results, true)
-                : in_array(true, $results, true);
+            return
+                (
+                    $rule[
+                        'permission_mode'
+                    ]
+                    ?? 'any'
+                ) === 'all'
+                    ? !in_array(
+                        false,
+                        $results,
+                        true
+                    )
+                    : in_array(
+                        true,
+                        $results,
+                        true
+                    );
         }
 
-        return false;
+        /*
+         * No matching dynamic owner.
+         * Caller may continue to another explicit
+         * ownership class.
+         */
+        return null;
     }
 
     private function matches(string $pattern, string $path): bool

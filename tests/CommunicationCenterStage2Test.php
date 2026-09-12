@@ -60,12 +60,60 @@ foreach ([
     );
 }
 
+$currentCommunicationChildren = [
+    'communications-inbox',
+    'communications-compose',
+    'communications-sent',
+    'communications-notifications',
+    'communications-settings',
+];
+
+foreach ($currentCommunicationChildren as $itemKey) {
+    $expect(
+        str_contains(
+            $seeder,
+            "'" . $itemKey . "'"
+        ),
+        "Missing active Communication Center child: {$itemKey}"
+    );
+}
+
 $expect(
     substr_count(
         $seeder,
-        "'core', 'communications-"
-    ) >= 9,
-    'Communication module has fewer than nine submenus.'
+        "['core', 'communications-"
+    ) === 5,
+    'Communication Center must seed exactly five active consolidated children.'
+);
+
+$obsoleteCommunicationChildren = [
+    'communications-providers',
+    'communications-provider-defaults',
+    'communications-routing',
+    'communications-preferences',
+    'communications-reports',
+];
+
+foreach ($obsoleteCommunicationChildren as $itemKey) {
+    $expect(
+        str_contains(
+            $seeder,
+            "'" . $itemKey . "'"
+        ),
+        "Missing obsolete Communication Center key: {$itemKey}"
+    );
+}
+
+$expect(
+    str_contains(
+        $seeder,
+        'SET is_active = 0'
+    )
+    && str_contains(
+        $seeder,
+        '$deactivate->execute($obsolete);'
+    ),
+    'Obsolete granular Communication Center navigation must be explicitly deactivated.'
 );
 
 foreach ([

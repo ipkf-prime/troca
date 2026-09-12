@@ -1595,7 +1595,41 @@ $adminGuard = function ($response, string $path) use ($adminRender, $adminContex
 
     $userId = (int) $context['user_id'];
 
-    if (!(new \App\Services\AdminNavigationRbacService())->canAccessPath($userId, $path)) {
+    $requestMethod =
+        strtoupper(
+            trim(
+                (string) (
+                    $_SERVER[
+                        'REQUEST_METHOD'
+                    ]
+                    ?? 'GET'
+                )
+            )
+        );
+
+    $requestPath =
+        (string) (
+            parse_url(
+                (string) (
+                    $_SERVER[
+                        'REQUEST_URI'
+                    ]
+                    ?? $path
+                ),
+                PHP_URL_PATH
+            )
+            ?: $path
+        );
+
+    if (
+        !(new \App\Services\AdminNavigationRbacService())
+            ->canAccessPath(
+                $userId,
+                $path,
+                $requestMethod,
+                $requestPath
+            )
+    ) {
         return $adminRender($response, 'forbidden', [
             'title' => html_entity_decode('&#x062F;&#x0633;&#x062A;&#x0631;&#x0633;&#x06CC; &#x063A;&#x06CC;&#x0631;&#x0645;&#x062C;&#x0627;&#x0632;', ENT_QUOTES | ENT_HTML5, 'UTF-8'),
             'context' => $context,

@@ -20,6 +20,7 @@ class AdminNavigationRbacService extends BaseService
             '/admin/dashboard' => 'admin.dashboard.view',
             '/admin/profile' => 'account.profile.view',
             '/admin/profile/access' => 'account.profile.view',
+            '/admin/profile/edit' => 'account.profile.view',
             '/admin/account' => 'account.profile.view',
             '/admin/security' => 'account.security.view',
             '/admin/password' => 'account.password.change',
@@ -93,6 +94,8 @@ class AdminNavigationRbacService extends BaseService
             '/admin/automation/correspondences/{public_reference}/dispatch' => 'automation.correspondence.dispatch',
             '/admin/automation/correspondences/{public_reference}/edit/attachments' => 'automation.correspondence.edit_draft',
             '/admin/automation/correspondences/{public_reference}/attachments/{file_reference}' => 'automation.correspondence.view',
+            '/admin/automation/correspondences/{public_reference}/attachments/{file_reference}/metadata' => 'automation.correspondence.edit_draft',
+            '/admin/automation/correspondences/{public_reference}/attachments/{file_reference}/remove' => 'automation.correspondence.edit_draft',
             '/admin/automation/templates' => 'automation.correspondence.view',
             '/admin/users' => 'users.view',
             '/admin/users/{id}' => 'users.view',
@@ -190,16 +193,97 @@ class AdminNavigationRbacService extends BaseService
         return null;
     }
 
-    public function canAccessPath(?int $userId, string $path): bool
-    {
+    public function canAccessPath(
+        ?int $userId,
+        string $path,
+        ?string $method = null,
+        ?string $requestPath = null
+    ): bool {
+        $path =
+            rtrim(
+                (string) (
+                    parse_url(
+                        $path,
+                        PHP_URL_PATH
+                    )
+                    ?: $path
+                ),
+                '/'
+            )
+            ?: '/';
+
+        $resolvedRequestPath =
+            rtrim(
+                (string) (
+                    parse_url(
+                        $requestPath
+                        ?? (
+                            $_SERVER[
+                                'REQUEST_URI'
+                            ]
+                            ?? $path
+                        ),
+                        PHP_URL_PATH
+                    )
+                    ?: $path
+                ),
+                '/'
+            )
+            ?: '/';
+
+        $resolvedMethod =
+            strtoupper(
+                trim(
+                    (string) (
+                        $method
+                        ?? (
+                            $_SERVER[
+                                'REQUEST_METHOD'
+                            ]
+                            ?? 'GET'
+                        )
+                    )
+                )
+            );
+
+        if (
+            !in_array(
+                $resolvedMethod,
+                [
+                    'GET',
+                    'POST',
+                    'PUT',
+                    'PATCH',
+                    'DELETE',
+                    'OPTIONS',
+                    'HEAD',
+                ],
+                true
+            )
+        ) {
+            $resolvedMethod =
+                'GET';
+        }
+
         if ($userId !== null) {
             try {
+                $projectScoped =
+                    new \App\Services\Ticketing\TicketingProjectScopedAccessService();
+
                 if (
-                    (
-                        new \App\Services\Ticketing\TicketingProjectScopedAccessService()
-                    )->canAccessPath(
+                    $projectScoped->canAccessPath(
                         $userId,
                         $path
+                    )
+                    ||
+                    (
+                        $resolvedRequestPath
+                        !== $path
+                        &&
+                        $projectScoped->canAccessPath(
+                            $userId,
+                            $resolvedRequestPath
+                        )
                     )
                 ) {
                     return true;
@@ -211,7 +295,15 @@ class AdminNavigationRbacService extends BaseService
         if (
             $userId !== null
             &&
-            $this->isRequesterTicketingPath($path)
+            (
+                $this->isRequesterTicketingPath(
+                    $path
+                )
+                ||
+                $this->isRequesterTicketingPath(
+                    $resolvedRequestPath
+                )
+            )
             &&
             $this->can(
                 $userId,
@@ -220,10 +312,11 @@ class AdminNavigationRbacService extends BaseService
         ) {
             try {
                 if (
-                    (new \App\Services\Ticketing\TicketRequesterOnboardingService())
-                        ->hasMembership(
-                            $userId
-                        )
+                    (
+                        new \App\Services\Ticketing\TicketRequesterOnboardingService()
+                    )->hasMembership(
+                        $userId
+                    )
                 ) {
                     return true;
                 }
@@ -236,25 +329,123 @@ class AdminNavigationRbacService extends BaseService
                 $path
             );
 
-        if ($accessControlPermissions !== null) {
-            return $this->canAny(
-                $userId,
-                $accessControlPermissions
-            );
+        if (
+            $accessControlPermissions
+            !== null
+        ) {
+            return
+                $this->canAny(
+                    $userId,
+                    $accessControlPermissions
+                );
         }
 
         $permission =
-            $this->permissionForPath($path);
-
-        return
-            $permission === null
-            ||
-            $this->can(
-                $userId,
-                $permission
+            $this->permissionForPath(
+                $path
             );
-    }
 
+        if ($permission !== null) {
+            return
+                $this->can(
+                    $userId,
+                    $permission
+                );
+        }
+
+        /*
+         * AUTHENTICATED_SELF_SERVICE_ADMIN_SURFACES_V1
+         *
+         * Notification inbox rows are owner-filtered by user_id.
+         * They intentionally require authentication, not a global
+         * administrative permission.
+         */
+        if (
+            $userId !== null
+            &&
+            $this->isAuthenticatedSelfServicePath(
+                $path
+            )
+        ) {
+            return true;
+        }
+
+        /*
+         * DYNAMIC_ADMIN_ROUTE_OWNERSHIP_V1
+         *
+         * A known database-backed route rule is authoritative.
+         * The tri-state decision is critical:
+         *
+         *   true  = matched + allowed
+         *   false = matched + denied
+         *   null  = no matching dynamic rule
+         *
+         * A matched deny MUST NOT fall through to a weaker
+         * compatibility policy.
+         */
+        if ($userId !== null) {
+            try {
+                $dynamic =
+                    new DynamicRouteAccessService();
+
+                $decision =
+                    $dynamic->decision(
+                        $userId,
+                        $resolvedMethod,
+                        $resolvedRequestPath
+                    );
+
+                if ($decision !== null) {
+                    return $decision;
+                }
+
+                if (
+                    $resolvedRequestPath
+                    !== $path
+                ) {
+                    $decision =
+                        $dynamic->decision(
+                            $userId,
+                            $resolvedMethod,
+                            $path
+                        );
+
+                    if ($decision !== null) {
+                        return $decision;
+                    }
+                }
+            } catch (\Throwable) {
+                return false;
+            }
+        }
+
+        /*
+         * EXPLICIT_CANONICAL_COARSE_GUARD_V1
+         *
+         * These are legacy canonical guard targets whose route
+         * handlers/services apply a more specific second-stage
+         * authorization decision. Listing them explicitly removes
+         * the generic unknown-path allow while preserving their
+         * documented coarse admission contract.
+         */
+        $coarsePermissions =
+            $this->coarsePermissionsForPath(
+                $path
+            );
+
+        if ($coarsePermissions !== null) {
+            return
+                $this->canAny(
+                    $userId,
+                    $coarsePermissions
+                );
+        }
+
+        /*
+         * GENERIC_ADMIN_UNKNOWN_PATH_FAIL_CLOSED_V1
+         */
+        return false;
+    }
 
     public function accessControlPermissionsForPath(
         string $path
@@ -320,6 +511,92 @@ class AdminNavigationRbacService extends BaseService
         }
 
         return null;
+    }
+
+    private function coarsePermissionsForPath(
+        string $path
+    ): ?array {
+        $path =
+            rtrim(
+                (string) (
+                    parse_url(
+                        $path,
+                        PHP_URL_PATH
+                    )
+                    ?: $path
+                ),
+                '/'
+            )
+            ?: '/';
+
+        $map = [
+            /*
+             * Communication Center coarse surfaces.
+             * Exact action permissions are enforced by
+             * DynamicRouteAccessService or the owning service.
+             */
+            '/admin/communications' => [
+                'messages.view',
+                'notifications.view',
+            ],
+
+            '/admin/communications/settings' => [
+                'notifications.providers.manage',
+                'notifications.routing.manage',
+                'notifications.preferences.self',
+                'notifications.send.manage',
+                'notifications.send.view',
+                'notifications.reports.view',
+                'messages.admin.manage',
+                'notifications.approvals.view',
+            ],
+
+            '/admin/messages/inbox' => [
+                'messages.view',
+            ],
+
+            '/admin/messages/compose' => [
+                'messages.send',
+            ],
+
+            '/admin/messages/sent' => [
+                'messages.view',
+            ],
+
+            '/admin/messages/thread' => [
+                'messages.view',
+            ],
+
+            '/admin/messages/monitor' => [
+                'messages.admin.view',
+            ],
+        ];
+
+        return
+            $map[$path]
+            ?? null;
+    }
+
+
+    private function isAuthenticatedSelfServicePath(
+        string $path
+    ): bool {
+        $path =
+            rtrim(
+                (string) (
+                    parse_url(
+                        $path,
+                        PHP_URL_PATH
+                    )
+                    ?: $path
+                ),
+                '/'
+            )
+            ?: '/';
+
+        return
+            $path ===
+            '/admin/notifications';
     }
 
     public function canAny(
