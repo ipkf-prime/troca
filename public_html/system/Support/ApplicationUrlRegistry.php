@@ -206,8 +206,23 @@ class ApplicationUrlRegistry
             return true;
         }
 
+        /*
+         * MODULE_RUNTIME_OVERRIDE_HOST_GUARD_V1
+         *
+         * The host guard must accept the same effective module hosts
+         * that redirect/launch resolution accepts.
+         *
+         * This is especially important when a deployed module uses
+         * IPKF_MODULE_RUNTIME_OVERRIDE because the shared Core module
+         * registry may intentionally describe a different environment.
+         */
         $allowed = array_filter(array_unique(array_merge(
-            [$this->coreHost()],
+            [
+                $this->coreHost(),
+                $this->automationHost(),
+                $this->workHost(),
+                $this->ticketingHost(),
+            ],
             array_map(
                 fn (string $item): string => $this->normalizeHost($item),
                 explode(',', (string) Env::get('ALLOWED_APP_HOSTS', ''))
