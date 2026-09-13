@@ -6593,8 +6593,18 @@ $router->get('/admin/pages', $adminPlaceholder('/admin/pages', 'صفحات دا�
 $router->get('/admin/reports', $adminPlaceholder('/admin/reports', 'گزارش‌ها', 'گزارش‌های مدیریتی در نسخه‌های بعدی اضافه می‌شود.'));
 /*
  * T7A2_REQUESTER_ROUTE_LOADER
+ *
+ * Ticketing requester routes are a module-specific slice.
+ * Core and Ticketing runtimes contain this artifact; other
+ * dedicated runtimes must remain bootable without it.
  */
-require BASE_PATH . '/routes/ticketing-requester.php';
+$ticketingRequesterRoutes =
+    BASE_PATH
+    . '/routes/ticketing-requester.php';
+
+if (is_file($ticketingRequesterRoutes)) {
+    require $ticketingRequesterRoutes;
+}
 
 $router->get('/admin/support', $adminPlaceholder('/admin/support', 'راهنما و پشتیبانی سامانه', 'مسیرهای پشتیبانی و راهنمای داخلی در فاز بعدی تکمیل می‌شود.'));
 

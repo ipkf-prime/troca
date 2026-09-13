@@ -117,6 +117,7 @@ foreach ([
 
 foreach ([
     'system/Support/Version.php',
+    'system/Routing/Router.php',
     'resources/views/admin/layout.php',
     'routes/web.php',
     'system/Installer/Installer.php',
@@ -131,6 +132,69 @@ foreach ([
             . $needle
         );
     }
+}
+
+
+/*
+ * OPTIONAL_TICKETING_REQUESTER_ROUTE_CONTRACT
+ *
+ * routes/web.php is part of the shared runtime closure,
+ * while routes/ticketing-requester.php is deliberately
+ * module-specific and absent from Automation / Work.
+ */
+$webPath =
+    $root
+    . '/public_html/routes/web.php';
+
+$web =
+    file_get_contents($webPath);
+
+if (!is_string($web)) {
+    throw new RuntimeException(
+        'Shared web route source unreadable.'
+    );
+}
+
+foreach ([
+    '$ticketingRequesterRoutes',
+    "BASE_PATH\n    . '/routes/ticketing-requester.php'",
+    'if (is_file($ticketingRequesterRoutes))',
+    'require $ticketingRequesterRoutes;',
+] as $needle) {
+
+    if (
+        !str_contains(
+            $web,
+            $needle
+        )
+    ) {
+        throw new RuntimeException(
+            'Optional Ticketing route guard missing: '
+            . $needle
+        );
+    }
+}
+
+if (
+    str_contains(
+        $web,
+        "require BASE_PATH . '/routes/ticketing-requester.php';"
+    )
+) {
+    throw new RuntimeException(
+        'Unguarded Ticketing requester route require remains.'
+    );
+}
+
+if (
+    str_contains(
+        $manifest,
+        'routes/ticketing-requester.php'
+    )
+) {
+    throw new RuntimeException(
+        'Ticketing requester route must remain module-specific.'
+    );
 }
 
 if (
