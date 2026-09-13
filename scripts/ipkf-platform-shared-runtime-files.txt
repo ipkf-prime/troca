@@ -6,10 +6,13 @@
 # Do NOT add runtime hostnames or module names here.
 
 app/Services/AdminPanelService.php
+app/Services/AdminThemeService.php
 app/Services/DynamicModuleDashboardService.php
 system/Support/ModuleRuntimeConfig.php
 system/Support/Version.php
 system/Routing/Router.php
+public/assets/admin/css/foundation.css
+public/assets/admin/js/foundation.js
 resources/views/admin/layout.php
 routes/web.php
 system/Installer/Installer.php

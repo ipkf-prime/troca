@@ -197,6 +197,131 @@ if (
     );
 }
 
+
+/*
+ * ADMIN_THEME_SHARED_ASSET_CONTRACT
+ *
+ * layout.php is shared across all active runtimes and directly
+ * consumes AdminThemeService::assetUrls(). Therefore the provider
+ * must be part of the same shared closure.
+ */
+$themeServicePath =
+    $root
+    . '/public_html/app/Services/AdminThemeService.php';
+
+$layoutPath =
+    $root
+    . '/public_html/resources/views/admin/layout.php';
+
+$themeService =
+    file_get_contents($themeServicePath);
+
+$layoutSource =
+    file_get_contents($layoutPath);
+
+if (
+    !is_string($themeService)
+    || !is_string($layoutSource)
+) {
+    throw new RuntimeException(
+        'Admin theme asset contract sources unreadable.'
+    );
+}
+
+if (
+    !str_contains(
+        $manifest,
+        'app/Services/AdminThemeService.php'
+    )
+) {
+    throw new RuntimeException(
+        'AdminThemeService missing from shared runtime closure.'
+    );
+}
+
+foreach ([
+    "'admin_css' =>",
+    "'foundation_css' =>",
+    "'icons_css' =>",
+    "'admin_js' =>",
+    "'foundation_js' =>",
+] as $needle) {
+
+    if (
+        !str_contains(
+            $themeService,
+            $needle
+        )
+    ) {
+        throw new RuntimeException(
+            'Admin theme asset provider contract missing: '
+            . $needle
+        );
+    }
+}
+
+foreach ([
+    '$themeService->assetUrls()',
+    "\$themeAssets['foundation_css']",
+    "\$themeAssets['foundation_js']",
+] as $needle) {
+
+    if (
+        !str_contains(
+            $layoutSource,
+            $needle
+        )
+    ) {
+        throw new RuntimeException(
+            'Admin layout asset consumer contract missing: '
+            . $needle
+        );
+    }
+}
+
+
+/*
+ * ADMIN_FOUNDATION_STATIC_ASSET_CLOSURE
+ *
+ * AdminThemeService and admin/layout.php are shared platform
+ * components. Their Foundation CSS/JS artifacts therefore belong
+ * to the same runtime closure and must exist on every active runtime.
+ */
+$foundationAssets = [
+    'public/assets/admin/css/foundation.css',
+    'public/assets/admin/js/foundation.js',
+];
+
+foreach ($foundationAssets as $asset) {
+
+    if (
+        !str_contains(
+            $manifest,
+            $asset
+        )
+    ) {
+        throw new RuntimeException(
+            'Foundation asset missing from shared manifest: '
+            . $asset
+        );
+    }
+
+    $sourceAsset =
+        $root
+        . '/public_html/'
+        . $asset;
+
+    if (
+        !is_file($sourceAsset)
+        || !is_readable($sourceAsset)
+    ) {
+        throw new RuntimeException(
+            'Foundation source asset missing or unreadable: '
+            . $asset
+        );
+    }
+}
+
 if (
     str_contains(
         $version,
