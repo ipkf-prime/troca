@@ -65,6 +65,85 @@ final class SupportTopologyAdminRepository
                 : null;
     }
 
+    /*
+     * TICKETING_PROJECT_LOCAL_TOPOLOGY_CONTEXT_RESOLVER_V1
+     *
+     * Resolve Project + default Realm from authoritative Ticketing rows.
+     * The composite Project->Realm ownership relation is re-proved here
+     * even though the schema also owns the corresponding foreign key.
+     */
+    public function projectDefaultRealmContextByReference(
+        string $reference
+    ): ?array {
+        $reference =
+            trim($reference);
+
+        if ($reference === '') {
+            return null;
+        }
+
+        $statement =
+            $this->db->prepare("
+                SELECT
+                    p.id
+                        AS project_id,
+
+                    p.public_reference
+                        AS project_reference,
+
+                    p.default_realm_id
+                        AS realm_id,
+
+                    r.project_id
+                        AS realm_project_id,
+
+                    r.public_reference
+                        AS realm_reference
+
+                FROM
+                    ticketing_support_projects p
+
+                INNER JOIN
+                    ticketing_support_realms r
+
+                    ON r.id =
+                        p.default_realm_id
+
+                   AND r.project_id =
+                        p.id
+
+                WHERE p.public_reference = ?
+
+                  AND p.is_active = 1
+
+                  AND p.archived_at
+                        IS NULL
+
+                  AND r.status =
+                        'active'
+
+                  AND r.archived_at
+                        IS NULL
+
+                LIMIT 1
+            ");
+
+        $statement->execute([
+            $reference,
+        ]);
+
+        $row =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        return
+            is_array($row)
+                ? $row
+                : null;
+    }
+
+
 
     public function pageData(
         int $projectId

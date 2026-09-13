@@ -66,6 +66,74 @@ $status =
     $status
     ?? '';
 
+/*
+ * TICKETING_SCOPED_TOPOLOGY_UX_V1
+ */
+$topologyAccess =
+    is_array(
+        $page['access']
+        ?? null
+    )
+        ? $page['access']
+        : [];
+
+$delegatedScopeMode =
+    !empty(
+        $topologyAccess[
+            'delegated_scope_mode'
+        ]
+    );
+
+$allowedMutations =
+    array_values(
+        array_filter(
+            is_array(
+                $topologyAccess[
+                    'allowed_mutations'
+                ]
+                ?? null
+            )
+                ? $topologyAccess[
+                    'allowed_mutations'
+                ]
+                : [],
+            static fn (
+                mixed $action
+            ): bool =>
+                is_string($action)
+                && trim($action) !== ''
+        )
+    );
+
+$delegatedCanCreate =
+    in_array(
+        'node.create',
+        $allowedMutations,
+        true
+    )
+    ||
+    in_array(
+        'relation.create',
+        $allowedMutations,
+        true
+    )
+    ||
+    in_array(
+        'queue.create',
+        $allowedMutations,
+        true
+    );
+
+$topologyReturnHref =
+    $delegatedScopeMode
+        ? '/admin/ticketing'
+        : '/admin/ticketing/projects';
+
+$topologyReturnLabel =
+    $delegatedScopeMode
+        ? 'بازگشت به تیکتینگ'
+        : 'بازگشت به پروژه‌ها';
+
 $reference =
     (string) (
         $project['public_reference']
@@ -115,8 +183,10 @@ ob_start();
     <a href="/admin/dashboard">داشبورد</a>
     <span>/</span>
     <a href="/admin/ticketing">پشتیبانی و تیکتینگ</a>
-    <span>/</span>
-    <a href="/admin/ticketing/projects">پروژه‌ها</a>
+    <?php if (!$delegatedScopeMode): ?>
+        <span>/</span>
+        <a href="/admin/ticketing/projects">پروژه‌ها</a>
+    <?php endif; ?>
     <span>/</span>
     <span>ساختار پشتیبانی</span>
 </nav>
@@ -142,9 +212,9 @@ ob_start();
 
         <a
             class="admin-button admin-button--soft"
-            href="/admin/ticketing/projects"
+            href="<?= ticketing_h($topologyReturnHref) ?>"
         >
-            بازگشت به پروژه‌ها
+            <?= ticketing_h($topologyReturnLabel) ?>
         </a>
     </div>
 
@@ -194,14 +264,47 @@ ob_start();
     <?php endif; ?>
 
 
-        <nav
+        <?php if ($delegatedScopeMode): ?>
+    <section class="admin-section">
+        <div class="admin-alert admin-alert--info">
+            این صفحه فقط محدوده دسترسی تفویض‌شده شما را نمایش می‌دهد.
+            عملیات خارج از این محدوده در سمت سرور نیز مسدود است.
+        </div>
+    </section>
+
+    <style>
+        .ticketing-topology-tabs [data-admin-tab="topology-layers"],
+        .ticketing-topology-tabs [data-admin-tab="topology-teams"],
+        .ticketing-topology-tabs [data-admin-tab="topology-team-nodes"],
+        .ticketing-topology-tabs [data-admin-tab="topology-team-queues"],
+        .ticketing-topology-tabs [data-admin-tab="topology-members"],
+        [data-admin-tab-panel="topology-layers"],
+        [data-admin-tab-panel="topology-teams"],
+        [data-admin-tab-panel="topology-team-nodes"],
+        [data-admin-tab-panel="topology-team-queues"],
+        [data-admin-tab-panel="topology-members"] {
+            display: none !important;
+        }
+
+        <?php if (!$delegatedCanCreate): ?>
+            [data-admin-tab-panel="topology-nodes"] form,
+            [data-admin-tab-panel="topology-relations"] form,
+            [data-admin-tab-panel="topology-queues"] form {
+                display: none !important;
+            }
+        <?php endif; ?>
+    </style>
+<?php endif; ?>
+
+
+<nav
         class="admin-tabs ticketing-management-tabs ticketing-topology-tabs"
         data-admin-tabs
         role="tablist"
         aria-label="بخش‌های ساختار پشتیبانی"
     >
-        <button class="admin-tab is-active" type="button" data-admin-tab="topology-layers" role="tab">لایه‌ها</button>
-        <button class="admin-tab" type="button" data-admin-tab="topology-nodes" role="tab">گره‌ها</button>
+        <button class="admin-tab<?= $delegatedScopeMode ? '' : ' is-active' ?>" type="button" data-admin-tab="topology-layers" role="tab">لایه‌ها</button>
+        <button class="admin-tab<?= $delegatedScopeMode ? ' is-active' : '' ?>" type="button" data-admin-tab="topology-nodes" role="tab">گره‌ها</button>
         <button class="admin-tab" type="button" data-admin-tab="topology-relations" role="tab">ارتباطات</button>
         <button class="admin-tab" type="button" data-admin-tab="topology-teams" role="tab">تیم‌ها</button>
         <button class="admin-tab" type="button" data-admin-tab="topology-team-nodes" role="tab">تیم / گره</button>
@@ -211,7 +314,7 @@ ob_start();
     </nav>
 
 
-<section class="admin-tab-panel is-active admin-section" data-admin-tab-panel="topology-layers">
+<section class="admin-tab-panel<?= $delegatedScopeMode ? '' : ' is-active' ?> admin-section" data-admin-tab-panel="topology-layers"<?= $delegatedScopeMode ? ' hidden' : '' ?>>
         <h2>لایه‌های پشتیبانی</h2>
 
         <form method="post" action="<?= ticketing_h($action) ?>">
@@ -326,7 +429,7 @@ ob_start();
     </section>
 
 
-    <section class="admin-tab-panel admin-section" data-admin-tab-panel="topology-nodes" hidden>
+    <section class="admin-tab-panel<?= $delegatedScopeMode ? ' is-active' : '' ?> admin-section" data-admin-tab-panel="topology-nodes"<?= $delegatedScopeMode ? '' : ' hidden' ?>>
         <h2>گره‌های پشتیبانی</h2>
 
         <?php if ($layers === []): ?>

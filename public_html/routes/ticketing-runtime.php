@@ -1493,12 +1493,52 @@ $router->get(
         }
 
         try {
-            $page =
+            /*
+             * TICKETING_SCOPED_TOPOLOGY_ROUTE_EXECUTION_V1
+             */
+            $viewerUserId =
+                (int) $context['user_id'];
+
+            $isGlobalProjectAdmin =
                 (
-                    new \App\Services\Ticketing\SupportTopologyAdminService()
-                )->page(
+                    new \App\Services\AuthorizationService()
+                )->hasPermission(
+                    $viewerUserId,
+                    'ticketing.project.manage'
+                );
+
+            $localTopologyContext =
+                new \App\Services\Ticketing\TicketingProjectLocalTopologyContextService();
+
+            $isFullProjectManager =
+                $localTopologyContext
+                    ->canAccess(
+                        $viewerUserId,
+                        $reference,
+                        'topology.view'
+                    );
+
+            $baseTopology =
+                new \App\Services\Ticketing\SupportTopologyAdminService();
+
+            $page =
+                $baseTopology->page(
                     $reference
                 );
+
+            if (
+                !$isGlobalProjectAdmin
+                && !$isFullProjectManager
+                && is_array($page)
+            ) {
+                $page =
+                    (
+                        new \App\Services\Ticketing\TicketingScopedSupportTopologyService()
+                    )->projectPage(
+                        $viewerUserId,
+                        $page
+                    );
+            }
 
             if ($page === null) {
                 return $adminRender(
@@ -1799,15 +1839,109 @@ $router->post(
         ];
 
         try {
+            /*
+             * TICKETING_SCOPED_TOPOLOGY_MUTATION_ENFORCEMENT_V1
+             */
+            $viewerUserId =
+                (int) $context['user_id'];
+
+            $isGlobalProjectAdmin =
+                (
+                    new \App\Services\AuthorizationService()
+                )->hasPermission(
+                    $viewerUserId,
+                    'ticketing.project.manage'
+                );
+
+            $localTopologyContext =
+                new \App\Services\Ticketing\TicketingProjectLocalTopologyContextService();
+
+            $isFullProjectManager =
+                $localTopologyContext
+                    ->canAccess(
+                        $viewerUserId,
+                        $reference,
+                        'topology.create'
+                    );
+
+            $scopedMode =
+                !$isGlobalProjectAdmin
+                && !$isFullProjectManager;
+
             $service =
                 new \App\Services\Ticketing\SupportTopologyAdminService();
 
-            $result =
-                $service->mutate(
-                    $reference,
-                    $action,
-                    $input
-                );
+            $scopedTopology =
+                new \App\Services\Ticketing\TicketingScopedSupportTopologyService();
+
+            if ($scopedMode) {
+                $authorizationPage =
+                    $service->page(
+                        $reference
+                    );
+
+                if ($authorizationPage === null) {
+                    $result = [
+                        'ok' => false,
+                        'not_found' => true,
+                    ];
+
+                } elseif (
+                    !$scopedTopology
+                        ->canMutate(
+                            $viewerUserId,
+                            $authorizationPage,
+                            $action,
+                            $input
+                        )
+                ) {
+                    $page =
+                        $scopedTopology
+                            ->projectPage(
+                                $viewerUserId,
+                                $authorizationPage
+                            );
+
+                    return $adminRender(
+                        $response,
+                        'ticketing-topology',
+                        [
+                            'title' =>
+                                'ساختار پشتیبانی',
+
+                            'context' =>
+                                $context,
+
+                            'page' =>
+                                $page,
+
+                            'status' =>
+                                '',
+
+                            'errors' => [
+                                'این عملیات خارج از محدوده دسترسی تفویض‌شده است.',
+                            ],
+                        ],
+                        403
+                    );
+
+                } else {
+                    $result =
+                        $service->mutate(
+                            $reference,
+                            $action,
+                            $input
+                        );
+                }
+
+            } else {
+                $result =
+                    $service->mutate(
+                        $reference,
+                        $action,
+                        $input
+                    );
+            }
 
             if (!empty($result['not_found'])) {
                 return $adminRender(
@@ -1833,6 +1967,18 @@ $router->post(
                     $service->page(
                         $reference
                     );
+
+                if (
+                    $scopedMode
+                    && is_array($page)
+                ) {
+                    $page =
+                        $scopedTopology
+                            ->projectPage(
+                                $viewerUserId,
+                                $page
+                            );
+                }
 
                 return $adminRender(
                     $response,

@@ -324,6 +324,81 @@ class AdminNavigationRbacService extends BaseService
             }
         }
 
+        /*
+         * TICKETING_PROJECT_LOCAL_TOPOLOGY_ADMIN_GATE_V1
+         *
+         * This is deliberately narrower than the global
+         * ticketing.project.manage surface:
+         *
+         * - exact existing topology route only;
+         * - Project reference comes from the canonical URL;
+         * - Project + default Realm are re-resolved in Ticketing DB;
+         * - GET/HEAD => topology.view;
+         * - POST     => topology.create;
+         * - every other method falls through to the existing global
+         *   permission/dynamic-route pipeline.
+         *
+         * A local Project manager therefore gains no access to:
+         * /admin/ticketing/projects
+         * /edit, routing, portals, participants, statuses or SLA.
+         */
+        if ($userId !== null) {
+            $localTopologyReference =
+                $this->ticketingProjectLocalTopologyReference(
+                    $resolvedRequestPath
+                );
+
+            if (
+                $localTopologyReference === null
+                &&
+                $resolvedRequestPath !== $path
+            ) {
+                $localTopologyReference =
+                    $this->ticketingProjectLocalTopologyReference(
+                        $path
+                    );
+            }
+
+            $localTopologyAction =
+                match ($resolvedMethod) {
+                    'GET',
+                    'HEAD' =>
+                        'topology.view',
+
+                    'POST' =>
+                        'topology.create',
+
+                    default =>
+                        null,
+                };
+
+            if (
+                $localTopologyReference !== null
+                &&
+                $localTopologyAction !== null
+            ) {
+                try {
+                    if (
+                        (
+                            new \App\Services\Ticketing\TicketingProjectLocalTopologyContextService()
+                        )->canRouteEntry(
+                            $userId,
+                            $localTopologyReference,
+                            $localTopologyAction
+                        )
+                    ) {
+                        return true;
+                    }
+                } catch (\Throwable) {
+                    /*
+                     * Fail closed for the local authority branch, then
+                     * continue to the existing global RBAC decision.
+                     */
+                }
+            }
+        }
+
+
         $accessControlPermissions =
             $this->accessControlPermissionsForPath(
                 $path
@@ -446,6 +521,47 @@ class AdminNavigationRbacService extends BaseService
          */
         return false;
     }
+
+    private function ticketingProjectLocalTopologyReference(
+        string $path
+    ): ?string {
+        $path =
+            rtrim(
+                (string) (
+                    parse_url(
+                        $path,
+                        PHP_URL_PATH
+                    )
+                    ?: $path
+                ),
+                '/'
+            )
+            ?: '/';
+
+        if (
+            preg_match(
+                '#^/admin/ticketing/projects/([A-Za-z0-9_-]+)/topology$#',
+                $path,
+                $matches
+            ) !== 1
+        ) {
+            return null;
+        }
+
+        $reference =
+            trim(
+                (string) (
+                    $matches[1]
+                    ?? ''
+                )
+            );
+
+        return
+            $reference !== ''
+                ? $reference
+                : null;
+    }
+
 
     public function accessControlPermissionsForPath(
         string $path

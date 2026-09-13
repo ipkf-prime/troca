@@ -137,6 +137,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateTicketingRequesterOnboardingFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingDynamicMembershipFormFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingDynamicScopeDimensionFoundation::class,
+                    \IPKF\Database\Migrations\CreateTicketingProjectSourceStagingFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingScopeSubjectFactsFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingStaffMultiGrantAccessFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingTicketScopeSnapshotFoundation::class,
