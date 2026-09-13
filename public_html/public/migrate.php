@@ -115,6 +115,7 @@ try {
         new \IPKF\Database\Migrations\CreateExternalOrganizationCorrespondenceDirectory(),
         new \IPKF\Database\Migrations\CreateDynamicOrganizationCoreTables(),
         new \IPKF\Database\Migrations\CreateOrganizationCatalogMembershipFoundation(),
+        new \IPKF\Database\Migrations\ExtendOrganizationRelationsForCatalogScopedNetworks(),
         new \IPKF\Database\Migrations\CompleteOrganizationalIdentityAndSignatureFoundation(),
         new \IPKF\Database\Migrations\RepairLegacyJalaliAppointmentDates(),
         new \IPKF\Database\Migrations\CreateDynamicGeographyTables(),

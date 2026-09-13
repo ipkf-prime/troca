@@ -41,6 +41,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\AddStructuredExternalOrganizationPhoneFields::class,
                     \IPKF\Database\Migrations\CreateDynamicOrganizationCoreTables::class,
                     \IPKF\Database\Migrations\CreateOrganizationCatalogMembershipFoundation::class,
+                    \IPKF\Database\Migrations\ExtendOrganizationRelationsForCatalogScopedNetworks::class,
                     \IPKF\Database\Migrations\CreateDynamicGeographyTables::class,
                     \IPKF\Database\Migrations\CreateMultiSourceCodingGeographyTables::class,
                     \IPKF\Database\Migrations\CreateMinistryGeographyImportMetadata::class,
