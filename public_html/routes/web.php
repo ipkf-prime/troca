@@ -6592,6 +6592,23 @@ $router->post('/admin/profile/organizational-context', function ($request, $resp
 $router->get('/admin/pages', $adminPlaceholder('/admin/pages', 'صفحات داخلی', 'مدیریت صفحات داخلی هنوز فعال نشده است.'));
 $router->get('/admin/reports', $adminPlaceholder('/admin/reports', 'گزارش‌ها', 'گزارش‌های مدیریتی در نسخه‌های بعدی اضافه می‌شود.'));
 /*
+ * ORG_AFFILIATION_ROUTE_LOADER
+ *
+ * Organizational affiliation is a Core authority.
+ * Module runtimes consume that authority through Core rather than
+ * carrying independent membership/access workflows.
+ *
+ * web.php is shared, therefore the loader MUST remain optional.
+ */
+$organizationalAffiliationRoutes =
+    BASE_PATH
+    . '/routes/organizational-affiliation.php';
+
+if (is_file($organizationalAffiliationRoutes)) {
+    require $organizationalAffiliationRoutes;
+}
+
+/*
  * T7A2_REQUESTER_ROUTE_LOADER
  *
  * Ticketing requester routes are a module-specific slice.

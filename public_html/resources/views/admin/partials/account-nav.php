@@ -34,6 +34,11 @@ $accountLinks = [
         'paths' => ['/admin/profile/access'],
     ],
     [
+        'href' => '/admin/profile/affiliation',
+        'label' => 'وابستگی سازمانی',
+        'paths' => ['/admin/profile/affiliation'],
+    ],
+    [
         'href' => '/admin/my-theme',
         'label' => 'ظاهر پنل',
         'paths' => ['/admin/my-theme'],
