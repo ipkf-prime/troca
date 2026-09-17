@@ -17,6 +17,21 @@ $openProjects =
         ? $page['open_projects']
         : [];
 
+
+$organizationAffiliations =
+    is_array(
+        $page[
+            'organization_affiliations'
+        ]
+        ?? null
+    )
+        ? array_values(
+            $page[
+                'organization_affiliations'
+            ]
+        )
+        : [];
+
 $status =
     trim(
         (string) ($status ?? '')
@@ -40,6 +55,19 @@ $errorMessages = [
 
     'requester_open_join_disabled' =>
         'عضویت آزاد برای این پروژه فعال نیست.',
+
+
+    'requester_affiliation_required' =>
+        'برای عضویت در این پروژه، وابستگی سازمانی تأییدشده لازم است.',
+
+    'requester_affiliation_selection_required' =>
+        'وابستگی سازمانی مورد استفاده در این پروژه را انتخاب کنید.',
+
+    'requester_affiliation_invalid' =>
+        'وابستگی سازمانی انتخاب‌شده برای این پروژه معتبر نیست.',
+
+    'requester_affiliation_change_requires_management' =>
+        'تغییر وابستگی سازمانی عضویت فعال باید از بخش مدیریت اعضای پروژه انجام شود.',
 
     'requester_invite_invalid' =>
         'کد عضویت معتبر نیست.',
@@ -228,6 +256,55 @@ ob_start();
 
     font-size: .65rem;
     font-weight: 700;
+}
+
+.ticketing-join-form {
+    display: flex;
+    align-items: end;
+    justify-content: flex-end;
+    gap: .4rem;
+    flex-wrap: wrap;
+}
+
+.ticketing-affiliation-picker {
+    display: grid;
+    gap: .18rem;
+    min-width: 220px;
+    margin: 0;
+}
+
+.ticketing-affiliation-picker > span {
+    font-size: .68rem;
+    color: var(--admin-muted, #738179);
+}
+
+.ticketing-affiliation-picker select {
+    min-height: 34px;
+    max-width: 320px;
+}
+
+.ticketing-affiliation-current {
+    display: inline-flex;
+    align-items: center;
+
+    min-height: 32px;
+    padding: .2rem .55rem;
+
+    border-radius: 8px;
+
+    background: #f1f7f3;
+    color: #23693c;
+
+    font-size: .7rem;
+}
+
+.ticketing-affiliation-missing {
+    max-width: 310px;
+
+    color: #a33a2a;
+
+    font-size: .7rem;
+    line-height: 1.8;
 }
 
 .ticketing-invite {
@@ -559,9 +636,38 @@ ob_start();
 
                         <div class="ticketing-project-row__actions">
 
+                            <?php
+                            $requiresOrganization =
+                                !empty(
+                                    $project[
+                                        'organization_context_required'
+                                    ]
+                                );
+
+                            $eligibleAffiliations =
+                                is_array(
+                                    $project[
+                                        'eligible_affiliations'
+                                    ]
+                                    ?? null
+                                )
+                                    ? array_values(
+                                        $project[
+                                            'eligible_affiliations'
+                                        ]
+                                    )
+                                    : [];
+
+                            $eligibleCount =
+                                count(
+                                    $eligibleAffiliations
+                                );
+                            ?>
+
                             <form
                                 method="post"
                                 action="/admin/support/ticketing/join"
+                                class="ticketing-join-form"
                             >
                                 <input
                                     type="hidden"
@@ -582,9 +688,105 @@ ob_start();
                                     ) ?>"
                                 >
 
+                                <?php if (
+                                    $requiresOrganization
+                                    &&
+                                    $eligibleCount === 1
+                                ): ?>
+
+                                    <input
+                                        type="hidden"
+                                        name="core_organization_membership_reference"
+                                        value="<?= admin_h(
+                                            $eligibleAffiliations[0][
+                                                'membership_reference'
+                                            ]
+                                            ?? ''
+                                        ) ?>"
+                                    >
+
+                                    <span
+                                        class="ticketing-affiliation-current"
+                                    >
+                                        <?= admin_h(
+                                            $eligibleAffiliations[0][
+                                                'organization_title'
+                                            ]
+                                            ?? ''
+                                        ) ?>
+                                    </span>
+
+                                <?php elseif (
+                                    $requiresOrganization
+                                    &&
+                                    $eligibleCount > 1
+                                ): ?>
+
+                                    <label
+                                        class="ticketing-affiliation-picker"
+                                    >
+                                        <span>
+                                            وابستگی سازمانی
+                                        </span>
+
+                                        <select
+                                            name="core_organization_membership_reference"
+                                            required
+                                        >
+                                            <option value="">
+                                                انتخاب کنید
+                                            </option>
+
+                                            <?php foreach (
+                                                $eligibleAffiliations
+                                                as $affiliation
+                                            ): ?>
+
+                                                <option
+                                                    value="<?= admin_h(
+                                                        $affiliation[
+                                                            'membership_reference'
+                                                        ]
+                                                        ?? ''
+                                                    ) ?>"
+                                                >
+                                                    <?= admin_h(
+                                                        $affiliation[
+                                                            'organization_title'
+                                                        ]
+                                                        ?? ''
+                                                    ) ?>
+                                                </option>
+
+                                            <?php endforeach; ?>
+
+                                        </select>
+                                    </label>
+
+                                <?php elseif (
+                                    $requiresOrganization
+                                ): ?>
+
+                                    <span
+                                        class="ticketing-affiliation-missing"
+                                    >
+                                        ابتدا وابستگی سازمانی
+                                        تأییدشده‌ای در شبکه
+                                        سازمانی این پروژه ثبت کنید.
+                                    </span>
+
+                                <?php endif; ?>
+
                                 <button
                                     type="submit"
                                     class="admin-button"
+                                    <?= (
+                                        $requiresOrganization
+                                        &&
+                                        $eligibleCount === 0
+                                    )
+                                        ? 'disabled'
+                                        : '' ?>
                                 >
                                     عضویت
                                 </button>
@@ -644,6 +846,84 @@ ob_start();
                         required
                     >
                 </label>
+
+
+
+                <?php if (
+                    count(
+                        $organizationAffiliations
+                    ) === 1
+                ): ?>
+
+                    <input
+                        type="hidden"
+                        name="core_organization_membership_reference"
+                        value="<?= admin_h(
+                            $organizationAffiliations[0][
+                                'membership_reference'
+                            ]
+                            ?? ''
+                        ) ?>"
+                    >
+
+                    <span
+                        class="ticketing-affiliation-current"
+                    >
+                        <?= admin_h(
+                            $organizationAffiliations[0][
+                                'organization_title'
+                            ]
+                            ?? ''
+                        ) ?>
+                    </span>
+
+                <?php elseif (
+                    count(
+                        $organizationAffiliations
+                    ) > 1
+                ): ?>
+
+                    <label
+                        class="ticketing-affiliation-picker"
+                    >
+                        <span>
+                            وابستگی سازمانی
+                        </span>
+
+                        <select
+                            name="core_organization_membership_reference"
+                        >
+                            <option value="">
+                                انتخاب خودکار بر اساس پروژه
+                            </option>
+
+                            <?php foreach (
+                                $organizationAffiliations
+                                as $affiliation
+                            ): ?>
+
+                                <option
+                                    value="<?= admin_h(
+                                        $affiliation[
+                                            'membership_reference'
+                                        ]
+                                        ?? ''
+                                    ) ?>"
+                                >
+                                    <?= admin_h(
+                                        $affiliation[
+                                            'organization_title'
+                                        ]
+                                        ?? ''
+                                    ) ?>
+                                </option>
+
+                            <?php endforeach; ?>
+
+                        </select>
+                    </label>
+
+                <?php endif; ?>
 
 
                 <button

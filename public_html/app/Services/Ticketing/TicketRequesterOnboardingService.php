@@ -14,6 +14,9 @@ final class TicketRequesterOnboardingService
     private PDO $core;
     private PDO $ticketing;
 
+    private TicketProjectOrganizationAffiliationService
+        $organizationAffiliations;
+
 
     public function __construct(
         ?ConnectionResolver $resolver = null
@@ -25,6 +28,13 @@ final class TicketRequesterOnboardingService
 
         $this->ticketing =
             $resolver->resolve('ticketing.primary');
+
+        $this->organizationAffiliations =
+            new TicketProjectOrganizationAffiliationService(
+                $resolver,
+                $this->ticketing,
+                $this->core
+            );
     }
 
 
@@ -42,6 +52,51 @@ final class TicketRequesterOnboardingService
                 $memberships
             );
 
+        $openProjects =
+            $this->openProjects(
+                $memberIds
+            );
+
+        foreach (
+            $openProjects
+            as &$openProject
+        ) {
+            $organizationContext =
+                $this->organizationAffiliations
+                    ->projectAffiliationOptions(
+                        (int) (
+                            $openProject['id']
+                            ?? 0
+                        ),
+                        $userId
+                    );
+
+            $openProject[
+                'organization_context_required'
+            ] =
+                !empty(
+                    $organizationContext[
+                        'required'
+                    ]
+                );
+
+            $openProject[
+                'eligible_affiliations'
+            ] =
+                $organizationContext[
+                    'items'
+                ]
+                ?? [];
+        }
+
+        unset($openProject);
+
+        $verifiedAffiliations =
+            $this->organizationAffiliations
+                ->verifiedAffiliationsForUser(
+                    $userId
+                );
+
         $urls =
             new ApplicationUrlRegistry();
 
@@ -50,9 +105,10 @@ final class TicketRequesterOnboardingService
                 $memberships,
 
             'open_projects' =>
-                $this->openProjects(
-                    $memberIds
-                ),
+                $openProjects,
+
+            'organization_affiliations' =>
+                $verifiedAffiliations,
 
             'invite_enabled' =>
                 $this->inviteAvailable(),
@@ -142,20 +198,23 @@ final class TicketRequesterOnboardingService
 
     public function joinOpen(
         string $projectReference,
-        int $userId
+        int $userId,
+        ?string $organizationMembershipReference = null
     ): array {
         return
             $this->joinProject(
                 $projectReference,
                 $userId,
-                true
+                true,
+                $organizationMembershipReference
             );
     }
 
 
     public function joinWithCode(
         string $code,
-        int $userId
+        int $userId,
+        ?string $organizationMembershipReference = null
     ): array {
         $normalized =
             $this->normalizeCode(
@@ -281,8 +340,30 @@ final class TicketRequesterOnboardingService
                     $userId
                 );
 
+            $affiliation =
+                $this->organizationAffiliations
+                    ->resolveForProject(
+                        (int) $invite['project_id'],
+                        $userId,
+                        $organizationMembershipReference
+                    );
+
             $userReference =
                 'user:' . $userId;
+
+            $this->organizationAffiliations
+                ->applyToProjectMember(
+                    (int) $membership['id'],
+                    $affiliation,
+                    $userReference,
+                    (
+                        (string) (
+                            $membership['state']
+                            ?? ''
+                        )
+                        !== 'already_active'
+                    )
+                );
 
             $insertUse =
                 $this->ticketing->prepare("
@@ -486,7 +567,8 @@ final class TicketRequesterOnboardingService
     private function joinProject(
         string $reference,
         int $userId,
-        bool $requireOpenJoin
+        bool $requireOpenJoin,
+        ?string $organizationMembershipReference = null
     ): array {
         $this->ticketing->beginTransaction();
 
@@ -534,6 +616,28 @@ final class TicketRequesterOnboardingService
                 $this->ensureMembership(
                     (int) $project['id'],
                     $userId
+                );
+
+            $affiliation =
+                $this->organizationAffiliations
+                    ->resolveForProject(
+                        (int) $project['id'],
+                        $userId,
+                        $organizationMembershipReference
+                    );
+
+            $this->organizationAffiliations
+                ->applyToProjectMember(
+                    (int) $membership['id'],
+                    $affiliation,
+                    'user:' . $userId,
+                    (
+                        (string) (
+                            $membership['state']
+                            ?? ''
+                        )
+                        !== 'already_active'
+                    )
                 );
 
             $this->ticketing->commit();

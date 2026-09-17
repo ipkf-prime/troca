@@ -12,6 +12,9 @@ final class SupportProjectMembershipConfigurationService
 {
     private PDO $db;
 
+    private TicketProjectOrganizationAffiliationService
+        $organizationAffiliations;
+
 
     public function __construct(
         ?ConnectionResolver $resolver = null
@@ -22,6 +25,12 @@ final class SupportProjectMembershipConfigurationService
         $this->db =
             $resolver->resolve(
                 'ticketing.primary'
+            );
+
+        $this->organizationAffiliations =
+            new TicketProjectOrganizationAffiliationService(
+                $resolver,
+                $this->db
             );
     }
 
@@ -42,6 +51,12 @@ final class SupportProjectMembershipConfigurationService
             $this->settings(
                 (int) $project['id']
             );
+
+        $organizationContext =
+            $this->organizationAffiliations
+                ->configuration(
+                    (int) $project['id']
+                );
 
         return [
             'project_reference' =>
@@ -68,6 +83,24 @@ final class SupportProjectMembershipConfigurationService
                 $settings[
                     'form_enabled'
                 ],
+
+            'organization_catalog_options' =>
+                $organizationContext[
+                    'catalog_options'
+                ]
+                ?? [],
+
+            'organization_catalog_references' =>
+                $organizationContext[
+                    'selected_catalog_references'
+                ]
+                ?? [],
+
+            'primary_organization_catalog_reference' =>
+                $organizationContext[
+                    'primary_catalog_reference'
+                ]
+                ?? '',
 
             'membership_fields' =>
                 $this->fields(
@@ -100,9 +133,31 @@ final class SupportProjectMembershipConfigurationService
                 $input
             );
 
+        $organizationSelection =
+            $this->organizationAffiliations
+                ->normalizeSelection(
+                    $input[
+                        'organization_catalog_references'
+                    ]
+                    ?? [],
+                    $input[
+                        'primary_organization_catalog_reference'
+                    ]
+                    ?? ''
+                );
+
         $errors =
             $this->validate(
                 $form
+            );
+
+        $errors =
+            array_merge(
+                $errors,
+                $this->organizationAffiliations
+                    ->selectionErrors(
+                        $organizationSelection
+                    )
             );
 
         if ($errors !== []) {
@@ -135,6 +190,13 @@ final class SupportProjectMembershipConfigurationService
                     'form_enabled'
                 ]
             );
+
+            $this->organizationAffiliations
+                ->replaceProjectBindings(
+                    (int) $project['id'],
+                    $organizationSelection,
+                    $actor
+                );
 
             $this->db->commit();
 

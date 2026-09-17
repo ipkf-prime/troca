@@ -95,6 +95,18 @@ $router->post(
                     0
                 ),
 
+            'organization_catalog_references' =>
+                $request->input(
+                    'organization_catalog_references',
+                    []
+                ),
+
+            'primary_organization_catalog_reference' =>
+                $request->input(
+                    'primary_organization_catalog_reference',
+                    ''
+                ),
+
             'membership_fields' =>
                 $request->input(
                     'membership_fields',

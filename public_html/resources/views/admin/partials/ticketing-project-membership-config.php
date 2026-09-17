@@ -48,6 +48,45 @@ $fields =
         )
         : [];
 
+
+$organizationCatalogOptions =
+    is_array(
+        $membershipForm[
+            'organization_catalog_options'
+        ]
+        ?? null
+    )
+        ? array_values(
+            $membershipForm[
+                'organization_catalog_options'
+            ]
+        )
+        : [];
+
+$selectedOrganizationCatalogReferences =
+    is_array(
+        $membershipForm[
+            'organization_catalog_references'
+        ]
+        ?? null
+    )
+        ? array_values(
+            $membershipForm[
+                'organization_catalog_references'
+            ]
+        )
+        : [];
+
+$primaryOrganizationCatalogReference =
+    trim(
+        (string) (
+            $membershipForm[
+                'primary_organization_catalog_reference'
+            ]
+            ?? ''
+        )
+    );
+
 $fieldTypes = [
     'text' =>
         'متن کوتاه',
@@ -294,6 +333,152 @@ $fieldTypes = [
     </div>
 
 
+    <!-- PROJECT_ORGANIZATION_CONTEXT_CONFIGURATION_V1 -->
+    <section class="ticketing-membership-organization-context">
+
+        <header class="ticketing-membership-fields__header">
+            <div>
+                <h3>
+                    منبع سازمانی پروژه
+                </h3>
+
+                <p class="admin-muted">
+                    شبکه یا ساختار سازمانی مورد استفاده این پروژه
+                    را از ساختار مشترک سامانه انتخاب کنید.
+                </p>
+            </div>
+        </header>
+
+        <?php if ($organizationCatalogOptions === []): ?>
+
+            <div class="ticketing-organization-empty">
+                هنوز شبکه سازمانی فعالی در سامانه تعریف نشده است.
+                تا زمان انتخاب شبکه، پروژه بدون الزام وابستگی
+                سازمانی قابل استفاده خواهد بود.
+            </div>
+
+        <?php else: ?>
+
+            <div class="ticketing-organization-catalog-list">
+
+                <?php foreach (
+                    $organizationCatalogOptions
+                    as $catalog
+                ): ?>
+
+                    <?php
+                    $catalogReference =
+                        trim(
+                            (string) (
+                                $catalog[
+                                    'public_reference'
+                                ]
+                                ?? ''
+                            )
+                        );
+
+                    if ($catalogReference === '') {
+                        continue;
+                    }
+
+                    $catalogSelected =
+                        in_array(
+                            $catalogReference,
+                            $selectedOrganizationCatalogReferences,
+                            true
+                        );
+
+                    $catalogPrimary =
+                        $primaryOrganizationCatalogReference !== ''
+                        &&
+                        hash_equals(
+                            $primaryOrganizationCatalogReference,
+                            $catalogReference
+                        );
+                    ?>
+
+                    <div class="ticketing-organization-catalog-item">
+
+                        <label
+                            class="ticketing-organization-catalog-select"
+                        >
+                            <input
+                                type="checkbox"
+                                name="organization_catalog_references[]"
+                                value="<?= ticketing_h(
+                                    $catalogReference
+                                ) ?>"
+                                <?= $catalogSelected
+                                    ? 'checked'
+                                    : '' ?>
+                                data-organization-catalog-checkbox
+                            >
+
+                            <span>
+                                <strong>
+                                    <?= ticketing_h(
+                                        $catalog['title']
+                                        ?? ''
+                                    ) ?>
+                                </strong>
+
+                                <?php if (
+                                    trim(
+                                        (string) (
+                                            $catalog['code']
+                                            ?? ''
+                                        )
+                                    ) !== ''
+                                ): ?>
+
+                                    <small dir="ltr">
+                                        <?= ticketing_h(
+                                            $catalog['code']
+                                        ) ?>
+                                    </small>
+
+                                <?php endif; ?>
+                            </span>
+                        </label>
+
+                        <label
+                            class="ticketing-organization-catalog-primary"
+                            title="شبکه اصلی پروژه"
+                        >
+                            <input
+                                type="radio"
+                                name="primary_organization_catalog_reference"
+                                value="<?= ticketing_h(
+                                    $catalogReference
+                                ) ?>"
+                                <?= $catalogPrimary
+                                    ? 'checked'
+                                    : '' ?>
+                                data-organization-catalog-primary
+                            >
+
+                            <span>
+                                اصلی
+                            </span>
+                        </label>
+
+                    </div>
+
+                <?php endforeach; ?>
+
+            </div>
+
+            <p class="admin-muted ticketing-organization-help">
+                با انتخاب شبکه سازمانی، عضویت کاربر در این پروژه
+                به وابستگی سازمانی تأییدشده او در همان شبکه متصل
+                می‌شود. نقش پروژه و نقش سازمانی مستقل باقی می‌مانند.
+            </p>
+
+        <?php endif; ?>
+
+    </section>
+
+
     <section
         id="ticketing-membership-fields-wrap"
         class="ticketing-membership-fields"
@@ -441,7 +626,7 @@ $fieldTypes = [
                             >
                                 <?php foreach (
                                     $fieldTypes
-                                    as $code => $title
+                                    as $code => $fieldTypeTitle
                                 ): ?>
 
                                     <option
@@ -453,7 +638,7 @@ $fieldTypes = [
                                             : '' ?>
                                     >
                                         <?= ticketing_h(
-                                            $title
+                                            $fieldTypeTitle
                                         ) ?>
                                     </option>
 
@@ -1406,5 +1591,220 @@ $fieldTypes = [
     );
 
     rebuildDependencies();
+})();
+</script>
+
+<style>
+/* PROJECT_ORGANIZATION_CONTEXT_CONFIGURATION_V1 */
+
+.ticketing-membership-organization-context {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #dfe7e2;
+}
+
+.ticketing-organization-catalog-list {
+    display: grid;
+    gap: .45rem;
+    margin-top: .55rem;
+}
+
+.ticketing-organization-catalog-item {
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto;
+    align-items: center;
+    gap: .75rem;
+
+    padding: .6rem .7rem;
+
+    border: 1px solid #dfe7e2;
+    border-radius: 10px;
+    background: #fbfdfc;
+}
+
+.ticketing-organization-catalog-select {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    margin: 0;
+    cursor: pointer;
+}
+
+.ticketing-organization-catalog-select
+> input {
+    width: 17px;
+    height: 17px;
+    margin: 0;
+    flex: 0 0 auto;
+}
+
+.ticketing-organization-catalog-select
+> span {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    min-width: 0;
+}
+
+.ticketing-organization-catalog-select
+strong {
+    font-size: .78rem;
+}
+
+.ticketing-organization-catalog-select
+small {
+    padding: .08rem .32rem;
+    border-radius: 999px;
+    background: #eef3f0;
+    color: #68766e;
+    font-size: .62rem;
+}
+
+.ticketing-organization-catalog-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: .28rem;
+    margin: 0;
+
+    color: #53635a;
+    font-size: .69rem;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.ticketing-organization-catalog-primary
+input {
+    margin: 0;
+}
+
+.ticketing-organization-help {
+    margin: .55rem 0 0;
+    font-size: .69rem;
+    line-height: 1.8;
+}
+
+.ticketing-organization-empty {
+    margin-top: .55rem;
+    padding: .65rem .75rem;
+
+    border:
+        1px dashed
+        #cad8cf;
+
+    border-radius: 10px;
+
+    background: #f8fbf9;
+    color: #68776e;
+
+    font-size: .72rem;
+    line-height: 1.9;
+}
+
+@media (max-width: 700px) {
+    .ticketing-organization-catalog-item {
+        grid-template-columns: 1fr;
+    }
+
+    .ticketing-organization-catalog-primary {
+        padding-inline-start: 1.6rem;
+    }
+}
+</style>
+
+
+<script>
+(() => {
+    const checkboxes =
+        Array.from(
+            document.querySelectorAll(
+                '[data-organization-catalog-checkbox]'
+            )
+        );
+
+    const primaryInputs =
+        Array.from(
+            document.querySelectorAll(
+                '[data-organization-catalog-primary]'
+            )
+        );
+
+    if (
+        checkboxes.length === 0
+        ||
+        primaryInputs.length === 0
+    ) {
+        return;
+    }
+
+    const selectedCheckboxFor =
+        (radio) => {
+            const item =
+                radio.closest(
+                    '.ticketing-organization-catalog-item'
+                );
+
+            return item
+                ? item.querySelector(
+                    '[data-organization-catalog-checkbox]'
+                )
+                : null;
+        };
+
+    primaryInputs.forEach(
+        (radio) => {
+            radio.addEventListener(
+                'change',
+                () => {
+                    if (!radio.checked) {
+                        return;
+                    }
+
+                    const checkbox =
+                        selectedCheckboxFor(
+                            radio
+                        );
+
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                }
+            );
+        }
+    );
+
+    checkboxes.forEach(
+        (checkbox) => {
+            checkbox.addEventListener(
+                'change',
+                () => {
+                    if (checkbox.checked) {
+                        return;
+                    }
+
+                    const item =
+                        checkbox.closest(
+                            '.ticketing-organization-catalog-item'
+                        );
+
+                    const radio =
+                        item
+                            ? item.querySelector(
+                                '[data-organization-catalog-primary]'
+                            )
+                            : null;
+
+                    if (
+                        radio
+                        &&
+                        radio.checked
+                    ) {
+                        radio.checked = false;
+                    }
+                }
+            );
+        }
+    );
 })();
 </script>

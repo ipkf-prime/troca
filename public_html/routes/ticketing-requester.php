@@ -277,7 +277,11 @@ $router->post(
                         'project_reference',
                         ''
                     ),
-                    (int) $context['user_id']
+                    (int) $context['user_id'],
+                    (string) $request->input(
+                        'core_organization_membership_reference',
+                        ''
+                    )
                 );
 
         if (empty($result['ok'])) {
@@ -347,7 +351,11 @@ $router->post(
                         'invite_code',
                         ''
                     ),
-                    (int) $context['user_id']
+                    (int) $context['user_id'],
+                    (string) $request->input(
+                        'core_organization_membership_reference',
+                        ''
+                    )
                 );
 
         if (empty($result['ok'])) {

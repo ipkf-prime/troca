@@ -146,6 +146,30 @@ if (
     );
 }
 
+
+/*
+ * PROJECT_CONTEXT_TOPBAR_TITLE_V1
+ *
+ * The shared layout renders $title as the large page title.
+ * On an existing project page the project itself is the
+ * current context, therefore the project name is authoritative.
+ */
+if ($isEdit) {
+    $projectPageTitle =
+        trim(
+            (string) (
+                $project['title']
+                ?? $form['title']
+                ?? ''
+            )
+        );
+
+    if ($projectPageTitle !== '') {
+        $title =
+            $projectPageTitle;
+    }
+}
+
 $formAction =
     $isEdit
         ? '/admin/ticketing/projects/'
