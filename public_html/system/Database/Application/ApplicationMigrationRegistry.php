@@ -100,6 +100,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\SeedAndBindParameterizedGuides::class,
                     \IPKF\Database\Migrations\NormalizeFullUiContentTitles::class,
                     \IPKF\Database\Migrations\CreatePlatformAuditFoundation::class,
+                    \IPKF\Database\Migrations\RepairOrganizationTransactionalEnginesAndForeignKeys::class,
                 ],
             ],
             'automation' => [

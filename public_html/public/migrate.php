@@ -168,6 +168,7 @@ try {
         new \IPKF\Database\Migrations\ExposeNotificationApprovalTopbar(),
         new \IPKF\Database\Migrations\SplitCommunicationTopbarIndicators(),
         new \IPKF\Database\Migrations\EnableNotificationApprovalRetry(),
+        new \IPKF\Database\Migrations\RepairOrganizationTransactionalEnginesAndForeignKeys(),
     ]);
 
     $manager->migrate();
