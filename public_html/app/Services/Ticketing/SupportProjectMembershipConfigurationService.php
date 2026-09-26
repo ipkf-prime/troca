@@ -102,6 +102,12 @@ final class SupportProjectMembershipConfigurationService
                 ]
                 ?? '',
 
+            'organization_catalog_scope_review_required' =>
+                (bool) (
+                    $organizationContext['catalog_scope_review_required']
+                    ?? false
+                ),
+
             'membership_fields' =>
                 $this->fields(
                     (int) $project['id']
@@ -133,32 +139,40 @@ final class SupportProjectMembershipConfigurationService
                 $input
             );
 
-        $organizationSelection =
-            $this->organizationAffiliations
-                ->normalizeSelection(
-                    $input[
-                        'organization_catalog_references'
-                    ]
-                    ?? [],
-                    $input[
-                        'primary_organization_catalog_reference'
-                    ]
-                    ?? ''
-                );
+        // Omitted catalog fields mean "unchanged". Never erase legacy
+        // bindings when a different membership setting is saved.
+        $catalogSelectionPresent = array_key_exists(
+            'organization_catalog_references', $input
+        ) && array_key_exists(
+            'primary_organization_catalog_reference', $input
+        );
+        $partialCatalogSelection =
+            array_key_exists('organization_catalog_references', $input)
+            !== array_key_exists('primary_organization_catalog_reference', $input);
+        $organizationSelection = $catalogSelectionPresent
+            ? $this->organizationAffiliations->normalizeSelection(
+                $input['organization_catalog_references'],
+                $input['primary_organization_catalog_reference']
+            )
+            : null;
 
         $errors =
             $this->validate(
                 $form
             );
 
-        $errors =
-            array_merge(
+        if ($partialCatalogSelection) {
+            $errors['organization_catalogs'] =
+                'project_organization_catalog_selection_incomplete';
+        } elseif ($organizationSelection !== null) {
+            $errors = array_merge(
                 $errors,
-                $this->organizationAffiliations
-                    ->selectionErrors(
-                        $organizationSelection
-                    )
+                $this->organizationAffiliations->selectionErrors(
+                    $organizationSelection,
+                    (int) $project['id']
+                )
             );
+        }
 
         if ($errors !== []) {
             return [
@@ -191,12 +205,13 @@ final class SupportProjectMembershipConfigurationService
                 ]
             );
 
-            $this->organizationAffiliations
-                ->replaceProjectBindings(
+            if ($organizationSelection !== null) {
+                $this->organizationAffiliations->replaceProjectBindings(
                     (int) $project['id'],
                     $organizationSelection,
                     $actor
                 );
+            }
 
             $this->db->commit();
 

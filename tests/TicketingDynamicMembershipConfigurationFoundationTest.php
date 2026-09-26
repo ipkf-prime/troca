@@ -221,10 +221,44 @@ $expect(
 );
 
 
+/*
+ * Scope the static requester-route assertion to the requester-reply
+ * route itself. Independent routes appended after
+ * ticketing_lifecycle_a8d2 must not invalidate this contract.
+ */
+$requesterRouteNeedle =
+    "'/admin/ticketing/tickets/{public_reference}/requester-reply'";
+
+$requesterRoutePosition =
+    strpos(
+        $runtime,
+        $requesterRouteNeedle,
+        (int) $lifecyclePosition
+    );
+
+$expect(
+    $requesterRoutePosition !== false,
+    'Requester lifecycle route missing.'
+);
+
+$nextRoutePosition =
+    strpos(
+        $runtime,
+        '$router->',
+        (int) $requesterRoutePosition
+            + strlen(
+                $requesterRouteNeedle
+            )
+    );
+
 $requesterBlock =
     substr(
         $runtime,
-        (int) $lifecyclePosition
+        (int) $requesterRoutePosition,
+        $nextRoutePosition === false
+            ? null
+            : $nextRoutePosition
+                - (int) $requesterRoutePosition
     );
 
 $expect(
@@ -232,7 +266,7 @@ $expect(
         $requesterBlock,
         '$request->route('
     ) === 1,
-    'Requester lifecycle static contract changed.'
+    'Requester lifecycle route contract changed.'
 );
 
 

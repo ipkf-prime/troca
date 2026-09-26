@@ -29,6 +29,8 @@ final class TicketProjectOrganizationAffiliationService
 
     private PDO $ticketing;
 
+    private TicketProjectCustomerCatalogPolicy $customerCatalogPolicy;
+
 
     public function __construct(
         ?ConnectionResolver $resolver = null,
@@ -49,29 +51,18 @@ final class TicketProjectOrganizationAffiliationService
             ?? $resolver->resolve(
                 'ticketing.primary'
             );
+
+        $this->customerCatalogPolicy = new TicketProjectCustomerCatalogPolicy(
+            $this->core, $this->ticketing
+        );
     }
 
 
-    public function catalogOptions(): array
+    public function catalogOptions(int $projectId = 0): array
     {
-        return
-            $this->core
-                ->query("
-                    SELECT
-                        public_reference,
-                        code,
-                        title
-                    FROM organization_catalogs
-                    WHERE status = 'active'
-                    ORDER BY
-                        title,
-                        code,
-                        id
-                ")
-                ->fetchAll(
-                    PDO::FETCH_ASSOC
-                )
-            ?: [];
+        return array_values(
+            $this->customerCatalogPolicy->allowedCatalogMap($projectId)
+        );
     }
 
 
@@ -112,6 +103,7 @@ final class TicketProjectOrganizationAffiliationService
                 PDO::FETCH_ASSOC
             ) ?: [];
 
+        $allowed = $this->customerCatalogPolicy->allowedCatalogMap($projectId);
         $selected = [];
         $primary = '';
 
@@ -126,7 +118,7 @@ final class TicketProjectOrganizationAffiliationService
                     )
                 );
 
-            if ($reference === '') {
+            if ($reference === '' || !isset($allowed[$reference])) {
                 continue;
             }
 
@@ -166,13 +158,16 @@ final class TicketProjectOrganizationAffiliationService
 
         return [
             'catalog_options' =>
-                $this->catalogOptions(),
+                $this->catalogOptions($projectId),
 
             'selected_catalog_references' =>
                 $selected,
 
             'primary_catalog_reference' =>
                 $primary,
+
+            'catalog_scope_review_required' =>
+                $this->hasUnverifiedExistingBindings($projectId),
         ];
     }
 
@@ -248,7 +243,8 @@ final class TicketProjectOrganizationAffiliationService
 
 
     public function selectionErrors(
-        array $selection
+        array $selection,
+        int $projectId = 0
     ): array {
         $references =
             is_array(
@@ -274,8 +270,20 @@ final class TicketProjectOrganizationAffiliationService
                 )
             );
 
+        // Preserve old bindings until an administrator explicitly resolves
+        // their customer ownership. An empty HTML selection is not consent
+        // to erase bindings hidden by the new customer-scoped options.
+        if ($this->hasUnverifiedExistingBindings($projectId)) {
+            return [
+                'organization_catalogs' =>
+                    'project_organization_legacy_binding_requires_review',
+            ];
+        }
+
         if ($references === []) {
-            return [];
+            return $this->customerCatalogPolicy->customerReference($projectId) === null
+                ? ['organization_catalogs' => 'project_customer_unresolved']
+                : [];
         }
 
         if (
@@ -293,10 +301,9 @@ final class TicketProjectOrganizationAffiliationService
             ];
         }
 
-        $catalogs =
-            $this->activeCatalogMap(
-                $references
-            );
+        $catalogs = $this->customerCatalogPolicy->allowedCatalogMap(
+            $projectId, $references
+        );
 
         foreach ($references as $reference) {
             if (!isset($catalogs[$reference])) {
@@ -324,7 +331,8 @@ final class TicketProjectOrganizationAffiliationService
 
         $errors =
             $this->selectionErrors(
-                $selection
+                $selection,
+                $projectId
             );
 
         if ($errors !== []) {
@@ -351,10 +359,13 @@ final class TicketProjectOrganizationAffiliationService
                 )
             );
 
-        $catalogMap =
-            $this->activeCatalogMap(
-                $references
-            );
+        $catalogMap = $this->customerCatalogPolicy->allowedCatalogMap(
+            $projectId, $references
+        );
+
+        if (count($catalogMap) !== count($references)) {
+            throw new RuntimeException('project_organization_catalog_access_denied');
+        }
 
         /*
          * Preserve rows for audit/history but make the current
@@ -584,9 +595,19 @@ final class TicketProjectOrganizationAffiliationService
                 $projectId
             );
 
-        if ($catalogReferences === []) {
+        if ($this->hasUnverifiedExistingBindings($projectId)) {
             return [
-                'required' => false,
+                'required' => true,
+                'catalog_references' => [],
+                'items' => [],
+            ];
+        }
+
+        if ($catalogReferences === []) {
+            // A legacy binding without confirmed customer authorization must
+            // NOT silently turn an organization-scoped project into an open one.
+            return [
+                'required' => $this->hasAnyBoundCatalog($projectId),
                 'catalog_references' => [],
                 'items' => [],
             ];
@@ -881,12 +902,54 @@ final class TicketProjectOrganizationAffiliationService
             }
         }
 
-        return
-            array_values(
-                array_unique(
-                    $references
-                )
-            );
+        $allowed = $this->customerCatalogPolicy->allowedCatalogMap(
+            $projectId, $references
+        );
+        return array_values(array_filter(
+            array_unique($references),
+            static fn (string $reference): bool => isset($allowed[$reference])
+        ));
+    }
+
+
+    private function hasUnverifiedExistingBindings(int $projectId): bool
+    {
+        if ($projectId < 1) {
+            return false;
+        }
+        $statement = $this->ticketing->prepare("
+            SELECT core_catalog_reference
+            FROM ticketing_project_catalog_bindings
+            WHERE project_id = ? AND binding_role_code = 'organization_context'
+              AND status = 'active'
+        ");
+        $statement->execute([$projectId]);
+        $references = array_values(array_unique(array_filter(array_map(
+            static fn ($r): string => trim((string) $r),
+            $statement->fetchAll(PDO::FETCH_COLUMN) ?: []
+        ))));
+        if ($references === []) {
+            return false;
+        }
+        $allowed = $this->customerCatalogPolicy->allowedCatalogMap(
+            $projectId, $references
+        );
+        return count($allowed) !== count($references);
+    }
+
+
+    private function hasAnyBoundCatalog(int $projectId): bool
+    {
+        if ($projectId < 1) {
+            return false;
+        }
+        $statement = $this->ticketing->prepare("
+            SELECT 1 FROM ticketing_project_catalog_bindings
+            WHERE project_id = ? AND binding_role_code = 'organization_context'
+              AND status = 'active' LIMIT 1
+        ");
+        $statement->execute([$projectId]);
+        return (bool) $statement->fetchColumn();
     }
 
 
@@ -1036,88 +1099,4 @@ final class TicketProjectOrganizationAffiliationService
     }
 
 
-    private function activeCatalogMap(
-        array $references
-    ): array {
-        if ($references === []) {
-            return [];
-        }
-
-        $references =
-            array_values(
-                array_unique(
-                    array_filter(
-                        array_map(
-                            static fn ($value): string =>
-                                trim(
-                                    (string) $value
-                                ),
-                            $references
-                        ),
-                        static fn (
-                            string $value
-                        ): bool =>
-                            $value !== ''
-                    )
-                )
-            );
-
-        if ($references === []) {
-            return [];
-        }
-
-        $placeholders =
-            implode(
-                ',',
-                array_fill(
-                    0,
-                    count($references),
-                    '?'
-                )
-            );
-
-        $statement =
-            $this->core
-                ->prepare("
-                    SELECT
-                        public_reference,
-                        code,
-                        title
-                    FROM
-                        organization_catalogs
-                    WHERE status = 'active'
-                      AND public_reference
-                            IN ($placeholders)
-                ");
-
-        $statement->execute(
-            $references
-        );
-
-        $result = [];
-
-        foreach (
-            $statement->fetchAll(
-                PDO::FETCH_ASSOC
-            ) ?: []
-            as $row
-        ) {
-            $reference =
-                trim(
-                    (string) (
-                        $row[
-                            'public_reference'
-                        ]
-                        ?? ''
-                    )
-                );
-
-            if ($reference !== '') {
-                $result[$reference] =
-                    $row;
-            }
-        }
-
-        return $result;
-    }
 }

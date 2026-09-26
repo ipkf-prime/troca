@@ -101,6 +101,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\NormalizeFullUiContentTitles::class,
                     \IPKF\Database\Migrations\CreatePlatformAuditFoundation::class,
                     \IPKF\Database\Migrations\RepairOrganizationTransactionalEnginesAndForeignKeys::class,
+                    \IPKF\Database\Migrations\CreatePlatformCustomerCatalogAccessFoundation::class,
                 ],
             ],
             'automation' => [
@@ -150,6 +151,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateTicketingRealmPortalBindingFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingPortalLandingContentOverrideFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingAutoClosePolicyFoundation::class,
+                    \IPKF\Database\Migrations\CreateTicketingProjectCustomerOwnershipFoundation::class,
                 ],
             ],
         ];
