@@ -56,8 +56,8 @@ final class BaleTicketDeepLinkService
         );
         $stmt->execute([$payload['p'],$currentUserId]);
         if ($stmt->fetchColumn()===false) return null;
-        $detail=(new \App\Services\Ticketing\TicketService())
-            ->detailForUser($payload['r'],$currentUserId);
+        $detail=(new BaleSupportAccessService())
+            ->ticketForUser($payload['r'],$currentUserId);
         return is_array($detail) && is_array($detail['ticket']??null) ? $payload['r'] : null;
     }
 }

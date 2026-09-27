@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Services\Ticketing\TicketLifecycleService;
-use App\Services\Ticketing\TicketService;
 use PDO;
 use PDOException;
 use RuntimeException;
@@ -38,9 +37,9 @@ final class BaleTicketReplyService
             return ['reply' => BaleDialogContentService::text($dialog, 'reply.text_01'), 'link_path' => null];
         }
         $reference = $parsed['reference'];
-        $ticketing = new TicketService();
+        $supportAccess = new BaleSupportAccessService();
         // Narrow requester visibility; staff / manager visibility is not enough.
-        $detail = $ticketing->detailForUser($reference, $userId);
+        $detail = $supportAccess->ticketForUser($reference, $userId);
         if (!is_array($detail) || !is_array($detail['ticket'] ?? null)) {
             return ['reply' => BaleDialogContentService::text($dialog, 'reply.text_02'), 'link_path' => null];
         }
@@ -129,8 +128,8 @@ final class BaleTicketReplyService
             return ['reply'=>BaleDialogContentService::text($dialog, 'reply.text_12'),'link_path'=>null];
         }
         $path='/admin/ticketing/tickets/'.rawurlencode($reference);
-        $ticketing=new TicketService();
-        $detail=$ticketing->detailForUser($reference,$userId);
+        $supportAccess=new BaleSupportAccessService();
+        $detail=$supportAccess->ticketForUser($reference,$userId);
         if (!is_array($detail) || !is_array($detail['ticket']??null)) {
             return ['reply'=>BaleDialogContentService::text($dialog, 'reply.text_13'),'link_path'=>null];
         }

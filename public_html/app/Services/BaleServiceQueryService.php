@@ -74,6 +74,7 @@ final class BaleServiceQueryService
         } else {
             try {
                 $ticketing = new TicketService();
+        $supportAccess = new BaleSupportAccessService();
                 if (str_starts_with($command, '/resolve ')) {
                     $submitted=(new BaleTicketReplyService())->resolve(
                         $db, (int)$matched['id'], $userId, $input,
@@ -159,7 +160,7 @@ final class BaleServiceQueryService
                     }
                 } else {
                     $ref = trim(substr($command, strlen('/ticket')));
-                    $detail = $ref !== '' ? $ticketing->detailForUser($ref, $userId) : null;
+                    $detail = $ref !== '' ? $supportAccess->ticketForUser($ref, $userId) : null;
                     if (!is_array($detail) || !is_array($detail['ticket'] ?? null)) {
                         $reply = BaleDialogContentService::text($dialog, 'core.text_13');
                     } else {
@@ -181,7 +182,7 @@ final class BaleServiceQueryService
         // and canonical requester visibility are all checked at click time.
         if ($userId > 0 && is_string($path) &&
             preg_match('~^/admin/ticketing/tickets/([A-Za-z0-9_-]{3,100})$~D', $path, $linkMatch)===1) {
-            $visible = $ticketing->detailForUser($linkMatch[1], $userId);
+            $visible = $supportAccess->ticketForUser($linkMatch[1], $userId);
             $path = is_array($visible) && is_array($visible['ticket']??null)
                 ? '/admin/bale/ticket/open?t=' . BaleTicketDeepLinkService::issue(
                     $matchedToken, $userId, (int)$matched['id'], $linkMatch[1])
