@@ -101,6 +101,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\NormalizeFullUiContentTitles::class,
                     \IPKF\Database\Migrations\CreatePlatformAuditFoundation::class,
                     \IPKF\Database\Migrations\RepairOrganizationTransactionalEnginesAndForeignKeys::class,
+            SeedBaleMenuAdminDynamicContent::class,
                     \IPKF\Database\Migrations\CreatePlatformCustomerCatalogAccessFoundation::class,
                 ],
             ],
