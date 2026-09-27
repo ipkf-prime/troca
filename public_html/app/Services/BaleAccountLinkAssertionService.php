@@ -78,7 +78,7 @@ final class BaleAccountLinkAssertionService
          * Canonical field order and domain separator MUST match
          * BaleAccountLinkAssertion.php on the destination bot.
          */
-        $canonical = "np-bale-link-confirm-v1\n" .
+        $canonical = "ipkf-bale-link-confirm-v1\n" .
             json_encode(
                 array_values($claims),
                 JSON_UNESCAPED_UNICODE |

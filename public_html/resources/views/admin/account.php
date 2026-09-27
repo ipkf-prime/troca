@@ -124,6 +124,16 @@ ob_start();
 </style>
 
 <div class="account-shell">
+    <!-- IPKF_BALE_ACCOUNT_LINK_V1 -->
+    <p>
+        <a
+            class="admin-button"
+            href="/admin/account/bale"
+        >
+            <?= admin_h(\App\Services\UiContent\UiContentInlineGuide::bodyText('core.bale-account-link.ui.account_button','core','bale-account-link')) ?>
+        </a>
+    </p>
+
     <?php require __DIR__ . '/partials/account-nav.php'; ?>
 
     <?php if ($statusMessage !== ''): ?>

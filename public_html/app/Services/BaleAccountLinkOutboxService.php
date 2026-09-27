@@ -14,12 +14,9 @@ use JsonException;
  */
 final class BaleAccountLinkOutboxService
 {
-    private const DIRECTORY =
-        '/home/troca/.np-bale-link-private/outbox';
-
     public function enqueue(array $envelope): bool
     {
-        $directory = self::DIRECTORY;
+        $directory = BaleAccountLinkPrivateStorage::outboxDirectory();
 
         if (
             !is_dir($directory) ||

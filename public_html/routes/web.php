@@ -8015,3 +8015,7 @@ $router->post(
         }
     }
 );
+
+/* IPKF_BALE_ACCOUNT_SELF_SERVICE_V1 */
+require __DIR__
+    . '/bale-account-self-service.php';

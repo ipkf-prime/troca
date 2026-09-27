@@ -21,6 +21,11 @@ $accountLinks = [
         'paths' => ['/admin/account'],
     ],
     [
+        'href' => '/admin/account/bale',
+        'label' => \App\Services\UiContent\UiContentInlineGuide::bodyText('core.bale-account-link.ui.account_nav','core','bale-account-link'),
+        'paths' => ['/admin/account/bale'],
+    ],
+    [
         'href' => '/admin/security',
         'label' => 'امنیت و ورود',
         'paths' => [

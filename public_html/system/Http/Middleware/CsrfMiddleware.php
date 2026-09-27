@@ -41,6 +41,15 @@ class CsrfMiddleware
 
     private function isExempt(Request $request): bool
     {
+        /* Exact signed Bale account-link queue ACK endpoint. */
+        if (
+            strtoupper($request->method()) === 'POST'
+            && $request->uri() ===
+                '/integrations/bale/link-queue/v1/ack'
+        ) {
+            return true;
+        }
+
         return strtoupper($request->method()) === 'POST'
             && preg_match(
                 '#^/webhooks/notifications/bale/'

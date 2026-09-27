@@ -13,8 +13,6 @@ namespace App\Services;
  */
 final class BaleAccountLinkQueueApiService
 {
-    private const BASE = '/home/troca/.np-bale-link-private';
-
     private const PULL =
         '/integrations/bale/link-queue/v1/next';
 
@@ -38,7 +36,7 @@ final class BaleAccountLinkQueueApiService
 
     private function queueKey(): ?string
     {
-        $path = self::BASE . '/config.json';
+        $path = BaleAccountLinkPrivateStorage::rootDirectory() . '/config.json';
 
         if (
             !is_file($path) ||
@@ -145,7 +143,7 @@ final class BaleAccountLinkQueueApiService
         }
 
         $canonical =
-            "np-bale-queue-v1\n"
+            "ipkf-bale-queue-v1\n"
             . $method . "\n"
             . $path . "\n"
             . $timestampHeader . "\n"
@@ -166,7 +164,7 @@ final class BaleAccountLinkQueueApiService
          * Atomic, persistent nonce reservation.
          * A duplicate signed queue request cannot be reused.
          */
-        $nonceDir = self::BASE . '/queue-nonces';
+        $nonceDir = BaleAccountLinkPrivateStorage::rootDirectory() . '/queue-nonces';
 
         if (!$this->privateDirectory($nonceDir)) {
             return $this->result(503);
@@ -194,7 +192,7 @@ final class BaleAccountLinkQueueApiService
 
     private function lockQueue(): mixed
     {
-        $path = self::BASE . '/queue.lock';
+        $path = BaleAccountLinkPrivateStorage::rootDirectory() . '/queue.lock';
 
         if (is_link($path)) {
             return false;
@@ -227,7 +225,7 @@ final class BaleAccountLinkQueueApiService
 
     private function nextItem(): array
     {
-        $directory = self::BASE . '/outbox';
+        $directory = BaleAccountLinkPrivateStorage::rootDirectory() . '/outbox';
 
         if (!$this->privateDirectory($directory)) {
             return $this->result(503);
@@ -348,8 +346,8 @@ final class BaleAccountLinkQueueApiService
             return $this->result(400);
         }
 
-        $outbox = self::BASE . '/outbox';
-        $ackDir = self::BASE . '/acknowledged';
+        $outbox = BaleAccountLinkPrivateStorage::rootDirectory() . '/outbox';
+        $ackDir = BaleAccountLinkPrivateStorage::rootDirectory() . '/acknowledged';
 
         if (
             !$this->privateDirectory($outbox) ||

@@ -109,7 +109,7 @@ $router->get(
                     'title' => (
                         $repository->baleProviderPurpose($provider)
                             === 'service_access'
-                        ? 'دسترسی به خدمات — ' : ''
+                        ? \App\Services\UiContent\UiContentInlineGuide::bodyText('core.bale-account-link.ui.service_title_prefix','core','bale-account-link') : ''
                     ) . (string) (
                         $provider['title'] ?? ''
                     ),
@@ -191,7 +191,7 @@ $router->get(
             $response,
             'bale-account-self-service',
             [
-                'title' => 'اتصال حساب بله',
+                'title' => \App\Services\UiContent\UiContentInlineGuide::bodyText('core.bale-account-link.ui.page_title','core','bale-account-link'),
                 'context' => $context,
                 'page' => $page,
             ]
