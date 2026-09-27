@@ -132,12 +132,25 @@ $fieldTypes = [
 
     <!-- TICKETING_REQUESTER_MANAGER_MEMBERS_LINK -->
     <!-- TICKETING_PROJECT_MEMBER_ACCESS_CENTER_LINK -->
-    <a
-        class="admin-button admin-button--soft"
-        href="/admin/ticketing/projects/<?= rawurlencode($reference) ?>/members"
-    >
-        اعضا و دسترسی‌ها
-    </a>
+    <div class="ticketing-membership-header__actions">
+        <a
+            class="admin-button admin-button--soft"
+            href="/admin/ticketing/projects/<?= rawurlencode($reference) ?>/membership-requests"
+        >
+            <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml(
+            'ticketing.membership.requests.page_title',
+            'ticketing',
+            'membership'
+        ) ?>
+        </a>
+
+        <a
+            class="admin-button admin-button--soft"
+            href="/admin/ticketing/projects/<?= rawurlencode($reference) ?>/members"
+        >
+            اعضا و دسترسی‌ها
+        </a>
+    </div>
 </header>
 
 

@@ -1705,7 +1705,7 @@ final class TicketStaffOperationsRepository
 
             /*
              * Preserve the former convenience where entering just the
-             * numeric sequence can find e.g. NP-000016 by "16".
+             * numeric sequence can find the numeric suffix of a prefixed ticket number.
              */
             if (
                 preg_match(
@@ -2463,7 +2463,7 @@ final class TicketStaffOperationsRepository
                 ||
                 empty(
                     $actorMembership[
-                        'can_assign'
+                        'can_transfer'
                     ]
                 )
             ) {

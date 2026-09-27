@@ -158,23 +158,16 @@ foreach ([
 
 foreach ([
     'TICKETING_PROJECT_MEMBER_ACCESS_CENTER_UI',
+    'UiContentInlineGuide::bodyText',
+    'ticketing.t2.ticketing-project-members.ui.',
     'TICKETING_PROJECT_MEMBER_ACCESS_TABLE_UI',
     'TICKETING_PROJECT_MEMBER_ACCESS_NO_TECH_IDENTIFIERS',
-    'اعضا و دسترسی‌ها',
     'ticketing-member-table',
     'data-member-row',
     'data-member-detail',
     'data-member-search',
     'data-member-role-filter',
     'data-member-status-filter',
-    'تیکت‌ها',
-    'باز درخواست‌کننده',
-    'در اختیار',
-    'تیم فعال',
-    'نقش و عضویت',
-    'دسترسی‌های تیمی',
-    'لغو عضویت',
-    'فعال‌سازی عضویت',
     'PAGE_SIZE = 24',
 ] as $marker) {
     $expect(
@@ -259,6 +252,7 @@ foreach ([
  */
 foreach ([
     'TICKETING_PROJECT_MEMBER_BULK_SELECTION_UI',
+    'data-member-selected-count',
     'TICKETING_PROJECT_MEMBER_BULK_SELECTION_STYLE',
     'name="member_ids[]"',
     'data-member-select',
@@ -268,8 +262,6 @@ foreach ([
     'data-member-selected-count',
     'selectedIds',
     'currentMatched',
-    'انتخاب همه نتایج',
-    'لغو انتخاب همه',
 ] as $marker) {
     $expect(
         str_contains(
@@ -288,9 +280,9 @@ foreach ([
  */
 foreach ([
     'TICKETING_TICKETING_UI_CONSISTENCY_CONTRACT',
+    'UiContentInlineGuide::bodyText',
     'TICKETING_MEMBER_ACTION_VISUAL_CONTRACT',
     'ticketing-standard-page-head',
-    'اعضا و دسترسی‌ها',
 ] as $marker) {
     $expect(
         str_contains(
@@ -325,5 +317,12 @@ foreach ([
         . $marker
     );
 }
+
+
+/*
+ * T2_A2B_DYNAMIC_REGRESSION_ALIGNMENT_V1
+ * Visible labels are now Dynamic UI Content; structural/data markers
+ * remain the regression authority instead of hardcoded Persian copy.
+ */
 
 echo "TICKETING_PROJECT_MEMBER_ACCESS_CENTER_PASS\n";

@@ -8016,6 +8016,15 @@ $router->post(
     }
 );
 
+
 /* IPKF_BALE_ACCOUNT_SELF_SERVICE_V1 */
 require __DIR__
     . '/bale-account-self-service.php';
+
+/*
+ * TICKETING_REQUESTER_ROUTE_LOADER_CLOSURE_V1
+ *
+ * Requester self-service is a first-class Ticketing surface.
+ * Keep this include generic; project/customer identity stays data-driven.
+ */
+require BASE_PATH . '/routes/ticketing-requester.php';

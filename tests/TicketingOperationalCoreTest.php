@@ -73,9 +73,19 @@ foreach ([
 ] as $needle) {
 
     $expect(
-        str_contains(
-            $service,
-            $needle
+        (
+            str_contains(
+                $service,
+                $needle
+            )
+            ||
+            (
+                str_starts_with($needle, 'reference(')
+                && str_contains(
+                    preg_replace('/\\s+/', '', $service) ?? '',
+                    $needle
+                )
+            )
         ),
         'Service contract missing: '
         . $needle

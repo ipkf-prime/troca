@@ -918,6 +918,16 @@ final class OrganizationalAffiliationService
             }
 
 
+            /*
+             * Reviewer independence is checked against the locked DB row,
+             * never a user id supplied by the browser. Even a user who also
+             * has organizations.manage must not decide their own claim.
+             */
+            OrganizationalAffiliationReviewGuard::assertIndependentActor(
+                $actorUserId,
+                (int) ($membership['user_id'] ?? 0)
+            );
+
             $organizationReference =
                 (string) (
                     $membership[
@@ -2528,9 +2538,7 @@ final class OrganizationalAffiliationService
 
 
         if (
-            (
-                string
-            ) (
+            (string) (
                 $row[
                     'verification_state_code'
                 ]
@@ -2538,9 +2546,7 @@ final class OrganizationalAffiliationService
             )
             === 'verified'
             &&
-            (
-                string
-            ) (
+            (string) (
                 $row[
                     'status'
                 ]
@@ -2701,16 +2707,26 @@ final class OrganizationalAffiliationService
         int $actorUserId
     ): void {
 
-        if (
-            $actorUserId > 0
-            &&
-            $this->authorization
-                ->hasPermission(
-                    $actorUserId,
-                    'organizations.manage'
-                )
-        ) {
-            return;
+        if ($actorUserId > 0) {
+
+            foreach (
+                [
+                    'organizations.affiliations.manage',
+                    'organizations.manage',
+                ]
+                as $permission
+            ) {
+
+                if (
+                    $this->authorization
+                        ->hasPermission(
+                            $actorUserId,
+                            $permission
+                        )
+                ) {
+                    return;
+                }
+            }
         }
 
 
@@ -2785,54 +2801,69 @@ final class OrganizationalAffiliationService
         ];
 
 
-        if (
-            $this->scopedAuthorization
-                ->hasPermissionInContext(
-                    $actorUserId,
-                    'organizations.manage',
-                    [
-                        'scope_type' =>
-                            'organization',
-
-                        'scope_reference' =>
-                            $organizationReference,
-
-                        'ancestors' =>
-                            $ancestorMap,
-
-                        'attributes' =>
-                            [],
-                    ]
-                )
+        foreach (
+            [
+                'organizations.affiliations.manage',
+                'organizations.manage',
+            ]
+            as $permission
         ) {
-            return true;
+
+            if (
+                $this->scopedAuthorization
+                    ->hasPermissionInContext(
+                        $actorUserId,
+                        $permission,
+                        [
+                            'scope_type' =>
+                                'organization',
+
+                            'scope_reference' =>
+                                $organizationReference,
+
+                            'ancestors' =>
+                                $ancestorMap,
+
+                            'attributes' =>
+                                [],
+                        ]
+                    )
+            ) {
+                return true;
+            }
+
+
+            /*
+             * Exact company scopes with include_descendants=0 need a
+             * company-typed context rather than only an ancestor match.
+             */
+
+            if (
+                $this->scopedAuthorization
+                    ->hasPermissionInContext(
+                        $actorUserId,
+                        $permission,
+                        [
+                            'scope_type' =>
+                                'company',
+
+                            'scope_reference' =>
+                                $organizationReference,
+
+                            'ancestors' =>
+                                $ancestorMap,
+
+                            'attributes' =>
+                                [],
+                        ]
+                    )
+            ) {
+                return true;
+            }
         }
 
 
-        /*
-         * Exact company scopes with include_descendants=0 need a
-         * company-typed context rather than only an ancestor match.
-         */
-
-        return
-            $this->scopedAuthorization
-                ->hasPermissionInContext(
-                    $actorUserId,
-                    'organizations.manage',
-                    [
-                        'scope_type' =>
-                            'company',
-
-                        'scope_reference' =>
-                            $organizationReference,
-
-                        'ancestors' =>
-                            $ancestorMap,
-
-                        'attributes' =>
-                            [],
-                    ]
-                );
+        return false;
     }
 
 

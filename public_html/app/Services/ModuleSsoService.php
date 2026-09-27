@@ -132,6 +132,34 @@ class ModuleSsoService extends BaseService
             }
         }
 
+        /*
+         * PROJECT_LOCAL_TICKETING_SSO_OPERATIONAL_BRIDGE_V1
+         * Project membership never grants global management permissions.
+         * Only canonical operational paths approved for this specific
+         * user may use the project-scoped SSO entrance.
+         * Requester-owned paths retain their independent support.view gate.
+         */
+        $operationalTicketingAllowed = false;
+
+        if (
+            $moduleKeyForAccess === 'ticketing'
+            &&
+            !$this->isRequesterTicketingReturnPath(
+                $returnPath
+            )
+        ) {
+            try {
+                $operationalTicketingAllowed =
+                    (new \App\Services\Ticketing\TicketingProjectScopedAccessService())
+                        ->canAccessPath(
+                            $userId,
+                            $returnPath
+                        );
+            } catch (\Throwable) {
+                $operationalTicketingAllowed = false;
+            }
+        }
+
         if (
             $permission !== ''
             &&
@@ -141,6 +169,8 @@ class ModuleSsoService extends BaseService
             )
             &&
             !$requesterTicketingAllowed
+            &&
+            !$operationalTicketingAllowed
         ) {
             return [
                 'ok' => false,

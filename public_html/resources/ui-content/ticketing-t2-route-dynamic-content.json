@@ -1,0 +1,50 @@
+[
+    {
+        "key": "ticketing.t2.route.dashboard.title",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "پشتیبانی و تیکتینگ"
+    },
+    {
+        "key": "ticketing.t2.route.dashboard.unavailable_prefix",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "داشبورد تیکتینگ در حال حاضر در دسترس نیست. کد خطا: "
+    },
+    {
+        "key": "ticketing.t2.route.staff.title",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "کارتابل پشتیبانی"
+    },
+    {
+        "key": "ticketing.t2.route.staff.unavailable_prefix",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "کارتابل پشتیبانی در دسترس نیست. کد خطا: "
+    },
+    {
+        "key": "ticketing.t2.route.members.title",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "اعضا و دسترسی‌ها"
+    },
+    {
+        "key": "ticketing.t2.route.members.unavailable",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "اطلاعات اعضا و دسترسی‌های پروژه در حال حاضر در دسترس نیست."
+    },
+    {
+        "key": "ticketing.t2.route.members.project_not_found_title",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "پروژه پیدا نشد"
+    },
+    {
+        "key": "ticketing.t2.route.members.project_not_found",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "پروژه پشتیبانی موردنظر پیدا نشد."
+    }
+]

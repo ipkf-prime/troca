@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Ticketing;
 
+use IPKF\Database\Connections\ConnectionResolver;
 use Throwable;
 
 /**
@@ -181,6 +182,33 @@ final class TicketingProjectScopedAccessService
     }
 
 
+    /*
+     * T2_PROJECT_MANAGER_MEMBER_ADMIN_BRIDGE_V1
+     *
+     * A project-local manager may administer members/teams only for the
+     * exact project in which that manager membership is active.
+     *
+     * This does not grant global /admin/ticketing/projects authority.
+     */
+    public function isProjectManagerReference(
+        int $userId,
+        string $projectReference
+    ): bool {
+        $projectId =
+            $this->projectIdForReference(
+                $projectReference
+            );
+
+        return
+            $projectId > 0
+            &&
+            $this->isProjectManager(
+                $userId,
+                $projectId
+            );
+    }
+
+
     public function navigationItemAllowed(
         int $userId,
         string $itemKey
@@ -254,6 +282,28 @@ final class TicketingProjectScopedAccessService
         }
 
         /*
+         * T2_PROJECT_MANAGER_MEMBER_ADMIN_PATH_V1
+         *
+         * Member/team administration is project-local. The public project
+         * reference is resolved server-side and then checked against the
+         * canonical Ticketing project membership.
+         */
+        if (
+            preg_match(
+                '#^/admin/ticketing/projects/([A-Za-z0-9_-]+)/members(?:/.*)?$#',
+                $path,
+                $matches
+            ) === 1
+        ) {
+            return
+                $this->isProjectManagerReference(
+                    $userId,
+                    (string) ($matches[1] ?? '')
+                );
+        }
+
+
+        /*
          * Staff ticket detail/actions must remain resource-scoped.
          * canViewTicket() reaches the canonical cartable, including
          * project topology and Dynamic Data Scope.
@@ -285,6 +335,63 @@ final class TicketingProjectScopedAccessService
          * Local project manager != global project administrator.
          */
         return false;
+    }
+
+
+    private function projectIdForReference(
+        string $projectReference
+    ): int {
+        $projectReference =
+            trim(
+                $projectReference
+            );
+
+        if (
+            $projectReference === ''
+            ||
+            preg_match(
+                '/^[A-Za-z0-9_-]{1,100}$/D',
+                $projectReference
+            ) !== 1
+        ) {
+            return 0;
+        }
+
+        try {
+            $db =
+                (new ConnectionResolver())
+                    ->resolve(
+                        'ticketing.primary'
+                    );
+
+            $statement =
+                $db->prepare("
+                    SELECT id
+
+                    FROM
+                        ticketing_support_projects
+
+                    WHERE public_reference = ?
+                      AND is_active = 1
+                      AND archived_at IS NULL
+
+                    LIMIT 1
+                ");
+
+            $statement->execute([
+                $projectReference,
+            ]);
+
+            return
+                max(
+                    0,
+                    (int) $statement
+                        ->fetchColumn()
+                );
+
+        } catch (Throwable) {
+            return 0;
+        }
     }
 
 

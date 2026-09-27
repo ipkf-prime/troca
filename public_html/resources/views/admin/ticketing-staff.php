@@ -212,21 +212,33 @@ $assignees =
         : [];
 
 
+$uiText =
+    static function (
+        string $contentKey
+    ): string {
+        return
+            \App\Services\UiContent\UiContentInlineGuide::bodyText(
+                $contentKey,
+                'ticketing',
+                'ticketing-staff'
+            );
+    };
+
 $sortOptions = [
     'priority_desc' =>
-        'اولویت بالاتر',
+        $uiText('ticketing.t2.ticketing-staff.ui.19a40629d2b51d655fcc'),
 
     'activity_desc' =>
-        'فعالیت جدیدتر',
+        $uiText('ticketing.t2.ticketing-staff.ui.4a96cca3c11856f0e60a'),
 
     'activity_asc' =>
-        'فعالیت قدیمی‌تر',
+        $uiText('ticketing.t2.ticketing-staff.ui.7cc38b7ee5202a95534b'),
 
     'created_desc' =>
-        'ثبت جدیدتر',
+        $uiText('ticketing.t2.ticketing-staff.ui.10ae22df8b5738df36df'),
 
     'created_asc' =>
-        'ثبت قدیمی‌تر',
+        $uiText('ticketing.t2.ticketing-staff.ui.df5eeacd1f16c72de583'),
 ];
 
 
@@ -418,94 +430,94 @@ $csrf =
 $notices = [
     'taken-over' => [
         'ok',
-        'تیکت با موفقیت تحویل گرفته شد.',
+        $uiText('ticketing.t2.ticketing-staff.ui.11b8ca1a75687d8003b3'),
     ],
 
     'transferred' => [
         'ok',
-        'تیکت به کارشناس جدید منتقل شد.',
+        $uiText('ticketing.t2.ticketing-staff.ui.36e6fd7dbe89e06e3990'),
     ],
 
     'escalated' => [
         'ok',
-        'تیکت به سطح بالاتر ارجاع شد.',
+        $uiText('ticketing.t2.ticketing-staff.ui.5ea38d80a508d616ce55'),
     ],
 
     'csrf' => [
         'error',
-        'اعتبار فرم منقضی شده است. صفحه را دوباره بارگذاری کنید.',
+        $uiText('ticketing.t2.ticketing-staff.ui.7f31f94f1ec6ced3bef0'),
     ],
 
     'forbidden' => [
         'error',
-        'برای انجام این عملیات مجوز لازم را ندارید.',
+        $uiText('ticketing.t2.ticketing-staff.ui.457033c98d70994dcff5'),
     ],
 
     'already-owner' => [
         'error',
-        'این تیکت هم‌اکنون در اختیار شماست.',
+        $uiText('ticketing.t2.ticketing-staff.ui.0ee176859b8fd67b58ab'),
     ],
 
     'invalid-target' => [
         'error',
-        'کارشناس مقصد معتبر نیست.',
+        $uiText('ticketing.t2.ticketing-staff.ui.c8ef80f6664a230ea7a2'),
     ],
 
     'same-assignee' => [
         'error',
-        'کارشناس مقصد با کارشناس جاری یکسان است.',
+        $uiText('ticketing.t2.ticketing-staff.ui.de7724ea6cc1fec57f81'),
     ],
 
     'no-escalation' => [
         'error',
-        'برای این مرحله مسیر ارجاع بالاتر تعریف نشده است.',
+        $uiText('ticketing.t2.ticketing-staff.ui.064d69dc4e09020122fb'),
     ],
 
     'no-escalation-route' => [
         'error',
-        'صف یا تیم سطح بالاتر آماده دریافت تیکت نیست.',
+        $uiText('ticketing.t2.ticketing-staff.ui.306cac3cfb7955bdf2d0'),
     ],
 
     'no-assignee' => [
         'error',
-        'در سطح مقصد کارشناس قابل تخصیص وجود ندارد.',
+        $uiText('ticketing.t2.ticketing-staff.ui.87242363e136eda9d9b1'),
     ],
 
     'closed' => [
         'error',
-        'روی تیکت بسته‌شده عملیات کارشناسی قابل انجام نیست.',
+        $uiText('ticketing.t2.ticketing-staff.ui.071d1bb1b7d3e0c8bee8'),
     ],
 
     'not-routed' => [
         'error',
-        'این تیکت هنوز وارد مسیر پشتیبانی نشده است.',
+        $uiText('ticketing.t2.ticketing-staff.ui.d71a8ecdbf17a78c57c8'),
     ],
 
     'not-found' => [
         'error',
-        'تیکت مورد نظر پیدا نشد.',
+        $uiText('ticketing.t2.ticketing-staff.ui.2872e00964349a392512'),
     ],
 
     'operation-failed' => [
         'error',
-        'عملیات انجام نشد.',
+        $uiText('ticketing.t2.ticketing-staff.ui.8128db7b0d7158c4a56c'),
     ],
 ];
 
 
 $scopeTabs = [
     'all' => [
-        'قابل رسیدگی',
+        $uiText('ticketing.t2.ticketing-staff.ui.86380b0e00701b3eefa6'),
         (int) ($counts['all'] ?? 0),
     ],
 
     'my' => [
-        'تخصیص‌یافته به من',
+        $uiText('ticketing.t2.ticketing-staff.ui.f5498dc9efa6256199dd'),
         (int) ($counts['my'] ?? 0),
     ],
 
     'unassigned' => [
-        'بدون کارشناس',
+        $uiText('ticketing.t2.ticketing-staff.ui.7278e1b50731394594b4'),
         (int) ($counts['unassigned'] ?? 0),
     ],
 ];
@@ -516,22 +528,22 @@ ob_start();
 
 <nav
     class="admin-breadcrumb"
-    aria-label="breadcrumb"
+    aria-label="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.eb5d8c9dc410c816f330')) ?>"
 >
     <a href="/admin/dashboard">
-        داشبورد
+        <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.6a2175dc4a8676799c08')) ?>
     </a>
 
     <span>/</span>
 
     <a href="/admin/ticketing">
-        پشتیبانی و تیکتینگ
+        <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.5523e019aa3ad6a3ba0e')) ?>
     </a>
 
     <span>/</span>
 
     <span>
-        کارتابل پشتیبانی
+        <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.230ea3cdf3f7fef6a92c')) ?>
     </span>
 </nav>
 
@@ -542,11 +554,11 @@ ob_start();
 
         <div>
             <div class="admin-muted">
-                عملیات کارشناسی و مدیریت صف‌های پشتیبانی
+                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.6e36cde9d3e46a2702a5')) ?>
             </div>
 
             <h1>
-                کارتابل پشتیبانی
+                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.230ea3cdf3f7fef6a92c')) ?>
             </h1>
         </div>
 
@@ -579,7 +591,7 @@ ob_start();
         <section class="admin-section">
 
             <div class="admin-alert">
-                برای حساب شما عضویت فعال در تیم‌های پشتیبانی تعریف نشده است.
+                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.c65e37157d5de9bc478e')) ?>
             </div>
 
         </section>
@@ -590,7 +602,7 @@ ob_start();
 
             <div
                 class="ticketing-staff-scope-tabs"
-                aria-label="بخش‌های کارتابل"
+                aria-label="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.2050947f0773c0fbb4f8')) ?>"
             >
 
                 <?php foreach (
@@ -690,7 +702,7 @@ ob_start();
                         class="ticketing-staff-search__field ticketing-compact-filter__field ticketing-compact-filter__search"
                     >
                         <span>
-                            جستجو
+                            <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.d2cce2eed5c382e42b36')) ?>
                         </span>
 
                         <input
@@ -702,7 +714,7 @@ ob_start();
                             value="<?= ticketing_h(
                                 $q
                             ) ?>"
-                            placeholder="شماره تیکت، عنوان، موضوع، پروژه، درخواست‌کننده، سازمان یا کارشناس"
+                            placeholder="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.cb641a78f665fa8c737d')) ?>"
                         >
                     </label>
 
@@ -711,7 +723,7 @@ ob_start();
                         class="ticketing-staff-search__field ticketing-compact-filter__field"
                     >
                         <span>
-                            وضعیت
+                            <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.b439d0b64417e081ba58')) ?>
                         </span>
 
                         <select
@@ -725,7 +737,7 @@ ob_start();
                                     ? 'selected'
                                     : '' ?>
                             >
-                                تیکت‌های جاری
+                                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.ca18255f5d5bee1a89f6')) ?>
                             </option>
 
                             <option
@@ -734,7 +746,7 @@ ob_start();
                                     ? 'selected'
                                     : '' ?>
                             >
-                                همه وضعیت‌ها
+                                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.ad0f38a647689e4a55bd')) ?>
                             </option>
 
                             <?php foreach (
@@ -779,7 +791,7 @@ ob_start();
                         class="ticketing-staff-search__field ticketing-compact-filter__field"
                     >
                         <span>
-                            موضوع
+                            <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.0d39243f97342269199e')) ?>
                         </span>
 
                         <select
@@ -788,7 +800,7 @@ ob_start();
                             name="topic"
                         >
                             <option value="0">
-                                همه موضوع‌ها
+                                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.37396354dbb78b34b3a4')) ?>
                             </option>
 
                             <?php foreach (
@@ -827,7 +839,7 @@ ob_start();
 
                                 if ($optionTitle === '') {
                                     $optionTitle =
-                                        'موضوع #'
+                                        $uiText('ticketing.t2.ticketing-staff.ui.669bbb8a20b29026960b')
                                         . $optionId;
                                 }
 
@@ -837,7 +849,7 @@ ob_start();
                                     $optionProjectTitle !== ''
                                 ) {
                                     $optionTitle .=
-                                        ' — '
+                                        $uiText('ticketing.t2.ticketing-staff.ui.d126300710bd5e5fc353')
                                         . $optionProjectTitle;
                                 }
                                 ?>
@@ -865,7 +877,7 @@ ob_start();
                         class="ticketing-staff-search__field ticketing-compact-filter__field"
                     >
                         <span>
-                            اولویت
+                            <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.1b7fde85a260fc820c59')) ?>
                         </span>
 
                         <select
@@ -874,7 +886,7 @@ ob_start();
                             name="priority"
                         >
                             <option value="">
-                                همه اولویت‌ها
+                                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.5f07f69d4e581a676800')) ?>
                             </option>
 
                             <?php foreach (
@@ -928,7 +940,7 @@ ob_start();
                             aria-controls="ticketing-staff-advanced-filters"
                         >
                             <span>
-                                فیلترهای بیشتر
+                                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.f0b0aece08ead981f12b')) ?>
                             </span>
 
                             <?php if ($advancedFilterCount > 0): ?>
@@ -974,9 +986,9 @@ ob_start();
                                     ]
                                 )
                             ) ?>"
-                            aria-label="بازنشانی فیلترها"
-                            title="بازنشانی فیلترها"
-                            data-tooltip="بازنشانی فیلترها"
+                            aria-label="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.b8155d98258aa4806ceb')) ?>"
+                            title="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.b8155d98258aa4806ceb')) ?>"
+                            data-tooltip="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.b8155d98258aa4806ceb')) ?>"
                         >
                             <?= \App\Support\TicketingIcon::svg(
                                 'reset'
@@ -1009,7 +1021,7 @@ ob_start();
                             class="ticketing-staff-search__field ticketing-compact-filter__field"
                         >
                             <span>
-                                مرحله
+                                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.c59e71f54a3b85372aa8')) ?>
                             </span>
 
                             <select
@@ -1018,7 +1030,7 @@ ob_start();
                                 name="layer_id"
                             >
                                 <option value="0">
-                                    همه سطوح
+                                    <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.5d5cb7e97c87251e9cf2')) ?>
                                 </option>
 
                                 <?php foreach (
@@ -1063,7 +1075,7 @@ ob_start();
                             class="ticketing-staff-search__field ticketing-compact-filter__field"
                         >
                             <span>
-                                کارشناس جاری
+                                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.6db8acf90a6a2d79194f')) ?>
                             </span>
 
                             <select
@@ -1075,7 +1087,7 @@ ob_start();
                                     : '' ?>
                             >
                                 <option value="">
-                                    همه کارشناسان
+                                    <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.7cb7f5898532c3f33c62')) ?>
                                 </option>
 
                                 <?php foreach (
@@ -1131,7 +1143,7 @@ ob_start();
                             class="ticketing-staff-search__field ticketing-compact-filter__field"
                         >
                             <span>
-                                مرتب‌سازی
+                                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.11da3ae63697b5c61110')) ?>
                             </span>
 
                             <select
@@ -1167,7 +1179,7 @@ ob_start();
                             class="ticketing-staff-search__field ticketing-compact-filter__field"
                         >
                             <span>
-                                تعداد در صفحه
+                                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.fac812f233987c6d7b1c')) ?>
                             </span>
 
                             <select
@@ -1220,7 +1232,7 @@ ob_start();
                             (string) $totalItems
                         )
                     ) ?>
-                    تیکت
+                    <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.2ef1b5d7e02b92fabae7')) ?>
                 </strong>
 
 
@@ -1230,7 +1242,7 @@ ob_start();
             <?php if ($items === []): ?>
 
                 <div class="admin-empty">
-                    تیکتی در این بخش وجود ندارد.
+                    <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.a25fd73e4724974ff002')) ?>
                 </div>
 
             <?php else: ?>
@@ -1242,35 +1254,35 @@ ob_start();
                         <thead>
                         <tr>
                             <th class="ticketing-col-number">
-                                شماره
+                                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.44f38a21f4262e6ac443')) ?>
                             </th>
 
                             <th class="ticketing-col-title">
-                                عنوان و موضوع
+                                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.73eda8c4e6f165dc212d')) ?>
                             </th>
 
                             <th class="ticketing-col-stage">
-                                مرحله و تیم
+                                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.0c00efb25ab5dad74589')) ?>
                             </th>
 
                             <th class="ticketing-col-assignee">
-                                کارشناس جاری
+                                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.6db8acf90a6a2d79194f')) ?>
                             </th>
 
                             <th class="ticketing-col-priority">
-                                اولویت
+                                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.1b7fde85a260fc820c59')) ?>
                             </th>
 
                             <th class="ticketing-col-status">
-                                وضعیت
+                                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.b439d0b64417e081ba58')) ?>
                             </th>
 
                             <th class="ticketing-col-activity">
-                                آخرین فعالیت
+                                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.8c53f59ba3fb7f01e911')) ?>
                             </th>
 
                             <th class="ticketing-col-actions">
-                                عملیات
+                                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.7a89f0ee392778207da2')) ?>
                             </th>
                         </tr>
                         </thead>
@@ -1358,9 +1370,9 @@ ob_start();
 
                             $escalationTooltip =
                                 $escalationTarget !== ''
-                                    ? 'ارجاع به '
+                                    ? $uiText('ticketing.t2.ticketing-staff.ui.9ef6ddd1e1e4f5b9ecf1')
                                         . $escalationTarget
-                                    : 'ارجاع به سطح بالاتر';
+                                    : $uiText('ticketing.t2.ticketing-staff.ui.af20d33edd74699dbf20');
 
 
                             /*
@@ -1472,7 +1484,7 @@ ob_start();
                                             $ticket[
                                                 'support_topic_title_snapshot'
                                             ]
-                                            ?? '—'
+                                            ?? $uiText('ticketing.t2.ticketing-staff.ui.791881aaca58a8132824')
                                         ) ?>
                                     </div>
 
@@ -1486,7 +1498,7 @@ ob_start();
                                             $ticket[
                                                 'layer_title'
                                             ]
-                                            ?? '—'
+                                            ?? $uiText('ticketing.t2.ticketing-staff.ui.791881aaca58a8132824')
                                         ) ?>
                                     </strong>
 
@@ -1495,7 +1507,7 @@ ob_start();
                                             $ticket[
                                                 'team_title'
                                             ]
-                                            ?? '—'
+                                            ?? $uiText('ticketing.t2.ticketing-staff.ui.791881aaca58a8132824')
                                         ) ?>
                                     </div>
 
@@ -1509,7 +1521,7 @@ ob_start();
                                             ? ' ticketing-assignee-name--mine'
                                             : '' ?>"
                                         <?php if ($isAssignedToViewer): ?>
-                                            title="این تیکت به شما تخصیص داده شده است"
+                                            title="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.38b815c41e0790b3bc18')) ?>"
                                         <?php endif; ?>
                                     >
                                         <?= ticketing_h(
@@ -1524,7 +1536,7 @@ ob_start();
                                                 ? $ticket[
                                                     'assignee_name'
                                                 ]
-                                                : 'بدون کارشناس'
+                                                : $uiText('ticketing.t2.ticketing-staff.ui.7278e1b50731394594b4')
                                         ) ?>
                                     </span>
 
@@ -1543,7 +1555,7 @@ ob_start();
                                             $ticket[
                                                 'priority_title'
                                             ]
-                                            ?? '—'
+                                            ?? $uiText('ticketing.t2.ticketing-staff.ui.791881aaca58a8132824')
                                         ) ?>
                                     </span>
 
@@ -1557,7 +1569,7 @@ ob_start();
                                             $ticket[
                                                 'status_title'
                                             ]
-                                            ?? '—'
+                                            ?? $uiText('ticketing.t2.ticketing-staff.ui.791881aaca58a8132824')
                                         ) ?>
                                     </span>
 
@@ -1576,7 +1588,7 @@ ob_start();
                                                     ?? ''
                                                 )
                                             )
-                                        ?: '—'
+                                        ?: $uiText('ticketing.t2.ticketing-staff.ui.791881aaca58a8132824')
                                     ) ?>
 
                                 </td>
@@ -1592,9 +1604,9 @@ ob_start();
                                             href="<?= ticketing_h(
                                                 $ticketUrl
                                             ) ?>"
-                                            aria-label="مشاهده تیکت"
-                                            title="مشاهده تیکت"
-                                            data-tooltip="مشاهده تیکت"
+                                            aria-label="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.9c97b57c73ce534717c7')) ?>"
+                                            title="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.9c97b57c73ce534717c7')) ?>"
+                                            data-tooltip="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.9c97b57c73ce534717c7')) ?>"
                                         >
                                             <?= \App\Support\TicketingIcon::svg(
                                                 'view'
@@ -1623,9 +1635,9 @@ ob_start();
                                                 <button
                                                     type="submit"
                                                     class="ticketing-icon-action ticketing-icon-action--takeover"
-                                                    aria-label="تحویل گرفتن تیکت"
-                                                    title="تحویل گرفتن تیکت"
-                                                    data-tooltip="تحویل گرفتن تیکت"
+                                                    aria-label="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.1896adc02cc861ae1fcb')) ?>"
+                                                    title="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.1896adc02cc861ae1fcb')) ?>"
+                                                    data-tooltip="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.1896adc02cc861ae1fcb')) ?>"
                                                 >
                                                     <?= \App\Support\TicketingIcon::svg(
                                                         'takeover'
@@ -1644,9 +1656,9 @@ ob_start();
 
                                                 <summary
                                                     class="ticketing-icon-action ticketing-icon-action--transfer"
-                                                    aria-label="انتقال به کارشناس دیگر"
-                                                    title="انتقال به کارشناس دیگر"
-                                                    data-tooltip="انتقال به کارشناس دیگر"
+                                                    aria-label="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.bce60232b273b14b5dc1')) ?>"
+                                                    title="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.bce60232b273b14b5dc1')) ?>"
+                                                    data-tooltip="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.bce60232b273b14b5dc1')) ?>"
                                                 >
                                                     <?= \App\Support\TicketingIcon::svg(
                                                         'transfer'
@@ -1657,7 +1669,7 @@ ob_start();
                                                 <div class="ticketing-transfer-menu__body">
 
                                                     <strong>
-                                                        انتقال به کارشناس
+                                                        <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.3565ae78babcb27857d8')) ?>
                                                     </strong>
 
                                                     <form
@@ -1679,10 +1691,10 @@ ob_start();
                                                         <select
                                                             name="target_member_id"
                                                             required
-                                                            aria-label="کارشناس مقصد"
+                                                            aria-label="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.ba0ba73416cab4a7f656')) ?>"
                                                         >
                                                             <option value="">
-                                                                کارشناس مقصد را انتخاب کنید
+                                                                <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.f2d1724fcc4f81b6090d')) ?>
                                                             </option>
 
                                                             <?php foreach (
@@ -1716,9 +1728,9 @@ ob_start();
                                                         <button
                                                             type="submit"
                                                             class="ticketing-icon-action ticketing-icon-action--primary"
-                                                            aria-label="تأیید انتقال"
-                                                            title="تأیید انتقال"
-                                                            data-tooltip="تأیید انتقال"
+                                                            aria-label="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.13d8830096292946a992')) ?>"
+                                                            title="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.13d8830096292946a992')) ?>"
+                                                            data-tooltip="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.13d8830096292946a992')) ?>"
                                                         >
                                                             <?= \App\Support\TicketingIcon::svg(
                                                                 'confirm'
@@ -1745,7 +1757,7 @@ ob_start();
                                                 class="ticketing-inline-operation-form"
                                                 onsubmit="return confirm('<?= ticketing_h(
                                                     $escalationTooltip
-                                                ) ?> انجام شود؟');"
+                                                ) ?> <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.cc6995f13af5bb88cf21')) ?>');"
                                             >
                                                 <input
                                                     type="hidden"
@@ -1810,7 +1822,7 @@ ob_start();
 
                     <nav
                         class="ticketing-staff-pagination"
-                        aria-label="صفحه‌بندی کارتابل"
+                        aria-label="<?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.a10c54d5dd3233921513')) ?>"
                     >
 
                         <a
@@ -1832,7 +1844,7 @@ ob_start();
                                 ? 'aria-disabled="true" tabindex="-1"'
                                 : '' ?>
                         >
-                            قبلی
+                            <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.a23d53c1677d49558d0d')) ?>
                         </a>
 
 
@@ -1971,7 +1983,7 @@ ob_start();
                                 ? 'aria-disabled="true" tabindex="-1"'
                                 : '' ?>
                         >
-                            بعدی
+                            <?= ticketing_h($uiText('ticketing.t2.ticketing-staff.ui.97b04f16b43984016636')) ?>
                         </a>
 
                     </nav>

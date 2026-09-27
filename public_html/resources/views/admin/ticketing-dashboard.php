@@ -57,6 +57,18 @@ $staffKpis =
         ? $staffDashboard['kpis']
         : [];
 
+$uiText =
+    static function (
+        string $contentKey
+    ): string {
+        return
+            \App\Services\UiContent\UiContentInlineGuide::bodyText(
+                $contentKey,
+                'ticketing',
+                'ticketing-dashboard'
+            );
+    };
+
 
 ob_start();
 ?>
@@ -258,16 +270,16 @@ ob_start();
 
 <nav
     class="admin-breadcrumb"
-    aria-label="breadcrumb"
+    aria-label="<?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.61ee8f376a7683645d04')) ?>"
 >
     <a href="/admin/dashboard">
-        داشبورد
+        <?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.60ad1a5db38273765301')) ?>
     </a>
 
     <span>/</span>
 
     <span>
-        پشتیبانی و تیکتینگ
+        <?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.ba33f14e6f6b94bb03ff')) ?>
     </span>
 </nav>
 
@@ -286,19 +298,18 @@ ob_start();
 
             <?php if ($isStaff): ?>
 
-                <h1>داشبورد پشتیبانی</h1>
+                <h1><?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.d857044fbaacab1d4917')) ?></h1>
 
                 <p>
-                    نمای خلاصه وضعیت تیکت‌ها
-                    در حوزه دسترسی فعال شما
+                    <?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.bf484426d0fcf8631ba7')) ?>
                 </p>
 
             <?php else: ?>
 
-                <h1>پشتیبانی و تیکتینگ</h1>
+                <h1><?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.ba33f14e6f6b94bb03ff')) ?></h1>
 
                 <p>
-                    ثبت و پیگیری درخواست‌های پشتیبانی
+                    <?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.2609f2a8fc4664d2b2df')) ?>
                 </p>
 
             <?php endif; ?>
@@ -313,7 +324,7 @@ ob_start();
                     class="admin-button"
                     href="/admin/ticketing/staff"
                 >
-                    ورود به کارتابل
+                    <?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.eaacde8745546c3322b8')) ?>
                 </a>
 
             <?php else: ?>
@@ -323,14 +334,14 @@ ob_start();
                            admin-button--soft"
                     href="/admin/ticketing/tickets"
                 >
-                    درخواست‌های من
+                    <?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.99d3b0530436453852be')) ?>
                 </a>
 
                 <a
                     class="admin-button"
                     href="/admin/ticketing/tickets/create"
                 >
-                    درخواست جدید
+                    <?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.d0b92358fdfb020b7c6b')) ?>
                 </a>
 
             <?php endif; ?>
@@ -341,13 +352,13 @@ ob_start();
     <section class="ticketing-dashboard-role">
 
         <div class="ticketing-dashboard-role__caption">
-            دسترسی فعال در ماژول تیکتینگ
+            <?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.9f657a11ccb7617a8db3')) ?>
         </div>
 
         <span class="ticketing-dashboard-role__badge">
             <?= $isStaff
-                ? 'کارتابل کارشناسی'
-                : 'درخواست‌کننده' ?>
+                ? $uiText('ticketing.t2.ticketing-dashboard.ui.62266d56b51138b91422')
+                : $uiText('ticketing.t2.ticketing-dashboard.ui.e177dc229a4b384d8293') ?>
         </span>
 
     </section>
@@ -362,7 +373,7 @@ ob_start();
             <?php foreach ([
                 [
                     'label' =>
-                        'تیکت‌های باز',
+                        $uiText('ticketing.t2.ticketing-dashboard.ui.8f34079d600df45d8a98'),
 
                     'value' =>
                         $staffKpis['open']
@@ -373,7 +384,7 @@ ob_start();
                 ],
                 [
                     'label' =>
-                        'در حال بررسی',
+                        $uiText('ticketing.t2.ticketing-dashboard.ui.98e31f95411090b08e8b'),
 
                     'value' =>
                         $staffKpis[
@@ -386,7 +397,7 @@ ob_start();
                 ],
                 [
                     'label' =>
-                        'حل‌شده',
+                        $uiText('ticketing.t2.ticketing-dashboard.ui.61c2fd097ec51152299b'),
 
                     'value' =>
                         $staffKpis['resolved']
@@ -397,7 +408,7 @@ ob_start();
                 ],
                 [
                     'label' =>
-                        'بسته‌شده',
+                        $uiText('ticketing.t2.ticketing-dashboard.ui.c1b7513ef28ea4e040da'),
 
                     'value' =>
                         $staffKpis['closed']
@@ -455,7 +466,7 @@ ob_start();
             <?php foreach ([
                 [
                     'label' =>
-                        'همه درخواست‌ها',
+                        $uiText('ticketing.t2.ticketing-dashboard.ui.8e357d8f377da95c4141'),
 
                     'value' =>
                         $dashboard['total']
@@ -463,7 +474,7 @@ ob_start();
                 ],
                 [
                     'label' =>
-                        'باز',
+                        $uiText('ticketing.t2.ticketing-dashboard.ui.e5a6fb7e7e34ba103c68'),
 
                     'value' =>
                         $dashboard['open']
@@ -471,7 +482,7 @@ ob_start();
                 ],
                 [
                     'label' =>
-                        'در انتظار',
+                        $uiText('ticketing.t2.ticketing-dashboard.ui.21ce5f83c396748d7d29'),
 
                     'value' =>
                         $dashboard['waiting']
@@ -479,7 +490,7 @@ ob_start();
                 ],
                 [
                     'label' =>
-                        'بسته‌شده',
+                        $uiText('ticketing.t2.ticketing-dashboard.ui.c1b7513ef28ea4e040da'),
 
                     'value' =>
                         $dashboard['closed']
@@ -515,12 +526,11 @@ ob_start();
 
                 <div>
                     <h2>
-                        آخرین درخواست‌های من
+                        <?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.8e87d3cac151bd0971c4')) ?>
                     </h2>
 
                     <p>
-                        آخرین درخواست‌های پشتیبانی
-                        ثبت‌شده توسط حساب کاربری شما
+                        <?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.0d989d9b78f7168b47ca')) ?>
                     </p>
                 </div>
 
@@ -529,7 +539,7 @@ ob_start();
             <?php if ($recent === []): ?>
 
                 <div class="ticketing-dashboard-empty">
-                    هنوز درخواست پشتیبانی ثبت نکرده‌اید.
+                    <?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.f337ee72e8e7c22967a3')) ?>
                 </div>
 
             <?php else: ?>
@@ -542,12 +552,12 @@ ob_start();
                     >
                         <thead>
                         <tr>
-                            <th>شماره</th>
-                            <th>عنوان</th>
-                            <th>اولویت</th>
-                            <th>وضعیت</th>
-                            <th>آخرین فعالیت</th>
-                            <th>عملیات</th>
+                            <th><?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.7e172b54cddef7f93977')) ?></th>
+                            <th><?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.1dcb961aaf2ee3b05247')) ?></th>
+                            <th><?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.8fd58259c995ae3084eb')) ?></th>
+                            <th><?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.cf447d70cd0fc83a4148')) ?></th>
+                            <th><?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.8c691eeb0204e9bdd7a8')) ?></th>
+                            <th><?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.7414b32403bcc5f9c451')) ?></th>
                         </tr>
                         </thead>
 
@@ -631,7 +641,7 @@ ob_start();
                                                     ?? ''
                                                 )
                                             )
-                                        ?: '—'
+                                        ?: $uiText('ticketing.t2.ticketing-dashboard.ui.a320be13613666d9e453')
                                     ) ?>
                                 </td>
 
@@ -644,7 +654,7 @@ ob_start();
                                             $url
                                         ) ?>"
                                     >
-                                        مشاهده
+                                        <?= ticketing_h($uiText('ticketing.t2.ticketing-dashboard.ui.d0e23273c39110db6185')) ?>
                                     </a>
                                 </td>
 

@@ -307,7 +307,11 @@ $router->post(
             . (
                 $state === 'already_active'
                     ? 'already'
-                    : 'joined'
+                    : (
+                        $state === 'pending_approval'
+                            ? 'pending'
+                            : 'joined'
+                    )
             )
         );
     }
@@ -381,7 +385,11 @@ $router->post(
             . (
                 $state === 'already_active'
                     ? 'already'
-                    : 'joined'
+                    : (
+                        $state === 'pending_approval'
+                            ? 'pending'
+                            : 'joined'
+                    )
             )
         );
     }
@@ -481,5 +489,57 @@ $router->post(
                     $error
                 )
             );
+    }
+);
+
+/* TICKETING_PHASE1_PROJECT_SCOPED_AFFILIATION_ROUTES_V1 */
+$router->get(
+    '/admin/support/ticketing/affiliation',
+    function ($request, $response) use ($adminRender, $adminGuard) {
+        $context = $adminGuard($response, '/admin/support/ticketing/membership');
+        if (!is_array($context)) return $context;
+
+        $projectReference = trim((string)$request->input('project_reference', ''));
+        $page = (new \App\Services\Ticketing\TicketRequesterOnboardingService())
+            ->affiliationPage($projectReference, (int)$context['user_id']);
+
+        if (empty($page['ok'])) {
+            return $response->redirect('/admin/support/ticketing/membership?error=requester_project_not_found');
+        }
+
+        return $adminRender($response, 'ticketing-requester-affiliation', [
+            'title' => \App\Services\UiContent\UiContentInlineGuide::bodyText('ticketing.membership.affiliation.page_title', 'ticketing', 'membership'),
+            'context' => $context,
+            'page' => $page,
+            'error' => trim((string)$request->input('error', '')),
+        ]);
+    }
+);
+
+$router->post(
+    '/admin/support/ticketing/affiliation',
+    function ($request, $response) use ($adminGuard) {
+        $context = $adminGuard($response, '/admin/support/ticketing/membership');
+        if (!is_array($context)) return $context;
+
+        $projectReference = trim((string)$request->input('project_reference', ''));
+        $base = '/admin/support/ticketing/affiliation?project_reference=' . rawurlencode($projectReference);
+
+        if (!(new \IPKF\Security\Csrf())->check((string)$request->input('_token', ''))) {
+            return $response->redirect($base . '&error=csrf');
+        }
+
+        $result = (new \App\Services\Ticketing\TicketRequesterOnboardingService())
+            ->requestAffiliation($projectReference, (int)$context['user_id'], [
+                'organization_reference' => $request->input('organization_reference', ''),
+                'position_reference' => $request->input('position_reference', ''),
+                'is_primary' => (string)$request->input('is_primary', '') === '1',
+            ]);
+
+        if (empty($result['ok'])) {
+            return $response->redirect($base . '&error=' . rawurlencode((string)($result['state'] ?? 'request_failed')));
+        }
+
+        return $response->redirect('/admin/support/ticketing/membership?status=affiliation_pending');
     }
 );

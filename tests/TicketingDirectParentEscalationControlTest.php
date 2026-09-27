@@ -156,17 +156,17 @@ $transfer =
 $expect(
     str_contains(
         $transfer,
-        "'can_assign'"
+        "'can_transfer'"
     ),
-    'same_team_transfer_not_guarded_by_can_assign'
+    'same_team_transfer_not_guarded_by_can_transfer'
 );
 
 $expect(
     !str_contains(
         $transfer,
-        "'can_transfer'"
+        "'can_assign'"
     ),
-    'same_team_transfer_still_uses_cross_layer_permission'
+    'same_team_transfer_still_uses_assignment_permission'
 );
 
 

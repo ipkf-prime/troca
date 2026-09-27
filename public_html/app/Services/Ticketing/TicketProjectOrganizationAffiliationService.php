@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Ticketing;
 
+use App\Services\Organization\OrganizationalAffiliationService;
 use IPKF\Database\Connections\ConnectionResolver;
 use PDO;
 use RuntimeException;
@@ -848,6 +849,102 @@ final class TicketProjectOrganizationAffiliationService
             $actorReference,
             $memberId,
         ]);
+    }
+
+
+    /**
+     * Project-scoped organization selection for requester onboarding.
+     * The project/customer/catalog policy remains authoritative.
+     */
+    public function affiliationRequestContext(
+        int $projectId,
+        int $userId
+    ): array {
+        $catalogReferences =
+            $this->boundCatalogReferences($projectId);
+
+        if ($projectId < 1 || $userId < 1 || $catalogReferences === []) {
+            return [
+                'identity_ready' => false,
+                'organizations' => [],
+                'positions' => [],
+                'pending' => [],
+            ];
+        }
+
+        $identity = $this->core->prepare("\n            SELECT users.person_id, persons.public_reference AS person_reference\n            FROM users\n            LEFT JOIN persons ON persons.id = users.person_id\n            WHERE users.id = ?\n              AND users.status = 'active'\n              AND users.deleted_at IS NULL\n            LIMIT 1\n        ");
+        $identity->execute([$userId]);
+        $identityRow = $identity->fetch(PDO::FETCH_ASSOC);
+        $identityReady =
+            is_array($identityRow)
+            && (int)($identityRow['person_id'] ?? 0) > 0
+            && trim((string)($identityRow['person_reference'] ?? '')) !== '';
+
+        $marks = implode(',', array_fill(0, count($catalogReferences), '?'));
+
+        $organizations = $this->core->prepare("\n            SELECT DISTINCT\n                organizations.id,\n                organizations.public_reference,\n                COALESCE(NULLIF(organizations.title_fa, ''), organizations.title) AS title\n            FROM organization_catalog_entries AS entries\n            INNER JOIN organization_catalogs AS catalogs\n              ON catalogs.id = entries.catalog_id\n             AND catalogs.status = 'active'\n            INNER JOIN organizations\n              ON organizations.id = entries.organization_id\n             AND organizations.is_active = 1\n             AND organizations.deleted_at IS NULL\n            WHERE entries.status = 'active'\n              AND catalogs.public_reference IN ({$marks})\n            ORDER BY title, organizations.id\n        ");
+        $organizations->execute($catalogReferences);
+        $organizationRows = $organizations->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $organizationIds = array_values(array_filter(array_map(
+            static fn(array $row): int => (int)($row['id'] ?? 0),
+            $organizationRows
+        ), static fn(int $id): bool => $id > 0));
+
+        $positions = [];
+        if ($organizationIds !== []) {
+            $idMarks = implode(',', array_fill(0, count($organizationIds), '?'));
+            $positionStatement = $this->core->prepare("\n                SELECT\n                    org_positions.public_reference,\n                    organizations.public_reference AS organization_reference,\n                    COALESCE(\n                        NULLIF(org_positions.title_fa, ''),\n                        NULLIF(org_positions.title_override, ''),\n                        position_catalog.title\n                    ) AS title,\n                    COALESCE(NULLIF(org_units.title_fa, ''), org_units.title) AS unit_title\n                FROM organization_positions AS org_positions\n                INNER JOIN organizations\n                  ON organizations.id = org_positions.organization_id\n                INNER JOIN positions AS position_catalog\n                  ON position_catalog.id = org_positions.position_id\n                LEFT JOIN org_units ON org_units.id = org_positions.org_unit_id\n                WHERE org_positions.status = 'active'\n                  AND organizations.is_active = 1\n                  AND org_positions.organization_id IN ({$idMarks})\n                ORDER BY organizations.id, unit_title, title, org_positions.id\n            ");
+            $positionStatement->execute($organizationIds);
+            $positions = $positionStatement->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        }
+
+        $pending = $this->core->prepare("\n            SELECT DISTINCT\n                memberships.public_reference AS membership_reference,\n                organizations.public_reference AS organization_reference,\n                COALESCE(NULLIF(organizations.title_fa, ''), organizations.title) AS organization_title\n            FROM organization_memberships AS memberships\n            INNER JOIN organizations\n              ON organizations.id = memberships.organization_id\n            INNER JOIN organization_catalog_entries AS entries\n              ON entries.organization_id = organizations.id\n             AND entries.status = 'active'\n            INNER JOIN organization_catalogs AS catalogs\n              ON catalogs.id = entries.catalog_id\n             AND catalogs.status = 'active'\n            INNER JOIN organization_membership_verifications AS verifications\n              ON verifications.membership_id = memberships.id\n             AND verifications.verification_type_code = 'organizational_affiliation'\n             AND verifications.status_code = 'pending'\n            WHERE memberships.user_id = ?\n              AND memberships.status = 'active'\n              AND memberships.verification_state_code = 'unverified'\n              AND organizations.is_active = 1\n              AND catalogs.public_reference IN ({$marks})\n            ORDER BY memberships.id DESC\n        ");
+        $pending->execute(array_merge([$userId], $catalogReferences));
+
+        return [
+            'identity_ready' => $identityReady,
+            'organizations' => $organizationRows,
+            'positions' => $positions,
+            'pending' => $pending->fetchAll(PDO::FETCH_ASSOC) ?: [],
+        ];
+    }
+
+
+    public function requestAffiliationForProject(
+        int $projectId,
+        int $userId,
+        array $input
+    ): string {
+        $context = $this->affiliationRequestContext($projectId, $userId);
+
+        if (empty($context['identity_ready'])) {
+            throw new RuntimeException('affiliation_person_required');
+        }
+
+        $organizationReference = trim((string)($input['organization_reference'] ?? ''));
+        $allowed = false;
+
+        foreach ((array)($context['organizations'] ?? []) as $organization) {
+            $candidate = trim((string)($organization['public_reference'] ?? ''));
+            if ($candidate !== '' && $organizationReference !== '' && hash_equals($candidate, $organizationReference)) {
+                $allowed = true;
+                break;
+            }
+        }
+
+        if (!$allowed) {
+            throw new RuntimeException('requester_affiliation_organization_invalid');
+        }
+
+        return (new OrganizationalAffiliationService($this->core))->request(
+            $userId,
+            [
+                'organization_reference' => $organizationReference,
+                'position_reference' => trim((string)($input['position_reference'] ?? '')),
+                'is_primary' => !empty($input['is_primary']),
+            ]
+        );
     }
 
 

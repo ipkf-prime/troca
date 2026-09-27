@@ -61,32 +61,38 @@ final class TicketRequesterOnboardingService
             $openProjects
             as &$openProject
         ) {
+            $projectId = (int)($openProject['id'] ?? 0);
+
             $organizationContext =
                 $this->organizationAffiliations
                     ->projectAffiliationOptions(
-                        (int) (
-                            $openProject['id']
-                            ?? 0
-                        ),
+                        $projectId,
                         $userId
                     );
 
-            $openProject[
-                'organization_context_required'
-            ] =
-                !empty(
-                    $organizationContext[
-                        'required'
-                    ]
-                );
+            $requestContext =
+                $this->organizationAffiliations
+                    ->affiliationRequestContext(
+                        $projectId,
+                        $userId
+                    );
 
-            $openProject[
-                'eligible_affiliations'
-            ] =
-                $organizationContext[
-                    'items'
-                ]
-                ?? [];
+            $openProject['organization_context_required'] =
+                !empty($organizationContext['required']);
+
+            $openProject['eligible_affiliations'] =
+                $organizationContext['items'] ?? [];
+
+            $openProject['affiliation_pending'] =
+                $openProject['eligible_affiliations'] === []
+                && ($requestContext['pending'] ?? []) !== [];
+
+            $openProject['affiliation_request_url'] =
+                '/admin/support/ticketing/affiliation?project_reference='
+                . rawurlencode((string)($openProject['public_reference'] ?? ''));
+
+            $openProject['membership_request_pending'] =
+                $this->pendingMembershipRequest($projectId, $userId) !== null;
         }
 
         unset($openProject);
@@ -236,6 +242,7 @@ final class TicketRequesterOnboardingService
                 $this->ticketing->prepare("
                     SELECT
                         invites.id AS invite_id,
+                        invites.public_reference AS invite_reference,
                         invites.project_id,
                         invites.status_code,
                         invites.max_uses,
@@ -248,7 +255,9 @@ final class TicketRequesterOnboardingService
                         projects.code,
                         projects.title,
 
-                        access.invite_join_enabled
+                        access.invite_join_enabled,
+                        access.membership_mode,
+                        access.approval_mode
 
                     FROM ticketing_support_project_invites AS invites
 
@@ -334,77 +343,97 @@ final class TicketRequesterOnboardingService
                 );
             }
 
-            $membership =
-                $this->ensureMembership(
-                    (int) $invite['project_id'],
-                    $userId
-                );
+            $projectId = (int)$invite['project_id'];
 
             $affiliation =
                 $this->organizationAffiliations
                     ->resolveForProject(
-                        (int) $invite['project_id'],
+                        $projectId,
                         $userId,
                         $organizationMembershipReference
                     );
 
-            $userReference =
-                'user:' . $userId;
+            $userReference = 'user:' . $userId;
 
-            $this->organizationAffiliations
-                ->applyToProjectMember(
-                    (int) $membership['id'],
+            if (strtolower(trim((string)($invite['approval_mode'] ?? 'auto'))) === 'manager') {
+                $request = $this->createMembershipRequest(
+                    $projectId,
+                    $userId,
                     $affiliation,
-                    $userReference,
-                    (
-                        (string) (
-                            $membership['state']
-                            ?? ''
-                        )
-                        !== 'already_active'
-                    )
+                    'invite',
+                    (string)($invite['invite_reference'] ?? '')
                 );
 
-            $insertUse =
-                $this->ticketing->prepare("
-                    INSERT IGNORE INTO
-                        ticketing_support_project_invite_uses
-                    (
-                        invite_id,
-                        project_member_id,
-                        user_reference,
-                        used_at,
-                        created_at
-                    )
-                    VALUES
-                    (
-                        ?,
-                        ?,
-                        ?,
-                        UTC_TIMESTAMP(),
-                        UTC_TIMESTAMP()
-                    )
-                ");
+                if ((string)($request['state'] ?? '') === 'already_active') {
+                    $membership = [
+                        'id' => (int)($request['member_id'] ?? 0),
+                        'state' => 'already_active',
+                        'role_code' => (string)($request['role_code'] ?? 'requester'),
+                    ];
+                } else {
+                    $membership = [
+                        'id' => 0,
+                        'state' => 'pending_approval',
+                        'role_code' => 'requester',
+                        'request_reference' => (string)($request['public_reference'] ?? ''),
+                    ];
+                }
+            } else {
+                $membership = $this->ensureMembership($projectId, $userId);
 
-            $insertUse->execute([
-                (int) $invite['invite_id'],
-                (int) $membership['id'],
-                $userReference,
-            ]);
+                $this->organizationAffiliations
+                    ->applyToProjectMember(
+                        (int)$membership['id'],
+                        $affiliation,
+                        $userReference,
+                        (string)($membership['state'] ?? '') !== 'already_active'
+                    );
+            }
 
-            if ($insertUse->rowCount() === 1) {
-                $update =
+            $memberId = (int)($membership['id'] ?? 0);
+
+            if ($memberId > 0) {
+                $insertUse =
                     $this->ticketing->prepare("
-                        UPDATE ticketing_support_project_invites
-                        SET
-                            use_count = use_count + 1,
-                            updated_at = UTC_TIMESTAMP()
-                        WHERE id = ?
+                        INSERT IGNORE INTO
+                            ticketing_support_project_invite_uses
+                        (
+                            invite_id,
+                            project_member_id,
+                            user_reference,
+                            used_at,
+                            created_at
+                        )
+                        VALUES
+                        (
+                            ?,
+                            ?,
+                            ?,
+                            UTC_TIMESTAMP(),
+                            UTC_TIMESTAMP()
+                        )
                     ");
 
-                $update->execute([
-                    (int) $invite['invite_id'],
+                $insertUse->execute([
+                    (int)$invite['invite_id'],
+                    $memberId,
+                    $userReference,
                 ]);
+
+                if ($insertUse->rowCount() === 1) {
+                    $update =
+                        $this->ticketing->prepare("
+                            UPDATE ticketing_support_project_invites
+                            SET
+                                use_count = use_count + 1,
+                                updated_at = UTC_TIMESTAMP()
+                            WHERE id = ?
+                        ");
+
+                    $update->execute([
+                        (int)$invite['invite_id'],
+                    ]);
+                }
             }
 
             $this->ticketing->commit();
@@ -577,7 +606,9 @@ final class TicketRequesterOnboardingService
                 $this->ticketing->prepare("
                     SELECT
                         projects.id,
-                        access.self_join_enabled
+                        access.self_join_enabled,
+                        access.membership_mode,
+                        access.approval_mode
                     FROM ticketing_support_projects AS projects
                     INNER JOIN ticketing_support_project_requester_access AS access
                       ON access.project_id = projects.id
@@ -601,44 +632,61 @@ final class TicketRequesterOnboardingService
                 );
             }
 
+            $membershipMode = strtolower(trim((string)($project['membership_mode'] ?? 'public')));
+            $approvalMode = strtolower(trim((string)($project['approval_mode'] ?? 'auto')));
+
             if (
                 $requireOpenJoin
-                &&
-                (int) $project['self_join_enabled']
-                    !== 1
+                && $membershipMode !== 'public'
+                && (int)$project['self_join_enabled'] !== 1
             ) {
-                throw new \RuntimeException(
-                    'requester_open_join_disabled'
-                );
+                throw new \RuntimeException('requester_open_join_disabled');
             }
 
-            $membership =
-                $this->ensureMembership(
-                    (int) $project['id'],
-                    $userId
-                );
+            $projectId = (int)$project['id'];
 
             $affiliation =
                 $this->organizationAffiliations
                     ->resolveForProject(
-                        (int) $project['id'],
+                        $projectId,
                         $userId,
                         $organizationMembershipReference
                     );
 
-            $this->organizationAffiliations
-                ->applyToProjectMember(
-                    (int) $membership['id'],
+            if ($approvalMode === 'manager') {
+                $request = $this->createMembershipRequest(
+                    $projectId,
+                    $userId,
                     $affiliation,
-                    'user:' . $userId,
-                    (
-                        (string) (
-                            $membership['state']
-                            ?? ''
-                        )
-                        !== 'already_active'
-                    )
+                    'open',
+                    null
                 );
+
+                if ((string)($request['state'] ?? '') === 'already_active') {
+                    $membership = [
+                        'id' => (int)($request['member_id'] ?? 0),
+                        'state' => 'already_active',
+                        'role_code' => (string)($request['role_code'] ?? 'requester'),
+                    ];
+                } else {
+                    $membership = [
+                        'id' => 0,
+                        'state' => 'pending_approval',
+                        'role_code' => 'requester',
+                        'request_reference' => (string)($request['public_reference'] ?? ''),
+                    ];
+                }
+            } else {
+                $membership = $this->ensureMembership($projectId, $userId);
+
+                $this->organizationAffiliations
+                    ->applyToProjectMember(
+                        (int)$membership['id'],
+                        $affiliation,
+                        'user:' . $userId,
+                        (string)($membership['state'] ?? '') !== 'already_active'
+                    );
+            }
 
             $this->ticketing->commit();
 
@@ -1153,6 +1201,292 @@ final class TicketRequesterOnboardingService
             is_array($row)
                 ? $row
                 : null;
+    }
+
+
+    public function affiliationPage(string $projectReference, int $userId): array
+    {
+        $project = $this->projectByReference($projectReference);
+        if ($project === null) {
+            return ['ok' => false, 'state' => 'requester_project_not_found'];
+        }
+
+        return [
+            'ok' => true,
+            'project' => $project,
+            'context' => $this->organizationAffiliations
+                ->affiliationRequestContext((int)$project['id'], $userId),
+        ];
+    }
+
+
+    public function requestAffiliation(
+        string $projectReference,
+        int $userId,
+        array $input
+    ): array {
+        $project = $this->projectByReference($projectReference);
+        if ($project === null) {
+            return ['ok' => false, 'state' => 'requester_project_not_found'];
+        }
+
+        try {
+            $reference = $this->organizationAffiliations
+                ->requestAffiliationForProject((int)$project['id'], $userId, $input);
+
+            return [
+                'ok' => true,
+                'state' => 'affiliation_pending',
+                'membership_reference' => $reference,
+            ];
+        } catch (Throwable $exception) {
+            return ['ok' => false, 'state' => $exception->getMessage()];
+        }
+    }
+
+
+    public function membershipRequestsForManager(string $projectReference, int $actorUserId): array
+    {
+        $project = $this->projectByReference($projectReference);
+        if ($project === null) {
+            return ['ok' => false, 'state' => 'requester_project_not_found', 'project' => null, 'requests' => []];
+        }
+        if (!$this->canManageMembershipRequests((int)$project['id'], $actorUserId)) {
+            return ['ok' => false, 'state' => 'requester_membership_manage_forbidden', 'project' => $project, 'requests' => []];
+        }
+
+        $statement = $this->ticketing->prepare("\n            SELECT\n                requests.public_reference,\n                requests.user_reference,\n                requests.core_organization_membership_reference,\n                requests.organization_reference_snapshot,\n                requests.organization_title_snapshot,\n                requests.organization_role_code_snapshot,\n                requests.status_code,\n                requests.source_code,\n                requests.requested_at\n            FROM ticketing_support_project_membership_requests AS requests\n            WHERE requests.project_id = ?\n              AND requests.status_code = 'pending'\n            ORDER BY requests.requested_at, requests.id\n        ");
+        $statement->execute([(int)$project['id']]);
+
+        $requests = $statement->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        foreach ($requests as &$request) {
+            $request['requester_display_name'] = (string)($request['user_reference'] ?? '');
+            if (preg_match('/^user:(\d+)$/', (string)($request['user_reference'] ?? ''), $match) === 1) {
+                $user = $this->coreUser((int)$match[1]);
+                if (is_array($user) && trim((string)($user['display_name'] ?? '')) !== '') {
+                    $request['requester_display_name'] = (string)$user['display_name'];
+                }
+            }
+        }
+        unset($request);
+
+        return [
+            'ok' => true,
+            'project' => $project,
+            'requests' => $requests,
+        ];
+    }
+
+
+    public function decideMembershipRequest(
+        string $projectReference,
+        string $requestReference,
+        string $decision,
+        int $actorUserId,
+        string $decisionNote = ''
+    ): array {
+        $project = $this->projectByReference($projectReference);
+        if ($project === null) {
+            return ['ok' => false, 'state' => 'requester_project_not_found'];
+        }
+        if (!$this->canManageMembershipRequests((int)$project['id'], $actorUserId)) {
+            return ['ok' => false, 'state' => 'requester_membership_manage_forbidden'];
+        }
+
+        $decision = strtolower(trim($decision));
+        if (!in_array($decision, ['approve', 'reject'], true)) {
+            return ['ok' => false, 'state' => 'requester_membership_decision_invalid'];
+        }
+
+        $this->ticketing->beginTransaction();
+
+        try {
+            $statement = $this->ticketing->prepare("\n                SELECT *\n                FROM ticketing_support_project_membership_requests\n                WHERE public_reference = ?\n                  AND project_id = ?\n                  AND status_code = 'pending'\n                LIMIT 1\n                FOR UPDATE\n            ");
+            $statement->execute([trim($requestReference), (int)$project['id']]);
+            $request = $statement->fetch(PDO::FETCH_ASSOC);
+
+            if (!is_array($request)) {
+                $this->ticketing->rollBack();
+                return ['ok' => false, 'state' => 'requester_membership_request_not_found'];
+            }
+
+            if ($decision === 'reject') {
+                $update = $this->ticketing->prepare("\n                    UPDATE ticketing_support_project_membership_requests\n                    SET status_code = 'rejected',\n                        pending_lock_key = NULL,\n                        decided_by_user_reference = ?,\n                        decision_note = ?,\n                        decided_at = UTC_TIMESTAMP(),\n                        updated_at = UTC_TIMESTAMP()\n                    WHERE id = ?\n                ");
+                $update->execute([
+                    'user:' . $actorUserId,
+                    mb_substr(trim($decisionNote), 0, 500),
+                    (int)$request['id'],
+                ]);
+                $this->ticketing->commit();
+                return ['ok' => true, 'state' => 'requester_membership_rejected'];
+            }
+
+            $userReference = trim((string)($request['user_reference'] ?? ''));
+            if (preg_match('/^user:(\\d+)$/', $userReference, $match) !== 1) {
+                throw new \RuntimeException('requester_user_reference_invalid');
+            }
+
+            $userId = (int)$match[1];
+            $affiliation = $this->organizationAffiliations->resolveForProject(
+                (int)$project['id'],
+                $userId,
+                (string)($request['core_organization_membership_reference'] ?? '')
+            );
+
+            $membership = $this->ensureMembership((int)$project['id'], $userId);
+            $this->organizationAffiliations->applyToProjectMember(
+                (int)$membership['id'],
+                $affiliation,
+                'user:' . $actorUserId,
+                true
+            );
+
+            $update = $this->ticketing->prepare("\n                UPDATE ticketing_support_project_membership_requests\n                SET status_code = 'approved',\n                    pending_lock_key = NULL,\n                    decided_by_user_reference = ?,\n                    decision_note = ?,\n                    decided_at = UTC_TIMESTAMP(),\n                    updated_at = UTC_TIMESTAMP()\n                WHERE id = ?\n            ");
+            $update->execute([
+                'user:' . $actorUserId,
+                mb_substr(trim($decisionNote), 0, 500),
+                (int)$request['id'],
+            ]);
+
+            if ((string)($request['source_code'] ?? '') === 'invite') {
+                $inviteReference = trim((string)($request['source_reference'] ?? ''));
+                if ($inviteReference !== '') {
+                    $invite = $this->ticketing->prepare("\n                        SELECT id, max_uses, use_count\n                        FROM ticketing_support_project_invites\n                        WHERE public_reference = ?\n                          AND status_code = 'active'\n                        LIMIT 1\n                        FOR UPDATE\n                    ");
+                    $invite->execute([$inviteReference]);
+                    $inviteRow = $invite->fetch(PDO::FETCH_ASSOC);
+                    if (!is_array($inviteRow)) {
+                        throw new \RuntimeException('requester_invite_inactive');
+                    }
+                    if ($inviteRow['max_uses'] !== null && (int)$inviteRow['use_count'] >= (int)$inviteRow['max_uses']) {
+                        throw new \RuntimeException('requester_invite_exhausted');
+                    }
+
+                    $use = $this->ticketing->prepare("\n                        INSERT IGNORE INTO ticketing_support_project_invite_uses\n                        (invite_id, project_member_id, user_reference, used_at, created_at)\n                        VALUES (?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())\n                    ");
+                    $use->execute([(int)$inviteRow['id'], (int)$membership['id'], $userReference]);
+                    if ($use->rowCount() === 1) {
+                        $bump = $this->ticketing->prepare("\n                            UPDATE ticketing_support_project_invites\n                            SET use_count = use_count + 1, updated_at = UTC_TIMESTAMP()\n                            WHERE id = ?\n                        ");
+                        $bump->execute([(int)$inviteRow['id']]);
+                    }
+                }
+            }
+
+            $this->ticketing->commit();
+            return ['ok' => true, 'state' => 'requester_membership_approved', 'member_id' => (int)$membership['id']];
+
+        } catch (Throwable $exception) {
+            if ($this->ticketing->inTransaction()) {
+                $this->ticketing->rollBack();
+            }
+            throw $exception;
+        }
+    }
+
+
+    private function createMembershipRequest(
+        int $projectId,
+        int $userId,
+        ?array $affiliation,
+        string $sourceCode,
+        ?string $sourceReference
+    ): array {
+        if ($projectId < 1 || $userId < 1 || !is_array($affiliation)) {
+            throw new \RuntimeException('requester_affiliation_required');
+        }
+
+        $membershipReference = trim((string)($affiliation['membership_reference'] ?? ''));
+        $organizationReference = trim((string)($affiliation['organization_reference'] ?? ''));
+        if ($membershipReference === '' || $organizationReference === '') {
+            throw new \RuntimeException('requester_affiliation_invalid');
+        }
+
+        $userReference = 'user:' . $userId;
+        $active = $this->ticketing->prepare("\n            SELECT id, role_code\n            FROM ticketing_support_project_members\n            WHERE project_id = ? AND user_reference = ? AND left_at IS NULL\n            LIMIT 1\n            FOR UPDATE\n        ");
+        $active->execute([$projectId, $userReference]);
+        $activeMember = $active->fetch(PDO::FETCH_ASSOC);
+        if (is_array($activeMember)) {
+            return [
+                'public_reference' => '',
+                'state' => 'already_active',
+                'member_id' => (int)$activeMember['id'],
+                'role_code' => (string)($activeMember['role_code'] ?? 'requester'),
+            ];
+        }
+
+        $pendingLockKey =
+            (string)$projectId
+            . '|'
+            . $userReference;
+
+        $reference =
+            'TMR-'
+            . strtoupper(
+                bin2hex(
+                    random_bytes(10)
+                )
+            );
+
+        $insert = $this->ticketing->prepare("\n            INSERT INTO ticketing_support_project_membership_requests\n            (\n                public_reference, project_id, user_reference,\n                core_organization_membership_reference,\n                organization_reference_snapshot, organization_title_snapshot,\n                organization_role_code_snapshot, status_code, pending_lock_key,\n                source_code, source_reference, requested_by_user_reference,\n                requested_at, created_at, updated_at\n            )\n            VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP(), UTC_TIMESTAMP())\n            ON DUPLICATE KEY UPDATE\n                core_organization_membership_reference = VALUES(core_organization_membership_reference),\n                organization_reference_snapshot = VALUES(organization_reference_snapshot),\n                organization_title_snapshot = VALUES(organization_title_snapshot),\n                organization_role_code_snapshot = VALUES(organization_role_code_snapshot),\n                source_code = VALUES(source_code),\n                source_reference = VALUES(source_reference),\n                requested_by_user_reference = VALUES(requested_by_user_reference),\n                requested_at = UTC_TIMESTAMP(),\n                updated_at = UTC_TIMESTAMP()\n        ");
+        $insert->execute([
+            $reference,
+            $projectId,
+            $userReference,
+            $membershipReference,
+            $organizationReference,
+            (string)($affiliation['organization_title'] ?? ''),
+            (string)($affiliation['organization_role_code'] ?? ''),
+            $pendingLockKey,
+            mb_substr(trim($sourceCode), 0, 30),
+            $sourceReference !== null ? mb_substr(trim($sourceReference), 0, 100) : null,
+            $userReference,
+        ]);
+
+        $lookup = $this->ticketing->prepare("\n            SELECT public_reference, status_code\n            FROM ticketing_support_project_membership_requests\n            WHERE pending_lock_key = ?\n              AND status_code = 'pending'\n            LIMIT 1\n            FOR UPDATE\n        ");
+        $lookup->execute([$pendingLockKey]);
+        $row = $lookup->fetch(PDO::FETCH_ASSOC);
+
+        if (!is_array($row)) {
+            throw new \RuntimeException('requester_membership_request_failed');
+        }
+
+        return $row;
+    }
+
+
+    private function canManageMembershipRequests(int $projectId, int $actorUserId): bool
+    {
+        if ($projectId < 1 || $actorUserId < 1) return false;
+        try {
+            if ((new \App\Services\AuthorizationService())->hasPermission($actorUserId, 'ticketing.project.manage')) return true;
+        } catch (\Throwable) {
+        }
+        try {
+            return (new TicketingProjectScopedAccessService())->isProjectManager($actorUserId, $projectId);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+
+    private function pendingMembershipRequest(int $projectId, int $userId): ?array
+    {
+        if ($projectId < 1 || $userId < 1) {
+            return null;
+        }
+
+        $statement = $this->ticketing->prepare("\n            SELECT public_reference, status_code, requested_at\n            FROM ticketing_support_project_membership_requests\n            WHERE project_id = ?\n              AND user_reference = ?\n              AND status_code = 'pending'\n            ORDER BY id DESC\n            LIMIT 1\n        ");
+        $statement->execute([$projectId, 'user:' . $userId]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        return is_array($row) ? $row : null;
+    }
+
+
+    private function projectByReference(string $reference): ?array
+    {
+        $statement = $this->ticketing->prepare("\n            SELECT id, public_reference, code, title, description\n            FROM ticketing_support_projects\n            WHERE public_reference = ?\n              AND is_active = 1\n              AND archived_at IS NULL\n            LIMIT 1\n        ");
+        $statement->execute([trim($reference)]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+        return is_array($row) ? $row : null;
     }
 
 
@@ -1829,7 +2163,7 @@ final class TicketRequesterOnboardingService
                   ON access.project_id = projects.id
                 WHERE projects.is_active = 1
                   AND projects.archived_at IS NULL
-                  AND access.self_join_enabled = 1
+                  AND (access.membership_mode = 'public' OR access.self_join_enabled = 1)
                 ORDER BY projects.sort_order, projects.title, projects.id
             ")->fetchAll(PDO::FETCH_ASSOC)
             ?: [];

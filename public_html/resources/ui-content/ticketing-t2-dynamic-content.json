@@ -1,0 +1,1076 @@
+[
+    {
+        "key": "ticketing.t2.members.role.project.manager",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "مدیر پروژه"
+    },
+    {
+        "key": "ticketing.t2.members.role.project.member",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "کارشناس"
+    },
+    {
+        "key": "ticketing.t2.members.role.project.requester",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "متقاضی"
+    },
+    {
+        "key": "ticketing.t2.members.role.staff.agent",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "کارشناس"
+    },
+    {
+        "key": "ticketing.t2.members.role.staff.manager",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "مدیر"
+    },
+    {
+        "key": "ticketing.t2.members.role.staff.supervisor",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "سرپرست"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.0d989d9b78f7168b47ca",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "آخرین درخواست‌های پشتیبانی\n                        ثبت‌شده توسط حساب کاربری شما"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.1dcb961aaf2ee3b05247",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "عنوان"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.21ce5f83c396748d7d29",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "در انتظار"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.2609f2a8fc4664d2b2df",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "ثبت و پیگیری درخواست‌های پشتیبانی"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.60ad1a5db38273765301",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "داشبورد"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.61c2fd097ec51152299b",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "حل‌شده"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.61ee8f376a7683645d04",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "breadcrumb"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.62266d56b51138b91422",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "کارتابل کارشناسی"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.7414b32403bcc5f9c451",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "عملیات"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.7e172b54cddef7f93977",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "شماره"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.8c691eeb0204e9bdd7a8",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "آخرین فعالیت"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.8e357d8f377da95c4141",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "همه درخواست‌ها"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.8e87d3cac151bd0971c4",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "آخرین درخواست‌های من"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.8f34079d600df45d8a98",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "تیکت‌های باز"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.8fd58259c995ae3084eb",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "اولویت"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.98e31f95411090b08e8b",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "در حال بررسی"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.99d3b0530436453852be",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "درخواست‌های من"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.9f657a11ccb7617a8db3",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "دسترسی فعال در ماژول تیکتینگ"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.a320be13613666d9e453",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "—"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.ba33f14e6f6b94bb03ff",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "پشتیبانی و تیکتینگ"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.bf484426d0fcf8631ba7",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "نمای خلاصه وضعیت تیکت‌ها\n                    در حوزه دسترسی فعال شما"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.c1b7513ef28ea4e040da",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "بسته‌شده"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.cf447d70cd0fc83a4148",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "وضعیت"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.d0b92358fdfb020b7c6b",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "درخواست جدید"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.d0e23273c39110db6185",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "مشاهده"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.d857044fbaacab1d4917",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "داشبورد پشتیبانی"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.e177dc229a4b384d8293",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "درخواست‌کننده"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.e5a6fb7e7e34ba103c68",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "باز"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.eaacde8745546c3322b8",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "ورود به کارتابل"
+    },
+    {
+        "key": "ticketing.t2.ticketing-dashboard.ui.f337ee72e8e7c22967a3",
+        "module": "ticketing",
+        "surface": "ticketing-dashboard",
+        "body": "هنوز درخواست پشتیبانی ثبت نکرده‌اید."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.00a18ebfac3722763390",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "نتیجه"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.0ca75bb7360eecde674c",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "نمایش بیشتر"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.0ef62b0270cd70fa9f1f",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "عضوی مطابق فیلتر انتخاب‌شده پیدا نشد."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.122046c0a34fdfa9999f",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "عضویت این شخص در پروژه غیرفعال شود؟ سوابق حذف نمی‌شوند."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.14e4d8142ab6f9151470",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "این عضو تیکت باز به‌عنوان درخواست‌کننده دارد و فعلاً امکان این عملیات وجود ندارد."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.1589fa9d03569592fec0",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "مشاهده"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.173e89c8df333e82ba85",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "مدیریت"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.1bff6e5373a919485f26",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "نقش"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.27b400cd569905034c27",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "دسترسی این عضو به تیم غیرفعال شود؟"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.2a99965e6244feca71db",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "نام"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.361dee84f371a70c4c86",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "داشبورد"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.374664a3e15b65031ea8",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "کل سوابق"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.3d9f258473e09c3f669b",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "تیم یا نقش تیمی انتخاب‌شده معتبر نیست."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.3f794ee683a6546bd099",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "اعضا و دسترسی‌ها"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.415ca552c7cc665931cf",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "همکاری"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.422205705d64c19f8f0f",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "غیرفعال"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.439f14360eacad01ed79",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "پروژه موردنظر پیدا نشد."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.4a13b2b07ed2088d829a",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "هنوز عضوی برای این پروژه ثبت نشده است."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.4a4017cf1e3dc7d37031",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "همه نقش‌ها"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.528d6c7bc6d0d467e99c",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "انتقال"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.53c689e820e9bfccd4f0",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "همه وضعیت‌ها"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.53cdfac765d3087c8a87",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "افزودن تیم"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.5a15d8e10d17a331db6d",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "breadcrumb"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.5aaeb11cf0ed8dc68015",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "انتخاب همه نتایج فیلترشده"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.5bb4518a85e69c8dde21",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "لغو انتخاب همه"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.64f2d78a3d3d917fcf18",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "حذف دسترسی"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.674427f597e1da44bfc9",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "افزودن"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.6934dad7415d4e9e687e",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "فعال‌سازی عضویت"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.70c6b322304e4b978d3b",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "عملیات"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.78ab99bb0ff1c876e8f7",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "تیم فعال"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.7ab673f4c95f3a614baa",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "عضویت غیرفعال است."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.7e17c8dfc8396c2e9d29",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "بدون نام"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.816e6b401ba6c148c1aa",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "جستجو"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.84b31a2cdfa36e36d9c5",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "اعضای پروژه"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.87d695cf6cf9665dad0a",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "عضویت پروژه با حفظ سوابق غیرفعال شد."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.8ce3c3675dea377aac14",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "فعال"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.8ffddc1b3018dbb4d9a4",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "عضویت و سطح دسترسی فرد در تیم‌های همین پروژه"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.90f24442a9e0b6579721",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "عضو فعال"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.96228f4531e29c5996eb",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "انتخاب همه نتایج"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.9737d406fd31926130e7",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "پروژه‌های پشتیبانی"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.977c7c28f97ec286de1f",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "مدیر پروژه"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.99427045048acae251c2",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "تغییر نقش پروژه با کنترل تیکت‌های باز انجام می‌شود."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.9c59593a72f935c29d35",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "انتخاب تیم"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.a3bbf7b63515c6ff548a",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "تخصیص"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.a6eb7c678eb718cd2dd5",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "عضو انتخاب‌شده معتبر نیست."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.af48de1a28f3e4314830",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "بستن"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.af604f6096a4e6ec5e27",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "این عضو هنوز تیکت باز در اختیار دارد. ابتدا تیکت جاری باید انتقال یا خاتمه داده شود."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.b1e6042b1a65f7495be4",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "دسترسی تیمی غیرفعال شد."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.b22eab9d3fad79ae9290",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "اعتبار فرم منقضی شده است. صفحه را تازه‌سازی کنید."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.b43695d4df8a98a177e3",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "دسترسی تیمی فقط برای نقش کارشناس یا مدیر پروژه قابل ثبت است."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.b5bddcdaeec0ceb00fbe",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "انتخاب"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.b9a0fe239089f3c353dc",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "مدیریت اعضا، نقش‌ها و دسترسی‌های پشتیبانی\n            —"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.bddea808def0911135b5",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "نقش پروژه با موفقیت ذخیره شد."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.bf46d4142bad117c3781",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "باز درخواست‌کننده"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.c1775e70f3e8d14ea749",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "نقش و عضویت"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.c2377e27105459c195ba",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "تیکت‌ها"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.c344d6ba1693bdf6b7f7",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "لغو عضویت"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.cc23ef927918c319937e",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "بازگشت به پروژه"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.cff8f41f63875a71fb77",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "وضعیت"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.d006500c9d1f65353ce3",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "کارکنان پشتیبانی"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.d20ab9d6e45e133186b4",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "نام عضو..."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.d30a98b2f6d529e88098",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "دسترسی تیمی با موفقیت ذخیره شد."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.d3fd013aad99da3dc11a",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "در اختیار"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.d62050ce10a64112be41",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "عملیات موردنظر انجام نشد."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.d626482c0b63bc9b3d87",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "ذخیره"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.da03d51cdc6a2221e70b",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "اطلاعات فنی هویت در این صفحه نمایش داده نمی‌شود."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.debe61cdd4887ec38649",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "متقاضی"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.e7741d88561503bb0793",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "انتخاب‌شده"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.e8b2aa75291665d424ef",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "دسترسی‌های تیمی"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.f1f1eb243ca54b3dd359",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "عضویت پروژه فعال شد."
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.fa817a99b4cd11642e6f",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "ذخیره نقش"
+    },
+    {
+        "key": "ticketing.t2.ticketing-project-members.ui.fd776dc13ae829b77658",
+        "module": "ticketing",
+        "surface": "ticketing-project-members",
+        "body": "در اختیار گرفتن"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.064d69dc4e09020122fb",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "برای این مرحله مسیر ارجاع بالاتر تعریف نشده است."
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.071d1bb1b7d3e0c8bee8",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "روی تیکت بسته‌شده عملیات کارشناسی قابل انجام نیست."
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.0c00efb25ab5dad74589",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "مرحله و تیم"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.0d39243f97342269199e",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "موضوع"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.0ee176859b8fd67b58ab",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "این تیکت هم‌اکنون در اختیار شماست."
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.10ae22df8b5738df36df",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "ثبت جدیدتر"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.11b8ca1a75687d8003b3",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "تیکت با موفقیت تحویل گرفته شد."
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.11da3ae63697b5c61110",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "مرتب‌سازی"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.13d8830096292946a992",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "تأیید انتقال"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.1896adc02cc861ae1fcb",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "تحویل گرفتن تیکت"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.19a40629d2b51d655fcc",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "اولویت بالاتر"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.1b7fde85a260fc820c59",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "اولویت"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.2050947f0773c0fbb4f8",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "بخش‌های کارتابل"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.230ea3cdf3f7fef6a92c",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "کارتابل پشتیبانی"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.2872e00964349a392512",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "تیکت مورد نظر پیدا نشد."
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.2ef1b5d7e02b92fabae7",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "تیکت"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.306cac3cfb7955bdf2d0",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "صف یا تیم سطح بالاتر آماده دریافت تیکت نیست."
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.3565ae78babcb27857d8",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "انتقال به کارشناس"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.36e6fd7dbe89e06e3990",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "تیکت به کارشناس جدید منتقل شد."
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.37396354dbb78b34b3a4",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "همه موضوع‌ها"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.38b815c41e0790b3bc18",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "این تیکت به شما تخصیص داده شده است"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.44f38a21f4262e6ac443",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "شماره"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.457033c98d70994dcff5",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "برای انجام این عملیات مجوز لازم را ندارید."
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.4a96cca3c11856f0e60a",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "فعالیت جدیدتر"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.5523e019aa3ad6a3ba0e",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "پشتیبانی و تیکتینگ"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.5d5cb7e97c87251e9cf2",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "همه سطوح"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.5ea38d80a508d616ce55",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "تیکت به سطح بالاتر ارجاع شد."
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.5f07f69d4e581a676800",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "همه اولویت‌ها"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.669bbb8a20b29026960b",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "موضوع #"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.6a2175dc4a8676799c08",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "داشبورد"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.6db8acf90a6a2d79194f",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "کارشناس جاری"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.6e36cde9d3e46a2702a5",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "عملیات کارشناسی و مدیریت صف‌های پشتیبانی"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.7278e1b50731394594b4",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "بدون کارشناس"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.73eda8c4e6f165dc212d",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "عنوان و موضوع"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.791881aaca58a8132824",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "—"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.7a89f0ee392778207da2",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "عملیات"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.7cb7f5898532c3f33c62",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "همه کارشناسان"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.7cc38b7ee5202a95534b",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "فعالیت قدیمی‌تر"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.7f31f94f1ec6ced3bef0",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "اعتبار فرم منقضی شده است. صفحه را دوباره بارگذاری کنید."
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.8128db7b0d7158c4a56c",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "عملیات انجام نشد."
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.86380b0e00701b3eefa6",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "قابل رسیدگی"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.87242363e136eda9d9b1",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "در سطح مقصد کارشناس قابل تخصیص وجود ندارد."
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.8c53f59ba3fb7f01e911",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "آخرین فعالیت"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.97b04f16b43984016636",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "بعدی"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.9c97b57c73ce534717c7",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "مشاهده تیکت"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.9ef6ddd1e1e4f5b9ecf1",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "ارجاع به "
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.a10c54d5dd3233921513",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "صفحه‌بندی کارتابل"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.a23d53c1677d49558d0d",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "قبلی"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.a25fd73e4724974ff002",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "تیکتی در این بخش وجود ندارد."
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.ad0f38a647689e4a55bd",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "همه وضعیت‌ها"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.af20d33edd74699dbf20",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "ارجاع به سطح بالاتر"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.b439d0b64417e081ba58",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "وضعیت"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.b8155d98258aa4806ceb",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "بازنشانی فیلترها"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.ba0ba73416cab4a7f656",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "کارشناس مقصد"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.bce60232b273b14b5dc1",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "انتقال به کارشناس دیگر"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.c59e71f54a3b85372aa8",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "مرحله"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.c65e37157d5de9bc478e",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "برای حساب شما عضویت فعال در تیم‌های پشتیبانی تعریف نشده است."
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.c8ef80f6664a230ea7a2",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "کارشناس مقصد معتبر نیست."
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.ca18255f5d5bee1a89f6",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "تیکت‌های جاری"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.cb641a78f665fa8c737d",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "شماره تیکت، عنوان، موضوع، پروژه، درخواست‌کننده، سازمان یا کارشناس"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.cc6995f13af5bb88cf21",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "انجام شود؟"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.d126300710bd5e5fc353",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": " — "
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.d2cce2eed5c382e42b36",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "جستجو"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.d71a8ecdbf17a78c57c8",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "این تیکت هنوز وارد مسیر پشتیبانی نشده است."
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.de7724ea6cc1fec57f81",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "کارشناس مقصد با کارشناس جاری یکسان است."
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.df5eeacd1f16c72de583",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "ثبت قدیمی‌تر"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.eb5d8c9dc410c816f330",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "breadcrumb"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.f0b0aece08ead981f12b",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "فیلترهای بیشتر"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.f2d1724fcc4f81b6090d",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "کارشناس مقصد را انتخاب کنید"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.f5498dc9efa6256199dd",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "تخصیص‌یافته به من"
+    },
+    {
+        "key": "ticketing.t2.ticketing-staff.ui.fac812f233987c6d7b1c",
+        "module": "ticketing",
+        "surface": "ticketing-staff",
+        "body": "تعداد در صفحه"
+    }
+]

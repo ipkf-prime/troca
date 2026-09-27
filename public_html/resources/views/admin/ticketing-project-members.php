@@ -165,75 +165,87 @@ $status =
         )
     );
 
+$uiText =
+    static function (
+        string $contentKey
+    ): string {
+        return
+            \App\Services\UiContent\UiContentInlineGuide::bodyText(
+                $contentKey,
+                'ticketing',
+                'ticketing-project-members'
+            );
+    };
+
 $statusMessages = [
     'member_role_saved' => [
         'success',
-        'نقش پروژه با موفقیت ذخیره شد.',
+        $uiText('ticketing.t2.ticketing-project-members.ui.bddea808def0911135b5'),
     ],
 
     'member_revoked' => [
         'success',
-        'عضویت پروژه با حفظ سوابق غیرفعال شد.',
+        $uiText('ticketing.t2.ticketing-project-members.ui.87d695cf6cf9665dad0a'),
     ],
 
     'member_restored' => [
         'success',
-        'عضویت پروژه فعال شد.',
+        $uiText('ticketing.t2.ticketing-project-members.ui.f1f1eb243ca54b3dd359'),
     ],
 
     'team_saved' => [
         'success',
-        'دسترسی تیمی با موفقیت ذخیره شد.',
+        $uiText('ticketing.t2.ticketing-project-members.ui.d30a98b2f6d529e88098'),
     ],
 
     'team_removed' => [
         'success',
-        'دسترسی تیمی غیرفعال شد.',
+        $uiText('ticketing.t2.ticketing-project-members.ui.b1e6042b1a65f7495be4'),
     ],
 
     'requester_open_tickets' => [
         'danger',
-        'این عضو تیکت باز به‌عنوان درخواست‌کننده دارد و فعلاً امکان این عملیات وجود ندارد.',
+        $uiText('ticketing.t2.ticketing-project-members.ui.14e4d8142ab6f9151470'),
     ],
 
     'member_owned_open_tickets' => [
         'danger',
-        'این عضو هنوز تیکت باز در اختیار دارد. ابتدا تیکت جاری باید انتقال یا خاتمه داده شود.',
+        $uiText('ticketing.t2.ticketing-project-members.ui.af604f6096a4e6ec5e27'),
     ],
 
     'member_inactive' => [
         'danger',
-        'عضویت غیرفعال است.',
+        $uiText('ticketing.t2.ticketing-project-members.ui.7ab673f4c95f3a614baa'),
     ],
 
     'member_invalid' => [
         'danger',
-        'عضو انتخاب‌شده معتبر نیست.',
+        $uiText('ticketing.t2.ticketing-project-members.ui.a6eb7c678eb718cd2dd5'),
     ],
 
     'team_invalid' => [
         'danger',
-        'تیم یا نقش تیمی انتخاب‌شده معتبر نیست.',
+        $uiText('ticketing.t2.ticketing-project-members.ui.3d9f258473e09c3f669b'),
     ],
 
     'team_staff_role_required' => [
         'danger',
-        'دسترسی تیمی فقط برای نقش کارشناس یا مدیر پروژه قابل ثبت است.',
+        $uiText('ticketing.t2.ticketing-project-members.ui.b43695d4df8a98a177e3'),
     ],
 
     'project_not_found' => [
         'danger',
-        'پروژه موردنظر پیدا نشد.',
+        $uiText('ticketing.t2.ticketing-project-members.ui.439f14360eacad01ed79'),
     ],
 
     'csrf' => [
         'danger',
-        'اعتبار فرم منقضی شده است. صفحه را تازه‌سازی کنید.',
+        $uiText('ticketing.t2.ticketing-project-members.ui.b22eab9d3fad79ae9290'),
     ],
 
     'failed' => [
         'danger',
-        'عملیات موردنظر انجام نشد.',
+        $uiText('ticketing.t2.ticketing-project-members.ui.d62050ce10a64112be41'),
     ],
 ];
 
@@ -261,22 +273,22 @@ ob_start();
 
 <nav
     class="admin-breadcrumb"
-    aria-label="breadcrumb"
+    aria-label="<?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.5a15d8e10d17a331db6d')) ?>"
 >
     <a href="/admin/dashboard">
-        داشبورد
+        <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.361dee84f371a70c4c86')) ?>
     </a>
 
     <span>/</span>
 
     <a href="/admin/ticketing/projects">
-        پروژه‌های پشتیبانی
+        <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.9737d406fd31926130e7')) ?>
     </a>
 
     <span>/</span>
 
     <span>
-        اعضا و دسترسی‌ها
+        <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.3f794ee683a6546bd099')) ?>
     </span>
 </nav>
 
@@ -286,12 +298,11 @@ ob_start();
 
     <div class="ticketing-standard-page-head__main">
         <h2>
-            اعضا و دسترسی‌ها
+            <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.3f794ee683a6546bd099')) ?>
         </h2>
 
         <p>
-            مدیریت اعضا، نقش‌ها و دسترسی‌های پشتیبانی
-            —
+            <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.b9a0fe239089f3c353dc')) ?>
             <?= ticketing_project_members_h(
                 $project['title']
                 ?? ''
@@ -306,7 +317,7 @@ ob_start();
             . '/edit?tab=membership'
         ) ?>"
     >
-        بازگشت به پروژه
+        <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.cc23ef927918c319937e')) ?>
     </a>
 
 </section>
@@ -339,22 +350,22 @@ ob_start();
     <?php
     $summaryItems = [
         'total' =>
-            'کل سوابق',
+            $uiText('ticketing.t2.ticketing-project-members.ui.374664a3e15b65031ea8'),
 
         'active' =>
-            'عضو فعال',
+            $uiText('ticketing.t2.ticketing-project-members.ui.90f24442a9e0b6579721'),
 
         'requester' =>
-            'متقاضی',
+            $uiText('ticketing.t2.ticketing-project-members.ui.debe61cdd4887ec38649'),
 
         'staff' =>
-            'کارکنان پشتیبانی',
+            $uiText('ticketing.t2.ticketing-project-members.ui.d006500c9d1f65353ce3'),
 
         'manager' =>
-            'مدیر پروژه',
+            $uiText('ticketing.t2.ticketing-project-members.ui.977c7c28f97ec286de1f'),
 
         'inactive' =>
-            'غیرفعال',
+            $uiText('ticketing.t2.ticketing-project-members.ui.422205705d64c19f8f0f'),
     ];
     ?>
 
@@ -392,11 +403,11 @@ ob_start();
 
         <div>
             <h3>
-                اعضای پروژه
+                <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.84b31a2cdfa36e36d9c5')) ?>
             </h3>
 
             <p class="admin-muted">
-                اطلاعات فنی هویت در این صفحه نمایش داده نمی‌شود.
+                <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.da03d51cdc6a2221e70b')) ?>
             </p>
         </div>
 
@@ -410,7 +421,7 @@ ob_start();
             </strong>
 
             <span>
-                نتیجه
+                <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.00a18ebfac3722763390')) ?>
             </span>
         </div>
 
@@ -421,25 +432,25 @@ ob_start();
 
         <label class="ticketing-member-filter-search">
             <span>
-                جستجو
+                <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.816e6b401ba6c148c1aa')) ?>
             </span>
 
             <input
                 type="search"
                 data-member-search
-                placeholder="نام عضو..."
+                placeholder="<?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.d20ab9d6e45e133186b4')) ?>"
                 autocomplete="off"
             >
         </label>
 
         <label>
             <span>
-                نقش
+                <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.1bff6e5373a919485f26')) ?>
             </span>
 
             <select data-member-role-filter>
                 <option value="">
-                    همه نقش‌ها
+                    <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.4a4017cf1e3dc7d37031')) ?>
                 </option>
 
                 <?php foreach (
@@ -457,20 +468,20 @@ ob_start();
 
         <label>
             <span>
-                وضعیت
+                <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.cff8f41f63875a71fb77')) ?>
             </span>
 
             <select data-member-status-filter>
                 <option value="">
-                    همه وضعیت‌ها
+                    <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.53c689e820e9bfccd4f0')) ?>
                 </option>
 
                 <option value="active">
-                    فعال
+                    <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.8ce3c3675dea377aac14')) ?>
                 </option>
 
                 <option value="inactive">
-                    غیرفعال
+                    <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.422205705d64c19f8f0f')) ?>
                 </option>
             </select>
         </label>
@@ -490,7 +501,7 @@ ob_start();
             </strong>
 
             <span>
-                انتخاب‌شده
+                <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.e7741d88561503bb0793')) ?>
             </span>
         </div>
 
@@ -499,7 +510,7 @@ ob_start();
             class="admin-button admin-button--soft"
             data-member-select-filtered
         >
-            انتخاب همه نتایج
+            <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.96228f4531e29c5996eb')) ?>
         </button>
 
         <button
@@ -508,7 +519,7 @@ ob_start();
             data-member-clear-selection
             disabled
         >
-            لغو انتخاب همه
+            <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.5bb4518a85e69c8dde21')) ?>
         </button>
 
         <span class="admin-muted ticketing-member-selection-toolbar__hint">
@@ -519,7 +530,7 @@ ob_start();
     <?php if ($members === []): ?>
 
         <div class="admin-empty-state">
-            هنوز عضوی برای این پروژه ثبت نشده است.
+            <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.4a13b2b07ed2088d829a')) ?>
         </div>
 
     <?php else: ?>
@@ -534,41 +545,41 @@ ob_start();
                             <input
                                 type="checkbox"
                                 data-member-select-all
-                                title="انتخاب همه نتایج فیلترشده"
-                                aria-label="انتخاب همه نتایج فیلترشده"
+                                title="<?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.5aaeb11cf0ed8dc68015')) ?>"
+                                aria-label="<?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.5aaeb11cf0ed8dc68015')) ?>"
                             >
                         </th>
 
                         <th>
-                            نام
+                            <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.2a99965e6244feca71db')) ?>
                         </th>
 
                         <th>
-                            نقش
+                            <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.1bff6e5373a919485f26')) ?>
                         </th>
 
                         <th>
-                            وضعیت
+                            <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.cff8f41f63875a71fb77')) ?>
                         </th>
 
                         <th class="ticketing-member-number">
-                            تیکت‌ها
+                            <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.c2377e27105459c195ba')) ?>
                         </th>
 
                         <th class="ticketing-member-number">
-                            باز درخواست‌کننده
+                            <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.bf46d4142bad117c3781')) ?>
                         </th>
 
                         <th class="ticketing-member-number">
-                            در اختیار
+                            <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.d3fd013aad99da3dc11a')) ?>
                         </th>
 
                         <th class="ticketing-member-number">
-                            تیم فعال
+                            <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.78ab99bb0ff1c876e8f7')) ?>
                         </th>
 
                         <th class="ticketing-member-actions-col">
-                            عملیات
+                            <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.70c6b322304e4b978d3b')) ?>
                         </th>
                     </tr>
                 </thead>
@@ -626,7 +637,7 @@ ob_start();
 
                     if ($displayName === '') {
                         $displayName =
-                            'بدون نام';
+                            $uiText('ticketing.t2.ticketing-project-members.ui.7e17c8dfc8396c2e9d29');
                     }
 
                     $memberTeams =
@@ -678,7 +689,7 @@ ob_start();
                                 value="<?= ticketing_project_members_h($memberId) ?>"
                                 data-member-select
                                 data-member-select-id="<?= ticketing_project_members_h($memberId) ?>"
-                                aria-label="انتخاب <?= ticketing_project_members_h($displayName) ?>"
+                                aria-label="<?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.b5bddcdaeec0ceb00fbe')) ?> <?= ticketing_project_members_h($displayName) ?>"
                             >
                         </td>
 
@@ -705,8 +716,8 @@ ob_start();
                         <td>
                             <span class="admin-pill">
                                 <?= $active
-                                    ? 'فعال'
-                                    : 'غیرفعال' ?>
+                                    ? $uiText('ticketing.t2.ticketing-project-members.ui.8ce3c3675dea377aac14')
+                                    : $uiText('ticketing.t2.ticketing-project-members.ui.422205705d64c19f8f0f') ?>
                             </span>
                         </td>
 
@@ -776,8 +787,8 @@ ob_start();
                                     class="ticketing-member-icon-button"
                                     data-member-open="role"
                                     data-member-target="<?= ticketing_project_members_h($memberId) ?>"
-                                    title="نقش و عضویت"
-                                    aria-label="نقش و عضویت"
+                                    title="<?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.c1775e70f3e8d14ea749')) ?>"
+                                    aria-label="<?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.c1775e70f3e8d14ea749')) ?>"
                                 >
                                     <?= ticketing_project_member_icon('role') ?>
                                 </button>
@@ -798,8 +809,8 @@ ob_start();
                                         class="ticketing-member-icon-button"
                                         data-member-open="team"
                                         data-member-target="<?= ticketing_project_members_h($memberId) ?>"
-                                        title="دسترسی‌های تیمی"
-                                        aria-label="دسترسی‌های تیمی"
+                                        title="<?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.e8b2aa75291665d424ef')) ?>"
+                                        aria-label="<?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.e8b2aa75291665d424ef')) ?>"
                                     >
                                         <?= ticketing_project_member_icon('team') ?>
                                     </button>
@@ -814,7 +825,7 @@ ob_start();
                                         . $memberId
                                         . '/revoke'
                                     ) ?>"
-                                    onsubmit="return confirm('عضویت این شخص در پروژه غیرفعال شود؟ سوابق حذف نمی‌شوند.');"
+                                    onsubmit="return confirm(<?= ticketing_project_members_h(json_encode($uiText('ticketing.t2.ticketing-project-members.ui.122046c0a34fdfa9999f'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)) ?>);"
                                 >
                                     <input
                                         type="hidden"
@@ -825,8 +836,8 @@ ob_start();
                                     <button
                                         type="submit"
                                         class="ticketing-member-icon-button ticketing-member-icon-button--danger"
-                                        title="لغو عضویت"
-                                        aria-label="لغو عضویت"
+                                        title="<?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.c344d6ba1693bdf6b7f7')) ?>"
+                                        aria-label="<?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.c344d6ba1693bdf6b7f7')) ?>"
                                     >
                                         <?= ticketing_project_member_icon('revoke') ?>
                                     </button>
@@ -852,8 +863,8 @@ ob_start();
                                     <button
                                         type="submit"
                                         class="ticketing-member-icon-button"
-                                        title="فعال‌سازی عضویت"
-                                        aria-label="فعال‌سازی عضویت"
+                                        title="<?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.6934dad7415d4e9e687e')) ?>"
+                                        aria-label="<?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.6934dad7415d4e9e687e')) ?>"
                                     >
                                         <?= ticketing_project_member_icon('restore') ?>
                                     </button>
@@ -876,7 +887,7 @@ ob_start();
 
                                 <div class="ticketing-member-detail-toolbar">
                                     <strong>
-                                        مدیریت
+                                        <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.173e89c8df333e82ba85')) ?>
                                         <?= ticketing_project_members_h($displayName) ?>
                                     </strong>
 
@@ -884,8 +895,8 @@ ob_start();
                                         type="button"
                                         class="ticketing-member-detail-close"
                                         data-member-close="<?= ticketing_project_members_h($memberId) ?>"
-                                        title="بستن"
-                                        aria-label="بستن"
+                                        title="<?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.af48de1a28f3e4314830')) ?>"
+                                        aria-label="<?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.af48de1a28f3e4314830')) ?>"
                                     >
                                         <?= ticketing_project_member_icon('close') ?>
                                     </button>
@@ -900,11 +911,11 @@ ob_start();
                                     >
                                         <div>
                                             <h4>
-                                                نقش و عضویت
+                                                <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.c1775e70f3e8d14ea749')) ?>
                                             </h4>
 
                                             <p class="admin-muted">
-                                                تغییر نقش پروژه با کنترل تیکت‌های باز انجام می‌شود.
+                                                <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.99427045048acae251c2')) ?>
                                             </p>
                                         </div>
 
@@ -946,7 +957,7 @@ ob_start();
                                                 type="submit"
                                                 class="admin-button"
                                             >
-                                                ذخیره نقش
+                                                <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.fa817a99b4cd11642e6f')) ?>
                                             </button>
                                         </form>
                                     </section>
@@ -969,11 +980,11 @@ ob_start();
                                         >
                                             <div>
                                                 <h4>
-                                                    دسترسی‌های تیمی
+                                                    <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.e8b2aa75291665d424ef')) ?>
                                                 </h4>
 
                                                 <p class="admin-muted">
-                                                    عضویت و سطح دسترسی فرد در تیم‌های همین پروژه
+                                                    <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.8ffddc1b3018dbb4d9a4')) ?>
                                                 </p>
                                             </div>
 
@@ -1059,19 +1070,19 @@ ob_start();
                                                                 <?php
                                                                 $flags = [
                                                                     'can_assign' =>
-                                                                        'تخصیص',
+                                                                        $uiText('ticketing.t2.ticketing-project-members.ui.a3bbf7b63515c6ff548a'),
 
                                                                     'can_observe' =>
-                                                                        'مشاهده',
+                                                                        $uiText('ticketing.t2.ticketing-project-members.ui.1589fa9d03569592fec0'),
 
                                                                     'can_assist' =>
-                                                                        'همکاری',
+                                                                        $uiText('ticketing.t2.ticketing-project-members.ui.415ca552c7cc665931cf'),
 
                                                                     'can_takeover' =>
-                                                                        'در اختیار گرفتن',
+                                                                        $uiText('ticketing.t2.ticketing-project-members.ui.fd776dc13ae829b77658'),
 
                                                                     'can_transfer' =>
-                                                                        'انتقال',
+                                                                        $uiText('ticketing.t2.ticketing-project-members.ui.528d6c7bc6d0d467e99c'),
                                                                 ];
                                                                 ?>
 
@@ -1102,7 +1113,7 @@ ob_start();
                                                                     type="submit"
                                                                     class="admin-button admin-button--soft"
                                                                 >
-                                                                    ذخیره
+                                                                    <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.d626482c0b63bc9b3d87')) ?>
                                                                 </button>
                                                             </form>
 
@@ -1117,7 +1128,7 @@ ob_start();
                                                                     . $teamId
                                                                     . '/remove'
                                                                 ) ?>"
-                                                                onsubmit="return confirm('دسترسی این عضو به تیم غیرفعال شود؟');"
+                                                                onsubmit="return confirm(<?= ticketing_project_members_h(json_encode($uiText('ticketing.t2.ticketing-project-members.ui.27b400cd569905034c27'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)) ?>);"
                                                             >
                                                                 <input
                                                                     type="hidden"
@@ -1129,7 +1140,7 @@ ob_start();
                                                                     type="submit"
                                                                     class="ticketing-member-remove-team"
                                                                 >
-                                                                    حذف دسترسی
+                                                                    <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.64f2d78a3d3d917fcf18')) ?>
                                                                 </button>
                                                             </form>
 
@@ -1155,7 +1166,7 @@ ob_start();
                                                     class="ticketing-member-add-team"
                                                 >
                                                     <strong>
-                                                        افزودن تیم
+                                                        <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.53cdfac765d3087c8a87')) ?>
                                                     </strong>
 
                                                     <input
@@ -1169,7 +1180,7 @@ ob_start();
                                                         required
                                                     >
                                                         <option value="">
-                                                            انتخاب تیم
+                                                            <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.9c59593a72f935c29d35')) ?>
                                                         </option>
 
                                                         <?php foreach (
@@ -1211,7 +1222,7 @@ ob_start();
                                                         type="submit"
                                                         class="admin-button"
                                                     >
-                                                        افزودن
+                                                        <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.674427f597e1da44bfc9')) ?>
                                                     </button>
                                                 </form>
 
@@ -1247,7 +1258,7 @@ ob_start();
                 class="admin-button admin-button--soft"
                 data-member-show-more
             >
-                نمایش بیشتر
+                <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.0ca75bb7360eecde674c')) ?>
             </button>
         </div>
 
@@ -1257,7 +1268,7 @@ ob_start();
             data-member-filter-empty
             hidden
         >
-            عضوی مطابق فیلتر انتخاب‌شده پیدا نشد.
+            <?= ticketing_project_members_h($uiText('ticketing.t2.ticketing-project-members.ui.0ef62b0270cd70fa9f1f')) ?>
         </div>
 
     <?php endif; ?>

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Ticketing;
 
+use App\Services\AuthorizationService;
+use App\Services\UiContent\UiContentInlineGuide;
 use IPKF\Database\Connections\ConnectionResolver;
 use PDO;
 use Throwable;
@@ -37,22 +39,28 @@ class TicketProjectMemberAccessService
         'manager',
     ];
 
-    private const PROJECT_ROLE_TITLES = [
+    /*
+     * T2_DYNAMIC_ROLE_TITLES_V1
+     *
+     * Codes remain business/authorization data.
+     * Human-readable labels are resolved from Dynamic UI Content.
+     */
+    private const PROJECT_ROLE_CONTENT_KEYS = [
         'requester' =>
-            'متقاضی',
+            'ticketing.t2.members.role.project.requester',
         'member' =>
-            'کارشناس',
+            'ticketing.t2.members.role.project.member',
         'manager' =>
-            'مدیر پروژه',
+            'ticketing.t2.members.role.project.manager',
     ];
 
-    private const STAFF_ROLE_TITLES = [
+    private const STAFF_ROLE_CONTENT_KEYS = [
         'agent' =>
-            'کارشناس',
+            'ticketing.t2.members.role.staff.agent',
         'supervisor' =>
-            'سرپرست',
+            'ticketing.t2.members.role.staff.supervisor',
         'manager' =>
-            'مدیر',
+            'ticketing.t2.members.role.staff.manager',
     ];
 
     public function __construct(
@@ -336,19 +344,13 @@ class TicketProjectMemberAccessService
                 );
 
             $teamRow['staff_role_title'] =
-                self::STAFF_ROLE_TITLES[
+                $this->staffRoleTitle(
                     (string) (
                         $teamRow[
                             'staff_role_code'
                         ]
                         ?? ''
                     )
-                ]
-                ?? (string) (
-                    $teamRow[
-                        'staff_role_code'
-                    ]
-                    ?? ''
                 );
 
             $byMember[$memberId][] =
@@ -383,10 +385,9 @@ class TicketProjectMemberAccessService
                 $active;
 
             $member['role_title'] =
-                self::PROJECT_ROLE_TITLES[
+                $this->projectRoleTitle(
                     $role
-                ]
-                ?? $role;
+                );
 
             $member['teams'] =
                 $byMember[$memberId]
@@ -462,14 +463,97 @@ class TicketProjectMemberAccessService
                 ) ?: [],
 
             'project_role_options' =>
-                self::PROJECT_ROLE_TITLES,
+                $this->projectRoleTitles(),
 
             'staff_role_options' =>
-                self::STAFF_ROLE_TITLES,
+                $this->staffRoleTitles(),
 
             'summary' =>
                 $summary,
         ];
+    }
+
+
+    private function projectRoleTitles(): array
+    {
+        $titles = [];
+
+        foreach (
+            self::PROJECT_ROLE_CONTENT_KEYS
+            as $code => $contentKey
+        ) {
+            $titles[$code] =
+                $this->dynamicText(
+                    $contentKey
+                );
+        }
+
+        return $titles;
+    }
+
+
+    private function staffRoleTitles(): array
+    {
+        $titles = [];
+
+        foreach (
+            self::STAFF_ROLE_CONTENT_KEYS
+            as $code => $contentKey
+        ) {
+            $titles[$code] =
+                $this->dynamicText(
+                    $contentKey
+                );
+        }
+
+        return $titles;
+    }
+
+
+    private function projectRoleTitle(
+        string $roleCode
+    ): string {
+        return
+            $this->dynamicText(
+                self::PROJECT_ROLE_CONTENT_KEYS[
+                    $roleCode
+                ]
+                ?? ''
+            );
+    }
+
+
+    private function staffRoleTitle(
+        string $roleCode
+    ): string {
+        return
+            $this->dynamicText(
+                self::STAFF_ROLE_CONTENT_KEYS[
+                    $roleCode
+                ]
+                ?? ''
+            );
+    }
+
+
+    private function dynamicText(
+        string $contentKey
+    ): string {
+        $contentKey =
+            trim(
+                $contentKey
+            );
+
+        if ($contentKey === '') {
+            return '';
+        }
+
+        return
+            UiContentInlineGuide::bodyText(
+                $contentKey,
+                'ticketing',
+                'ticketing-project-members'
+            );
     }
 
 
@@ -517,6 +601,30 @@ class TicketProjectMemberAccessService
                         'project_not_found',
                 ];
             }
+
+
+            /*
+             * T2_PROJECT_MEMBER_SERVICE_AUTHORIZATION_V1
+             *
+             * Defense in depth: route admission is not the business
+             * authorization authority. Re-check project-local manager
+             * authority against the locked project before mutation.
+             */
+            if (
+                !$this->actorCanManageProject(
+                    $actorUserId,
+                    (int) $project['id']
+                )
+            ) {
+                $this->ticketing
+                    ->rollBack();
+
+                return [
+                    'ok' => false,
+                    'error' => 'forbidden',
+                ];
+            }
+
 
             $member =
                 $this->lockMember(
@@ -712,6 +820,30 @@ class TicketProjectMemberAccessService
                 ];
             }
 
+
+            /*
+             * T2_PROJECT_MEMBER_SERVICE_AUTHORIZATION_V1
+             *
+             * Defense in depth: route admission is not the business
+             * authorization authority. Re-check project-local manager
+             * authority against the locked project before mutation.
+             */
+            if (
+                !$this->actorCanManageProject(
+                    $actorUserId,
+                    (int) $project['id']
+                )
+            ) {
+                $this->ticketing
+                    ->rollBack();
+
+                return [
+                    'ok' => false,
+                    'error' => 'forbidden',
+                ];
+            }
+
+
             $member =
                 $this->lockMember(
                     (int) $project['id'],
@@ -858,6 +990,30 @@ class TicketProjectMemberAccessService
                         'project_not_found',
                 ];
             }
+
+
+            /*
+             * T2_PROJECT_MEMBER_SERVICE_AUTHORIZATION_V1
+             *
+             * Defense in depth: route admission is not the business
+             * authorization authority. Re-check project-local manager
+             * authority against the locked project before mutation.
+             */
+            if (
+                !$this->actorCanManageProject(
+                    $actorUserId,
+                    (int) $project['id']
+                )
+            ) {
+                $this->ticketing
+                    ->rollBack();
+
+                return [
+                    'ok' => false,
+                    'error' => 'forbidden',
+                ];
+            }
+
 
             $member =
                 $this->lockMember(
@@ -1041,6 +1197,30 @@ class TicketProjectMemberAccessService
                         'project_not_found',
                 ];
             }
+
+
+            /*
+             * T2_PROJECT_MEMBER_SERVICE_AUTHORIZATION_V1
+             *
+             * Defense in depth: route admission is not the business
+             * authorization authority. Re-check project-local manager
+             * authority against the locked project before mutation.
+             */
+            if (
+                !$this->actorCanManageProject(
+                    $actorUserId,
+                    (int) $project['id']
+                )
+            ) {
+                $this->ticketing
+                    ->rollBack();
+
+                return [
+                    'ok' => false,
+                    'error' => 'forbidden',
+                ];
+            }
+
 
             $member =
                 $this->lockMember(
@@ -1298,6 +1478,30 @@ class TicketProjectMemberAccessService
                         'project_not_found',
                 ];
             }
+
+
+            /*
+             * T2_PROJECT_MEMBER_SERVICE_AUTHORIZATION_V1
+             *
+             * Defense in depth: route admission is not the business
+             * authorization authority. Re-check project-local manager
+             * authority against the locked project before mutation.
+             */
+            if (
+                !$this->actorCanManageProject(
+                    $actorUserId,
+                    (int) $project['id']
+                )
+            ) {
+                $this->ticketing
+                    ->rollBack();
+
+                return [
+                    'ok' => false,
+                    'error' => 'forbidden',
+                ];
+            }
+
 
             $member =
                 $this->lockMember(
@@ -1717,6 +1921,51 @@ class TicketProjectMemberAccessService
         $statement->execute([
             $memberId,
         ]);
+    }
+
+
+    private function actorCanManageProject(
+        int $actorUserId,
+        int $projectId
+    ): bool {
+        if (
+            $actorUserId < 1
+            ||
+            $projectId < 1
+        ) {
+            return false;
+        }
+
+        try {
+            if (
+                (
+                    new TicketingProjectScopedAccessService()
+                )->isProjectManager(
+                    $actorUserId,
+                    $projectId
+                )
+            ) {
+                return true;
+            }
+        } catch (Throwable) {
+        }
+
+        /*
+         * Existing global administrators remain compatible.
+         * Ordinary project staff receive no Core global grant.
+         */
+        try {
+            return
+                (
+                    new AuthorizationService()
+                )->hasPermission(
+                    $actorUserId,
+                    'ticketing.project.manage'
+                );
+
+        } catch (Throwable) {
+            return false;
+        }
     }
 
 

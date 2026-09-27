@@ -122,7 +122,8 @@ foreach ([
     'value="resolve"',
     'name="attachments[]"',
     'مشکلم حل شد',
-    'افزودن توضیح',
+    'توضیح تکمیلی',
+    'ثبت توضیح',
 ] as $marker) {
     $expect(
         str_contains($view, $marker),

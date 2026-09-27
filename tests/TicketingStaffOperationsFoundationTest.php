@@ -130,12 +130,12 @@ foreach ([
 
 
 foreach ([
-    'کارتابل پشتیبانی',
-    'قابل رسیدگی',
-    'تخصیص‌یافته به من',
-    'بدون کارشناس',
-    'تحویل گرفتن تیکت',
-    'انتقال به کارشناس دیگر',
+    'ticketing.t2.ticketing-staff.ui.230ea3cdf3f7fef6a92c',
+    'ticketing.t2.ticketing-staff.ui.86380b0e00701b3eefa6',
+    'ticketing.t2.ticketing-staff.ui.f5498dc9efa6256199dd',
+    'ticketing.t2.ticketing-staff.ui.7278e1b50731394594b4',
+    'ticketing.t2.ticketing-staff.ui.1896adc02cc861ae1fcb',
+    'ticketing.t2.ticketing-staff.ui.bce60232b273b14b5dc1',
     '$escalationTooltip',
     'ticketing-icon-action',
     'TicketingIcon::svg',
@@ -276,6 +276,98 @@ foreach ([
         . $forbidden
     );
 }
+
+
+
+/*
+ * T2_TRANSFER_CAPABILITY_AUTHORIZATION_CONTRACT_V1
+ *
+ * Transfer is governed by can_transfer.
+ * can_assign must not implicitly authorize ticket transfer.
+ */
+$transferRepositorySource =
+    file_get_contents(
+        __DIR__
+        . '/../public_html/app/Repositories/TicketStaffOperationsRepository.php'
+    );
+
+$expect(
+    is_string($transferRepositorySource),
+    'Ticket staff operations repository source could not be loaded.'
+);
+
+$transferMethodStart =
+    strpos(
+        $transferRepositorySource,
+        'public function transfer('
+    );
+
+$expect(
+    $transferMethodStart !== false,
+    'Ticket transfer method source contract missing.'
+);
+
+$transferMethodTail =
+    substr(
+        $transferRepositorySource,
+        (int) $transferMethodStart
+    );
+
+$nextMethodOffset = null;
+
+foreach (
+    [
+        "\n    public function ",
+        "\n    protected function ",
+        "\n    private function ",
+    ]
+    as $nextMethodToken
+) {
+    $candidateOffset =
+        strpos(
+            $transferMethodTail,
+            $nextMethodToken,
+            1
+        );
+
+    if (
+        $candidateOffset !== false
+        &&
+        (
+            $nextMethodOffset === null
+            ||
+            $candidateOffset < $nextMethodOffset
+        )
+    ) {
+        $nextMethodOffset =
+            $candidateOffset;
+    }
+}
+
+$transferMethodSource =
+    $nextMethodOffset === null
+        ? $transferMethodTail
+        : substr(
+            $transferMethodTail,
+            0,
+            $nextMethodOffset
+        );
+
+$expect(
+    substr_count(
+        $transferMethodSource,
+        "'can_transfer'"
+    ) === 1,
+    'Ticket transfer must require can_transfer exactly once.'
+);
+
+$expect(
+    substr_count(
+        $transferMethodSource,
+        "'can_assign'"
+    ) === 0,
+    'Ticket transfer must not authorize through can_assign.'
+);
 
 
 echo

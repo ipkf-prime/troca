@@ -289,7 +289,7 @@ $router->get(
                             $context,
 
                         'message' =>
-                            'پروژه پشتیبانی موردنظر پیدا نشد.',
+                            \App\Services\UiContent\UiContentInlineGuide::bodyText('ticketing.t2.route.members.project_not_found', 'ticketing', 'ticketing-project-members'),
                     ],
                     404
                 );
@@ -441,10 +441,20 @@ $router->get(
         $adminRender,
         $adminGuard
     ) {
+        $projectAccessReference =
+            trim(
+                (string) $request->route(
+                    'public_reference',
+                    ''
+                )
+            );
+
         $context =
             $adminGuard(
                 $response,
-                '/admin/ticketing/projects'
+                '/admin/ticketing/projects/'
+                . $projectAccessReference
+                . '/members'
             );
 
         if (!is_array($context)) {
@@ -471,13 +481,13 @@ $router->get(
                 'placeholder',
                 [
                     'title' =>
-                        'اعضا و دسترسی‌ها',
+                        \App\Services\UiContent\UiContentInlineGuide::bodyText('ticketing.t2.route.members.title', 'ticketing', 'ticketing-project-members'),
 
                     'context' =>
                         $context,
 
                     'message' =>
-                        'اطلاعات اعضا و دسترسی‌های پروژه در حال حاضر در دسترس نیست.',
+                        \App\Services\UiContent\UiContentInlineGuide::bodyText('ticketing.t2.route.members.unavailable', 'ticketing', 'ticketing-project-members'),
                 ],
                 503
             );
@@ -492,13 +502,13 @@ $router->get(
                 'placeholder',
                 [
                     'title' =>
-                        'پروژه پیدا نشد',
+                        \App\Services\UiContent\UiContentInlineGuide::bodyText('ticketing.t2.route.members.project_not_found_title', 'ticketing', 'ticketing-project-members'),
 
                     'context' =>
                         $context,
 
                     'message' =>
-                        'پروژه پشتیبانی موردنظر پیدا نشد.',
+                        \App\Services\UiContent\UiContentInlineGuide::bodyText('ticketing.t2.route.members.project_not_found', 'ticketing', 'ticketing-project-members'),
                 ],
                 404
             );
@@ -509,7 +519,7 @@ $router->get(
             'ticketing-project-members',
             [
                 'title' =>
-                    'اعضا و دسترسی‌ها',
+                    \App\Services\UiContent\UiContentInlineGuide::bodyText('ticketing.t2.route.members.title', 'ticketing', 'ticketing-project-members'),
 
                 'context' =>
                     $context,
@@ -528,10 +538,20 @@ $router->post(
         $request,
         $response
     ) use ($adminGuard) {
+        $projectAccessReference =
+            trim(
+                (string) $request->route(
+                    'public_reference',
+                    ''
+                )
+            );
+
         $context =
             $adminGuard(
                 $response,
-                '/admin/ticketing/projects'
+                '/admin/ticketing/projects/'
+                . $projectAccessReference
+                . '/members'
             );
 
         if (!is_array($context)) {
@@ -617,10 +637,20 @@ $router->post(
         $request,
         $response
     ) use ($adminGuard) {
+        $projectAccessReference =
+            trim(
+                (string) $request->route(
+                    'public_reference',
+                    ''
+                )
+            );
+
         $context =
             $adminGuard(
                 $response,
-                '/admin/ticketing/projects'
+                '/admin/ticketing/projects/'
+                . $projectAccessReference
+                . '/members'
             );
 
         if (!is_array($context)) {
@@ -702,10 +732,20 @@ $router->post(
         $request,
         $response
     ) use ($adminGuard) {
+        $projectAccessReference =
+            trim(
+                (string) $request->route(
+                    'public_reference',
+                    ''
+                )
+            );
+
         $context =
             $adminGuard(
                 $response,
-                '/admin/ticketing/projects'
+                '/admin/ticketing/projects/'
+                . $projectAccessReference
+                . '/members'
             );
 
         if (!is_array($context)) {
@@ -787,10 +827,20 @@ $router->post(
         $request,
         $response
     ) use ($adminGuard) {
+        $projectAccessReference =
+            trim(
+                (string) $request->route(
+                    'public_reference',
+                    ''
+                )
+            );
+
         $context =
             $adminGuard(
                 $response,
-                '/admin/ticketing/projects'
+                '/admin/ticketing/projects/'
+                . $projectAccessReference
+                . '/members'
             );
 
         if (!is_array($context)) {
@@ -917,10 +967,20 @@ $router->post(
         $request,
         $response
     ) use ($adminGuard) {
+        $projectAccessReference =
+            trim(
+                (string) $request->route(
+                    'public_reference',
+                    ''
+                )
+            );
+
         $context =
             $adminGuard(
                 $response,
-                '/admin/ticketing/projects'
+                '/admin/ticketing/projects/'
+                . $projectAccessReference
+                . '/members'
             );
 
         if (!is_array($context)) {
@@ -1002,5 +1062,68 @@ $router->post(
             . '?status='
             . rawurlencode($status)
         );
+    }
+);
+
+/* TICKETING_PHASE1_REQUESTER_MEMBERSHIP_APPROVAL_ROUTES_V1 */
+$router->get(
+    '/admin/ticketing/projects/{public_reference}/membership-requests',
+    function ($request, $response) use ($adminRender, $adminGuard) {
+        $reference = trim((string)$request->route('public_reference', ''));
+        $context = $adminGuard($response, '/admin/ticketing');
+        if (!is_array($context)) return $context;
+
+        $page = (new \App\Services\Ticketing\TicketRequesterOnboardingService())
+            ->membershipRequestsForManager($reference, (int)$context['user_id']);
+
+        if (empty($page['ok'])) {
+            $state = (string)($page['state'] ?? 'requester_project_not_found');
+            $forbidden = $state === 'requester_membership_manage_forbidden';
+            return $adminRender($response, 'placeholder', [
+                'title' => \App\Services\UiContent\UiContentInlineGuide::bodyText('ticketing.membership.requests.page_title', 'ticketing', 'membership'),
+                'context' => $context,
+                'message' => \App\Services\UiContent\UiContentInlineGuide::bodyText($forbidden ? 'ticketing.membership.requests.forbidden' : 'ticketing.membership.requests.project_not_found', 'ticketing', 'membership'),
+            ], $forbidden ? 403 : 404);
+        }
+
+        return $adminRender($response, 'ticketing-project-membership-requests', [
+            'title' => \App\Services\UiContent\UiContentInlineGuide::bodyText('ticketing.membership.requests.page_title', 'ticketing', 'membership'),
+            'context' => $context,
+            'page' => $page,
+            'status' => trim((string)$request->input('status', '')),
+        ]);
+    }
+);
+
+$router->post(
+    '/admin/ticketing/projects/{public_reference}/membership-requests/{request_reference}/decision',
+    function ($request, $response) use ($adminGuard) {
+        $reference = trim((string)$request->route('public_reference', ''));
+        $requestReference = trim((string)$request->route('request_reference', ''));
+        $context = $adminGuard($response, '/admin/ticketing');
+        if (!is_array($context)) return $context;
+
+        $base = '/admin/ticketing/projects/' . rawurlencode($reference) . '/membership-requests';
+        if (!(new \IPKF\Security\Csrf())->check((string)$request->input('_token', ''))) {
+            return $response->redirect($base . '?status=csrf');
+        }
+
+        try {
+            $result = (new \App\Services\Ticketing\TicketRequesterOnboardingService())
+                ->decideMembershipRequest(
+                    $reference,
+                    $requestReference,
+                    (string)$request->input('decision', ''),
+                    (int)$context['user_id'],
+                    (string)$request->input('decision_note', '')
+                );
+            $status = !empty($result['ok'])
+                ? (string)($result['state'] ?? 'saved')
+                : (string)($result['state'] ?? 'failed');
+        } catch (\Throwable) {
+            $status = 'failed';
+        }
+
+        return $response->redirect($base . '?status=' . rawurlencode($status));
     }
 );

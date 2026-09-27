@@ -301,15 +301,13 @@ $router->get(
                 'placeholder',
                 [
                     'title' =>
-                        'پشتیبانی و تیکتینگ',
+                        \App\Services\UiContent\UiContentInlineGuide::bodyText('ticketing.t2.route.dashboard.title', 'ticketing', 'ticketing-dashboard'),
 
                     'context' =>
                         $context,
 
                     'message' =>
-                        'داشبورد تیکتینگ در حال حاضر '
-                        . 'در دسترس نیست. کد خطا: '
-                        . $incident,
+                        \App\Services\UiContent\UiContentInlineGuide::bodyText('ticketing.t2.route.dashboard.unavailable_prefix', 'ticketing', 'ticketing-dashboard') . $incident,
                 ],
                 503
             );
@@ -320,7 +318,7 @@ $router->get(
             'ticketing-dashboard',
             [
                 'title' =>
-                    'پشتیبانی و تیکتینگ',
+                    \App\Services\UiContent\UiContentInlineGuide::bodyText('ticketing.t2.route.dashboard.title', 'ticketing', 'ticketing-dashboard'),
 
                 'context' =>
                     $context,
@@ -4015,7 +4013,7 @@ $router->get(
                 'ticketing-staff',
                 [
                     'title' =>
-                        'کارتابل پشتیبانی',
+                        \App\Services\UiContent\UiContentInlineGuide::bodyText('ticketing.t2.route.staff.title', 'ticketing', 'ticketing-staff'),
 
                     'context' =>
                         $context,
@@ -4050,15 +4048,13 @@ $router->get(
                 'placeholder',
                 [
                     'title' =>
-                        'کارتابل پشتیبانی',
+                        \App\Services\UiContent\UiContentInlineGuide::bodyText('ticketing.t2.route.staff.title', 'ticketing', 'ticketing-staff'),
 
                     'context' =>
                         $context,
 
                     'message' =>
-                        'کارتابل پشتیبانی در دسترس نیست. '
-                        . 'کد خطا: '
-                        . $incident,
+                        \App\Services\UiContent\UiContentInlineGuide::bodyText('ticketing.t2.route.staff.unavailable_prefix', 'ticketing', 'ticketing-staff') . $incident,
                 ],
                 503
             );

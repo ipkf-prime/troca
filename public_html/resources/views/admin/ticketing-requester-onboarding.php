@@ -46,6 +46,13 @@ $csrf =
     (new \IPKF\Security\Csrf())
         ->token();
 
+$membershipText = static fn (string $key): string =>
+    \App\Services\UiContent\UiContentInlineGuide::bodyText(
+        $key,
+        'ticketing',
+        'membership'
+    );
+
 $errorMessages = [
     'csrf' =>
         'اعتبار فرم منقضی شده است.',
@@ -392,6 +399,14 @@ ob_start();
     <?php elseif ($status === 'left'): ?>
         <div class="admin-alert admin-alert--success">
             عضویت شما در پروژه با موفقیت لغو شد.
+        </div>
+    <?php elseif ($status === 'pending'): ?>
+        <div class="admin-alert admin-alert--info">
+            <?= admin_h($membershipText('ticketing.membership.request.pending')) ?>
+        </div>
+    <?php elseif ($status === 'affiliation_pending'): ?>
+        <div class="admin-alert admin-alert--info">
+            <?= admin_h($membershipText('ticketing.membership.affiliation.pending')) ?>
         </div>
     <?php endif; ?>
 
@@ -767,13 +782,18 @@ ob_start();
                                     $requiresOrganization
                                 ): ?>
 
-                                    <span
-                                        class="ticketing-affiliation-missing"
-                                    >
-                                        ابتدا وابستگی سازمانی
-                                        تأییدشده‌ای در شبکه
-                                        سازمانی این پروژه ثبت کنید.
-                                    </span>
+                                    <?php if (!empty($project['affiliation_pending'])): ?>
+                                        <span class="ticketing-affiliation-missing">
+                                            <?= admin_h($membershipText('ticketing.membership.affiliation.pending')) ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <a
+                                            class="admin-button admin-button--soft"
+                                            href="<?= admin_h($project['affiliation_request_url'] ?? '#') ?>"
+                                        >
+                                            <?= admin_h($membershipText('ticketing.membership.affiliation.select_action')) ?>
+                                        </a>
+                                    <?php endif; ?>
 
                                 <?php endif; ?>
 
@@ -781,14 +801,28 @@ ob_start();
                                     type="submit"
                                     class="admin-button"
                                     <?= (
-                                        $requiresOrganization
-                                        &&
-                                        $eligibleCount === 0
+                                        (
+                                            $requiresOrganization
+                                            &&
+                                            $eligibleCount === 0
+                                        )
+                                        ||
+                                        !empty(
+                                            $project[
+                                                'membership_request_pending'
+                                            ]
+                                        )
                                     )
                                         ? 'disabled'
                                         : '' ?>
                                 >
-                                    عضویت
+                                    <?= !empty(
+                                        $project[
+                                            'membership_request_pending'
+                                        ]
+                                    )
+                                        ? admin_h($membershipText('ticketing.membership.request.pending_button'))
+                                        : 'عضویت' ?>
                                 </button>
 
                             </form>
@@ -842,7 +876,7 @@ ob_start();
                         dir="ltr"
                         maxlength="80"
                         autocomplete="off"
-                        placeholder="NP-XXXX-XXXX-XXXX-XXXX"
+                        placeholder="XXXX-XXXX-XXXX-XXXX"
                         required
                     >
                 </label>
