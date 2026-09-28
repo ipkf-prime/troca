@@ -31,11 +31,18 @@ if [ -z "$PHP_BIN" ]; then
     )"
 fi
 
-LOG_DIR="/home/troca/logs"
-LOG_FILE="$LOG_DIR/ipkf-scheduler-${APPLICATION}.log"
-LOCK_FILE="/tmp/ipkf-scheduler-${APPLICATION}.lock"
+#
+# Runtime paths are environment-configurable.
+# Defaults preserve ordinary per-user execution without binding
+# the scheduler to a specific server filesystem layout.
+#
+LOG_DIR="${IPKF_SCHEDULER_LOG_DIR:-${HOME:-/tmp}/logs}"
+LOCK_DIR="${IPKF_SCHEDULER_LOCK_DIR:-${TMPDIR:-/tmp}}"
 
-mkdir -p "$LOG_DIR"
+LOG_FILE="$LOG_DIR/ipkf-scheduler-${APPLICATION}.log"
+LOCK_FILE="$LOCK_DIR/ipkf-scheduler-${APPLICATION}.lock"
+
+mkdir -p "$LOG_DIR" "$LOCK_DIR"
 
 timestamp_utc()
 {
