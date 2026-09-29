@@ -378,6 +378,28 @@ class ApplicationModuleRegistryService extends BaseService
             (new DynamicPermissionRegistryService())
                 ->syncModule($runtimeModule);
 
+            $runtime->clearCache();
+
+        } catch (Throwable) {
+
+            // Module save remains durable.
+            // Permission reconciliation can be retried safely.
+
+        }
+
+        /*
+         * MODULE_NAVIGATION_RECONCILIATION_ISOLATED_V1
+         *
+         * Navigation reconciliation is independent from dynamic
+         * permission synchronization. A permission-sync failure
+         * must not leave stale module roots visible.
+         */
+        try {
+            $runtime =
+                new \IPKF\Support\ModuleRuntimeConfig();
+
+            $runtime->clearCache();
+
             (new DynamicAdminNavigationService())
                 ->sync();
 
@@ -385,8 +407,8 @@ class ApplicationModuleRegistryService extends BaseService
 
         } catch (Throwable) {
 
-            // Module save remains durable.
-            // Runtime reconciliation can be retried safely.
+            // Runtime rendering still applies the authoritative
+            // application_modules visibility gate.
 
         }
 

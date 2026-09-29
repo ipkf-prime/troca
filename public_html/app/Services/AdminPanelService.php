@@ -916,12 +916,26 @@ class AdminPanelService extends BaseService
 
     public function moduleHub(int $userId, string $key): ?array
     {
+        /*
+         * CORE_HUB_CARDS_FROM_SIDEBAR_CHILDREN_V1
+         *
+         * A Core section has one navigation contract:
+         * the same authorized children feed both the section
+         * cards and the sidebar submenu.
+         */
         foreach ($this->moduleDefinitions() as $module) {
             if (($module['key'] ?? '') !== $key) {
                 continue;
             }
 
-            $actions = $this->permittedActions($userId, $module);
+            $actions =
+                (
+                    new DynamicAdminNavigationService()
+                )->children(
+                    $userId,
+                    'core',
+                    $key
+                );
 
             if ($actions === []) {
                 return null;

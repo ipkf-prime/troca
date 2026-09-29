@@ -1453,6 +1453,25 @@ $adminContext = fn (): ?array => (new \App\Services\AdminPanelService())->contex
 $adminHomeUrl = function ($request): string {
     $urls = new \IPKF\Support\ApplicationUrlRegistry();
     if ($urls->isCoreHost((string) $request->host())) {
+        /*
+         * ADMIN_LOGIN_RETURN_PATH_V1
+         *
+         * A fresh local Core destination takes precedence
+         * over any older module intent.
+         */
+        $localReturn =
+            (
+                new \App\Services\AdminLoginReturnPathService()
+            )->consume();
+
+        if ($localReturn !== null) {
+            (
+                new \App\Services\ModuleSsoService()
+            )->forgetPendingIntent();
+
+            return $localReturn;
+        }
+
         // An explicit module launch stores a short-lived destination in the
         // central session. Preserve it across password and MFA completion.
         $pending = (new \App\Services\ModuleSsoService())->pendingResumeUrl();
@@ -1466,7 +1485,54 @@ $adminHomeUrl = function ($request): string {
 
 $router->get('/auth/module-sso/start', function ($request, $response) {
     $urls = new \IPKF\Support\ApplicationUrlRegistry();
-    $returnPath = (string) $request->input('return_path', '/admin/automation');
+    /*
+     * DYNAMIC_MODULE_SSO_DEFAULT_V1
+     *
+     * Never assume a specific application module.
+     * When a module host omitted return_path, resolve
+     * its registered route dynamically.
+     */
+    $returnPath =
+        trim(
+            (string) $request->input(
+                'return_path',
+                ''
+            )
+        );
+
+    if ($returnPath === '') {
+        $moduleKey =
+            $urls->applicationModuleKeyForHost(
+                (string) $request->host()
+            );
+
+        if ($moduleKey !== null) {
+            $module =
+                (
+                    new \IPKF\Support\ModuleRuntimeConfig()
+                )->active(
+                    $moduleKey
+                );
+
+            if (is_array($module)) {
+                $returnPath =
+                    trim(
+                        (string) (
+                            $module['route_path']
+                            ?? ''
+                        )
+                    );
+            }
+        }
+    }
+
+    if ($returnPath === '') {
+        return $response->redirect(
+            $urls->core(
+                '/admin/dashboard'
+            )
+        );
+    }
     if (!$urls->isCoreHost((string) $request->host())) {
         return $response->redirect($urls->core('/auth/module-sso/start?return_path=' . rawurlencode($returnPath)));
     }
@@ -1475,8 +1541,20 @@ $router->get('/auth/module-sso/start', function ($request, $response) {
     $auth = new \App\Services\AuthService();
     $userId = $auth->currentUserId();
     if ($userId === null) {
+        /*
+         * The latest navigation intent wins.
+         * A module launch must invalidate an older
+         * local Core return destination.
+         */
+        (
+            new \App\Services\AdminLoginReturnPathService()
+        )->forgetPendingIntent();
+
         $sso->remember($returnPath);
-        return $response->redirect($urls->core('/admin/login'));
+
+        return $response->redirect(
+            $urls->core('/admin/login')
+        );
     }
 
     $issued = $sso->issueFor($userId, $returnPath);
@@ -1590,7 +1668,24 @@ $adminGuard = function ($response, string $path) use ($adminRender, $adminContex
             );
         }
 
-        return $response->redirect('/admin/login');
+        /*
+         * A local Core request is newer than any
+         * abandoned module launch. Preserve the exact
+         * current GET URI, including its query string.
+         */
+        (
+            new \App\Services\ModuleSsoService()
+        )->forgetPendingIntent();
+
+        (
+            new \App\Services\AdminLoginReturnPathService()
+        )->rememberCurrentRequest(
+            $path
+        );
+
+        return $response->redirect(
+            '/admin/login'
+        );
     }
 
     $userId = (int) $context['user_id'];
@@ -1648,6 +1743,56 @@ $router->get('/admin', function ($request, $response) use ($adminHomeUrl) {
 $router->get('/admin/login', function ($request, $response) use ($adminRender, $adminHomeUrl) {
     if ((new \App\Services\AuthService())->authenticated()) {
         return $response->redirect($adminHomeUrl($request));
+    }
+
+    /*
+     * CORE_LOGIN_REFERER_RETURN_V1
+     *
+     * When a Core session expires on an admin page,
+     * the browser arrives here with that same-origin
+     * page as Referer. It is newer than an abandoned
+     * module SSO intent and must win.
+     */
+    $localReturn =
+        new \App\Services\AdminLoginReturnPathService();
+
+    if (
+        $localReturn
+            ->rememberFromSameHostReferer()
+    ) {
+        (
+            new \App\Services\ModuleSsoService()
+        )->forgetPendingIntent();
+    }
+
+    /* EXPLICIT_LOGIN_RETURN_PATH_V1 */
+    $explicitReturnPath =
+        trim(
+            (string) $request->input(
+                'return_path',
+                ''
+            )
+        );
+
+    if ($explicitReturnPath !== '') {
+        $loginUrls =
+            new \IPKF\Support\ApplicationUrlRegistry();
+
+        if (
+            $loginUrls->isCoreHost(
+                (string) $request->host()
+            )
+        ) {
+            (
+                new \App\Services\AdminLoginReturnPathService()
+            )->remember(
+                $explicitReturnPath
+            );
+
+            (
+                new \App\Services\ModuleSsoService()
+            )->forgetPendingIntent();
+        }
     }
 
     return $adminRender($response, 'login', [
@@ -1783,7 +1928,20 @@ $adminModuleHub = function (string $key, string $title) use ($adminRender, $admi
         $context = $adminContext();
 
         if ($context === null) {
-            return $response->redirect('/admin/login');
+            (
+                new \App\Services\ModuleSsoService()
+            )->forgetPendingIntent();
+
+            (
+                new \App\Services\AdminLoginReturnPathService()
+            )->rememberCurrentRequest(
+                '/admin/modules/'
+                . $key
+            );
+
+            return $response->redirect(
+                '/admin/login'
+            );
         }
 
         $module = (new \App\Services\AdminPanelService())->moduleHub((int) $context['user_id'], $key);
@@ -6702,6 +6860,185 @@ $router->get('/admin/logout', function ($request, $response) {
         );
 
     /*
+     * FEDERATED_LOGOUT_ORIGIN_GUARD_V1
+     *
+     * A module visited only as part of the federated
+     * logout chain is not the origin of logout and must
+     * never become the post-login destination.
+     */
+    $federated =
+        (string) $request->input(
+            'federated',
+            ''
+        ) === '1';
+
+    /*
+     * EXACT_LOGOUT_RETURN_PATH_V1
+     *
+     * Only internal admin paths are propagated.
+     * Scheme/host input and authentication endpoints
+     * are rejected.
+     */
+    $safeLogoutReturnPath =
+        static function (
+            string $candidate
+        ): string {
+            $candidate =
+                trim($candidate);
+
+            if ($candidate === '') {
+                return '';
+            }
+
+            $parsed =
+                parse_url($candidate);
+
+            if (
+                $parsed === false
+                || isset($parsed['scheme'])
+                || isset($parsed['host'])
+            ) {
+                return '';
+            }
+
+            $path =
+                '/' . ltrim(
+                    (string) (
+                        $parsed['path']
+                        ?? ''
+                    ),
+                    '/'
+                );
+
+            if (
+                $path !== '/admin'
+                && !str_starts_with(
+                    $path,
+                    '/admin/'
+                )
+            ) {
+                return '';
+            }
+
+            foreach (
+                [
+                    '/admin/login',
+                    '/admin/logout',
+                    '/admin/mfa',
+                    '/admin/forgot-password',
+                ]
+                as $blocked
+            ) {
+                if (
+                    $path === $blocked
+                    || str_starts_with(
+                        $path,
+                        $blocked . '/'
+                    )
+                ) {
+                    return '';
+                }
+            }
+
+            $queryPart =
+                trim(
+                    (string) (
+                        $parsed['query']
+                        ?? ''
+                    )
+                );
+
+            return
+                $path
+                . (
+                    $queryPart !== ''
+                        ? '?' . $queryPart
+                        : ''
+                );
+        };
+
+    $returnPath =
+        $safeLogoutReturnPath(
+            (string) $request->input(
+                'return_path',
+                ''
+            )
+        );
+
+    /*
+     * On the origin request only, recover the exact
+     * page from a same-origin Referer. Federated chain
+     * requests must never overwrite it.
+     */
+    if (
+        $returnPath === ''
+        && !$federated
+    ) {
+        $referer =
+            trim(
+                (string) (
+                    $_SERVER['HTTP_REFERER']
+                    ?? ''
+                )
+            );
+
+        if ($referer !== '') {
+            $refererHost =
+                strtolower(
+                    trim(
+                        (string) parse_url(
+                            $referer,
+                            PHP_URL_HOST
+                        )
+                    )
+                );
+
+            $currentHost =
+                strtolower(
+                    preg_replace(
+                        '/:\d+$/',
+                        '',
+                        trim(
+                            (string) $requestHost
+                        )
+                    )
+                    ?: ''
+                );
+
+            if (
+                $refererHost !== ''
+                && $currentHost !== ''
+                && hash_equals(
+                    $currentHost,
+                    $refererHost
+                )
+            ) {
+                $refererPath =
+                    (string) parse_url(
+                        $referer,
+                        PHP_URL_PATH
+                    );
+
+                $refererQuery =
+                    (string) parse_url(
+                        $referer,
+                        PHP_URL_QUERY
+                    );
+
+                $returnPath =
+                    $safeLogoutReturnPath(
+                        $refererPath
+                        . (
+                            $refererQuery !== ''
+                                ? '?' . $refererQuery
+                                : ''
+                        )
+                    );
+            }
+        }
+    }
+
+    /*
      * When logout starts on a module host, remember the
      * module only as a post-login destination. It never
      * influences authentication or the logout chain.
@@ -6709,6 +7046,7 @@ $router->get('/admin/logout', function ($request, $response) {
     if (
         $returnModule === ''
         && $moduleKey !== null
+        && !$federated
     ) {
         $returnModule =
             strtolower(
@@ -6718,25 +7056,35 @@ $router->get('/admin/logout', function ($request, $response) {
             );
     }
 
-    $query = static function (
-        int $nextStep,
-        string $returnModule
-    ): string {
-        $value =
-            '?federated=1'
-            . '&logout_step='
-            . $nextStep;
+    $query =
+        static function (
+            int $nextStep,
+            string $returnModule,
+            string $returnPath
+        ): string {
+            $value =
+                '?federated=1'
+                . '&logout_step='
+                . $nextStep;
 
-        if ($returnModule !== '') {
-            $value .=
-                '&return_module='
-                . rawurlencode(
-                    $returnModule
-                );
-        }
+            if ($returnModule !== '') {
+                $value .=
+                    '&return_module='
+                    . rawurlencode(
+                        $returnModule
+                    );
+            }
 
-        return $value;
-    };
+            if ($returnPath !== '') {
+                $value .=
+                    '&return_path='
+                    . rawurlencode(
+                        $returnPath
+                    );
+            }
+
+            return $value;
+        };
 
     $logoutResponse =
         static function (
@@ -6784,10 +7132,7 @@ $router->get('/admin/logout', function ($request, $response) {
             $response,
             $urls->core(
                 '/admin/logout'
-                . $query(
-                    $step,
-                    $returnModule
-                )
+                . $query($step, $returnModule, $returnPath)
             )
         );
     }
@@ -6908,18 +7253,17 @@ $router->get('/admin/logout', function ($request, $response) {
             $response,
             $target['url']
             . '/admin/logout'
-            . $query(
-                $step + 1,
-                $returnModule
-            )
+            . $query($step + 1, $returnModule, $returnPath)
         );
     }
 
     /*
-     * Preserve the old UX: logout from a module may return
-     * to that module after the user authenticates again.
-     * The SSO start route will first require fresh Core
-     * authentication because every session is now gone.
+     * EXACT_LOGOUT_RETURN_PATH_V1
+     *
+     * If logout originated from an application module,
+     * return to the exact module path only when that path
+     * belongs to the selected module. Otherwise fall back
+     * to the module's registered route_path.
      */
     if ($returnModule !== '') {
         $module =
@@ -6928,7 +7272,7 @@ $router->get('/admin/logout', function ($request, $response) {
             );
 
         if (is_array($module)) {
-            $returnPath =
+            $moduleRoutePath =
                 trim(
                     (string) (
                         $module['route_path']
@@ -6937,24 +7281,68 @@ $router->get('/admin/logout', function ($request, $response) {
                 );
 
             if (
-                $returnPath !== ''
+                $moduleRoutePath !== ''
                 && str_starts_with(
-                    $returnPath,
+                    $moduleRoutePath,
                     '/admin/'
                 )
             ) {
+                $targetReturnPath =
+                    $returnPath;
+
+                $targetPath =
+                    (string) parse_url(
+                        $targetReturnPath,
+                        PHP_URL_PATH
+                    );
+
+                if (
+                    $targetReturnPath === ''
+                    || (
+                        $targetPath
+                            !== $moduleRoutePath
+                        && !str_starts_with(
+                            $targetPath,
+                            rtrim(
+                                $moduleRoutePath,
+                                '/'
+                            ) . '/'
+                        )
+                    )
+                ) {
+                    $targetReturnPath =
+                        $moduleRoutePath;
+                }
+
                 return $logoutResponse(
                     $response,
                     $urls->core(
                         '/auth/module-sso/start'
                         . '?return_path='
                         . rawurlencode(
-                            $returnPath
+                            $targetReturnPath
                         )
                     )
                 );
             }
         }
+    }
+
+    /*
+     * Core-origin logout can return to an exact internal
+     * Core page after fresh authentication.
+     */
+    if ($returnPath !== '') {
+        return $logoutResponse(
+            $response,
+            $urls->core(
+                '/admin/login'
+                . '?return_path='
+                . rawurlencode(
+                    $returnPath
+                )
+            )
+        );
     }
 
     return $logoutResponse(

@@ -94,7 +94,10 @@ $expect(
 );
 
 $expect(
-    str_contains($sso, "'mfa_verified' => (bool) Session::get")
+    preg_match(
+        "/'mfa_verified'\\s*=>\\s*\\(bool\\)\\s*Session::get\\s*\\(/",
+        $sso
+    ) === 1
     && str_contains($sso, 'safe_mfa_verified'),
     'Module SSO does not inherit the Core MFA state.'
 );

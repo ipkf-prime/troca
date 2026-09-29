@@ -136,6 +136,15 @@ class AuthService extends BaseService
         Session::forget('auth_pending_methods');
         Session::forget('auth_pending_auth_method');
         Session::forget('module_sso_return_path');
+
+        /*
+         * ADMIN_LOGIN_RETURN_LOGOUT_V1
+         *
+         * Explicit logout is terminal. Local return
+         * destinations must not survive it.
+         */
+        (new AdminLoginReturnPathService())
+            ->forgetPendingIntent();
         Session::forget('messages_unread_on_login');
 
         /*

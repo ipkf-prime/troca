@@ -12,6 +12,14 @@ class ModuleSsoService extends BaseService
     private const SOURCE = 'core_panel';
     private const INTENT_KEY = 'module_sso_return_path';
 
+    /*
+     * MODULE_SSO_INTENT_TTL_V2
+     *
+     * An abandoned module launch must never hijack
+     * an unrelated future Core login.
+     */
+    private const INTENT_TTL_SECONDS = 900;
+
     public function __construct(
         private ?LoginTokenService $tokens = null,
         private ?AuthorizationService $authorization = null,
@@ -37,18 +45,27 @@ class ModuleSsoService extends BaseService
     ): void {
         Session::put(
             self::INTENT_KEY,
-            $this->returnPath($returnPath)
+            [
+                'path' =>
+                    $this->returnPath(
+                        $returnPath
+                    ),
+
+                'created_at' =>
+                    time(),
+            ]
         );
     }
 
 
     public function pendingResumeUrl(): ?string
     {
-        return Session::has(self::INTENT_KEY)
-            ? $this->urls->core(
-                '/auth/module-sso/resume'
-            )
-            : null;
+        return $this->pendingReturnPath()
+            !== null
+                ? $this->urls->core(
+                    '/auth/module-sso/resume'
+                )
+                : null;
     }
 
 
@@ -320,12 +337,73 @@ class ModuleSsoService extends BaseService
     public function resumeFor(
         int $userId
     ): array {
+        $returnPath =
+            $this->pendingReturnPath();
+
+        if ($returnPath === null) {
+            return [
+                'ok' => false,
+                'error' => 'intent_expired',
+            ];
+        }
+
         return $this->issueFor(
             $userId,
-            (string) Session::get(
-                self::INTENT_KEY,
-                '/admin/dashboard'
-            )
+            $returnPath
+        );
+    }
+
+
+    private function pendingReturnPath(): ?string
+    {
+        $intent =
+            Session::get(
+                self::INTENT_KEY
+            );
+
+        /*
+         * Previous deployments stored only a raw string
+         * and therefore had no expiry information.
+         * Treat legacy state as stale rather than allowing
+         * it to redirect a later unrelated login.
+         */
+        if (!is_array($intent)) {
+            $this->forgetPendingIntent();
+
+            return null;
+        }
+
+        $path =
+            trim(
+                (string) (
+                    $intent['path']
+                    ?? ''
+                )
+            );
+
+        $createdAt =
+            (int) (
+                $intent['created_at']
+                ?? 0
+            );
+
+        $now =
+            time();
+
+        if (
+            $path === ''
+            || $createdAt <= 0
+            || $createdAt > $now + 60
+            || ($now - $createdAt)
+                > self::INTENT_TTL_SECONDS
+        ) {
+            $this->forgetPendingIntent();
+
+            return null;
+        }
+
+        return $this->returnPath(
+            $path
         );
     }
 

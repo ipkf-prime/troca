@@ -380,6 +380,9 @@ class DynamicAdminNavigationService extends BaseService
                 $item['parent_id'] !== null
                 || (string) ($item['placement_code'] ?? 'sidebar')
                     !== 'sidebar'
+                || !$this->moduleNavigationSurfaceEnabled(
+                    $item
+                )
             ) {
                 continue;
             }
@@ -817,6 +820,9 @@ class DynamicAdminNavigationService extends BaseService
                 (int) ($item['parent_id'] ?? 0) !== $parentId
                 || (string) ($item['placement_code'] ?? 'sidebar')
                     !== $placement
+                || !$this->moduleNavigationSurfaceEnabled(
+                    $item
+                )
                 || !$this->allowed($item, $userId)
             ) {
                 continue;
@@ -1426,6 +1432,51 @@ class DynamicAdminNavigationService extends BaseService
         ];
     }
 
+    /*
+     * CORE_NAVIGATION_MODULE_RUNTIME_GATE_V1
+     *
+     * application_modules is authoritative for application
+     * module visibility. A stale admin_navigation_items row
+     * must never resurrect an inactive/hidden module.
+     *
+     * Core-owned navigation is unaffected.
+     */
+    private function moduleNavigationSurfaceEnabled(
+        array $item
+    ): bool {
+        $target =
+            strtolower(
+                trim(
+                    (string) (
+                        $item['target_application']
+                        ?? 'core'
+                    )
+                )
+            );
+
+        if (
+            $target === ''
+            || $target === 'core'
+        ) {
+            return true;
+        }
+
+        $module =
+            (new ModuleRuntimeConfig())
+                ->active($target);
+
+        if (!is_array($module)) {
+            return false;
+        }
+
+        return
+            (int) (
+                $module['sidebar_enabled']
+                ?? 1
+            ) === 1;
+    }
+
+
     private function allowed(array $item, int $userId): bool
     {
         if (
@@ -1541,6 +1592,28 @@ class DynamicAdminNavigationService extends BaseService
     private function qualifyUrl(array $item): string
     {
         $path = (string) ($item['route_path'] ?? '/');
+
+        /*
+         * LOCAL_HOST_LOGOUT_NAVIGATION_V1
+         *
+         * Authentication sessions are host-scoped.
+         * Logout must therefore begin on the host that
+         * currently owns the browser page.
+         *
+         * Keeping this route relative also allows the
+         * local logout handler to capture the exact
+         * same-origin Path + Query before the federated
+         * logout chain continues through Core.
+         */
+        if (
+            rtrim(
+                $path,
+                '/'
+            ) === '/admin/logout'
+        ) {
+            return '/admin/logout';
+        }
+
         $urls = new ApplicationUrlRegistry();
 
         return match ((string) ($item['target_application'] ?? 'core')) {
