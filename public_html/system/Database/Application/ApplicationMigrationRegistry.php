@@ -136,6 +136,7 @@ class ApplicationMigrationRegistry
                 'migrations' => [
                     \IPKF\Database\Migrations\CreateTicketingDomainFoundationTables::class,
                     \IPKF\Database\Migrations\CreateTicketingSupportProjectFoundation::class,
+                    \IPKF\Database\Migrations\CreateTicketingSupportSubdomainFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingParticipantDirectoryFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingProjectOrganizationScopeFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingDynamicSupportTopologyFoundation::class,

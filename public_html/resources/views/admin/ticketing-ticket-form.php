@@ -471,9 +471,225 @@ ob_start();
         return;
     }
 
+    const subdomains =
+        <?= json_encode(
+            array_values(
+                $options['subdomains']
+                ?? []
+            ),
+            JSON_UNESCAPED_UNICODE
+            | JSON_UNESCAPED_SLASHES
+        ) ?>;
+
+    const services =
+        <?= json_encode(
+            array_values(
+                $options['services']
+                ?? []
+            ),
+            JSON_UNESCAPED_UNICODE
+            | JSON_UNESCAPED_SLASHES
+        ) ?>;
+
+    const subdomainById = {};
+    const serviceSubdomain = {};
+
+    subdomains.forEach(function (item) {
+        subdomainById[
+            String(item.id || '')
+        ] = item;
+    });
+
+    services.forEach(function (item) {
+        const id =
+            String(item.id || '');
+
+        const rawSubdomain =
+            item.subdomain_id === null
+            || typeof item.subdomain_id === 'undefined'
+                ? ''
+                : String(item.subdomain_id);
+
+        serviceSubdomain[id] =
+            Object.prototype.hasOwnProperty.call(
+                subdomainById,
+                rawSubdomain
+            )
+                ? rawSubdomain
+                : '';
+    });
+
+    const serviceField =
+        service.closest('label');
+
+    if (!serviceField || !serviceField.parentNode) {
+        return;
+    }
+
+    const subdomainField =
+        document.createElement('label');
+
+    subdomainField.setAttribute(
+        'data-ticketing-subdomain-field',
+        '1'
+    );
+
+    const caption =
+        document.createElement('span');
+
+    caption.textContent =
+        'زیر‌دامنه';
+
+    const subdomain =
+        document.createElement('select');
+
+    subdomain.id =
+        'ticket-support-subdomain';
+
+    const empty =
+        document.createElement('option');
+
+    empty.value = '';
+    empty.textContent = '—';
+
+    subdomain.appendChild(empty);
+
+    subdomains.forEach(function (item) {
+        const option =
+            document.createElement('option');
+
+        option.value =
+            String(item.id || '');
+
+        option.textContent =
+            String(item.title || '');
+
+        option.dataset.project =
+            String(item.project_id || '');
+
+        subdomain.appendChild(option);
+    });
+
+    subdomainField.appendChild(caption);
+    subdomainField.appendChild(subdomain);
+
+    serviceField.parentNode.insertBefore(
+        subdomainField,
+        serviceField
+    );
+
+    function selectedServiceSubdomain(
+        projectId
+    ) {
+        const option =
+            service.options[
+                service.selectedIndex
+            ];
+
+        if (!option || !option.value) {
+            return '';
+        }
+
+        if (
+            String(
+                option.dataset.project
+                || ''
+            ) !== projectId
+        ) {
+            return '';
+        }
+
+        return
+            serviceSubdomain[
+                String(option.value)
+            ]
+            || '';
+    }
+
+    function syncSubdomains() {
+        const projectId =
+            String(project.value || '');
+
+        const preferred =
+            selectedServiceSubdomain(
+                projectId
+            );
+
+        let firstVisible = null;
+        let preferredOption = null;
+        let selectedVisible = false;
+        let visibleCount = 0;
+
+        Array.from(
+            subdomain.options
+        ).forEach(function (option) {
+            if (!option.value) {
+                option.hidden = false;
+                option.disabled = false;
+                return;
+            }
+
+            const visible =
+                String(
+                    option.dataset.project
+                    || ''
+                ) === projectId;
+
+            option.hidden =
+                !visible;
+
+            option.disabled =
+                !visible;
+
+            if (visible) {
+                visibleCount += 1;
+
+                if (firstVisible === null) {
+                    firstVisible = option;
+                }
+
+                if (
+                    String(option.value)
+                    === preferred
+                ) {
+                    preferredOption = option;
+                }
+
+                if (option.selected) {
+                    selectedVisible = true;
+                }
+            }
+        });
+
+        subdomainField.hidden =
+            visibleCount === 0;
+
+        if (preferredOption) {
+            preferredOption.selected = true;
+            return;
+        }
+
+        if (
+            selectedVisible
+            && subdomain.value !== ''
+        ) {
+            return;
+        }
+
+        if (firstVisible) {
+            firstVisible.selected = true;
+            return;
+        }
+
+        subdomain.value = '';
+    }
+
     function syncServices() {
         const projectId =
-            String(project.value);
+            String(project.value || '');
+
+        const subdomainId =
+            String(subdomain.value || '');
 
         let firstVisible = null;
         let selectedVisible = false;
@@ -481,11 +697,22 @@ ob_start();
         Array.from(
             service.options
         ).forEach(function (option) {
-            const visible =
+            const optionProject =
                 String(
                     option.dataset.project
                     || ''
-                ) === projectId;
+                );
+
+            const optionSubdomain =
+                serviceSubdomain[
+                    String(option.value)
+                ]
+                || '';
+
+            const visible =
+                optionProject === projectId
+                && optionSubdomain
+                    === subdomainId;
 
             option.hidden =
                 !visible;
@@ -511,13 +738,44 @@ ob_start();
         ) {
             firstVisible.selected = true;
         }
+
+        if (
+            !selectedVisible
+            && !firstVisible
+        ) {
+            service.selectedIndex = -1;
+        }
+    }
+
+    function notifyServiceChanged() {
+        service.dispatchEvent(
+            new Event(
+                'change',
+                {
+                    bubbles: true
+                }
+            )
+        );
     }
 
     project.addEventListener(
         'change',
-        syncServices
+        function () {
+            syncSubdomains();
+            syncServices();
+            notifyServiceChanged();
+        }
     );
 
+    subdomain.addEventListener(
+        'change',
+        function () {
+            syncServices();
+            notifyServiceChanged();
+        }
+    );
+
+    syncSubdomains();
     syncServices();
 })();
 </script>

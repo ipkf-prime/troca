@@ -700,6 +700,7 @@ class TicketService extends BaseService
         }
 
         $projectOptions = [];
+        $subdomainOptions = [];
         $serviceOptions = [];
         $topicOptions = [];
 
@@ -716,6 +717,10 @@ class TicketService extends BaseService
 
             $projectOptions =
                 $createOptions['projects']
+                ?? [];
+
+            $subdomainOptions =
+                $createOptions['subdomains']
                 ?? [];
 
             $serviceOptions =
@@ -859,6 +864,9 @@ class TicketService extends BaseService
 
                 'projects' =>
                     $projectOptions,
+
+                'subdomains' =>
+                    $subdomainOptions,
 
                 'services' =>
                     $serviceOptions,

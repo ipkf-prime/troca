@@ -22,6 +22,10 @@ $project =
     $page['project']
     ?? [];
 
+$subdomains =
+    $page['subdomains']
+    ?? [];
+
 $services =
     $page['services']
     ?? [];
@@ -1160,6 +1164,401 @@ ob_start();
 
 </div>
 
+
+<script>
+/*
+ * Generic support taxonomy UI cascade:
+ * Subdomain -> Service(Subsystem) -> Topic.
+ *
+ * Subdomain is a navigation/filter layer only. Existing service_id/topic_id
+ * remain the canonical posted identities for routing and topic governance.
+ */
+(function () {
+    const subdomains =
+        <?= json_encode(
+            array_values($subdomains),
+            JSON_UNESCAPED_UNICODE
+            | JSON_UNESCAPED_SLASHES
+        ) ?>;
+
+    const services =
+        <?= json_encode(
+            array_values($services),
+            JSON_UNESCAPED_UNICODE
+            | JSON_UNESCAPED_SLASHES
+        ) ?>;
+
+    const topics =
+        <?= json_encode(
+            array_values($topics),
+            JSON_UNESCAPED_UNICODE
+            | JSON_UNESCAPED_SLASHES
+        ) ?>;
+
+    const activeSubdomains = {};
+    const serviceSubdomain = {};
+    const topicService = {};
+
+    subdomains.forEach(function (item) {
+        activeSubdomains[
+            String(item.id || '')
+        ] = item;
+    });
+
+    services.forEach(function (item) {
+        const id =
+            String(item.id || '');
+
+        const raw =
+            item.subdomain_id === null
+            || typeof item.subdomain_id === 'undefined'
+                ? ''
+                : String(item.subdomain_id);
+
+        serviceSubdomain[id] =
+            Object.prototype.hasOwnProperty.call(
+                activeSubdomains,
+                raw
+            )
+                ? raw
+                : '';
+    });
+
+    topics.forEach(function (item) {
+        const id =
+            String(item.id || '');
+
+        topicService[id] =
+            item.service_id === null
+            || typeof item.service_id === 'undefined'
+                ? '0'
+                : String(item.service_id);
+    });
+
+    function createSubdomainField(
+        serviceSelect
+    ) {
+        const serviceField =
+            serviceSelect.closest('label');
+
+        if (
+            !serviceField
+            || !serviceField.parentNode
+        ) {
+            return null;
+        }
+
+        const label =
+            document.createElement('label');
+
+        label.setAttribute(
+            'data-ticketing-routing-subdomain-field',
+            '1'
+        );
+
+        const caption =
+            document.createElement('span');
+
+        caption.textContent =
+            'زیر‌دامنه';
+
+        const select =
+            document.createElement('select');
+
+        select.setAttribute(
+            'data-ticketing-routing-subdomain-filter',
+            '1'
+        );
+
+        const empty =
+            document.createElement('option');
+
+        empty.value = '';
+        empty.textContent = '—';
+
+        select.appendChild(empty);
+
+        subdomains.forEach(function (item) {
+            const option =
+                document.createElement('option');
+
+            option.value =
+                String(item.id || '');
+
+            option.textContent =
+                String(item.title || '');
+
+            select.appendChild(option);
+        });
+
+        label.appendChild(caption);
+        label.appendChild(select);
+
+        serviceField.parentNode.insertBefore(
+            label,
+            serviceField
+        );
+
+        label.hidden =
+            subdomains.length === 0;
+
+        return select;
+    }
+
+    function selectedServiceSubdomain(
+        serviceSelect
+    ) {
+        const value =
+            String(
+                serviceSelect.value
+                || ''
+            );
+
+        if (!value || value === '0') {
+            return '';
+        }
+
+        return
+            serviceSubdomain[value]
+            || '';
+    }
+
+    function syncServiceOptions(
+        serviceSelect,
+        subdomainSelect
+    ) {
+        const subdomainId =
+            String(
+                subdomainSelect.value
+                || ''
+            );
+
+        let firstVisible = null;
+        let selectedVisible = false;
+
+        Array.from(
+            serviceSelect.options
+        ).forEach(function (option) {
+            const value =
+                String(
+                    option.value
+                    || ''
+                );
+
+            const mapped =
+                !value
+                || value === '0'
+                    ? ''
+                    : (
+                        serviceSubdomain[value]
+                        || ''
+                    );
+
+            const visible =
+                mapped === subdomainId;
+
+            option.hidden =
+                !visible;
+
+            option.disabled =
+                !visible;
+
+            if (
+                visible
+                && firstVisible === null
+            ) {
+                firstVisible = option;
+            }
+
+            if (
+                visible
+                && option.selected
+            ) {
+                selectedVisible = true;
+            }
+        });
+
+        if (
+            !selectedVisible
+            && firstVisible
+        ) {
+            firstVisible.selected = true;
+        }
+
+        if (
+            !selectedVisible
+            && !firstVisible
+        ) {
+            serviceSelect.selectedIndex = -1;
+        }
+    }
+
+    function syncTopicOptions(
+        form,
+        serviceSelect
+    ) {
+        const serviceId =
+            String(
+                serviceSelect.value
+                || '0'
+            );
+
+        form
+            .querySelectorAll(
+                'select[name="parent_topic_id"],'
+                + ' select[name="topic_id"]'
+            )
+            .forEach(function (topicSelect) {
+                let firstVisible = null;
+                let selectedVisible = false;
+
+                Array.from(
+                    topicSelect.options
+                ).forEach(function (option) {
+                    const value =
+                        String(
+                            option.value
+                            || ''
+                        );
+
+                    if (!value || value === '0') {
+                        option.hidden = false;
+                        option.disabled = false;
+
+                        if (firstVisible === null) {
+                            firstVisible = option;
+                        }
+
+                        if (option.selected) {
+                            selectedVisible = true;
+                        }
+
+                        return;
+                    }
+
+                    const mappedService =
+                        topicService[value]
+                        || '0';
+
+                    const isParent =
+                        topicSelect.name
+                        === 'parent_topic_id';
+
+                    const visible =
+                        isParent
+                            ? (
+                                mappedService === '0'
+                                || mappedService
+                                    === serviceId
+                            )
+                            : (
+                                serviceId === '0'
+                                || mappedService === '0'
+                                || mappedService
+                                    === serviceId
+                            );
+
+                    option.hidden =
+                        !visible;
+
+                    option.disabled =
+                        !visible;
+
+                    if (
+                        visible
+                        && firstVisible === null
+                    ) {
+                        firstVisible = option;
+                    }
+
+                    if (
+                        visible
+                        && option.selected
+                    ) {
+                        selectedVisible = true;
+                    }
+                });
+
+                if (
+                    !selectedVisible
+                    && firstVisible
+                ) {
+                    firstVisible.selected = true;
+                }
+            });
+    }
+
+    document
+        .querySelectorAll(
+            'select[name="service_id"]'
+        )
+        .forEach(function (serviceSelect) {
+            const form =
+                serviceSelect.closest('form');
+
+            if (!form) {
+                return;
+            }
+
+            const subdomainSelect =
+                createSubdomainField(
+                    serviceSelect
+                );
+
+            if (!subdomainSelect) {
+                return;
+            }
+
+            const preferred =
+                selectedServiceSubdomain(
+                    serviceSelect
+                );
+
+            if (
+                preferred
+                && subdomainSelect.querySelector(
+                    'option[value="'
+                    + CSS.escape(preferred)
+                    + '"]'
+                )
+            ) {
+                subdomainSelect.value =
+                    preferred;
+            } else {
+                subdomainSelect.value = '';
+            }
+
+            function syncAll() {
+                syncServiceOptions(
+                    serviceSelect,
+                    subdomainSelect
+                );
+
+                syncTopicOptions(
+                    form,
+                    serviceSelect
+                );
+            }
+
+            subdomainSelect.addEventListener(
+                'change',
+                syncAll
+            );
+
+            serviceSelect.addEventListener(
+                'change',
+                function () {
+                    syncTopicOptions(
+                        form,
+                        serviceSelect
+                    );
+                }
+            );
+
+            syncAll();
+        });
+})();
+</script>
 
 <style>
 .ticketing-routing-checks {

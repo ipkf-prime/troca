@@ -52,6 +52,11 @@ final class SupportTopicRoutingAdminRepository
         int $projectId
     ): array {
         return [
+            'subdomains' =>
+                $this->subdomains(
+                    $projectId
+                ),
+
             'services' =>
                 $this->services(
                     $projectId
@@ -95,12 +100,43 @@ final class SupportTopicRoutingAdminRepository
     }
 
 
+    public function subdomains(
+        int $projectId
+    ): array {
+        if ($projectId < 1) {
+            return [];
+        }
+
+        return $this->all("
+            SELECT
+                id,
+                public_reference,
+                project_id,
+                code,
+                title,
+                description,
+                sort_order,
+                is_default,
+                is_active
+            FROM ticketing_support_subdomains
+            WHERE project_id = {$projectId}
+              AND is_active = 1
+            ORDER BY
+                is_default DESC,
+                sort_order,
+                title,
+                id
+        ");
+    }
+
+
     public function services(
         int $projectId
     ): array {
         return $this->all("
             SELECT
                 id,
+                subdomain_id,
                 code,
                 title,
                 is_default,

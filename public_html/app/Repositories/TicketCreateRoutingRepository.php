@@ -50,6 +50,12 @@ final class TicketCreateRoutingRepository
                         AS service_reference,
                     s.code AS service_code,
                     s.title AS service_title,
+                    s.subdomain_id AS subdomain_id,
+                    sd.public_reference AS subdomain_reference,
+                    sd.code AS subdomain_code,
+                    sd.title AS subdomain_title,
+                    sd.is_default AS subdomain_is_default,
+                    sd.sort_order AS subdomain_sort_order,
                     s.is_default
 
                 FROM
@@ -66,12 +72,25 @@ final class TicketCreateRoutingRepository
                     ON s.project_id = p.id
                    AND s.is_active = 1
 
+                LEFT JOIN
+                    ticketing_support_subdomains sd
+                    ON sd.id = s.subdomain_id
+                   AND sd.project_id = s.project_id
+                   AND sd.is_active = 1
+
                 WHERE pm.user_reference = ?
                   AND pm.left_at IS NULL
+                  AND (
+                        s.subdomain_id IS NULL
+                        OR sd.id IS NOT NULL
+                  )
 
                 ORDER BY
                     p.sort_order,
                     p.title,
+                    sd.is_default DESC,
+                    sd.sort_order,
+                    sd.title,
                     s.is_default DESC,
                     s.sort_order,
                     s.title,
@@ -88,6 +107,7 @@ final class TicketCreateRoutingRepository
             ) ?: [];
 
         $projects = [];
+        $subdomains = [];
         $services = [];
 
         foreach ($rows as $row) {
@@ -96,6 +116,43 @@ final class TicketCreateRoutingRepository
 
             $serviceId =
                 (int) $row['service_id'];
+
+            $subdomainId =
+                isset($row['subdomain_id'])
+                && $row['subdomain_id'] !== null
+                    ? (int) $row['subdomain_id']
+                    : null;
+
+            if (
+                $subdomainId !== null
+                && $subdomainId > 0
+                && !isset($subdomains[$subdomainId])
+            ) {
+                $subdomains[$subdomainId] = [
+                    'id' => $subdomainId,
+                    'project_id' => $projectId,
+                    'reference' =>
+                        (string) (
+                            $row['subdomain_reference']
+                            ?? ''
+                        ),
+                    'code' =>
+                        (string) (
+                            $row['subdomain_code']
+                            ?? ''
+                        ),
+                    'title' =>
+                        (string) (
+                            $row['subdomain_title']
+                            ?? ''
+                        ),
+                    'is_default' =>
+                        (int) (
+                            $row['subdomain_is_default']
+                            ?? 0
+                        ),
+                ];
+            }
 
             $projects[$projectId] = [
                 'id' =>
@@ -123,6 +180,9 @@ final class TicketCreateRoutingRepository
 
                 'project_id' =>
                     $projectId,
+
+                'subdomain_id' =>
+                    $subdomainId,
 
                 'reference' =>
                     (string) $row[
@@ -154,6 +214,9 @@ final class TicketCreateRoutingRepository
         return [
             'projects' =>
                 $projects,
+
+            'subdomains' =>
+                $subdomains,
 
             'services' =>
                 $services,
@@ -412,7 +475,8 @@ final class TicketCreateRoutingRepository
                     s.public_reference
                         AS service_reference,
                     s.code AS service_code,
-                    s.title AS service_title
+                    s.title AS service_title,
+                    s.subdomain_id AS subdomain_id
 
                 FROM
                     ticketing_support_project_members pm
@@ -428,10 +492,20 @@ final class TicketCreateRoutingRepository
                     ON s.project_id = p.id
                    AND s.is_active = 1
 
+                LEFT JOIN
+                    ticketing_support_subdomains sd
+                    ON sd.id = s.subdomain_id
+                   AND sd.project_id = s.project_id
+                   AND sd.is_active = 1
+
                 WHERE pm.user_reference = ?
                   AND pm.left_at IS NULL
                   AND p.id = ?
                   AND s.id = ?
+                  AND (
+                        s.subdomain_id IS NULL
+                        OR sd.id IS NOT NULL
+                  )
 
                 LIMIT 1
             ");
