@@ -203,6 +203,53 @@ class WorkExternalSourceBridgeService extends BaseService
         );
     }
 
+    public function sourceLinksForItem(
+        string $projectReference,
+        string $itemReference
+    ): array {
+        $projectReference = $this->reference($projectReference, 'work project reference');
+        $itemReference = $this->reference($itemReference, 'work item reference');
+        $project = $this->repository->projectByReference($projectReference);
+
+        if ($project === null || !empty($project['archived_at'])) {
+            return [];
+        }
+
+        $item = $this->repository->itemByReference((int) $project['id'], $itemReference);
+
+        if ($item === null || !empty($item['archived_at'])) {
+            return [];
+        }
+
+        $links = $this->repository->sourceLinksForItem((int) $item['id']);
+
+        foreach ($links as &$link) {
+            $metadata = json_decode((string) ($link['metadata_json'] ?? ''), true);
+            $link['metadata'] = is_array($metadata) ? $metadata : [];
+            $link['source_url'] = $this->sourceUrl($link);
+        }
+        unset($link);
+
+        return $links;
+    }
+
+    private function sourceUrl(array $link): string
+    {
+        $moduleCode = strtolower(trim((string) ($link['source_module_code'] ?? '')));
+        $resourceType = strtolower(trim((string) ($link['source_resource_type'] ?? '')));
+        $sourceReference = trim((string) ($link['source_reference'] ?? ''));
+
+        if ($moduleCode !== 'ticketing' || $resourceType !== 'ticket' || $sourceReference === '') {
+            return '';
+        }
+
+        $returnPath = '/admin/ticketing/tickets/' . rawurlencode($sourceReference);
+
+        return (new \IPKF\Support\ApplicationUrlRegistry())->core(
+            '/auth/module-sso/start?return_path=' . rawurlencode($returnPath)
+        );
+    }
+
     private function sourceIdentity(
         string $moduleCode,
         string $resourceType,

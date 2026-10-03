@@ -4211,16 +4211,21 @@ if (
                         <table class="admin-table">
                             <tbody>
                             <?php foreach ($ticketWorkLinkedItems as $ticketWorkItem): ?>
+                                <?php
+                                $ticketWorkDueDate = \App\Support\AdminFormat::jalaliDate(substr((string) ($ticketWorkItem['due_at'] ?? ''), 0, 10));
+                                $ticketWorkAssignee = trim((string) ($ticketWorkItem['assignee_name'] ?? ''));
+                                ?>
                                 <tr>
                                     <td>
-                                        <?= ticketing_h(
-                                            (string) (
-                                                $ticketWorkItem['work_item_title']
-                                                ?? $ticketWorkItem['title']
-                                                ?? $ticketWorkItem['work_item_reference']
-                                                ?? ''
-                                            )
-                                        ) ?>
+                                        <strong><?= ticketing_h((string) ($ticketWorkItem['work_item_title'] ?? $ticketWorkItem['title'] ?? $ticketWorkItem['work_item_reference'] ?? '')) ?></strong>
+                                        <div class="admin-muted">
+                                            <?= ticketing_h($ticketWorkUi->text('ticket_detail.item_status')) ?>: <?= ticketing_h($ticketWorkItem['status_title'] ?? '') ?>
+                                            · <?= ticketing_h($ticketWorkUi->text('ticket_detail.item_progress')) ?>: <?= ticketing_h(\App\Support\AdminFormat::digits((int) ($ticketWorkItem['progress_percent'] ?? 0))) ?>٪
+                                        </div>
+                                        <div class="admin-muted">
+                                            <?= ticketing_h($ticketWorkUi->text('ticket_detail.item_assignee')) ?>: <?= ticketing_h($ticketWorkAssignee !== '' ? $ticketWorkAssignee : $ticketWorkUi->text('ticket_detail.no_assignee')) ?>
+                                            · <?= ticketing_h($ticketWorkUi->text('ticket_detail.item_due')) ?>: <?= ticketing_h($ticketWorkDueDate !== '' ? $ticketWorkDueDate : $ticketWorkUi->text('ticket_detail.no_due')) ?>
+                                        </div>
                                     </td>
                                     <td>
                                         <?php

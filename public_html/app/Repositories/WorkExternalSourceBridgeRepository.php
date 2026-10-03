@@ -296,7 +296,10 @@ class WorkExternalSourceBridgeRepository
                 wi.due_at,
                 ws.code AS status_code,
                 ws.title AS status_title,
+                ws.color AS status_color,
                 ws.is_closed AS status_is_closed,
+                assignee.user_reference AS assignee_reference,
+                assignee.display_name_snapshot AS assignee_name,
                 wi.archived_at
              FROM work_item_source_links l
              INNER JOIN work_items wi
@@ -305,6 +308,16 @@ class WorkExternalSourceBridgeRepository
                 ON wp.id = wi.project_id
              INNER JOIN work_statuses ws
                 ON ws.id = wi.status_id
+             LEFT JOIN work_item_assignees assignee
+                ON assignee.id = (
+                    SELECT a.id
+                    FROM work_item_assignees a
+                    WHERE a.work_item_id = wi.id
+                      AND a.assignment_role = 'responsible'
+                      AND a.unassigned_at IS NULL
+                    ORDER BY a.id DESC
+                    LIMIT 1
+                )
              WHERE l.source_module_code = ?
                AND l.source_resource_type = ?
                AND l.source_reference = ?

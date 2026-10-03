@@ -13,6 +13,9 @@ $checklist = $page['checklist'] ?? [];
 $comments = $page['comments'] ?? [];
 $attachments = $page['attachments'] ?? [];
 $activities = $page['activities'] ?? [];
+$sourceLinks = is_array($page['source_links'] ?? null) ? $page['source_links'] : [];
+$ticketWorkUi = new \App\Services\Work\TicketWorkUiContentService();
+$sourceRelationOptions = $ticketWorkUi->options('options.relation_type_code');
 $projectReference = (string) ($item['project_reference'] ?? '');
 $itemReference = (string) ($item['public_reference'] ?? '');
 $baseUrl = '/admin/work/projects/' . rawurlencode($projectReference) . '/items';
@@ -272,6 +275,44 @@ require __DIR__ . '/work-ui-styles.php';
     </div>
 
     <aside class="work-detail-stack">
+        <section class="admin-section" data-work-source-links>
+            <div class="admin-section__header">
+                <div>
+                    <h2><?= admin_h($ticketWorkUi->text('work_item_source.heading')) ?></h2>
+                    <p class="admin-muted"><?= admin_h($ticketWorkUi->text('work_item_source.subtitle')) ?></p>
+                </div>
+            </div>
+            <?php if ($sourceLinks === []): ?>
+                <p class="admin-empty-state"><?= admin_h($ticketWorkUi->text('work_item_source.empty')) ?></p>
+            <?php else: ?>
+                <div class="work-detail-list">
+                    <?php foreach ($sourceLinks as $sourceLink): ?>
+                        <?php
+                        $sourceMetadata = is_array($sourceLink['metadata'] ?? null) ? $sourceLink['metadata'] : [];
+                        $relationCode = trim((string) ($sourceLink['relation_type_code'] ?? ''));
+                        $relationTitle = (string) ($sourceRelationOptions[$relationCode] ?? $relationCode);
+                        $ticketNumber = trim((string) ($sourceMetadata['ticket_number'] ?? ''));
+                        $ticketSubject = trim((string) ($sourceMetadata['ticket_subject'] ?? ''));
+                        $sourceUrl = trim((string) ($sourceLink['source_url'] ?? ''));
+                        ?>
+                        <article class="work-activity" data-work-source-link>
+                            <strong><?= admin_h($ticketNumber !== '' ? $ticketNumber : ($sourceLink['source_reference'] ?? '')) ?></strong>
+                            <?php if ($ticketSubject !== ''): ?><span><?= admin_h($ticketSubject) ?></span><?php endif; ?>
+                            <div class="work-detail-meta">
+                                <div><span><?= admin_h($ticketWorkUi->text('work_item_source.source_reference')) ?></span><strong><?= admin_h($sourceLink['source_reference'] ?? '') ?></strong></div>
+                                <div><span><?= admin_h($ticketWorkUi->text('work_item_source.relation')) ?></span><strong><?= admin_h($relationTitle) ?></strong></div>
+                                <div><span><?= admin_h($ticketWorkUi->text('work_item_source.linked_at')) ?></span><strong><?= admin_h(\App\Support\AdminFormat::jalaliDateTime($sourceLink['created_at'] ?? '')) ?></strong></div>
+                                <div><span><?= admin_h($ticketWorkUi->text('work_item_source.linked_by')) ?></span><strong><?= admin_h($sourceLink['created_by_user_reference'] ?? '') ?></strong></div>
+                            </div>
+                            <?php if ($sourceUrl !== ''): ?>
+                                <p><a class="admin-button admin-button--soft admin-button--compact" href="<?= admin_h($sourceUrl) ?>"><?= admin_h($ticketWorkUi->text('work_item_source.open_source')) ?></a></p>
+                            <?php endif; ?>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </section>
+
         <section class="admin-section">
             <div class="admin-section__header">
                 <div>

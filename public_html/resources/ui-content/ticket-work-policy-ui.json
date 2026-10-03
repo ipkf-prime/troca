@@ -32,7 +32,13 @@
     "description": "شرح",
     "create_action": "ایجاد آیتم کاری",
     "unavailable": "مدیریت کار برای این تیکت در دسترس نیست.",
-    "no_create_permission": "اجازه ایجاد آیتم کاری از این تیکت برای دسترسی جاری فعال نیست."
+    "no_create_permission": "اجازه ایجاد آیتم کاری از این تیکت برای دسترسی جاری فعال نیست.",
+    "item_status": "وضعیت",
+    "item_progress": "پیشرفت",
+    "item_assignee": "مسئول",
+    "item_due": "سررسید",
+    "no_assignee": "بدون مسئول",
+    "no_due": "بدون سررسید"
   },
   "status": {
     "saved": "قاعده ذخیره شد.",
@@ -125,6 +131,20 @@
     "status_code": {
       "active": "فعال",
       "inactive": "غیرفعال"
+    },
+    "relation_type_code": {
+      "created_from": "ایجادشده از",
+      "related_to": "مرتبط با"
     }
+  },
+  "work_item_source": {
+    "heading": "منبع و ارتباط",
+    "subtitle": "منبع ثبت یا ایجاد این آیتم کاری",
+    "empty": "برای این آیتم منبعی ثبت نشده است.",
+    "source_reference": "شناسه منبع",
+    "relation": "نوع ارتباط",
+    "linked_at": "زمان اتصال",
+    "linked_by": "ثبت‌کننده اتصال",
+    "open_source": "باز کردن منبع"
   }
 }

@@ -22,10 +22,12 @@ class WorkItemDetailService extends BaseService
 
     public function __construct(
         private ?WorkItemDetailRepository $details = null,
-        private ?WorkReferenceDataService $references = null
+        private ?WorkReferenceDataService $references = null,
+        private ?WorkExternalSourceBridgeService $sourceBridge = null
     ) {
         $this->details ??= new WorkItemDetailRepository();
         $this->references ??= new WorkReferenceDataService();
+        $this->sourceBridge ??= new WorkExternalSourceBridgeService();
     }
 
     public function view(string $projectReference, string $itemReference): array
@@ -62,6 +64,10 @@ class WorkItemDetailService extends BaseService
             'comments' => $this->details->comments((int) $item['id']),
             'attachments' => $this->details->attachments((int) $item['id']),
             'activities' => $activities,
+            'source_links' => $this->sourceBridge->sourceLinksForItem(
+                trim($projectReference),
+                trim($itemReference)
+            ),
         ];
     }
 
