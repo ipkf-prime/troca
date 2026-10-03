@@ -321,7 +321,33 @@ class WorkItemRepository
         string $actorReference,
         string $actorDisplayName
     ): bool {
-        $this->db->beginTransaction();
+        $result =
+            $this->updateWithActivity(
+                $projectId,
+                $itemId,
+                $data,
+                $actorReference,
+                $actorDisplayName
+            );
+
+        return
+            ($result['updated'] ?? false)
+            === true;
+    }
+
+    public function updateWithActivity(
+        int $projectId,
+        int $itemId,
+        array $data,
+        string $actorReference,
+        string $actorDisplayName
+    ): array {
+        $ownsTransaction =
+            !$this->db->inTransaction();
+
+        if ($ownsTransaction) {
+            $this->db->beginTransaction();
+        }
 
         try {
             $statement = $this->db->prepare("
@@ -364,25 +390,37 @@ class WorkItemRepository
                 $data['assignee_name'],
                 $actorReference
             );
-            $this->recordActivity(
-                $projectId,
-                $itemId,
-                'work_item_updated',
-                $actorReference,
-                $actorDisplayName,
-                [
-                    'status_code' => $data['status_code'],
-                    'title' => $data['title'],
-                    'progress_percent' => $data['progress_percent'],
-                ]
-            );
+            $activityEventId =
+                $this->recordActivity(
+                    $projectId,
+                    $itemId,
+                    'work_item_updated',
+                    $actorReference,
+                    $actorDisplayName,
+                    [
+                        'status_code' => $data['status_code'],
+                        'title' => $data['title'],
+                        'progress_percent' => $data['progress_percent'],
+                    ]
+                );
 
-            $this->db->commit();
-            return true;
+            if ($ownsTransaction) {
+                $this->db->commit();
+            }
+
+            return [
+                'updated' => true,
+                'activity_event_id' =>
+                    $activityEventId,
+            ];
         } catch (\Throwable $exception) {
-            if ($this->db->inTransaction()) {
+            if (
+                $ownsTransaction
+                && $this->db->inTransaction()
+            ) {
                 $this->db->rollBack();
             }
+
             throw $exception;
         }
     }
@@ -472,7 +510,7 @@ class WorkItemRepository
         string $actorReference,
         string $actorDisplayName,
         ?array $payload
-    ): void {
+    ): int {
         $statement = $this->db->prepare("
             INSERT INTO work_activity_events
                 (project_id, work_item_id, event_type, actor_user_reference,
@@ -487,6 +525,10 @@ class WorkItemRepository
             $actorDisplayName,
             $payload === null ? null : json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
         ]);
+
+        return
+            (int) $this->db
+                ->lastInsertId();
     }
 
     private function dateTimeStart(?string $date): ?string

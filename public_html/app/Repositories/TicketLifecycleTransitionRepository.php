@@ -108,7 +108,12 @@ final class TicketLifecycleTransitionRepository
                 $actorUserReference;
         }
 
-        $this->db->beginTransaction();
+        $ownsTransaction =
+            !$this->db->inTransaction();
+
+        if ($ownsTransaction) {
+            $this->db->beginTransaction();
+        }
 
         try {
             $ticket =
@@ -399,17 +404,20 @@ final class TicketLifecycleTransitionRepository
                         ),
                 ];
 
-            $this->recordEvent(
-                (int) $ticket['id'],
-                $eventCode,
-                $actorUserReference,
-                $actorDisplayName,
-                $previousStatus,
-                $targetStatus,
-                $payload
-            );
+            $eventReference =
+                $this->recordEvent(
+                    (int) $ticket['id'],
+                    $eventCode,
+                    $actorUserReference,
+                    $actorDisplayName,
+                    $previousStatus,
+                    $targetStatus,
+                    $payload
+                );
 
-            $this->db->commit();
+            if ($ownsTransaction) {
+                $this->db->commit();
+            }
 
             return [
                 'ticket_id' =>
@@ -440,6 +448,9 @@ final class TicketLifecycleTransitionRepository
                 'event_code' =>
                     $eventCode,
 
+                'event_reference' =>
+                    $eventReference,
+
                 'assignment_preserved' =>
                     true,
 
@@ -448,7 +459,10 @@ final class TicketLifecycleTransitionRepository
             ];
 
         } catch (Throwable $exception) {
-            if ($this->db->inTransaction()) {
+            if (
+                $ownsTransaction
+                && $this->db->inTransaction()
+            ) {
                 $this->db->rollBack();
             }
 
@@ -1197,7 +1211,10 @@ final class TicketLifecycleTransitionRepository
         string $previousStatus,
         string $resultingStatus,
         array $payload
-    ): void {
+    ): string {
+        $eventReference =
+            $this->reference('TEVT');
+
         $statement =
             $this->db->prepare("
                 INSERT INTO ticketing_events
@@ -1227,7 +1244,7 @@ final class TicketLifecycleTransitionRepository
             ");
 
         $statement->execute([
-            $this->reference('TEVT'),
+            $eventReference,
             $ticketId,
             $eventCode,
             $actorUserReference,
@@ -1243,6 +1260,8 @@ final class TicketLifecycleTransitionRepository
                 | JSON_THROW_ON_ERROR
             ),
         ]);
+
+        return $eventReference;
     }
 
 

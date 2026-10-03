@@ -10,10 +10,21 @@ class WorkItemService extends BaseService
 {
     public function __construct(
         private ?WorkItemRepository $items = null,
-        private ?WorkReferenceDataService $references = null
+        private ?WorkReferenceDataService $references = null,
+        private ?WorkTicketLifecycleSyncService $lifecycleSync = null,
+        private ?WorkTicketLifecycleSyncExecutorService $lifecycleExecutor = null
     ) {
-        $this->items ??= new WorkItemRepository();
-        $this->references ??= new WorkReferenceDataService();
+        $this->items ??=
+            new WorkItemRepository();
+
+        $this->references ??=
+            new WorkReferenceDataService();
+
+        $this->lifecycleSync ??=
+            new WorkTicketLifecycleSyncService();
+
+        $this->lifecycleExecutor ??=
+            new WorkTicketLifecycleSyncExecutorService();
     }
 
     public function index(string $projectReference, array $filters = []): array
@@ -134,18 +145,162 @@ class WorkItemService extends BaseService
             return ['ok' => false, 'errors' => $resolved['errors'], 'form' => $data];
         }
 
-        $actorReference = 'user:' . $userId;
-        $updated = $this->items->update(
-            (int) $project['id'],
-            (int) $current['id'],
-            $resolved['data'],
-            $actorReference,
-            $this->actorDisplayName($context, $userId)
-        );
+        $actorReference =
+            'user:' . $userId;
 
-        return $updated
-            ? ['ok' => true, 'public_reference' => $itemReference]
-            : ['ok' => false, 'errors' => ['save' => 'ذخیره تغییرات انجام نشد.'], 'form' => $data];
+        $previousStatusCode =
+            trim(
+                (string) (
+                    $current['status_code']
+                    ?? ''
+                )
+            );
+
+        $resultingStatusCode =
+            trim(
+                (string) (
+                    $resolved['data']['status_code']
+                    ?? ''
+                )
+            );
+
+        $update =
+            $this->items
+                ->updateWithActivity(
+                    (int) $project['id'],
+                    (int) $current['id'],
+                    $resolved['data'],
+                    $actorReference,
+                    $this->actorDisplayName(
+                        $context,
+                        $userId
+                    )
+                );
+
+        if (
+            ($update['updated'] ?? false)
+            !== true
+        ) {
+            return [
+                'ok' => false,
+                'errors' => [
+                    'save' =>
+                        'ذخیره تغییرات انجام نشد.',
+                ],
+                'form' => $data,
+            ];
+        }
+
+        $response = [
+            'ok' => true,
+            'public_reference' =>
+                $itemReference,
+        ];
+
+        if (
+            $previousStatusCode === ''
+            || $resultingStatusCode === ''
+            || $previousStatusCode
+                === $resultingStatusCode
+        ) {
+            $response['lifecycle_sync'] = [
+                'triggered' => false,
+                'reason' =>
+                    'status_unchanged',
+                'plan_count' => 0,
+                'results' => [],
+            ];
+
+            return $response;
+        }
+
+        $activityEventId =
+            (int) (
+                $update[
+                    'activity_event_id'
+                ]
+                ?? 0
+            );
+
+        if ($activityEventId < 1) {
+            $response['lifecycle_sync'] = [
+                'triggered' => false,
+                'reason' =>
+                    'activity_event_missing',
+                'plan_count' => 0,
+                'results' => [],
+            ];
+
+            return $response;
+        }
+
+        try {
+            $plans =
+                $this->lifecycleSync
+                    ->plansForTransition(
+                        (int) $project['id'],
+                        (int) $current['id'],
+                        $activityEventId,
+                        $previousStatusCode,
+                        $resultingStatusCode,
+                        $actorReference
+                    );
+
+            $results = [];
+
+            foreach ($plans as $plan) {
+                $results[] =
+                    $this->lifecycleExecutor
+                        ->executePlan(
+                            $plan,
+                            $userId,
+                            $context
+                        );
+            }
+
+            $response['lifecycle_sync'] = [
+                'triggered' =>
+                    $plans !== [],
+                'reason' =>
+                    $plans === []
+                        ? 'no_active_rule'
+                        : 'planned',
+                'plan_count' =>
+                    count($plans),
+                'results' =>
+                    $results,
+            ];
+
+        } catch (\Throwable $exception) {
+            /*
+             * The Work update may already be committed in normal runtime use.
+             * Never report the Work save as failed merely because a cross-DB
+             * lifecycle synchronization step failed afterwards.
+             */
+            $response['lifecycle_sync'] = [
+                'triggered' => true,
+                'reason' =>
+                    'executor_error',
+                'plan_count' => 0,
+                'results' => [],
+                'error_code' =>
+                    substr(
+                        preg_replace(
+                            '/[^A-Za-z0-9_.:-]+/',
+                            '_',
+                            trim(
+                                $exception
+                                    ->getMessage()
+                            )
+                        )
+                        ?? 'lifecycle_sync_error',
+                        0,
+                        100
+                    ),
+            ];
+        }
+
+        return $response;
     }
 
     public function archive(

@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "سیاست اتصال تیکت به مدیریت کار",
-    "subtitle": "قواعد مقصد و دسترسی به صورت داده‌محور مدیریت می‌شوند.",
+    "subtitle": "قواعد مقصد، دسترسی و همگام‌سازی چرخه عمر به صورت داده‌محور مدیریت می‌شوند.",
     "back": "بازگشت به تنظیمات مدیریت کار",
     "destination_tab": "قواعد مقصد",
     "access_tab": "قواعد دسترسی",
@@ -14,11 +14,12 @@
     "active": "فعال",
     "inactive": "غیرفعال",
     "rule_id": "شناسه",
-    "actions": "عملیات"
+    "actions": "عملیات",
+    "lifecycle_tab": "همگام‌سازی چرخه عمر"
   },
   "work_settings": {
     "card_title": "سیاست تیکت و مدیریت کار",
-    "card_body": "مدیریت قواعد مقصد، دسترسی و رفتار اتصال تیکت به مدیریت کار",
+    "card_body": "مدیریت قواعد مقصد، دسترسی و همگام‌سازی چرخه عمر تیکت و مدیریت کار",
     "card_action": "مدیریت قواعد"
   },
   "ticket_detail": {
@@ -93,7 +94,12 @@
     "is_active": "فعال",
     "enabled": "فعال",
     "status": "وضعیت",
-    "status_code": "وضعیت"
+    "status_code": "وضعیت",
+    "work_project_id": "پروژه مدیریت کار",
+    "work_status_id": "وضعیت مدیریت کار",
+    "relation_type_code": "نوع ارتباط",
+    "ticket_action_code": "عملیات چرخه عمر تیکت",
+    "rule_priority": "اولویت قاعده"
   },
   "options": {
     "action_code": {
@@ -135,6 +141,11 @@
     "relation_type_code": {
       "created_from": "ایجادشده از",
       "related_to": "مرتبط با"
+    },
+    "ticket_action_code": {
+      "resolve": "حل تیکت",
+      "close": "بستن تیکت",
+      "reopen": "بازگشایی تیکت"
     }
   },
   "work_item_source": {

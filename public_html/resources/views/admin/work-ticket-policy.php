@@ -11,6 +11,9 @@ declare(strict_types=1);
 $ui =
     new \App\Services\Work\TicketWorkUiContentService();
 
+$title =
+    $ui->text('page.title');
+
 $h =
     static fn (mixed $value): string =>
         admin_h((string) $value);
@@ -23,7 +26,7 @@ $pageData =
 $currentKind =
     in_array(
         (string) ($kind ?? ''),
-        ['destination', 'access'],
+        ['destination', 'access', 'lifecycle'],
         true
     )
         ? (string) $kind
@@ -64,12 +67,38 @@ $fieldLabel =
         }
     };
 
+$dynamicFieldOptions =
+    is_array(
+        $current['field_options']
+        ?? null
+    )
+        ? $current['field_options']
+        : [];
+
 $fieldOptions =
     static function (
         \App\Services\Work\TicketWorkUiContentService $ui,
         string $column
+    ) use (
+        $dynamicFieldOptions
     ): array {
-        return $ui->options('options.' . $column);
+        if (
+            array_key_exists(
+                $column,
+                $dynamicFieldOptions
+            )
+            && is_array(
+                $dynamicFieldOptions[$column]
+            )
+        ) {
+            return
+                $dynamicFieldOptions[$column];
+        }
+
+        return
+            $ui->options(
+                'options.' . $column
+            );
     };
 
 $ruleActive =
@@ -97,6 +126,8 @@ $ruleActive =
 
         return true;
     };
+
+ob_start();
 
 require __DIR__ . '/work-ui-styles.php';
 ?>
@@ -136,6 +167,11 @@ require __DIR__ . '/work-ui-styles.php';
             class="admin-tab<?= $currentKind === 'access' ? ' is-active' : '' ?>"
             href="/admin/work/settings/ticket-work-policy?kind=access"
         ><?= $h($ui->text('page.access_tab')) ?></a>
+
+        <a
+            class="admin-tab<?= $currentKind === 'lifecycle' ? ' is-active' : '' ?>"
+            href="/admin/work/settings/ticket-work-policy?kind=lifecycle"
+        ><?= $h($ui->text('page.lifecycle_tab')) ?></a>
     </div>
 
     <section class="admin-section">
@@ -308,3 +344,9 @@ require __DIR__ . '/work-ui-styles.php';
         <?php endif; ?>
     </section>
 </div>
+<?php
+$content =
+    ob_get_clean()
+    ?: '';
+
+require __DIR__ . '/layout.php';

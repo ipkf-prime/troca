@@ -180,7 +180,7 @@ $ticketWorkPolicyRedirect =
         $kind =
             in_array(
                 $kind,
-                ['destination', 'access'],
+                ['destination', 'access', 'lifecycle'],
                 true
             )
                 ? $kind
@@ -226,7 +226,7 @@ $router->get(
         if (
             !in_array(
                 $kind,
-                ['destination', 'access'],
+                ['destination', 'access', 'lifecycle'],
                 true
             )
         ) {
@@ -293,7 +293,7 @@ $ticketWorkPolicySave =
         if (
             !in_array(
                 $kind,
-                ['destination', 'access'],
+                ['destination', 'access', 'lifecycle'],
                 true
             )
         ) {
@@ -439,7 +439,7 @@ $ticketWorkPolicyActiveState =
         if (
             !in_array(
                 $kind,
-                ['destination', 'access'],
+                ['destination', 'access', 'lifecycle'],
                 true
             )
             || $id < 1

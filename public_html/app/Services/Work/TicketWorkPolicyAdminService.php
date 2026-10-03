@@ -29,6 +29,8 @@ final class TicketWorkPolicyAdminService
                 $this->kindPage('destination'),
             'access' =>
                 $this->kindPage('access'),
+            'lifecycle' =>
+                $this->kindPage('lifecycle'),
         ];
     }
 
@@ -130,8 +132,102 @@ final class TicketWorkPolicyAdminService
             'schema' => $schema,
             'editable_columns' =>
                 $this->editableColumns($schema),
+            'field_options' =>
+                $this->fieldOptions($kind),
             'rows' =>
                 $this->repository->rows($kind),
+        ];
+    }
+
+    private function fieldOptions(string $kind): array
+    {
+        if ($kind !== 'lifecycle') {
+            return [];
+        }
+
+        $projects = [];
+
+        foreach (
+            $this->repository->workProjects()
+            as $row
+        ) {
+            $id =
+                (int) ($row['id'] ?? 0);
+
+            if ($id < 1) {
+                continue;
+            }
+
+            $title =
+                trim(
+                    (string) (
+                        $row['title']
+                        ?? ''
+                    )
+                );
+
+            $code =
+                trim(
+                    (string) (
+                        $row['code']
+                        ?? ''
+                    )
+                );
+
+            $projects[(string) $id] =
+                $title !== ''
+                    ? (
+                        $code !== ''
+                            ? $title . ' (' . $code . ')'
+                            : $title
+                    )
+                    : (string) $id;
+        }
+
+        $statuses = [];
+
+        foreach (
+            $this->repository->workStatuses()
+            as $row
+        ) {
+            $id =
+                (int) ($row['id'] ?? 0);
+
+            if ($id < 1) {
+                continue;
+            }
+
+            $title =
+                trim(
+                    (string) (
+                        $row['title']
+                        ?? ''
+                    )
+                );
+
+            $code =
+                trim(
+                    (string) (
+                        $row['code']
+                        ?? ''
+                    )
+                );
+
+            $statuses[(string) $id] =
+                $title !== ''
+                    ? (
+                        $code !== ''
+                            ? $title . ' (' . $code . ')'
+                            : $title
+                    )
+                    : (string) $id;
+        }
+
+        return [
+            'work_project_id' =>
+                $projects,
+            'work_status_id' =>
+                $statuses,
         ];
     }
 
@@ -235,9 +331,18 @@ final class TicketWorkPolicyAdminService
             ) {
                 if ($creating) {
                     $prefix =
-                        $kind === 'destination'
-                            ? 'WTDR-'
-                            : 'WTAR-';
+                        match ($kind) {
+                            'destination' =>
+                                'WTDR-',
+                            'access' =>
+                                'WTAR-',
+                            'lifecycle' =>
+                                'TWLSR-',
+                            default =>
+                                throw new RuntimeException(
+                                    'Ticket Work policy kind is invalid.'
+                                ),
+                        };
 
                     $values[$name] =
                         $prefix

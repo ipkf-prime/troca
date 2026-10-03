@@ -22,6 +22,7 @@ final class TicketWorkPolicyAdminRepository
     private const TABLES = [
         'destination' => 'work_ticket_destination_rules',
         'access' => 'work_ticket_access_rules',
+        'lifecycle' => 'work_ticket_lifecycle_sync_rules',
     ];
 
     public function __construct(
@@ -62,6 +63,10 @@ final class TicketWorkPolicyAdminRepository
         $columns = $this->columnNames($kind);
 
         $order = [];
+
+        if (in_array('rule_priority', $columns, true)) {
+            $order[] = $this->identifier('rule_priority') . ' DESC';
+        }
 
         if (in_array('priority', $columns, true)) {
             $order[] = $this->identifier('priority') . ' DESC';
@@ -247,6 +252,43 @@ final class TicketWorkPolicyAdminRepository
         }
 
         $this->update($kind, $id, $values);
+    }
+
+    public function workProjects(): array
+    {
+        return
+            $this->work
+                ->query(
+                    "SELECT
+                        id,
+                        public_reference,
+                        code,
+                        title
+                     FROM work_projects
+                     WHERE status_code = 'active'
+                       AND archived_at IS NULL
+                     ORDER BY title,id"
+                )
+                ->fetchAll(PDO::FETCH_ASSOC)
+                ?: [];
+    }
+
+    public function workStatuses(): array
+    {
+        return
+            $this->work
+                ->query(
+                    "SELECT
+                        id,
+                        code,
+                        title,
+                        is_closed
+                     FROM work_statuses
+                     WHERE is_active = 1
+                     ORDER BY sort_order,id"
+                )
+                ->fetchAll(PDO::FETCH_ASSOC)
+                ?: [];
     }
 
     public function connection(): PDO
