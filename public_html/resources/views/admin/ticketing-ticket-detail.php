@@ -4029,6 +4029,405 @@ $routingRecoveryNoticeMessages = [
  */
 require __DIR__ . '/ticketing-ticket-operational-detail.php';
 
+?>
+<?php
+/*
+ * ============================================================================
+ * TICKET_WORK_TICKET_DETAIL_TAB_V1
+ * ============================================================================
+ *
+ * The Work tab is hidden unless dynamic policy action tab.view is effective.
+ * Links and create controls use their independent action permissions.
+ *
+ * All new user-visible copy is JSON-driven.
+ */
+
+$ticketWorkUi =
+    new \App\Services\Work\TicketWorkUiContentService();
+
+$ticketWorkState = null;
+
+$ticketWorkTicketReference =
+    trim(
+        (string) (
+            $detail['ticket']['public_reference']
+            ?? ''
+        )
+    );
+
+$ticketWorkUserId =
+    (int) (
+        $context['user_id']
+        ?? 0
+    );
+
+if (
+    $ticketWorkTicketReference !== ''
+    && $ticketWorkUserId > 0
+) {
+    try {
+        $ticketWorkState =
+            (
+                new \App\Services\Ticketing\TicketWorkBridgeService()
+            )->context(
+                $ticketWorkTicketReference,
+                $ticketWorkUserId
+            );
+    } catch (\Throwable) {
+        $ticketWorkState = null;
+    }
+}
+
+$ticketWorkPermissions =
+    is_array(
+        $ticketWorkState['permissions']
+        ?? null
+    )
+        ? $ticketWorkState['permissions']
+        : [];
+
+$ticketWorkTabVisible =
+    is_array($ticketWorkState)
+    && (
+        ($ticketWorkPermissions['tab.view'] ?? false) === true
+    );
+
+$ticketWorkCanViewLinks =
+    $ticketWorkTabVisible
+    && (
+        ($ticketWorkPermissions['links.view'] ?? false) === true
+    );
+
+$ticketWorkCanOpenItem =
+    $ticketWorkCanViewLinks
+    && (
+        ($ticketWorkPermissions['item.open'] ?? false) === true
+    );
+
+$ticketWorkCanCreate =
+    $ticketWorkTabVisible
+    && (
+        ($ticketWorkPermissions['item.create_from_ticket'] ?? false) === true
+    )
+    && (
+        ($ticketWorkState['can_create_item'] ?? false) === true
+    );
+
+$ticketWorkStatusCode =
+    trim(
+        (string) (
+            $status
+            ?? ''
+        )
+    );
+
+$ticketWorkStatusText = '';
+
+if (
+    $ticketWorkStatusCode !== ''
+    && str_starts_with(
+        $ticketWorkStatusCode,
+        'ticket_work_'
+    )
+) {
+    try {
+        $ticketWorkStatusText =
+            $ticketWorkUi->text(
+                'status.'
+                . $ticketWorkStatusCode
+            );
+    } catch (\Throwable) {
+        $ticketWorkStatusText = '';
+    }
+}
+?>
+
+<?php if ($ticketWorkTabVisible): ?>
+    <section
+        class="admin-section ticketing-detail-panel"
+        data-ticketing-detail-panel="work"
+        data-ticket-work-panel
+        data-ticket-work-tab-label="<?= ticketing_h($ticketWorkUi->text('ticket_detail.tab')) ?>"
+        data-ticket-work-status="<?= ticketing_h($ticketWorkStatusCode) ?>"
+        role="tabpanel"
+        hidden
+    >
+        <?php if ($ticketWorkStatusText !== ''): ?>
+            <div class="admin-alert admin-alert--info">
+                <?= ticketing_h($ticketWorkStatusText) ?>
+            </div>
+        <?php endif; ?>
+
+        <?php
+        $ticketWorkProject =
+            is_array(
+                $ticketWorkState['work_project']
+                ?? null
+            )
+                ? $ticketWorkState['work_project']
+                : null;
+        ?>
+
+        <?php if ($ticketWorkProject !== null): ?>
+            <div class="admin-card">
+                <strong>
+                    <?= ticketing_h($ticketWorkUi->text('ticket_detail.project')) ?>
+                </strong>
+                <div>
+                    <?= ticketing_h(
+                        (string) (
+                            $ticketWorkProject['title']
+                            ?? $ticketWorkProject['code']
+                            ?? $ticketWorkProject['public_reference']
+                            ?? ''
+                        )
+                    ) ?>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($ticketWorkCanViewLinks): ?>
+            <div class="admin-section">
+                <h3>
+                    <?= ticketing_h($ticketWorkUi->text('ticket_detail.linked_items')) ?>
+                </h3>
+
+                <?php
+                $ticketWorkLinkedItems =
+                    is_array(
+                        $ticketWorkState['linked_items']
+                        ?? null
+                    )
+                        ? $ticketWorkState['linked_items']
+                        : [];
+                ?>
+
+                <?php if ($ticketWorkLinkedItems === []): ?>
+                    <p class="admin-muted">
+                        <?= ticketing_h($ticketWorkUi->text('ticket_detail.no_items')) ?>
+                    </p>
+                <?php else: ?>
+                    <div class="admin-table-wrap">
+                        <table class="admin-table">
+                            <tbody>
+                            <?php foreach ($ticketWorkLinkedItems as $ticketWorkItem): ?>
+                                <tr>
+                                    <td>
+                                        <?= ticketing_h(
+                                            (string) (
+                                                $ticketWorkItem['work_item_title']
+                                                ?? $ticketWorkItem['title']
+                                                ?? $ticketWorkItem['work_item_reference']
+                                                ?? ''
+                                            )
+                                        ) ?>
+                                    </td>
+                                    <td>
+                                        <?php
+                                        $ticketWorkItemUrl =
+                                            trim(
+                                                (string) (
+                                                    $ticketWorkItem['work_url']
+                                                    ?? ''
+                                                )
+                                            );
+                                        ?>
+
+                                        <?php if ($ticketWorkCanOpenItem && $ticketWorkItemUrl !== ''): ?>
+                                            <a
+                                                class="admin-button admin-button--soft"
+                                                href="<?= ticketing_h($ticketWorkItemUrl) ?>"
+                                            ><?= ticketing_h($ticketWorkUi->text('ticket_detail.open_item')) ?></a>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($ticketWorkCanCreate): ?>
+            <section class="admin-section">
+                <h3>
+                    <?= ticketing_h($ticketWorkUi->text('ticket_detail.create_heading')) ?>
+                </h3>
+
+                <form
+                    method="post"
+                    action="/admin/ticketing/tickets/<?= ticketing_h(rawurlencode($ticketWorkTicketReference)) ?>/work-items"
+                    data-ticket-work-create-form
+                >
+                    <input
+                        type="hidden"
+                        name="_token"
+                        value="<?= ticketing_h((new \IPKF\Security\Csrf())->token()) ?>"
+                    >
+
+                    <label>
+                        <span>
+                            <?= ticketing_h($ticketWorkUi->text('ticket_detail.title')) ?>
+                        </span>
+                        <input
+                            name="title"
+                            maxlength="500"
+                            required
+                            value="<?= ticketing_h((string) ($detail['ticket']['subject'] ?? '')) ?>"
+                        >
+                    </label>
+
+                    <label>
+                        <span>
+                            <?= ticketing_h($ticketWorkUi->text('ticket_detail.description')) ?>
+                        </span>
+                        <textarea
+                            name="description"
+                            rows="5"
+                            maxlength="20000"
+                        ></textarea>
+                    </label>
+
+                    <div class="admin-form-actions">
+                        <button
+                            class="admin-button"
+                            type="submit"
+                        ><?= ticketing_h($ticketWorkUi->text('ticket_detail.create_action')) ?></button>
+                    </div>
+                </form>
+            </section>
+        <?php else: ?>
+            <p class="admin-muted">
+                <?= ticketing_h($ticketWorkUi->text('ticket_detail.no_create_permission')) ?>
+            </p>
+        <?php endif; ?>
+    </section>
+
+    <script data-ticket-work-detail-tab-bootstrap>
+    (() => {
+        const tabsContainer =
+            document.querySelector(
+                '[data-ticketing-detail-tabs]'
+            );
+
+        const panel =
+            document.querySelector(
+                '[data-ticket-work-panel]'
+            );
+
+        if (!tabsContainer || !panel) {
+            return;
+        }
+
+        if (
+            tabsContainer.querySelector(
+                '[data-ticketing-detail-tab="work"]'
+            )
+        ) {
+            return;
+        }
+
+        const button =
+            document.createElement('button');
+
+        button.type = 'button';
+        button.className = 'admin-tab';
+        button.setAttribute(
+            'role',
+            'tab'
+        );
+        button.setAttribute(
+            'aria-selected',
+            'false'
+        );
+        button.setAttribute(
+            'data-ticketing-detail-tab',
+            'work'
+        );
+        button.textContent =
+            panel.dataset.ticketWorkTabLabel
+            || '';
+
+        tabsContainer.append(button);
+
+        const closeWorkPanel = () => {
+            button.classList.remove('is-active');
+            button.setAttribute(
+                'aria-selected',
+                'false'
+            );
+            panel.classList.remove('is-active');
+            panel.hidden = true;
+        };
+
+        const openWorkPanel = () => {
+            document
+                .querySelectorAll(
+                    '[data-ticketing-detail-tab]'
+                )
+                .forEach((tab) => {
+                    tab.classList.remove(
+                        'is-active'
+                    );
+                    tab.setAttribute(
+                        'aria-selected',
+                        'false'
+                    );
+                });
+
+            document
+                .querySelectorAll(
+                    '[data-ticketing-detail-panel]'
+                )
+                .forEach((target) => {
+                    target.classList.remove(
+                        'is-active'
+                    );
+                    target.hidden = true;
+                });
+
+            button.classList.add('is-active');
+            button.setAttribute(
+                'aria-selected',
+                'true'
+            );
+            panel.classList.add('is-active');
+            panel.hidden = false;
+        };
+
+        button.addEventListener(
+            'click',
+            openWorkPanel
+        );
+
+        tabsContainer
+            .querySelectorAll(
+                '[data-ticketing-detail-tab]'
+            )
+            .forEach((tab) => {
+                if (tab === button) {
+                    return;
+                }
+
+                tab.addEventListener(
+                    'click',
+                    closeWorkPanel
+                );
+            });
+
+        if (
+            (panel.dataset.ticketWorkStatus || '')
+                .startsWith('ticket_work_')
+        ) {
+            openWorkPanel();
+        }
+    })();
+    </script>
+<?php endif; ?>
+
+<?php
+
 $content =
     ob_get_clean()
     ?: '';

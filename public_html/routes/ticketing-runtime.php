@@ -5839,3 +5839,130 @@ if (
     require
         $ticketingAutoCloseManagementRoute;
 }
+
+
+/*
+ * ============================================================================
+ * TICKET_WORK_CREATE_FROM_TICKET_ROUTE_V1
+ * ============================================================================
+ *
+ * Coarse Ticket visibility comes from the canonical detail path adminGuard.
+ * Fine-grained Work authorization is enforced by TicketWorkBridgeService:
+ *
+ *   dynamic policy item.create_from_ticket
+ *       AND
+ *   native Work ACL can_create_item
+ *
+ * No Ticket status mutation occurs here.
+ */
+
+$router->post(
+    '/admin/ticketing/tickets/{public_reference}/work-items',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard
+    ) {
+        $reference =
+            trim(
+                (string) $request->route(
+                    'public_reference'
+                )
+            );
+
+        $detailUrl =
+            '/admin/ticketing/tickets/'
+            . rawurlencode($reference);
+
+        $context =
+            $adminGuard(
+                $response,
+                $detailUrl
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        if ($reference === '') {
+            return $response->redirect(
+                '/admin/ticketing/tickets'
+                . '?status=ticket_work_failed'
+            );
+        }
+
+        $csrf = new \IPKF\Security\Csrf();
+
+        if (
+            !$csrf->check(
+                (string) $request->input(
+                    '_token',
+                    ''
+                )
+            )
+        ) {
+            return $response->redirect(
+                $detailUrl
+                . '?status=ticket_work_invalid_csrf'
+            );
+        }
+
+        try {
+            $result =
+                (
+                    new \App\Services\Ticketing\TicketWorkBridgeService()
+                )->createLinkedItem(
+                    $reference,
+                    [
+                        'title' =>
+                            trim(
+                                (string) $request->input(
+                                    'title',
+                                    ''
+                                )
+                            ),
+                        'description' =>
+                            trim(
+                                (string) $request->input(
+                                    'description',
+                                    ''
+                                )
+                            ),
+                    ],
+                    (int) $context['user_id']
+                );
+        } catch (\Throwable) {
+            return $response->redirect(
+                $detailUrl
+                . '?status=ticket_work_failed'
+            );
+        }
+
+        if (($result['ok'] ?? false) === true) {
+            return $response->redirect(
+                $detailUrl
+                . '?status=ticket_work_created'
+            );
+        }
+
+        if (($result['forbidden'] ?? false) === true) {
+            return $response->redirect(
+                $detailUrl
+                . '?status=ticket_work_forbidden'
+            );
+        }
+
+        if (($result['unavailable'] ?? false) === true) {
+            return $response->redirect(
+                $detailUrl
+                . '?status=ticket_work_unavailable'
+            );
+        }
+
+        return $response->redirect(
+            $detailUrl
+            . '?status=ticket_work_failed'
+        );
+    }
+);

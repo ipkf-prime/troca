@@ -1,0 +1,130 @@
+{
+  "page": {
+    "title": "سیاست اتصال تیکت به مدیریت کار",
+    "subtitle": "قواعد مقصد و دسترسی به صورت داده‌محور مدیریت می‌شوند.",
+    "back": "بازگشت به تنظیمات مدیریت کار",
+    "destination_tab": "قواعد مقصد",
+    "access_tab": "قواعد دسترسی",
+    "create": "افزودن قاعده",
+    "save": "ذخیره",
+    "deactivate": "غیرفعال‌سازی",
+    "restore": "فعال‌سازی مجدد",
+    "empty": "قاعده‌ای ثبت نشده است.",
+    "schema_note": "فیلدهای فرم مستقیماً از ساختار معتبر جدول خوانده می‌شوند.",
+    "active": "فعال",
+    "inactive": "غیرفعال",
+    "rule_id": "شناسه",
+    "actions": "عملیات"
+  },
+  "work_settings": {
+    "card_title": "سیاست تیکت و مدیریت کار",
+    "card_body": "مدیریت قواعد مقصد، دسترسی و رفتار اتصال تیکت به مدیریت کار",
+    "card_action": "مدیریت قواعد"
+  },
+  "ticket_detail": {
+    "tab": "مدیریت کار",
+    "project": "پروژه مقصد",
+    "linked_items": "آیتم‌های مرتبط",
+    "no_items": "هنوز آیتم کاری مرتبطی ثبت نشده است.",
+    "open_item": "باز کردن آیتم",
+    "create_heading": "ایجاد آیتم کاری از تیکت",
+    "title": "عنوان",
+    "description": "شرح",
+    "create_action": "ایجاد آیتم کاری",
+    "unavailable": "مدیریت کار برای این تیکت در دسترس نیست.",
+    "no_create_permission": "اجازه ایجاد آیتم کاری از این تیکت برای دسترسی جاری فعال نیست."
+  },
+  "status": {
+    "saved": "قاعده ذخیره شد.",
+    "deactivated": "قاعده غیرفعال شد.",
+    "restored": "قاعده دوباره فعال شد.",
+    "invalid_csrf": "نشست فرم معتبر نیست. صفحه را تازه‌سازی کنید.",
+    "invalid": "اطلاعات قاعده معتبر نیست.",
+    "failed": "انجام عملیات ممکن نشد.",
+    "ticket_work_created": "آیتم کاری ایجاد و به تیکت پیوند داده شد.",
+    "ticket_work_forbidden": "دسترسی ایجاد آیتم کاری برای این تیکت وجود ندارد.",
+    "ticket_work_unavailable": "مقصد مدیریت کار برای این تیکت در دسترس نیست.",
+    "ticket_work_invalid_csrf": "نشست فرم معتبر نیست. صفحه را تازه‌سازی کنید.",
+    "ticket_work_failed": "ایجاد آیتم کاری انجام نشد."
+  },
+  "fields": {
+    "public_reference": "شناسه عمومی",
+    "rule_reference": "شناسه قاعده",
+    "title": "عنوان",
+    "description": "شرح",
+    "priority": "اولویت قاعده",
+    "specificity": "میزان اختصاصی بودن",
+    "support_project_reference": "پروژه پشتیبانی",
+    "support_project_code": "کد پروژه پشتیبانی",
+    "project_reference": "پروژه",
+    "project_code": "کد پروژه",
+    "subdomain_reference": "زیردامنه",
+    "subdomain_code": "کد زیر‌دامنه",
+    "service_reference": "خدمت",
+    "service_code": "کد خدمت",
+    "topic_reference": "موضوع",
+    "topic_code": "کد موضوع",
+    "layer_reference": "لایه",
+    "layer_code": "کد لایه",
+    "node_reference": "گره",
+    "node_code": "کد گره",
+    "queue_reference": "صف",
+    "queue_code": "کد صف",
+    "team_reference": "تیم",
+    "team_code": "کد تیم",
+    "work_project_reference": "پروژه مدیریت کار",
+    "target_work_project_reference": "پروژه مقصد مدیریت کار",
+    "default_item_type": "نوع پیش‌فرض آیتم",
+    "default_item_type_code": "نوع پیش‌فرض آیتم",
+    "default_status_code": "وضعیت پیش‌فرض آیتم",
+    "default_priority_code": "اولویت پیش‌فرض آیتم",
+    "default_assignee_reference": "مسئول پیش‌فرض",
+    "action_code": "عملیات",
+    "principal_type_code": "نوع ذی‌نفع",
+    "principal_reference": "شناسه ذی‌نفع",
+    "principal_value": "مقدار ذی‌نفع",
+    "effect_code": "اثر",
+    "is_active": "فعال",
+    "enabled": "فعال",
+    "status": "وضعیت",
+    "status_code": "وضعیت"
+  },
+  "options": {
+    "action_code": {
+      "tab.view": "نمایش تب مدیریت کار",
+      "links.view": "نمایش پیوندهای آیتم",
+      "item.open": "باز کردن آیتم",
+      "item.create_from_ticket": "ایجاد آیتم از تیکت",
+      "project.select": "انتخاب پروژه"
+    },
+    "effect_code": {
+      "allow": "اجازه",
+      "deny": "عدم اجازه"
+    },
+    "principal_type_code": {
+      "user": "کاربر",
+      "project_role": "نقش پروژه",
+      "team_role": "نقش تیم",
+      "current_assignee": "کارشناس جاری",
+      "project_member": "عضو پروژه",
+      "team_member": "عضو تیم",
+      "any_staff": "هر کارشناس"
+    },
+    "is_active": {
+      "1": "فعال",
+      "0": "غیرفعال"
+    },
+    "enabled": {
+      "1": "فعال",
+      "0": "غیرفعال"
+    },
+    "status": {
+      "active": "فعال",
+      "inactive": "غیرفعال"
+    },
+    "status_code": {
+      "active": "فعال",
+      "inactive": "غیرفعال"
+    }
+  }
+}

@@ -40,6 +40,29 @@ require __DIR__ . '/work-stage5-ui.php';
     <section class="admin-section"><div class="admin-alert admin-alert--danger"><?= admin_h((string) $_GET['error']) ?></div></section>
 <?php endif; ?>
 
+<?php
+/*
+ * TICKET_WORK_POLICY_ADMIN_UI_ENTRY_V1
+ * User-visible text is JSON-driven.
+ */
+$ticketWorkPolicyUi =
+    new \App\Services\Work\TicketWorkUiContentService();
+?>
+<section
+    class="admin-section"
+    data-ticket-work-policy-settings-entry
+>
+    <h3>
+        <?= admin_h($ticketWorkPolicyUi->text('work_settings.card_title')) ?>
+    </h3>
+    <p class="admin-muted">
+        <?= admin_h($ticketWorkPolicyUi->text('work_settings.card_body')) ?>
+    </p>
+    <a
+        class="admin-button admin-button--soft"
+        href="/admin/work/settings/ticket-work-policy"
+    ><?= admin_h($ticketWorkPolicyUi->text('work_settings.card_action')) ?></a>
+</section>
 <div class="work-settings-layout--minimal">
     <aside class="admin-section work-settings-nav--minimal">
         <?php foreach ($groups as $row): ?>

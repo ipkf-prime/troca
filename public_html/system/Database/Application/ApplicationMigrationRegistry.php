@@ -128,6 +128,8 @@ class ApplicationMigrationRegistry
                 'connection' => 'work.primary',
                 'migrations' => [
                     \IPKF\Database\Migrations\CreateWorkManagementFoundationTables::class,
+                    \IPKF\Database\Migrations\CreateWorkExternalSourceBridgeFoundation::class,
+                    \IPKF\Database\Migrations\CreateWorkTicketPolicyFoundation::class,
                     \IPKF\Database\Migrations\CreateModuleReferenceDataTables::class,
                 ],
             ],

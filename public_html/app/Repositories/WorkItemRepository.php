@@ -222,7 +222,20 @@ class WorkItemRepository
         string $actorReference,
         string $actorDisplayName
     ): string {
-        $this->db->beginTransaction();
+        /*
+         * WORK_ITEM_CREATE_OUTER_TRANSACTION_AWARE_V1
+         *
+         * Native callers keep the historical self-owned transaction.
+         * Cross-module orchestration may provide an existing transaction
+         * on the same work.primary PDO; in that case this repository must
+         * neither begin nor commit/rollback the caller-owned transaction.
+         */
+        $ownsTransaction =
+            !$this->db->inTransaction();
+
+        if ($ownsTransaction) {
+            $this->db->beginTransaction();
+        }
 
         try {
             $sequenceStatement = $this->db->prepare("
@@ -284,12 +297,19 @@ class WorkItemRepository
                 ]
             );
 
-            $this->db->commit();
+            if ($ownsTransaction) {
+                $this->db->commit();
+            }
+
             return (string) $data['public_reference'];
         } catch (\Throwable $exception) {
-            if ($this->db->inTransaction()) {
+            if (
+                $ownsTransaction
+                && $this->db->inTransaction()
+            ) {
                 $this->db->rollBack();
             }
+
             throw $exception;
         }
     }
