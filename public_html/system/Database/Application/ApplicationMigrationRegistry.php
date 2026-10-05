@@ -105,7 +105,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\NormalizeFullUiContentTitles::class,
                     \IPKF\Database\Migrations\CreatePlatformAuditFoundation::class,
                     \IPKF\Database\Migrations\RepairOrganizationTransactionalEnginesAndForeignKeys::class,
-            SeedBaleMenuAdminDynamicContent::class,
+                    \IPKF\Database\Migrations\SeedBaleMenuAdminDynamicContent::class,
             \IPKF\Database\Migrations\SeedBaleAccountLinkDynamicContent::class,
             \IPKF\Database\Migrations\SeedTicketingPhase1MembershipUiContent::class,
             \IPKF\Database\Migrations\SeedTicketingPhase1T2DynamicContent::class,
