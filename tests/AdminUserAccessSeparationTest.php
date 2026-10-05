@@ -15,9 +15,29 @@ $checks = [
     'role-only service' => str_contains($service, 'public function updateRoles('),
     'role-only repository' => str_contains($repository, 'public function updateRoles('),
     'independent route' => str_contains($routes, "\$router->post('/admin/users/{id}/roles'"),
-    'validation bypass button' => str_contains($form, 'formnovalidate>ذخیره نقش‌ها و دسترسی‌ها'),
+    'access mutation delegated to control center' =>
+        !str_contains(
+            $form,
+            'formnovalidate>ذخیره نقش‌ها و دسترسی‌ها'
+        )
+        && str_contains(
+            $form,
+            'این بخش فقط وضعیت فعلی را نمایش می‌دهد.'
+        )
+        && str_contains(
+            $form,
+            '/admin/access-control'
+        ),
     'notification system admin grant' => str_contains($notification, "\$assign->execute([\$code, 'system_admin']);"),
-    'communication system admin grant' => str_contains($communication, "\$assign->execute([\$code, 'system_admin']);"),
+    'communication super admin grant' =>
+        str_contains(
+            $communication,
+            "\$assign->execute([\$code, 'super_admin']);"
+        )
+        && !str_contains(
+            $communication,
+            "\$assign->execute([\$code, 'system_admin']);"
+        ),
 ];
 
 $failed = array_keys(array_filter(

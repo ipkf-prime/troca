@@ -44,9 +44,39 @@ $loader = $read(
     'public_html/system/Routing/RouteLoader.php'
 );
 
+require_once
+    $root
+    . '/public_html/app/Support/AdminTableSort.php';
+
+$invalidSort =
+    \App\Support\AdminTableSort::resolve(
+        'not_allowed',
+        'sideways',
+        [
+            'name' => true,
+            'created_at' => true,
+        ],
+        'created_at',
+        'desc'
+    );
+
+$validSort =
+    \App\Support\AdminTableSort::resolve(
+        'name',
+        'asc',
+        [
+            'name' => true,
+            'created_at' => true,
+        ],
+        'created_at',
+        'desc'
+    );
+
 $expect(
-    str_contains($sort, 'array_key_exists($sort, $allowed)')
-    && str_contains($sort, "['asc', 'desc']"),
+    ($invalidSort['sort'] ?? '') === 'created_at'
+    && ($invalidSort['dir'] ?? '') === 'desc'
+    && ($validSort['sort'] ?? '') === 'name'
+    && ($validSort['dir'] ?? '') === 'asc',
     'Sort helper is not whitelist based.'
 );
 
@@ -80,11 +110,31 @@ $expect(
 );
 
 $expect(
-    str_contains($form, 'نقش پیش‌فرض')
-    && str_contains($form, 'کد نقش')
-    && str_contains($form, 'مرجع حوزه')
-    && str_contains($form, 'data-role-sort'),
-    'Role selection table is not complete or sortable.'
+    str_contains(
+        $form,
+        'خلاصه نقش و دسترسی'
+    )
+    && str_contains(
+        $form,
+        'user-access-summary-grid'
+    )
+    && str_contains(
+        $form,
+        'data-role-lifecycle='
+    )
+    && str_contains(
+        $form,
+        '/admin/access-control'
+    )
+    && !str_contains(
+        $form,
+        'name="role_ids[]"'
+    )
+    && !str_contains(
+        $form,
+        'data-role-sort'
+    ),
+    'Read-only role/access summary or Access Control delegation is incomplete.'
 );
 
 $expect(

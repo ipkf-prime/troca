@@ -85,14 +85,33 @@ $expect(
 
 $expect(
     str_contains($form, 'name="_token"')
-    && str_contains($form, 'name="role_ids[]"')
     && str_contains($form, 'password_confirmation'),
-    'User form security or required controls are missing.'
+    'User form security controls are missing.'
 );
 
 $expect(
-    str_contains($users, 'ایجاد کاربر')
+    !str_contains($form, 'name="role_ids[]"')
+    && str_contains(
+        $form,
+        'این بخش فقط وضعیت فعلی را نمایش می‌دهد.'
+    )
+    && str_contains(
+        $form,
+        'تغییر نقش، حوزه و مجوز از مرکز کنترل دسترسی انجام می‌شود.'
+    )
+    && str_contains($form, '/admin/access-control')
+    && str_contains(
+        $form,
+        'مدیریت نقش و دسترسی این کاربر'
+    ),
+    'Role/access mutation must remain delegated to Access Control.'
+);
+
+$expect(
+    str_contains($users, 'href="/admin/users/create"')
+    && str_contains($users, 'افزودن دستی')
     && str_contains($users, '/edit')
+    && str_contains($users, '$canCreate')
     && str_contains($users, '$canUpdate'),
     'User list create/edit actions or UI permission guards are missing.'
 );
