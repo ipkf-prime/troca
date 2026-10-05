@@ -1413,6 +1413,575 @@ final class PublicRegistrationOtpService extends BaseService
         }
     }
 
+    /*
+     * PUBLIC_REGISTRATION_BALE_ONE_CLICK_RETURN_A5A1
+     *
+     * A verified Bale self-service enrollment can issue a short-lived
+     * signed Core return link. The link is accepted only after exact
+     * server-side proof of enrollment, pending registration, provider,
+     * user/mobile binding and HMAC.
+     */
+    public function baleOneClickReturnLink(
+        string $enrollmentReference
+    ): ?string {
+        $enrollment =
+            $this->verifiedRegistrationBaleEnrollment(
+                $enrollmentReference
+            );
+
+        if (!is_array($enrollment)) {
+            return null;
+        }
+
+        $attempt =
+            $this->latestPendingAttemptForBaleEnrollment(
+                $enrollment
+            );
+
+        if (!is_array($attempt)) {
+            return null;
+        }
+
+        $provider =
+            $this->membershipBaleProvider(
+                (int) $enrollment[
+                    'provider_instance_id'
+                ]
+            );
+
+        if (!is_array($provider)) {
+            return null;
+        }
+
+        $secret =
+            $this->baleReturnSecret(
+                $provider
+            );
+
+        if ($secret === null) {
+            return null;
+        }
+
+        $attemptExpires =
+            strtotime(
+                (string) (
+                    $attempt['expires_at']
+                    ?? ''
+                )
+            );
+
+        if (
+            $attemptExpires === false
+            || $attemptExpires <= time()
+        ) {
+            return null;
+        }
+
+        $expires =
+            min(
+                $attemptExpires,
+                time() + 600
+            );
+
+        if ($expires <= time()) {
+            return null;
+        }
+
+        $signature =
+            $this->baleReturnSignature(
+                (string) $enrollment[
+                    'public_reference'
+                ],
+                (int) $attempt['id'],
+                (int) $enrollment['user_id'],
+                (int) $enrollment[
+                    'provider_instance_id'
+                ],
+                $expires,
+                $secret
+            );
+
+        $path =
+            '/register/verify/bale/return'
+            . '?e='
+            . rawurlencode(
+                (string) $enrollment[
+                    'public_reference'
+                ]
+            )
+            . '&a='
+            . rawurlencode(
+                (string) (int) $attempt['id']
+            )
+            . '&exp='
+            . rawurlencode(
+                (string) $expires
+            )
+            . '&sig='
+            . rawurlencode(
+                $signature
+            );
+
+        $registry =
+            new \IPKF\Support\ApplicationUrlRegistry();
+
+        $url =
+            $registry->core(
+                $path
+            );
+
+        $scheme =
+            strtolower(
+                (string) parse_url(
+                    $url,
+                    PHP_URL_SCHEME
+                )
+            );
+
+        $host =
+            strtolower(
+                (string) parse_url(
+                    $url,
+                    PHP_URL_HOST
+                )
+            );
+
+        $coreHost =
+            strtolower(
+                (string) $registry
+                    ->coreHost()
+            );
+
+        if (
+            $scheme !== 'https'
+            || $host === ''
+            || $coreHost === ''
+            || !hash_equals(
+                $coreHost,
+                $host
+            )
+        ) {
+            return null;
+        }
+
+        return $url;
+    }
+
+    public function consumeBaleOneClickReturn(
+        string $enrollmentReference,
+        int $attemptId,
+        int $expires,
+        string $signature
+    ): array {
+        $enrollmentReference =
+            trim(
+                $enrollmentReference
+            );
+
+        $signature =
+            strtolower(
+                trim(
+                    $signature
+                )
+            );
+
+        if (
+            preg_match(
+                '/^nme_[a-f0-9]{24}$/D',
+                $enrollmentReference
+            ) !== 1
+            || $attemptId < 1
+            || $expires <= time()
+            || $expires > time() + 900
+            || preg_match(
+                '/^[a-f0-9]{64}$/D',
+                $signature
+            ) !== 1
+        ) {
+            return [
+                'ok' => false,
+                'status' =>
+                    'bale_return_invalid',
+            ];
+        }
+
+        $enrollment =
+            $this->verifiedRegistrationBaleEnrollment(
+                $enrollmentReference
+            );
+
+        if (!is_array($enrollment)) {
+            return [
+                'ok' => false,
+                'status' =>
+                    'bale_return_invalid',
+            ];
+        }
+
+        $attempt =
+            $this->pendingAttemptForBale(
+                $attemptId
+            );
+
+        $attemptCreated =
+            is_array($attempt)
+                ? strtotime(
+                    (string) (
+                        $attempt['created_at']
+                        ?? ''
+                    )
+                )
+                : false;
+
+        $enrollmentCreated =
+            strtotime(
+                (string) (
+                    $enrollment['created_at']
+                    ?? ''
+                )
+            );
+
+        $attemptExpires =
+            is_array($attempt)
+                ? strtotime(
+                    (string) (
+                        $attempt['expires_at']
+                        ?? ''
+                    )
+                )
+                : false;
+
+        if (
+            !is_array($attempt)
+            || (int) (
+                $attempt['user_id']
+                ?? 0
+            ) !== (int) $enrollment[
+                'user_id'
+            ]
+            || (string) (
+                $attempt['mobile_norm']
+                ?? ''
+            ) !== (string) $enrollment[
+                'mobile_norm'
+            ]
+            || $attemptCreated === false
+            || $enrollmentCreated === false
+            || $attemptCreated >
+                $enrollmentCreated
+            || $attemptExpires === false
+            || $attemptExpires < $expires
+        ) {
+            return [
+                'ok' => false,
+                'status' =>
+                    'bale_return_invalid',
+            ];
+        }
+
+        $provider =
+            $this->membershipBaleProvider(
+                (int) $enrollment[
+                    'provider_instance_id'
+                ]
+            );
+
+        if (!is_array($provider)) {
+            return [
+                'ok' => false,
+                'status' =>
+                    'bale_return_invalid',
+            ];
+        }
+
+        $secret =
+            $this->baleReturnSecret(
+                $provider
+            );
+
+        if ($secret === null) {
+            return [
+                'ok' => false,
+                'status' =>
+                    'bale_return_invalid',
+            ];
+        }
+
+        $expected =
+            $this->baleReturnSignature(
+                $enrollmentReference,
+                $attemptId,
+                (int) $enrollment['user_id'],
+                (int) $enrollment[
+                    'provider_instance_id'
+                ],
+                $expires,
+                $secret
+            );
+
+        if (
+            !hash_equals(
+                $expected,
+                $signature
+            )
+        ) {
+            return [
+                'ok' => false,
+                'status' =>
+                    'bale_return_invalid',
+            ];
+        }
+
+        $challenge =
+            $this->db->prepare("
+                SELECT id
+                FROM mfa_delivery_challenges
+                WHERE user_id = ?
+                  AND purpose = ?
+                  AND consumed_at IS NULL
+                  AND (
+                        expires_at IS NULL
+                        OR expires_at >
+                            CURRENT_TIMESTAMP
+                  )
+                ORDER BY id DESC
+                LIMIT 1
+            ");
+
+        $challenge->execute([
+            (int) $attempt['user_id'],
+            'public_registration:'
+                . (int) $attempt['id'],
+        ]);
+
+        $challengeId =
+            (int) (
+                $challenge
+                    ->fetchColumn()
+                ?: 0
+            );
+
+        if (
+            !$this->activate(
+                $attempt,
+                $challengeId
+            )
+        ) {
+            return [
+                'ok' => false,
+                'status' =>
+                    'activation_failed',
+            ];
+        }
+
+        return [
+            'ok' => true,
+            'status' =>
+                'bale_verified',
+            'user_id' =>
+                (int) $attempt[
+                    'user_id'
+                ],
+        ];
+    }
+
+    private function verifiedRegistrationBaleEnrollment(
+        string $reference
+    ): ?array {
+        $reference =
+            trim(
+                $reference
+            );
+
+        if (
+            preg_match(
+                '/^nme_[a-f0-9]{24}$/D',
+                $reference
+            ) !== 1
+        ) {
+            return null;
+        }
+
+        $statement =
+            $this->db->prepare("
+                SELECT enrollments.*
+                FROM
+                    notification_messenger_enrollments
+                        AS enrollments
+                INNER JOIN
+                    notification_messenger_bindings
+                        AS bindings
+                  ON bindings.user_id =
+                        enrollments.user_id
+                 AND bindings.provider_instance_id =
+                        enrollments.provider_instance_id
+                 AND bindings.mobile_norm =
+                        enrollments.mobile_norm
+                INNER JOIN users
+                  ON users.id =
+                        enrollments.user_id
+                WHERE enrollments.public_reference = ?
+                  AND enrollments.status_code =
+                        'verified'
+                  AND enrollments.verified_at
+                        IS NOT NULL
+                  AND enrollments.used_at
+                        IS NOT NULL
+                  AND enrollments.invited_by_user_id =
+                        enrollments.user_id
+                  AND bindings.status_code =
+                        'active'
+                  AND bindings.verified_at
+                        IS NOT NULL
+                  AND bindings.revoked_at
+                        IS NULL
+                  AND users.status =
+                        'pending_verification'
+                  AND users.mobile_norm =
+                        enrollments.mobile_norm
+                  AND users.mobile_verified_at
+                        IS NULL
+                ORDER BY enrollments.id DESC
+                LIMIT 1
+            ");
+
+        $statement->execute([
+            $reference,
+        ]);
+
+        $row =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        return is_array($row)
+            ? $row
+            : null;
+    }
+
+    private function latestPendingAttemptForBaleEnrollment(
+        array $enrollment
+    ): ?array {
+        $statement =
+            $this->db->prepare("
+                SELECT *
+                FROM public_registration_attempts
+                WHERE user_id = ?
+                  AND mobile_norm = ?
+                  AND status = 'pending'
+                  AND created_at <= ?
+                  AND expires_at >
+                        CURRENT_TIMESTAMP
+                ORDER BY id DESC
+                LIMIT 1
+            ");
+
+        $statement->execute([
+            (int) (
+                $enrollment['user_id']
+                ?? 0
+            ),
+            (string) (
+                $enrollment['mobile_norm']
+                ?? ''
+            ),
+            (string) (
+                $enrollment['created_at']
+                ?? ''
+            ),
+        ]);
+
+        $row =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        return is_array($row)
+            ? $row
+            : null;
+    }
+
+    private function membershipBaleProvider(
+        int $providerId
+    ): ?array {
+        if ($providerId < 1) {
+            return null;
+        }
+
+        $providers =
+            (
+                new \App\Repositories\NotificationMessengerEnrollmentRepository()
+            )->membershipAuthBaleProviders();
+
+        foreach ($providers as $provider) {
+            if (
+                (int) (
+                    $provider['id']
+                    ?? 0
+                ) === $providerId
+            ) {
+                return $provider;
+            }
+        }
+
+        return null;
+    }
+
+    private function baleReturnSecret(
+        array $provider
+    ): ?string {
+        /*
+         * PUBLIC_REGISTRATION_BALE_RETURN_SECRET_V2
+         *
+         * The Core login handoff is an authentication boundary.
+         * Its HMAC key must be independent from the Bale bot
+         * credential so bot-token rotation cannot invalidate or
+         * disable Core authentication links.
+         *
+         * The provider remains part of the signed payload via
+         * provider_instance_id; it is intentionally not a source
+         * of the signing secret.
+         */
+        unset($provider);
+
+        $secret =
+            trim(
+                (string) \IPKF\Support\Env::get(
+                    'PUBLIC_REGISTRATION_BALE_RETURN_SECRET',
+                    ''
+                )
+            );
+
+        return strlen($secret) >= 64
+            ? $secret
+            : null;
+    }
+
+    private function baleReturnSignature(
+        string $enrollmentReference,
+        int $attemptId,
+        int $userId,
+        int $providerId,
+        int $expires,
+        string $secret
+    ): string {
+        return hash_hmac(
+            'sha256',
+            implode(
+                '|',
+                [
+                    'registration-bale-return-v1',
+                    $enrollmentReference,
+                    (string) $attemptId,
+                    (string) $userId,
+                    (string) $providerId,
+                    (string) $expires,
+                ]
+            ),
+            $secret
+        );
+    }
+
     private function pendingAttemptForBale(
         int $attemptId
     ): ?array {

@@ -26,6 +26,10 @@ final class TicketingSchedulerRegistryFactory
             new TicketAutoCloseJob()
         );
 
+        $registry->register(
+            new WorkTicketLifecycleSyncRecoveryJob()
+        );
+
         return
             $registry;
     }

@@ -15,7 +15,8 @@
     "inactive": "غیرفعال",
     "rule_id": "شناسه",
     "actions": "عملیات",
-    "lifecycle_tab": "همگام‌سازی چرخه عمر"
+    "lifecycle_tab": "همگام‌سازی چرخه عمر",
+    "recovery_tab": "عملیات بازیابی"
   },
   "work_settings": {
     "card_title": "سیاست تیکت و مدیریت کار",
@@ -157,5 +158,83 @@
     "linked_at": "زمان اتصال",
     "linked_by": "ثبت‌کننده اتصال",
     "open_source": "باز کردن منبع"
+  },
+  "recovery": {
+    "title": "عملیات بازیابی همگام‌سازی چرخه عمر",
+    "subtitle": "تلاش‌های ناقص فقط پس از بازبینی وضعیت مدیریت کار، وضعیت تیکت و شواهد همبستگی قابل اقدام هستند.",
+    "back_policy": "بازگشت به قواعد همگام‌سازی",
+    "empty": "موردی برای بررسی یا بازیابی وجود ندارد.",
+    "note": "تلاش مجدد فقط با تأیید مجدد قواعد بومی تیکت انجام می‌شود؛ ترمیم ممیزی نیز فقط با رویداد دقیقاً همبسته مجاز است.",
+    "columns": {
+      "attempt": "تلاش",
+      "ticket": "تیکت",
+      "action": "عملیات تیکت",
+      "result": "وضعیت تلاش",
+      "decision": "تصمیم بازیابی",
+      "reason": "دلیل",
+      "count": "تعداد تلاش",
+      "updated": "آخرین تلاش",
+      "actions": "عملیات"
+    },
+    "action": {
+      "retry": "تلاش مجدد کنترل‌شده",
+      "repair_audit": "ترمیم ممیزی از رویداد همبسته"
+    },
+    "decision": {
+      "retryable": "قابل تلاش مجدد",
+      "already_applied": "اعمال‌شده؛ ممیزی نیازمند ترمیم",
+      "needs_review": "نیازمند بررسی",
+      "already_completed": "تکمیل‌شده",
+      "terminal_rejected": "ردشده نهایی"
+    },
+    "reason": {
+      "actor_user_reference_invalid": "شناسه کاربر اقدام‌کننده معتبر نیست.",
+      "attempt_result_code_unsupported": "وضعیت تلاش برای اقدام خودکار پشتیبانی نمی‌شود.",
+      "work_item_missing": "آیتم کاری یافت نشد.",
+      "work_item_archived": "آیتم کاری بایگانی شده است.",
+      "work_status_moved": "وضعیت فعلی آیتم کاری با وضعیت ثبت‌شده در تلاش یکسان نیست.",
+      "ticket_not_found": "تیکت یافت نشد.",
+      "ticket_action_invalid": "عملیات چرخه عمر معتبر نیست.",
+      "exact_correlated_ticket_event_found": "رویداد بومی تیکت با شناسه همبستگی دقیق یافت شد.",
+      "correlated_ticket_event_mismatch": "رویداد همبسته با قرارداد این تلاش مطابقت ندارد.",
+      "target_state_without_exact_correlation": "تیکت در وضعیت مقصد است اما رویداد همبسته دقیق برای این تلاش وجود ندارد.",
+      "recovery_in_progress_without_exact_event": "یک تلاش بازیابی در حال اجرا یا ناتمام است و رویداد همبسته دقیق هنوز وجود ندارد.",
+      "native_ticket_guard_allows_retry": "قواعد بومی تیکت در وضعیت فعلی تلاش مجدد را مجاز می‌دانند.",
+      "native_ticket_guard_blocks_retry": "قواعد بومی تیکت در وضعیت فعلی تلاش مجدد را مجاز نمی‌دانند."
+    },
+    "result": {
+      "pending": "در انتظار",
+      "failed": "ناموفق",
+      "retrying": "در حال بازیابی",
+      "completed": "تکمیل‌شده",
+      "rejected": "ردشده"
+    },
+    "status": {
+      "retry_completed": "تلاش مجدد با موفقیت تکمیل شد.",
+      "audit_repaired": "ممیزی تلاش با استناد به رویداد دقیقاً همبسته ترمیم شد.",
+      "retry_failed": "تلاش مجدد انجام شد اما گذار تیکت تکمیل نشد؛ مورد برای بررسی باقی ماند.",
+      "not_actionable": "این مورد در وضعیت فعلی قابل اقدام نیست.",
+      "conflict": "وضعیت مورد هم‌زمان تغییر کرده است؛ صفحه را تازه‌سازی کنید.",
+      "not_found": "تلاش موردنظر یافت نشد.",
+      "invalid": "درخواست بازیابی معتبر نیست.",
+      "invalid_csrf": "نشست فرم معتبر نیست. صفحه را تازه‌سازی کنید.",
+      "unavailable": "سرویس چرخه عمر تیکت در این محیط در دسترس نیست.",
+      "failed": "عملیات بازیابی انجام نشد."
+    }
+  },
+  "scheduler_recovery": {
+    "title": "بازیابی خودکار همگام‌سازی چرخه عمر",
+    "description": "بازبینی و بازیابی کنترل‌شده همگام‌سازی چرخه عمر آیتم کاری و تیکت با رعایت محدودیت تلاش و فاصله‌گذاری تصاعدی.",
+    "scope_title": "بازیابی چرخه عمر Work و Ticket",
+    "policy": {
+      "schedule_interval_minutes": 5,
+      "batch_limit": 50,
+      "max_attempts": 4,
+      "base_backoff_seconds": 300,
+      "max_backoff_seconds": 3600,
+      "stale_retrying_seconds": 900,
+      "automatic_retry": true,
+      "automatic_audit_repair": true
+    }
   }
 }

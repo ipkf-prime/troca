@@ -208,9 +208,34 @@ class AccountSecurityService extends BaseService
                 'تکرار رمز عبور با رمز جدید یکسان نیست.';
         }
 
-        if (strlen($password) < 12) {
+        $passwordLength =
+            function_exists(
+                'mb_strlen'
+            )
+                ? mb_strlen(
+                    $password,
+                    'UTF-8'
+                )
+                : strlen($password);
+
+        if (
+            $passwordLength < 8
+            || $passwordLength > 128
+        ) {
             $errors['password'] =
-                'رمز عبور جدید باید حداقل ۱۲ کاراکتر باشد.';
+                'رمز عبور باید حداقل ۸ نویسه و حداکثر ۱۲۸ نویسه باشد.';
+        } elseif (
+            preg_match(
+                '/\\p{L}/u',
+                $password
+            ) !== 1
+            || preg_match(
+                '/\\p{N}/u',
+                $password
+            ) !== 1
+        ) {
+            $errors['password'] =
+                'رمز عبور باید حداقل یک حرف و یک عدد داشته باشد.';
         }
 
         if (
@@ -224,14 +249,6 @@ class AccountSecurityService extends BaseService
         ) {
             $errors['password'] =
                 'رمز عبور جدید نباید با رمز فعلی یکسان باشد.';
-        }
-
-        if (
-            $password !== ''
-            && $this->passwordClassCount($password) < 3
-        ) {
-            $errors['password'] =
-                'رمز عبور باید دست‌کم سه گروه از حروف بزرگ، حروف کوچک، عدد و نماد را داشته باشد.';
         }
 
         $identityTokens = array_filter([
@@ -272,6 +289,33 @@ class AccountSecurityService extends BaseService
         );
 
         Session::regenerate();
+
+        /*
+         * PASSWORD_CHANGE_SESSION_FINGERPRINT_REFRESH_V1
+         *
+         * The session that performed the authenticated self-service
+         * password change remains valid by adopting the new credential
+         * fingerprint. Other sessions keep their previous fingerprint.
+         */
+        $updatedPasswordHash =
+            $this->users->passwordHashForUser(
+                $userId
+            );
+
+        if (
+            is_string(
+                $updatedPasswordHash
+            )
+        ) {
+            Session::put(
+                'auth_password_fingerprint',
+                hash(
+                    'sha256',
+                    'ipkf-auth-password-fingerprint-v1:'
+                    . $updatedPasswordHash
+                )
+            );
+        }
         Session::put(
             'auth_password_changed_at',
             gmdate(DATE_ATOM)

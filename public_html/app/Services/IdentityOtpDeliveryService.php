@@ -130,7 +130,7 @@ class IdentityOtpDeliveryService extends BaseService
         $configured =
             $field === 'email'
                 ? $actorUserId > 0
-                : $this->smsConfigured();
+                : $this->smsConfigured($templateCode);
 
         if (!$configured) {
             if (
@@ -164,7 +164,8 @@ class IdentityOtpDeliveryService extends BaseService
                     (string) (
                         $message['body']
                         ?? ''
-                    )
+                    ),
+                    $templateCode
                 )
                 : $this->sendSms(
                     $destination,
@@ -204,14 +205,45 @@ class IdentityOtpDeliveryService extends BaseService
         ];
     }
 
-    private function smsConfigured(): bool
-    {
-        return filter_var(
-            Env::get(
-                'MFA_SMS_ENABLED',
-                false
-            ),
-            FILTER_VALIDATE_BOOLEAN
+    private function smsConfigured(
+        ?string $templateCode = null
+    ): bool {
+        $templateCode =
+            trim(
+                (string) (
+                    $templateCode
+                    ?? ''
+                )
+            );
+
+        /*
+         * Password recovery has its own SMS enablement.
+         * This intentionally does not enable generic MFA
+         * or registration SMS delivery.
+         */
+        $generalMfaEnabled =
+            filter_var(
+                Env::get(
+                    'MFA_SMS_ENABLED',
+                    false
+                ),
+                FILTER_VALIDATE_BOOLEAN
+            );
+
+        $passwordRecoveryEnabled =
+            $templateCode ===
+                'auth.password_reset.mobile_otp'
+            && filter_var(
+                Env::get(
+                    'PASSWORD_RECOVERY_SMS_ENABLED',
+                    false
+                ),
+                FILTER_VALIDATE_BOOLEAN
+            );
+
+        return (
+            $generalMfaEnabled
+            || $passwordRecoveryEnabled
         )
             && trim(
                 (string) Env::get(
@@ -229,12 +261,12 @@ class IdentityOtpDeliveryService extends BaseService
                 'curl_init'
             );
     }
-
     private function sendEmail(
         int $actorUserId,
         string $destination,
         string $subject,
-        string $body
+        string $body,
+        ?string $templateCode = null
     ): bool {
         if (
             $actorUserId < 1
@@ -244,6 +276,17 @@ class IdentityOtpDeliveryService extends BaseService
             return false;
         }
 
+        $purposeCode =
+            trim(
+                (string) (
+                    $templateCode
+                    ?? ''
+                )
+            ) ===
+                'auth.password_reset.email_otp'
+                ? 'password_recovery'
+                : 'identity_email_verification';
+
         try {
             $result =
                 $this->gateway->sendDirect(
@@ -252,7 +295,7 @@ class IdentityOtpDeliveryService extends BaseService
                         'channel_code' =>
                             'email',
                         'purpose_code' =>
-                            'identity_email_verification',
+                            $purposeCode,
                         'scope_type' =>
                             'global',
                         'scope_reference' =>

@@ -823,6 +823,110 @@ $router->post(
 
 
 /*
+ * PUBLIC_REGISTRATION_BALE_ONE_CLICK_RETURN_A5A1
+ *
+ * Signed one-time Bale return link. The signature plus exact verified
+ * enrollment and unconsumed registration attempt are the authorization
+ * boundary for this magic-link GET.
+ */
+$router->get(
+    '/register/verify/bale/return',
+    function (
+        $request,
+        $response
+    ) use (
+        $registrationClearAttempt,
+        $registrationCloseSession
+    ) {
+        $result =
+            (
+                new \App\Services\PublicRegistrationOtpService()
+            )->consumeBaleOneClickReturn(
+                trim(
+                    (string) $request->input(
+                        'e',
+                        ''
+                    )
+                ),
+                (int) $request->input(
+                    'a',
+                    0
+                ),
+                (int) $request->input(
+                    'exp',
+                    0
+                ),
+                trim(
+                    (string) $request->input(
+                        'sig',
+                        ''
+                    )
+                )
+            );
+
+        if (
+            ($result['ok'] ?? false)
+            !== true
+        ) {
+            $registrationCloseSession();
+
+            return $response->redirect(
+                '/admin/login'
+                . '?status='
+                . rawurlencode(
+                    (string) (
+                        $result['status']
+                        ?? 'bale_return_invalid'
+                    )
+                )
+            );
+        }
+
+        $userId =
+            (int) (
+                $result['user_id']
+                ?? 0
+            );
+
+        $user =
+            $userId > 0
+                ? (
+                    new \App\Services\AuthService()
+                )->finalizeLogin(
+                    $userId,
+                    'token',
+                    false
+                )
+                : null;
+
+        if (!is_array($user)) {
+            $registrationCloseSession();
+
+            return $response->redirect(
+                '/admin/login'
+                . '?status=bale_login_failed'
+            );
+        }
+
+        $registrationClearAttempt();
+        \IPKF\Support\Session::forget(
+            'public_registration_success'
+        );
+        \IPKF\Support\Session::forget(
+            'public_registration_invitation_token'
+        );
+
+        $registrationCloseSession();
+
+        return $response->redirect(
+            '/admin/dashboard'
+            . '?status=mobile_verified'
+        );
+    }
+);
+
+
+/*
  * PUBLIC_REGISTRATION_BALE_MOBILE_ATTESTATION_A3_2B1_V2
  *
  * Enrollment generation and final attestation are POST-only.

@@ -287,9 +287,13 @@ $expect(
     )
     && str_contains(
         $view,
-        'حساب شما با نقش پایه'
+        "UiContentInlineGuide::noticeTitleHtml('core.register.guide.01'"
+    )
+    && str_contains(
+        $view,
+        "UiContentInlineGuide::noticeBodyHtml('core.register.guide.01'"
     ),
-    'Persian registration UI missing.'
+    'Persian registration UI or dynamic success guide contract missing.'
 );
 
 $expect(

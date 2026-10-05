@@ -67,7 +67,8 @@ final class TicketLifecycleTransitionRepository
         string $publicReference,
         string $action,
         string $actorUserReference,
-        string $actorDisplayName
+        string $actorDisplayName,
+        array $auditContext = []
     ): array {
         $publicReference =
             trim($publicReference);
@@ -401,6 +402,11 @@ final class TicketLifecycleTransitionRepository
                                 'actor_staff_role_code'
                             ]
                             ?? ''
+                        ),
+
+                    'integration_context' =>
+                        $this->normalizeAuditContext(
+                            $auditContext
                         ),
                 ];
 
@@ -897,6 +903,133 @@ final class TicketLifecycleTransitionRepository
     }
 
 
+    /**
+     * Read-only evidence used by Work lifecycle reconciliation.
+     */
+    public function reconciliationSnapshot(
+        string $publicReference,
+        string $actorUserReference,
+        string $correlationReference
+    ): array {
+        $publicReference = trim($publicReference);
+        $actorUserReference = trim($actorUserReference);
+        $correlationReference = trim($correlationReference);
+
+        if (
+            $publicReference === ''
+            || $actorUserReference === ''
+        ) {
+            return [
+                'found' => false,
+                'correlated_event' => null,
+            ];
+        }
+
+        $ticket =
+            $this->ticketContext(
+                $publicReference,
+                $actorUserReference,
+                false
+            );
+
+        if ($ticket === null) {
+            return [
+                'found' => false,
+                'correlated_event' => null,
+            ];
+        }
+
+        $snapshot =
+            $this->decorateCapabilities(
+                $ticket,
+                $actorUserReference
+            );
+
+        $snapshot['correlated_event'] = null;
+
+        if ($correlationReference === '') {
+            return $snapshot;
+        }
+
+        $statement =
+            $this->db->prepare(
+                "SELECT
+                    public_reference,
+                    event_code,
+                    actor_user_reference,
+                    previous_status_code,
+                    resulting_status_code,
+                    occurred_at,
+
+                    JSON_UNQUOTE(
+                        JSON_EXTRACT(
+                            payload_json,
+                            '$.integration_context.source_module_code'
+                        )
+                    ) AS integration_source_module_code,
+
+                    JSON_UNQUOTE(
+                        JSON_EXTRACT(
+                            payload_json,
+                            '$.integration_context.correlation_reference'
+                        )
+                    ) AS integration_correlation_reference,
+
+                    JSON_UNQUOTE(
+                        JSON_EXTRACT(
+                            payload_json,
+                            '$.integration_context.idempotency_key'
+                        )
+                    ) AS integration_idempotency_key,
+
+                    JSON_UNQUOTE(
+                        JSON_EXTRACT(
+                            payload_json,
+                            '$.integration_context.attempt_reference'
+                        )
+                    ) AS integration_attempt_reference,
+
+                    JSON_UNQUOTE(
+                        JSON_EXTRACT(
+                            payload_json,
+                            '$.integration_context.ticket_action_code'
+                        )
+                    ) AS integration_ticket_action_code
+
+                 FROM ticketing_events
+
+                 WHERE ticket_id = ?
+                   AND JSON_VALID(payload_json) = 1
+                   AND JSON_UNQUOTE(
+                        JSON_EXTRACT(
+                            payload_json,
+                            '$.integration_context.correlation_reference'
+                        )
+                   ) = ?
+
+                 ORDER BY id DESC
+                 LIMIT 1"
+            );
+
+        $statement->execute([
+            (int) $ticket['id'],
+            $correlationReference,
+        ]);
+
+        $event =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        $snapshot['correlated_event'] =
+            is_array($event)
+                ? $event
+                : null;
+
+        return $snapshot;
+    }
+
+
     private function ticketContext(
         string $publicReference,
         string $actorUserReference,
@@ -1200,6 +1333,44 @@ final class TicketLifecycleTransitionRepository
             'ticket' =>
                 $ticket,
         ];
+    }
+
+
+    private function normalizeAuditContext(
+        array $auditContext
+    ): array {
+        $limits = [
+            'source_module_code' => 64,
+            'correlation_reference' => 100,
+            'idempotency_key' => 190,
+            'attempt_reference' => 64,
+            'ticket_action_code' => 32,
+        ];
+
+        $normalized = [];
+
+        foreach ($limits as $field => $limit) {
+            $value =
+                trim(
+                    (string) (
+                        $auditContext[$field]
+                        ?? ''
+                    )
+                );
+
+            if ($value === '') {
+                continue;
+            }
+
+            $normalized[$field] =
+                substr(
+                    $value,
+                    0,
+                    $limit
+                );
+        }
+
+        return $normalized;
     }
 
 

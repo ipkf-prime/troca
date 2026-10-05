@@ -4209,3 +4209,315 @@ input[aria-invalid="true"] {
     padding-inline-end:
         52px !important;
 }
+
+/* IPKF_SENSITIVE_INPUT_LTR_V1
+ * Security values are machine-oriented strings.
+ * Keep surrounding Persian UI RTL while rendering sensitive values LTR.
+ */
+input[type="password"],
+input[autocomplete="current-password"],
+input[autocomplete="new-password"],
+input[autocomplete="one-time-code"],
+
+input[name*="password" i],
+input[id*="password" i],
+input[name*="passwd" i],
+input[id*="passwd" i],
+
+input[name*="secret" i],
+input[id*="secret" i],
+
+input[name*="otp" i],
+input[id*="otp" i],
+input[name*="totp" i],
+input[id*="totp" i],
+
+input[name*="recovery_code" i],
+input[id*="recovery_code" i],
+input[name*="recovery-code" i],
+input[id*="recovery-code" i],
+
+input[name*="api_key" i],
+input[id*="api_key" i],
+input[name*="api-key" i],
+input[id*="api-key" i],
+input[name*="apikey" i],
+input[id*="apikey" i],
+
+input[name*="access_key" i],
+input[id*="access_key" i],
+input[name*="access-key" i],
+input[id*="access-key" i],
+
+input[name*="private_key" i],
+input[id*="private_key" i],
+input[name*="private-key" i],
+input[id*="private-key" i],
+
+input[name*="signing_key" i],
+input[id*="signing_key" i],
+input[name*="signing-key" i],
+input[id*="signing-key" i],
+
+input[name*="client_secret" i],
+input[id*="client_secret" i],
+input[name*="client-secret" i],
+input[id*="client-secret" i],
+
+input:not([type="hidden"])[name*="api_token" i],
+input:not([type="hidden"])[id*="api_token" i],
+input:not([type="hidden"])[name*="api-token" i],
+input:not([type="hidden"])[id*="api-token" i],
+
+input:not([type="hidden"])[name*="access_token" i],
+input:not([type="hidden"])[id*="access_token" i],
+input:not([type="hidden"])[name*="access-token" i],
+input:not([type="hidden"])[id*="access-token" i],
+
+input:not([type="hidden"])[name*="refresh_token" i],
+input:not([type="hidden"])[id*="refresh_token" i],
+input:not([type="hidden"])[name*="refresh-token" i],
+input:not([type="hidden"])[id*="refresh-token" i],
+
+input:not([type="hidden"])[name*="auth_token" i],
+input:not([type="hidden"])[id*="auth_token" i],
+input:not([type="hidden"])[name*="auth-token" i],
+input:not([type="hidden"])[id*="auth-token" i],
+
+input:not([type="hidden"])[name*="bearer_token" i],
+input:not([type="hidden"])[id*="bearer_token" i],
+input:not([type="hidden"])[name*="bearer-token" i],
+input:not([type="hidden"])[id*="bearer-token" i],
+
+input:not([type="hidden"])[name*="link_token" i],
+input:not([type="hidden"])[id*="link_token" i],
+input:not([type="hidden"])[name*="link-token" i],
+input:not([type="hidden"])[id*="link-token" i],
+
+textarea[name*="secret" i],
+textarea[id*="secret" i],
+textarea[name*="private_key" i],
+textarea[id*="private_key" i],
+textarea[name*="private-key" i],
+textarea[id*="private-key" i],
+textarea[name*="signing_key" i],
+textarea[id*="signing_key" i],
+textarea[name*="signing-key" i],
+textarea[id*="signing-key" i] {
+    direction: ltr !important;
+    text-align: left !important;
+    unicode-bidi: isolate;
+}
+
+/* IPKF_SENSITIVE_INPUT_PLACEHOLDER_RTL_V1
+ * Sensitive values remain LTR.
+ * Persian placeholder/help text inside those fields remains RTL.
+ */
+input[type="password"]::placeholder,
+input[autocomplete="current-password"]::placeholder,
+input[autocomplete="new-password"]::placeholder,
+input[autocomplete="one-time-code"]::placeholder,
+
+input[name*="password" i]::placeholder,
+input[id*="password" i]::placeholder,
+input[name*="passwd" i]::placeholder,
+input[id*="passwd" i]::placeholder,
+
+input[name*="secret" i]::placeholder,
+input[id*="secret" i]::placeholder,
+
+input[name*="otp" i]::placeholder,
+input[id*="otp" i]::placeholder,
+input[name*="totp" i]::placeholder,
+input[id*="totp" i]::placeholder,
+
+input[name*="recovery_code" i]::placeholder,
+input[id*="recovery_code" i]::placeholder,
+input[name*="recovery-code" i]::placeholder,
+input[id*="recovery-code" i]::placeholder,
+
+input[name*="api_key" i]::placeholder,
+input[id*="api_key" i]::placeholder,
+input[name*="api-key" i]::placeholder,
+input[id*="api-key" i]::placeholder,
+input[name*="apikey" i]::placeholder,
+input[id*="apikey" i]::placeholder,
+
+input[name*="access_key" i]::placeholder,
+input[id*="access_key" i]::placeholder,
+input[name*="access-key" i]::placeholder,
+input[id*="access-key" i]::placeholder,
+
+input[name*="private_key" i]::placeholder,
+input[id*="private_key" i]::placeholder,
+input[name*="private-key" i]::placeholder,
+input[id*="private-key" i]::placeholder,
+
+input[name*="signing_key" i]::placeholder,
+input[id*="signing_key" i]::placeholder,
+input[name*="signing-key" i]::placeholder,
+input[id*="signing-key" i]::placeholder,
+
+input[name*="client_secret" i]::placeholder,
+input[id*="client_secret" i]::placeholder,
+input[name*="client-secret" i]::placeholder,
+input[id*="client-secret" i]::placeholder,
+
+input:not([type="hidden"])[name*="api_token" i]::placeholder,
+input:not([type="hidden"])[id*="api_token" i]::placeholder,
+input:not([type="hidden"])[name*="api-token" i]::placeholder,
+input:not([type="hidden"])[id*="api-token" i]::placeholder,
+
+input:not([type="hidden"])[name*="access_token" i]::placeholder,
+input:not([type="hidden"])[id*="access_token" i]::placeholder,
+input:not([type="hidden"])[name*="access-token" i]::placeholder,
+input:not([type="hidden"])[id*="access-token" i]::placeholder,
+
+input:not([type="hidden"])[name*="refresh_token" i]::placeholder,
+input:not([type="hidden"])[id*="refresh_token" i]::placeholder,
+input:not([type="hidden"])[name*="refresh-token" i]::placeholder,
+input:not([type="hidden"])[id*="refresh-token" i]::placeholder,
+
+input:not([type="hidden"])[name*="auth_token" i]::placeholder,
+input:not([type="hidden"])[id*="auth_token" i]::placeholder,
+input:not([type="hidden"])[name*="auth-token" i]::placeholder,
+input:not([type="hidden"])[id*="auth-token" i]::placeholder,
+
+input:not([type="hidden"])[name*="bearer_token" i]::placeholder,
+input:not([type="hidden"])[id*="bearer_token" i]::placeholder,
+input:not([type="hidden"])[name*="bearer-token" i]::placeholder,
+input:not([type="hidden"])[id*="bearer-token" i]::placeholder,
+
+input:not([type="hidden"])[name*="link_token" i]::placeholder,
+input:not([type="hidden"])[id*="link_token" i]::placeholder,
+input:not([type="hidden"])[name*="link-token" i]::placeholder,
+input:not([type="hidden"])[id*="link-token" i]::placeholder,
+
+textarea[name*="secret" i]::placeholder,
+textarea[id*="secret" i]::placeholder,
+textarea[name*="private_key" i]::placeholder,
+textarea[id*="private_key" i]::placeholder,
+textarea[name*="private-key" i]::placeholder,
+textarea[id*="private-key" i]::placeholder,
+textarea[name*="signing_key" i]::placeholder,
+textarea[id*="signing_key" i]::placeholder,
+textarea[name*="signing-key" i]::placeholder,
+textarea[id*="signing-key" i]::placeholder {
+    direction: rtl !important;
+    text-align: right !important;
+    unicode-bidi: plaintext;
+}
+
+/* IPKF_PASSWORD_EYE_CLEARANCE_V2
+ * Applied only to password inputs that actually have an eye control.
+ * Keeps LTR password values clear of the eye button.
+ */
+.ipkf-password-has-eye {
+    padding-left: 2.85rem !important;
+}
+
+.ipkf-password-control {
+    min-width: 0;
+    position: relative;
+}
+
+.ipkf-password-control
+> button.ipkf-password-toggle {
+    align-items: center !important;
+
+    appearance: none !important;
+    -webkit-appearance: none !important;
+
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+
+    box-shadow: none !important;
+
+    color: #74827b !important;
+
+    cursor: pointer !important;
+
+    display: inline-flex !important;
+    justify-content: center !important;
+
+    height: 1.15rem !important;
+    min-height: 1.15rem !important;
+    max-height: 1.15rem !important;
+
+    left: .85rem !important;
+    right: auto !important;
+
+    line-height: 1 !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    position: absolute !important;
+    top: 50% !important;
+
+    transform: translateY(-50%) !important;
+
+    width: 1.15rem !important;
+    min-width: 1.15rem !important;
+    max-width: 1.15rem !important;
+
+    z-index: 2;
+}
+
+.ipkf-password-control
+> button.ipkf-password-toggle:hover,
+.ipkf-password-control
+> button.ipkf-password-toggle:focus,
+.ipkf-password-control
+> button.ipkf-password-toggle:active {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+
+    border: 0 !important;
+
+    box-shadow: none !important;
+
+    color: #53635b !important;
+}
+
+.ipkf-password-control
+> button.ipkf-password-toggle:focus-visible {
+    border-radius: 2px !important;
+    outline: 1px solid currentColor !important;
+    outline-offset: 3px;
+}
+
+.ipkf-password-control
+> button.ipkf-password-toggle
+> svg {
+    color: inherit !important;
+
+    display: block !important;
+
+    height: 1rem !important;
+    min-height: 1rem !important;
+
+    overflow: visible;
+
+    pointer-events: none;
+
+    width: 1rem !important;
+    min-width: 1rem !important;
+}
+
+.ipkf-password-toggle[
+    aria-pressed="false"
+] .ipkf-password-eye-slash {
+    display: none;
+}
+
+.ipkf-password-toggle[
+    aria-pressed="true"
+] .ipkf-password-eye-slash {
+    display: block;
+}

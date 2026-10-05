@@ -1257,3 +1257,576 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     );
 })();
+
+/* IPKF_TARGETED_PASSWORD_EYE_V2 */
+(() => {
+    const SVG_NS =
+        'http://www.w3.org/2000/svg';
+
+    const PASSWORD_SELECTOR = [
+        'input[type="password"]',
+        'input[autocomplete="current-password"]',
+        'input[autocomplete="new-password"]',
+    ].join(',');
+
+    const EXISTING_TOGGLE_SELECTOR = [
+        '[data-toggle-password]',
+        '[data-password-toggle]',
+        '[data-ipkf-password-toggle]',
+        '.password-toggle',
+        '.admin-auth-password-toggle',
+        '.register-password-toggle',
+        '.login-password-toggle',
+        '.ipkf-password-toggle',
+    ].join(',');
+
+
+    const normalizedPath =
+        window.location.pathname
+            .replace(
+                /\/+$/,
+                ''
+            )
+        || '/';
+
+
+    const isLogin =
+        normalizedPath
+        === '/admin/login';
+
+
+    const isRegister =
+        normalizedPath
+        === '/register';
+
+
+    const isSecurity =
+        normalizedPath
+        === '/admin/security';
+
+
+    if (
+        !isLogin
+        && !isRegister
+        && !isSecurity
+    ) {
+        return;
+    }
+
+
+    const createSvgElement =
+        (name, attributes = {}) => {
+            const element =
+                document.createElementNS(
+                    SVG_NS,
+                    name
+                );
+
+            Object.entries(
+                attributes
+            ).forEach(
+                ([key, value]) => {
+                    element.setAttribute(
+                        key,
+                        value
+                    );
+                }
+            );
+
+            return element;
+        };
+
+
+    const createEye =
+        () => {
+            const svg =
+                createSvgElement(
+                    'svg',
+                    {
+                        viewBox:
+                            '0 0 24 24',
+
+                        'aria-hidden':
+                            'true',
+
+                        focusable:
+                            'false',
+                    }
+                );
+
+
+            const eye =
+                createSvgElement(
+                    'path',
+                    {
+                        d:
+                            'M2.5 12s3.5-6 9.5-6 '
+                            + '9.5 6 9.5 6-3.5 6-9.5 6 '
+                            + '-9.5-6-9.5-6Z',
+
+                        fill:
+                            'none',
+
+                        stroke:
+                            'currentColor',
+
+                        'stroke-width':
+                            '1.8',
+
+                        'stroke-linecap':
+                            'round',
+
+                        'stroke-linejoin':
+                            'round',
+                    }
+                );
+
+
+            const pupil =
+                createSvgElement(
+                    'circle',
+                    {
+                        cx:
+                            '12',
+
+                        cy:
+                            '12',
+
+                        r:
+                            '2.8',
+
+                        fill:
+                            'none',
+
+                        stroke:
+                            'currentColor',
+
+                        'stroke-width':
+                            '1.8',
+                    }
+                );
+
+
+            const slash =
+                createSvgElement(
+                    'path',
+                    {
+                        class:
+                            'ipkf-password-eye-slash',
+
+                        d:
+                            'M4 4 20 20',
+
+                        fill:
+                            'none',
+
+                        stroke:
+                            'currentColor',
+
+                        'stroke-width':
+                            '1.8',
+
+                        'stroke-linecap':
+                            'round',
+                    }
+                );
+
+
+            svg.append(
+                eye,
+                pupil,
+                slash
+            );
+
+
+            return svg;
+        };
+
+
+    const fieldLabelText =
+        (input) => {
+            const label =
+                input.closest(
+                    'label'
+                );
+
+
+            if (!label) {
+                return '';
+            }
+
+
+            const candidates =
+                label.querySelectorAll(
+                    'span,strong'
+                );
+
+
+            for (
+                const candidate
+                of candidates
+            ) {
+                const value =
+                    candidate
+                        .textContent
+                        .trim();
+
+
+                if (value !== '') {
+                    return value;
+                }
+            }
+
+
+            return '';
+        };
+
+
+    const findExistingToggle =
+        (input) => {
+            const scopes = [];
+
+
+            if (input.parentElement) {
+                scopes.push(
+                    input.parentElement
+                );
+            }
+
+
+            const label =
+                input.closest(
+                    'label'
+                );
+
+
+            if (
+                label
+                && !scopes.includes(label)
+            ) {
+                scopes.push(
+                    label
+                );
+            }
+
+
+            for (
+                const scope
+                of scopes
+            ) {
+                const explicit =
+                    scope.querySelector(
+                        EXISTING_TOGGLE_SELECTOR
+                    );
+
+
+                if (
+                    explicit
+                    instanceof HTMLButtonElement
+                ) {
+                    return explicit;
+                }
+
+
+                const buttons =
+                    scope.querySelectorAll(
+                        'button[type="button"]'
+                    );
+
+
+                for (
+                    const button
+                    of buttons
+                ) {
+                    if (
+                        button.querySelector(
+                            'svg'
+                        )
+                    ) {
+                        return button;
+                    }
+                }
+            }
+
+
+            return null;
+        };
+
+
+    const enableClearance =
+        (input) => {
+            input.classList.add(
+                'ipkf-password-has-eye'
+            );
+        };
+
+
+    const addSecurityEye =
+        (input) => {
+            if (
+                input.dataset
+                    .ipkfSecurityPasswordEye
+                === '1'
+            ) {
+                return;
+            }
+
+
+            input.dataset
+                .ipkfSecurityPasswordEye =
+                '1';
+
+
+            const existing =
+                findExistingToggle(
+                    input
+                );
+
+
+            if (existing) {
+                enableClearance(
+                    input
+                );
+
+                return;
+            }
+
+
+            const control =
+                input.parentElement;
+
+
+            if (!control) {
+                return;
+            }
+
+
+            control.classList.add(
+                'ipkf-password-control'
+            );
+
+
+            const toggle =
+                document.createElement(
+                    'button'
+                );
+
+
+            toggle.type =
+                'button';
+
+
+            toggle.className =
+                'ipkf-password-toggle';
+
+
+            toggle.setAttribute(
+                'data-ipkf-password-toggle',
+                ''
+            );
+
+
+            toggle.setAttribute(
+                'aria-pressed',
+                'false'
+            );
+
+
+            const labelText =
+                fieldLabelText(
+                    input
+                );
+
+
+            if (
+                labelText !== ''
+            ) {
+                toggle.setAttribute(
+                    'aria-label',
+                    labelText
+                );
+            }
+
+
+            toggle.appendChild(
+                createEye()
+            );
+
+
+            toggle.addEventListener(
+                'click',
+                () => {
+                    const reveal =
+                        input.type
+                        === 'password';
+
+
+                    input.type =
+                        reveal
+                            ? 'text'
+                            : 'password';
+
+
+                    toggle.setAttribute(
+                        'aria-pressed',
+                        reveal
+                            ? 'true'
+                            : 'false'
+                    );
+
+
+                    input.focus({
+                        preventScroll:
+                            true,
+                    });
+
+
+                    const end =
+                        input.value.length;
+
+
+                    try {
+                        input.setSelectionRange(
+                            end,
+                            end
+                        );
+                    } catch (_) {
+                    }
+                }
+            );
+
+
+            control.appendChild(
+                toggle
+            );
+
+
+            /*
+             * IPKF_SECURITY_PASSWORD_EYE_INPUT_CENTER_V1
+             *
+             * The security form parent also contains the field title.
+             * Therefore 50% of the parent is not 50% of the input.
+             * Calculate the eye position from the actual input rectangle.
+             */
+            const alignSecurityPasswordEye =
+                () => {
+                    const inputRect =
+                        input.getBoundingClientRect();
+
+
+                    const controlRect =
+                        control.getBoundingClientRect();
+
+
+                    const inputCenter =
+                        (
+                            inputRect.top
+                            - controlRect.top
+                        )
+                        + (
+                            inputRect.height
+                            / 2
+                        );
+
+
+                    toggle.style.setProperty(
+                        'top',
+                        `${inputCenter}px`,
+                        'important'
+                    );
+                };
+
+
+            alignSecurityPasswordEye();
+
+
+            window.requestAnimationFrame(
+                alignSecurityPasswordEye
+            );
+
+
+            window.addEventListener(
+                'resize',
+                alignSecurityPasswordEye,
+                {
+                    passive:
+                        true,
+                }
+            );
+
+
+            enableClearance(
+                input
+            );
+        };
+
+
+    const normalizeExistingEye =
+        (input) => {
+            const existing =
+                findExistingToggle(
+                    input
+                );
+
+
+            if (!existing) {
+                return;
+            }
+
+
+            enableClearance(
+                input
+            );
+        };
+
+
+    const initialize =
+        () => {
+            const inputs =
+                document.querySelectorAll(
+                    PASSWORD_SELECTOR
+                );
+
+
+            inputs.forEach(
+                (input) => {
+                    if (
+                        !(input instanceof HTMLInputElement)
+                    ) {
+                        return;
+                    }
+
+
+                    if (isSecurity) {
+                        addSecurityEye(
+                            input
+                        );
+
+                        return;
+                    }
+
+
+                    normalizeExistingEye(
+                        input
+                    );
+                }
+            );
+        };
+
+
+    if (
+        document.readyState
+        === 'loading'
+    ) {
+        document.addEventListener(
+            'DOMContentLoaded',
+            initialize,
+            {
+                once:
+                    true,
+            }
+        );
+    } else {
+        initialize();
+    }
+})();

@@ -102,11 +102,23 @@ $expect(
 $expect(
     str_contains(
         $sendService,
-        'notification_send_multimedia_delivery_pending'
+        "\$input['message_type_code']"
     )
     && str_contains(
         $sendService,
-        "'message_type_code'"
+        "['text', 'multimedia']"
+    )
+    && str_contains(
+        $sendService,
+        'notification_send_message_type_invalid'
+    )
+    && str_contains(
+        $sendService,
+        'notification_send_multimedia_sms_not_supported'
+    )
+    && str_contains(
+        $sendService,
+        "'message_type_code' =>"
     ),
     'Message type guard is incomplete.'
 );

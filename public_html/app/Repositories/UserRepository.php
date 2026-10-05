@@ -107,11 +107,40 @@ class UserRepository extends BaseRepository
         $statement->execute([$userId]);
     }
 
-    public function updateLoginFailure(int $userId): void
-    {
+    public function updateLoginFailure(
+        int $userId,
+        int $maxAttempts = 5,
+        int $lockMinutes = 15
+    ): void {
+        /*
+         * AUTH_LOGIN_LOCKOUT_A5_R2
+         *
+         * Increment and lock in one SQL statement so concurrent invalid
+         * password attempts cannot bypass the threshold.
+         */
+        $maxAttempts = max(1, min(20, $maxAttempts));
+        $lockMinutes = max(1, min(1440, $lockMinutes));
+
         $statement = $this->connection()->prepare("
             UPDATE users
-            SET failed_login_attempts = failed_login_attempts + 1,
+            SET locked_until =
+                    CASE
+                        /*
+                         * MySQL single-table UPDATE assignments are
+                         * evaluated left-to-right. Evaluate the lock
+                         * decision while failed_login_attempts still
+                         * contains the pre-increment value.
+                         */
+                        WHEN COALESCE(failed_login_attempts, 0) + 1
+                             >= {$maxAttempts}
+                        THEN DATE_ADD(
+                            CURRENT_TIMESTAMP,
+                            INTERVAL {$lockMinutes} MINUTE
+                        )
+                        ELSE locked_until
+                    END,
+                failed_login_attempts =
+                    COALESCE(failed_login_attempts, 0) + 1,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         ");
@@ -136,6 +165,65 @@ class UserRepository extends BaseRepository
             WHERE id = ?
         ");
         $statement->execute([$passwordHash, $userId]);
+    }
+
+    public function replacePasswordAfterRecovery(
+        int $userId,
+        string $passwordHash
+    ): bool {
+        if (
+            $userId < 1
+            || trim($passwordHash) === ''
+        ) {
+            return false;
+        }
+
+        /*
+         * PASSWORD_RECOVERY_TRUSTED_DEVICE_REVOCATION_V1
+         *
+         * Password recovery is a credential-compromise boundary.
+         * Revoke all active trusted-device grants before replacing
+         * the password.
+         */
+        if (
+            Database::tableExists(
+                'trusted_devices'
+            )
+        ) {
+            $revokeTrustedDevices =
+                $this->connection()->prepare("
+                    UPDATE trusted_devices
+                    SET revoked_at =
+                        COALESCE(
+                            revoked_at,
+                            CURRENT_TIMESTAMP
+                        )
+                    WHERE user_id = ?
+                      AND revoked_at IS NULL
+                ");
+
+            $revokeTrustedDevices->execute([
+                $userId,
+            ]);
+        }
+
+        $statement = $this->connection()->prepare("
+            UPDATE users
+            SET password_hash = ?,
+                failed_login_attempts = 0,
+                locked_until = NULL,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+              AND status = 'active'
+              AND deleted_at IS NULL
+        ");
+
+        $statement->execute([
+            $passwordHash,
+            $userId,
+        ]);
+
+        return $statement->rowCount() === 1;
     }
 
     public function identityValueForUser(int $userId, string $field): ?string

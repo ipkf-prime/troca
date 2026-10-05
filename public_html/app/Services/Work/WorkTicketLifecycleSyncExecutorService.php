@@ -215,6 +215,13 @@ final class WorkTicketLifecycleSyncExecutorService
         }
 
         try {
+            $context =
+                $this->withLifecycleAuditContext(
+                    $context,
+                    $plan,
+                    $attemptReference
+                );
+
             $ticketResult =
                 $this->tickets
                     ->transition(
@@ -406,6 +413,27 @@ final class WorkTicketLifecycleSyncExecutorService
             throw $exception;
         }
     }
+
+    private function withLifecycleAuditContext(
+        array $context,
+        array $plan,
+        string $attemptReference
+    ): array {
+        $context['lifecycle_sync'] = [
+            'source_module_code' => 'work',
+            'correlation_reference' =>
+                $plan['correlation_reference'],
+            'idempotency_key' =>
+                $plan['idempotency_key'],
+            'attempt_reference' =>
+                $attemptReference,
+            'ticket_action_code' =>
+                $plan['ticket_action_code'],
+        ];
+
+        return $context;
+    }
+
 
     private function normalizePlan(
         array $plan

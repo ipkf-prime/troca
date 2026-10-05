@@ -172,6 +172,11 @@ require __DIR__ . '/work-ui-styles.php';
             class="admin-tab<?= $currentKind === 'lifecycle' ? ' is-active' : '' ?>"
             href="/admin/work/settings/ticket-work-policy?kind=lifecycle"
         ><?= $h($ui->text('page.lifecycle_tab')) ?></a>
+
+        <a
+            class="admin-tab"
+            href="/admin/work/settings/ticket-work-lifecycle-recovery"
+        ><?= $h($ui->text('page.recovery_tab')) ?></a>
     </div>
 
     <section class="admin-section">

@@ -528,3 +528,100 @@ $router->post(
         );
     }
 );
+
+
+
+/* TICKET_WORK_LIFECYCLE_RECOVERY_UI_V1 */
+$ticketWorkRecoveryRedirect = static function ($response, string $status) {
+    return $response->redirect(
+        '/admin/work/settings/ticket-work-lifecycle-recovery'
+        . '?status=' . rawurlencode($status)
+    );
+};
+
+$router->get(
+    '/admin/work/settings/ticket-work-lifecycle-recovery',
+    function ($request, $response) use ($adminRender, $workSettingsContext) {
+        $context = $workSettingsContext($response, 'work.settings.view');
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $status = trim((string) $request->input('status', ''));
+        $rows = [];
+
+        if (!class_exists(\App\Services\Ticketing\TicketLifecycleTransitionService::class)) {
+            $status = 'unavailable';
+        } else {
+            try {
+                $rows = (new \App\Services\Work\WorkTicketLifecycleSyncReconciliationService())
+                    ->inspectOperations(100);
+            } catch (\Throwable) {
+                $status = 'unavailable';
+                $rows = [];
+            }
+        }
+
+        return $adminRender(
+            $response,
+            'work-ticket-lifecycle-recovery',
+            [
+                'context' => $context,
+                'recoveryRows' => $rows,
+                'status' => $status,
+            ]
+        );
+    }
+);
+
+$router->post(
+    '/admin/work/settings/ticket-work-lifecycle-recovery/{attempt_id}/{operation}',
+    function ($request, $response) use (
+        $workSettingsContext,
+        $ticketWorkRecoveryRedirect
+    ) {
+        $context = $workSettingsContext($response, 'work.settings.manage');
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $attemptId = (int) $request->route('attempt_id');
+        $operation = str_replace(
+            '-',
+            '_',
+            strtolower(trim((string) $request->route('operation')))
+        );
+
+        if (
+            $attemptId < 1
+            || !in_array($operation, ['retry', 'repair_audit'], true)
+        ) {
+            return $ticketWorkRecoveryRedirect($response, 'invalid');
+        }
+
+        $csrf = new \IPKF\Security\Csrf();
+        if (!$csrf->check((string) $request->input('_token', ''))) {
+            return $ticketWorkRecoveryRedirect($response, 'invalid_csrf');
+        }
+
+        if (!class_exists(\App\Services\Ticketing\TicketLifecycleTransitionService::class)) {
+            return $ticketWorkRecoveryRedirect($response, 'unavailable');
+        }
+
+        try {
+            $result = (new \App\Services\Work\WorkTicketLifecycleSyncRecoveryService())
+                ->recover(
+                    $attemptId,
+                    $operation,
+                    (int) $context['user_id']
+                );
+        } catch (\Throwable) {
+            $result = ['ok' => false, 'status' => 'failed'];
+        }
+
+        return $ticketWorkRecoveryRedirect(
+            $response,
+            (string) ($result['status'] ?? 'failed')
+        );
+    }
+);

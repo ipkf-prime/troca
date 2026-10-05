@@ -1808,9 +1808,11 @@ $router->get('/admin/forgot-password', function ($request, $response) use ($admi
     }
 
     return $adminRender($response, 'forgot-password', [
-        'title' => 'بازیابی کلمه عبور',
+        'title' => \App\Services\UiContent\UiContentInlineGuide::bodyText('core.forgot-password.ui.page-title', 'core', 'forgot-password'),
+        'phase' => 'request',
         'sent' => false,
         'identifier' => '',
+        'error_status' => null,
     ]);
 });
 
@@ -1819,11 +1821,64 @@ $router->post('/admin/forgot-password', function ($request, $response) use ($adm
         return $response->redirect($adminHomeUrl($request));
     }
 
+    $identifier = trim((string) $request->input('login', ''));
+
+    (new \App\Services\PasswordRecoveryService())
+        ->request(
+            $identifier,
+            (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
+            (string) ($_SERVER['HTTP_USER_AGENT'] ?? '')
+        );
+
+    /*
+     * Enumeration resistance: the public page is identical whether
+     * the account exists, is eligible, rate-limited, or delivery fails.
+     */
     return $adminRender($response, 'forgot-password', [
-        'title' => 'بازیابی کلمه عبور',
+        'title' => \App\Services\UiContent\UiContentInlineGuide::bodyText('core.forgot-password.ui.page-title', 'core', 'forgot-password'),
+        'phase' => 'verify',
         'sent' => true,
-        'identifier' => trim((string) $request->input('login', '')),
+        'identifier' => $identifier,
+        'error_status' => null,
     ]);
+});
+
+$router->post('/admin/forgot-password/confirm', function ($request, $response) use ($adminRender, $adminHomeUrl) {
+    if ((new \App\Services\AuthService())->authenticated()) {
+        return $response->redirect($adminHomeUrl($request));
+    }
+
+    $identifier = trim((string) $request->input('login', ''));
+
+    $result = (new \App\Services\PasswordRecoveryService())
+        ->confirm(
+            $identifier,
+            (string) $request->input('code', ''),
+            (string) $request->input('password', ''),
+            (string) $request->input('password_confirmation', '')
+        );
+
+    if (($result['ok'] ?? false) === true) {
+        return $response->redirect(
+            '/admin/login?status=password_reset'
+        );
+    }
+
+    return $adminRender(
+        $response,
+        'forgot-password',
+        [
+            'title' => \App\Services\UiContent\UiContentInlineGuide::bodyText('core.forgot-password.ui.page-title', 'core', 'forgot-password'),
+            'phase' => 'verify',
+            'sent' => true,
+            'identifier' => $identifier,
+            'error_status' => (string) (
+                $result['status']
+                ?? 'reset_failed'
+            ),
+        ],
+        422
+    );
 });
 
 $router->post('/admin/login', function ($request, $response) use ($adminRender, $adminHomeUrl) {

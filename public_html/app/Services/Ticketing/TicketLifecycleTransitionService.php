@@ -80,6 +80,9 @@ final class TicketLifecycleTransitionService
                         $this->contextDisplayName(
                             $context,
                             $userId
+                        ),
+                        $this->lifecycleAuditContext(
+                            $context
                         )
                     );
 
@@ -132,6 +135,46 @@ final class TicketLifecycleTransitionService
 
             throw $exception;
         }
+    }
+
+
+    /**
+     * Read-only lifecycle evidence for recovery classification.
+     */
+    public function reconciliationSnapshot(
+        string $publicReference,
+        int $userId,
+        string $correlationReference
+    ): array {
+        $publicReference = trim($publicReference);
+        $correlationReference = trim($correlationReference);
+
+        if (
+            $publicReference === ''
+            || $userId < 1
+        ) {
+            return [
+                'found' => false,
+                'correlated_event' => null,
+            ];
+        }
+
+        return
+            $this->tickets->reconciliationSnapshot(
+                $publicReference,
+                'user:' . $userId,
+                $correlationReference
+            );
+    }
+
+    private function lifecycleAuditContext(
+        array $context
+    ): array {
+        $audit = $context['lifecycle_sync'] ?? [];
+
+        return is_array($audit)
+            ? $audit
+            : [];
     }
 
 

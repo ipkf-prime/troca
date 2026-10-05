@@ -257,12 +257,35 @@ $expect(
     'Server-side registration-attempt session binding is missing.'
 );
 
-$expect(
-    !str_contains(
+$baleReturnMarker =
+    'PUBLIC_REGISTRATION_BALE_ONE_CLICK_RETURN_A5A1';
+
+$baleReturnParts =
+    explode(
+        $baleReturnMarker,
         $source['routes'],
+        2
+    );
+
+$expect(
+    count($baleReturnParts) === 2
+    && !str_contains(
+        $baleReturnParts[0],
         'finalizeLogin('
+    )
+    && substr_count(
+        $baleReturnParts[1],
+        'finalizeLogin('
+    ) === 1
+    && str_contains(
+        $baleReturnParts[1],
+        "'/register/verify/bale/return'"
+    )
+    && str_contains(
+        $baleReturnParts[1],
+        'consumeBaleOneClickReturn('
     ),
-    'Registration verification must not auto-login the user.'
+    'SMS/OTP verification must not auto-login; only the signed Bale return route may finalize login.'
 );
 
 $expect(
@@ -520,15 +543,7 @@ $expect(
     )
     && str_contains(
         $source['view'],
-        'data-public-registration-bale-confirm'
-    )
-    && str_contains(
-        $source['view'],
         'action="/register/verify/bale"'
-    )
-    && str_contains(
-        $source['view'],
-        'action="/register/verify/bale/confirm"'
     )
     && str_contains(
         $source['view'],
@@ -540,13 +555,21 @@ $expect(
     )
     && str_contains(
         $source['view'],
-        'اشتراک شماره همراه من'
+        "UiContentInlineGuide::bodyHtml('core.register-verify.guide.01'"
     )
-    && str_contains(
+    && !str_contains(
+        $source['view'],
+        'data-public-registration-bale-confirm'
+    )
+    && !str_contains(
+        $source['view'],
+        'action="/register/verify/bale/confirm"'
+    )
+    && !str_contains(
         $source['view'],
         'بررسی وضعیت تأیید بله'
     ),
-    'Public Bale mobile-verification UX is incomplete.'
+    'Public Bale one-click mobile-verification UX is incomplete.'
 );
 
 $expect(

@@ -434,6 +434,56 @@ class NotificationBaleEnrollmentService extends BaseService
             $displayName
         );
 
+        $returnLink = null;
+
+        try {
+            $returnLink =
+                (
+                    new PublicRegistrationOtpService()
+                )->baleOneClickReturnLink(
+                    (string) (
+                        $enrollment[
+                            'public_reference'
+                        ]
+                        ?? ''
+                    )
+                );
+        } catch (Throwable) {
+            $returnLink = null;
+        }
+
+        if (
+            is_string($returnLink)
+            && $returnLink !== ''
+        ) {
+            $this->sendText(
+                $provider,
+                $chatId,
+                'شماره همراه شما با موفقیت تأیید شد. '
+                . 'برای بازگشت به سامانه و ورود، '
+                . 'دکمه زیر را بزنید.',
+                [
+                    'inline_keyboard' => [
+                        [
+                            [
+                                'text' =>
+                                    'بازگشت به سامانه و ورود',
+                                'url' =>
+                                    $returnLink,
+                            ],
+                        ],
+                    ],
+                ]
+            );
+
+            return [
+                'ok' => true,
+                'verified' => true,
+                'registration_return_link_sent' =>
+                    true,
+            ];
+        }
+
         $this->sendText(
             $provider,
             $chatId,

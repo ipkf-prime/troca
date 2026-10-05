@@ -607,30 +607,6 @@ $csrf =
                     </button>
                 </form>
 
-                <p class="admin-muted">
-                    <?= \App\Services\UiContent\UiContentInlineGuide::bodyHtml('core.register-verify.guide.02', 'core', 'register-verify') ?>
-                </p>
-
-                <form
-                    method="post"
-                    action="/register/verify/bale/confirm"
-                    data-public-registration-bale-confirm
-                >
-                    <input
-                        type="hidden"
-                        name="_token"
-                        value="<?= $h(
-                            $csrf
-                        ) ?>"
-                    >
-
-                    <button
-                        type="submit"
-                        class="admin-btn"
-                    >
-                        بررسی وضعیت تأیید بله
-                    </button>
-                </form>
             </div>
 
             <div class="registration-otp-secondary">

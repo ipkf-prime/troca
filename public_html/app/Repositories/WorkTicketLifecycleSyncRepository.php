@@ -277,4 +277,204 @@ final class WorkTicketLifecycleSyncRepository
             );
         }
     }
+
+    /**
+     * Read-only candidates eligible for reconciliation inspection.
+     * A1 deliberately performs no automatic retry.
+     */
+    public function recoveryCandidates(
+        int $limit = 50
+    ): array {
+        $limit =
+            max(
+                1,
+                min(
+                    200,
+                    $limit
+                )
+            );
+
+        $statement =
+            $this->work->query(
+                "SELECT *
+                 FROM work_ticket_lifecycle_sync_attempts
+                 WHERE result_code IN (
+                    'pending',
+                    'failed'
+                 )
+                 ORDER BY
+                    COALESCE(
+                        last_attempted_at,
+                        created_at
+                    ) ASC,
+                    id ASC
+                 LIMIT "
+                . $limit
+            );
+
+        $rows =
+            $statement->fetchAll(
+                PDO::FETCH_ASSOC
+            );
+
+        return is_array($rows)
+            ? $rows
+            : [];
+    }
+
+    public function workItemState(
+        int $workItemId
+    ): ?array {
+        if ($workItemId < 1) {
+            return null;
+        }
+
+        $statement =
+            $this->work->prepare(
+                "SELECT
+                    wi.id,
+                    wi.public_reference,
+                    wi.project_id,
+                    wi.archived_at,
+                    ws.code AS status_code,
+                    ws.title AS status_title,
+                    ws.is_closed AS status_is_closed
+                 FROM work_items wi
+                 INNER JOIN work_statuses ws
+                    ON ws.id = wi.status_id
+                 WHERE wi.id = ?
+                 LIMIT 1"
+            );
+
+        $statement->execute([
+            $workItemId,
+        ]);
+
+        $row =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        return is_array($row)
+            ? $row
+            : null;
+    }
+
+
+    public function attemptById(int $attemptId): ?array
+    {
+        if ($attemptId < 1) {
+            return null;
+        }
+
+        $statement = $this->work->prepare(
+            "SELECT *
+             FROM work_ticket_lifecycle_sync_attempts
+             WHERE id = ?
+             LIMIT 1"
+        );
+        $statement->execute([$attemptId]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+
+        return is_array($row) ? $row : null;
+    }
+
+    public function operationsAttempts(int $limit = 100): array
+    {
+        $limit = max(1, min(200, $limit));
+        $statement = $this->work->query(
+            "SELECT *
+             FROM work_ticket_lifecycle_sync_attempts
+             WHERE result_code IN ('pending','failed','retrying')
+             ORDER BY COALESCE(last_attempted_at, created_at) ASC, id ASC
+             LIMIT " . $limit
+        );
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        return is_array($rows) ? $rows : [];
+    }
+
+    public function beginRecoveryRetry(int $attemptId): bool
+    {
+        if ($attemptId < 1) {
+            return false;
+        }
+
+        $statement = $this->work->prepare(
+            "UPDATE work_ticket_lifecycle_sync_attempts
+             SET result_code = 'retrying',
+                 attempt_count = attempt_count + 1,
+                 last_attempted_at = NOW(),
+                 completed_at = NULL,
+                 error_code = NULL,
+                 updated_at = NOW()
+             WHERE id = ?
+               AND result_code IN ('pending','failed')"
+        );
+        $statement->execute([$attemptId]);
+
+        return $statement->rowCount() === 1;
+    }
+
+    public function completeRecoveryAttempt(int $attemptId, array $result): void
+    {
+        $statement = $this->work->prepare(
+            "UPDATE work_ticket_lifecycle_sync_attempts
+             SET result_code = ?,
+                 ticket_previous_status_code = ?,
+                 ticket_resulting_status_code = ?,
+                 ticket_event_reference = ?,
+                 error_code = ?,
+                 metadata_json = ?,
+                 completed_at = ?,
+                 updated_at = NOW()
+             WHERE id = ?
+               AND result_code = 'retrying'"
+        );
+        $statement->execute([
+            (string) $result['result_code'],
+            $result['ticket_previous_status_code'] ?? null,
+            $result['ticket_resulting_status_code'] ?? null,
+            $result['ticket_event_reference'] ?? null,
+            $result['error_code'] ?? null,
+            $result['metadata_json'] ?? null,
+            $result['completed_at'] ?? null,
+            $attemptId,
+        ]);
+
+        if ($statement->rowCount() !== 1) {
+            throw new \RuntimeException('work_ticket_lifecycle_recovery_finalize_conflict');
+        }
+    }
+
+    public function repairAttemptFromEvidence(int $attemptId, array $evidence): bool
+    {
+        if ($attemptId < 1) {
+            return false;
+        }
+
+        $statement = $this->work->prepare(
+            "UPDATE work_ticket_lifecycle_sync_attempts
+             SET result_code = 'completed',
+                 ticket_previous_status_code = ?,
+                 ticket_resulting_status_code = ?,
+                 ticket_event_reference = ?,
+                 error_code = NULL,
+                 metadata_json = ?,
+                 completed_at = COALESCE(completed_at, NOW()),
+                 updated_at = NOW()
+             WHERE id = ?
+               AND result_code IN ('pending','failed','retrying')"
+        );
+        $statement->execute([
+            $evidence['ticket_previous_status_code'] ?? null,
+            $evidence['ticket_resulting_status_code'] ?? null,
+            $evidence['ticket_event_reference'] ?? null,
+            $evidence['metadata_json'] ?? null,
+            $attemptId,
+        ]);
+
+        return $statement->rowCount() === 1;
+    }
+
 }

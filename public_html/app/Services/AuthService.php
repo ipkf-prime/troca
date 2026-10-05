@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Repositories\UserRepository;
 use IPKF\Support\Clock;
+use IPKF\Support\Env;
 use IPKF\Support\Session;
 
 class AuthService extends BaseService
@@ -23,12 +24,28 @@ class AuthService extends BaseService
             return null;
         }
 
+        /*
+         * AUTH_LOGIN_LOCKOUT_A5_R2
+         *
+         * An expired lock starts a fresh failure window. Without this
+         * normalization, the next wrong password would immediately lock
+         * the account again because the old failure counter survives.
+         */
+        $user = $this->normalizeExpiredLoginLock($user);
+
         if (!$this->canAuthenticate($user)) {
             return null;
         }
 
         if (!password_verify($password, (string) $user['password_hash'])) {
-            $this->users->updateLoginFailure((int) $user['id']);
+            $policy = $this->loginFailurePolicy();
+
+            $this->users->updateLoginFailure(
+                (int) $user['id'],
+                $policy['max_attempts'],
+                $policy['lock_minutes']
+            );
+
             return null;
         }
 
@@ -91,7 +108,24 @@ class AuthService extends BaseService
 
         $method = $this->normalizeAuthMethod($method);
 
+        /*
+         * PASSWORD_CREDENTIAL_SESSION_FINGERPRINT_V1
+         *
+         * Store only a one-way, domain-separated fingerprint of the
+         * current password credential version in the authenticated
+         * session. The raw database password hash is never stored.
+         */
+        $passwordFingerprint =
+            $this->passwordFingerprint(
+                $user
+            );
+
         Session::regenerate();
+
+        Session::put(
+            'auth_password_fingerprint',
+            $passwordFingerprint
+        );
         Session::put('auth_user_id', $userId);
         Session::put(
             'auth_login_at',
@@ -130,6 +164,7 @@ class AuthService extends BaseService
         Session::forget('auth_user_id');
         Session::forget('auth_login_at');
         Session::forget('auth_mfa_verified');
+        Session::forget('auth_password_fingerprint');
         Session::forget('active_role_assignment_id');
         Session::forget('auth_pending_user_id');
         Session::forget('auth_pending_at');
@@ -176,6 +211,36 @@ class AuthService extends BaseService
             return null;
         }
 
+        $expectedPasswordFingerprint =
+            $this->passwordFingerprint(
+                $user
+            );
+
+        $sessionPasswordFingerprint =
+            trim(
+                (string) Session::get(
+                    'auth_password_fingerprint',
+                    ''
+                )
+            );
+
+        if (
+            $sessionPasswordFingerprint === ''
+            || !hash_equals(
+                $expectedPasswordFingerprint,
+                $sessionPasswordFingerprint
+            )
+        ) {
+            /*
+             * Missing fingerprint means a legacy pre-patch session.
+             * Mismatch means the password credential changed after
+             * this session was authenticated.
+             */
+            $this->logout();
+
+            return null;
+        }
+
         return $this->safeUser($user);
     }
 
@@ -209,6 +274,25 @@ class AuthService extends BaseService
             )
         );
 
+        if (
+            $this->currentUserId()
+            === $userId
+        ) {
+            $updatedUser =
+                $this->users->findById(
+                    $userId
+                );
+
+            if (is_array($updatedUser)) {
+                Session::put(
+                    'auth_password_fingerprint',
+                    $this->passwordFingerprint(
+                        $updatedUser
+                    )
+                );
+            }
+        }
+
         return true;
     }
 
@@ -227,6 +311,19 @@ class AuthService extends BaseService
         ];
     }
 
+    private function passwordFingerprint(
+        array $user
+    ): string {
+        return hash(
+            'sha256',
+            'ipkf-auth-password-fingerprint-v1:'
+            . (string) (
+                $user['password_hash']
+                ?? ''
+            )
+        );
+    }
+
     private function normalizeAuthMethod(string $method): string
     {
         $method = strtolower(trim($method));
@@ -241,6 +338,41 @@ class AuthService extends BaseService
             ],
             true
         ) ? $method : 'session';
+    }
+
+    private function normalizeExpiredLoginLock(array $user): array
+    {
+        $lockedUntil = trim((string) ($user['locked_until'] ?? ''));
+
+        if (
+            $lockedUntil !== ''
+            && strtotime($lockedUntil) !== false
+            && strtotime($lockedUntil) <= time()
+        ) {
+            $this->users->resetLoginFailures((int) $user['id']);
+            $user['failed_login_attempts'] = 0;
+            $user['locked_until'] = null;
+        }
+
+        return $user;
+    }
+
+    private function loginFailurePolicy(): array
+    {
+        $maxAttempts = (int) Env::get(
+            'AUTH_LOGIN_MAX_FAILURES',
+            5
+        );
+
+        $lockMinutes = (int) Env::get(
+            'AUTH_LOGIN_LOCK_MINUTES',
+            15
+        );
+
+        return [
+            'max_attempts' => max(1, min(20, $maxAttempts)),
+            'lock_minutes' => max(1, min(1440, $lockMinutes)),
+        ];
     }
 
     private function canAuthenticate(array $user): bool

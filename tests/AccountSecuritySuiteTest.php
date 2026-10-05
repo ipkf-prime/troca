@@ -62,10 +62,14 @@ $expect(
 );
 
 $expect(
-    str_contains($securityService, 'strlen($password) < 12')
-    && str_contains($securityService, 'passwordClassCount')
+    str_contains($securityService, '$passwordLength < 8')
+    && str_contains($securityService, '$passwordLength > 128')
+    && str_contains($securityService, 'p{L}')
+    && str_contains($securityService, 'p{N}')
+    && substr_count($securityService, 'preg_match(') >= 2
+    && !str_contains($securityService, 'passwordClassCount($password) < 3')
     && str_contains($securityService, 'Session::regenerate'),
-    'Password policy or session rotation is missing.'
+    'Password policy parity or session rotation is missing.'
 );
 
 $expect(
@@ -105,10 +109,12 @@ $expect(
 );
 
 $expect(
-    substr_count($nav, "'href' =>") === 5
+    substr_count($nav, "'href' =>") >= 5
+    && str_contains($nav, "'href' => '/admin/security'")
+    && str_contains($nav, "'href' => '/admin/account/bale'")
     && str_contains($nav, 'overflow-x: auto')
     && str_contains($nav, '@media (max-width: 640px)'),
-    'Compact responsive account navigation is missing.'
+    'Expanded responsive account navigation contract is missing.'
 );
 
 $expect(

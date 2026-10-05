@@ -123,17 +123,444 @@ ob_start();
 }
 </style>
 
-<div class="account-shell">
-    <!-- IPKF_BALE_ACCOUNT_LINK_V1 -->
-    <p>
-        <a
-            class="admin-button"
-            href="/admin/account/bale"
-        >
-            <?= admin_h(\App\Services\UiContent\UiContentInlineGuide::bodyText('core.bale-account-link.ui.account_button','core','bale-account-link')) ?>
-        </a>
-    </p>
+<style id="admin-account-password-reveal-style">
+.admin-auth-password-control {
+    position: relative;
+    width: 100%;
+}
 
+.admin-auth-password-control > input {
+    width: 100%;
+    padding-left: 2.65rem;
+}
+
+.admin-auth-password-control
+> button.admin-auth-password-toggle {
+    position: absolute !important;
+    left: .85rem !important;
+    right: auto !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+
+    width: 1.15rem !important;
+    min-width: 1.15rem !important;
+    max-width: 1.15rem !important;
+
+    height: 1.15rem !important;
+    min-height: 1.15rem !important;
+    max-height: 1.15rem !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border: 0 !important;
+    border-radius: 0 !important;
+
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+
+    box-shadow: none !important;
+
+    color: #74827b !important;
+
+    opacity: 1 !important;
+    line-height: 1 !important;
+
+    cursor: pointer !important;
+
+    appearance: none !important;
+    -webkit-appearance: none !important;
+
+    z-index: 2;
+}
+
+.admin-auth-password-control
+> button.admin-auth-password-toggle:hover,
+.admin-auth-password-control
+> button.admin-auth-password-toggle:focus,
+.admin-auth-password-control
+> button.admin-auth-password-toggle:active {
+    border: 0 !important;
+
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+
+    box-shadow: none !important;
+
+    color: #53635b !important;
+}
+
+.admin-auth-password-control
+> button.admin-auth-password-toggle:focus-visible {
+    outline: 1px solid currentColor !important;
+    outline-offset: 3px;
+    border-radius: 2px !important;
+}
+
+.admin-auth-password-control
+> button.admin-auth-password-toggle
+> svg {
+    display: block !important;
+
+    width: 1rem !important;
+    min-width: 1rem !important;
+
+    height: 1rem !important;
+    min-height: 1rem !important;
+
+    overflow: visible;
+    color: inherit !important;
+
+    pointer-events: none;
+}
+
+.admin-auth-password-toggle[
+    aria-pressed="false"
+] .admin-auth-password-eye-slash {
+    display: none;
+}
+
+.admin-auth-password-toggle[
+    aria-pressed="true"
+] .admin-auth-password-eye-slash {
+    display: block;
+}
+</style>
+
+<script id="admin-account-password-reveal-script">
+(() => {
+    const SVG_NS =
+        'http://www.w3.org/2000/svg';
+
+    const createSvgElement =
+        (name, attributes = {}) => {
+            const element =
+                document.createElementNS(
+                    SVG_NS,
+                    name
+                );
+
+            Object.entries(
+                attributes
+            ).forEach(
+                ([key, value]) => {
+                    element.setAttribute(
+                        key,
+                        value
+                    );
+                }
+            );
+
+            return element;
+        };
+
+
+    const createEye =
+        () => {
+            const svg =
+                createSvgElement(
+                    'svg',
+                    {
+                        viewBox:
+                            '0 0 24 24',
+
+                        'aria-hidden':
+                            'true',
+
+                        focusable:
+                            'false',
+                    }
+                );
+
+
+            const outer =
+                createSvgElement(
+                    'path',
+                    {
+                        d:
+                            'M2.5 12s3.5-6 9.5-6 '
+                            + '9.5 6 9.5 6-3.5 6-9.5 6 '
+                            + '-9.5-6-9.5-6Z',
+
+                        fill:
+                            'none',
+
+                        stroke:
+                            'currentColor',
+
+                        'stroke-width':
+                            '1.8',
+
+                        'stroke-linecap':
+                            'round',
+
+                        'stroke-linejoin':
+                            'round',
+                    }
+                );
+
+
+            const pupil =
+                createSvgElement(
+                    'circle',
+                    {
+                        cx:
+                            '12',
+
+                        cy:
+                            '12',
+
+                        r:
+                            '2.8',
+
+                        fill:
+                            'none',
+
+                        stroke:
+                            'currentColor',
+
+                        'stroke-width':
+                            '1.8',
+                    }
+                );
+
+
+            const slash =
+                createSvgElement(
+                    'path',
+                    {
+                        d:
+                            'M4 4 20 20',
+
+                        fill:
+                            'none',
+
+                        stroke:
+                            'currentColor',
+
+                        'stroke-width':
+                            '1.8',
+
+                        'stroke-linecap':
+                            'round',
+
+                        class:
+                            'admin-auth-password-eye-slash',
+                    }
+                );
+
+
+            svg.append(
+                outer,
+                pupil,
+                slash
+            );
+
+
+            return svg;
+        };
+
+
+    const initializePasswordToggles =
+        () => {
+            const scope =
+                document.querySelector(
+                    '.account-shell'
+                );
+
+
+            if (!scope) {
+                return;
+            }
+
+
+            scope
+                .querySelectorAll(
+                    'input[type="password"]'
+                )
+                .forEach(
+                    (input) => {
+                        if (
+                            input.closest(
+                                '[data-password-control]'
+                            )
+                        ) {
+                            return;
+                        }
+
+
+                        const parent =
+                            input.parentNode;
+
+
+                        if (!parent) {
+                            return;
+                        }
+
+
+                        const wrapper =
+                            document.createElement(
+                                'div'
+                            );
+
+
+                        wrapper.className =
+                            'admin-auth-password-control';
+
+
+                        wrapper.setAttribute(
+                            'data-password-control',
+                            ''
+                        );
+
+
+                        parent.insertBefore(
+                            wrapper,
+                            input
+                        );
+
+
+                        wrapper.appendChild(
+                            input
+                        );
+
+
+                        const toggle =
+                            document.createElement(
+                                'button'
+                            );
+
+
+                        toggle.type =
+                            'button';
+
+
+                        toggle.className =
+                            'admin-auth-password-toggle';
+
+
+                        toggle.setAttribute(
+                            'data-password-toggle',
+                            ''
+                        );
+
+
+                        toggle.setAttribute(
+                            'aria-pressed',
+                            'false'
+                        );
+
+
+                        const label =
+                            wrapper.closest(
+                                'label'
+                            );
+
+
+                        if (label) {
+                            const titleNode =
+                                label.querySelector(
+                                    'span,strong'
+                                );
+
+
+                            if (
+                                titleNode
+                                && titleNode
+                                    .textContent
+                                    .trim() !== ''
+                            ) {
+                                toggle.setAttribute(
+                                    'aria-label',
+                                    titleNode
+                                        .textContent
+                                        .trim()
+                                );
+                            }
+                        }
+
+
+                        toggle.appendChild(
+                            createEye()
+                        );
+
+
+                        toggle.addEventListener(
+                            'click',
+                            () => {
+                                const reveal =
+                                    input.type
+                                    === 'password';
+
+
+                                input.type =
+                                    reveal
+                                        ? 'text'
+                                        : 'password';
+
+
+                                toggle.setAttribute(
+                                    'aria-pressed',
+                                    reveal
+                                        ? 'true'
+                                        : 'false'
+                                );
+
+
+                                input.focus({
+                                    preventScroll:
+                                        true,
+                                });
+
+
+                                const end =
+                                    input.value.length;
+
+
+                                try {
+                                    input.setSelectionRange(
+                                        end,
+                                        end
+                                    );
+                                } catch (_) {
+                                }
+                            }
+                        );
+
+
+                        wrapper.appendChild(
+                            toggle
+                        );
+                    }
+                );
+        };
+
+
+    if (
+        document.readyState
+        === 'loading'
+    ) {
+        document.addEventListener(
+            'DOMContentLoaded',
+            initializePasswordToggles,
+            {
+                once:
+                    true,
+            }
+        );
+    } else {
+        initializePasswordToggles();
+    }
+})();
+</script>
+
+<div class="account-shell">
     <?php require __DIR__ . '/partials/account-nav.php'; ?>
 
     <?php if ($statusMessage !== ''): ?>
