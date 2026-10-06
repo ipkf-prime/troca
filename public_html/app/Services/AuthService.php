@@ -296,6 +296,201 @@ class AuthService extends BaseService
         return true;
     }
 
+    /**
+     * Return only authentication state explicitly
+     * whitelisted by the impersonation context.
+     */
+    public function impersonationAuthSnapshot(): array
+    {
+        $keys = [
+            'auth_user_id',
+            'auth_password_fingerprint',
+            'auth_login_at',
+            'auth_mfa_verified',
+            'active_role_assignment_id',
+        ];
+
+        $snapshot = [];
+
+        foreach ($keys as $key) {
+            if (Session::has($key)) {
+                $snapshot[$key] =
+                    Session::get($key);
+            }
+        }
+
+        return $snapshot;
+    }
+
+
+    /**
+     * Switch authenticated effective identity only
+     * after canonical impersonation authorization.
+     */
+    public function beginImpersonatedIdentity(
+        int $userId,
+        int $activeRoleAssignmentId
+    ): bool {
+        if (
+            $userId < 1
+            || $activeRoleAssignmentId < 1
+        ) {
+            return false;
+        }
+
+        $user =
+            $this->users->findById(
+                $userId
+            );
+
+        if (
+            $user === null
+            || !$this->canAuthenticate(
+                $user
+            )
+        ) {
+            return false;
+        }
+
+        $fingerprint =
+            $this->passwordFingerprint(
+                $user
+            );
+
+        if ($fingerprint === '') {
+            return false;
+        }
+
+        Session::put(
+            'auth_user_id',
+            $userId
+        );
+
+        Session::put(
+            'auth_password_fingerprint',
+            $fingerprint
+        );
+
+        Session::put(
+            'active_role_assignment_id',
+            $activeRoleAssignmentId
+        );
+
+        /*
+         * Actor -> Effective User is a privilege
+         * boundary.
+         */
+        Session::regenerate();
+
+        return true;
+    }
+
+
+    /**
+     * Restore the exact pre-impersonation actor auth
+     * snapshot after revalidating the actor credential.
+     */
+    public function restoreImpersonationAuthSnapshot(
+        array $snapshot
+    ): bool {
+        $userId =
+            (int) (
+                $snapshot[
+                    'auth_user_id'
+                ]
+                ?? 0
+            );
+
+        $storedFingerprint =
+            trim(
+                (string) (
+                    $snapshot[
+                        'auth_password_fingerprint'
+                    ]
+                    ?? ''
+                )
+            );
+
+        $activeRoleAssignmentId =
+            (int) (
+                $snapshot[
+                    'active_role_assignment_id'
+                ]
+                ?? 0
+            );
+
+        if (
+            $userId < 1
+            || $storedFingerprint === ''
+            || $activeRoleAssignmentId < 1
+        ) {
+            return false;
+        }
+
+        $user =
+            $this->users->findById(
+                $userId
+            );
+
+        if (
+            $user === null
+            || !$this->canAuthenticate(
+                $user
+            )
+        ) {
+            return false;
+        }
+
+        $currentFingerprint =
+            $this->passwordFingerprint(
+                $user
+            );
+
+        if (
+            $currentFingerprint === ''
+            || !hash_equals(
+                $currentFingerprint,
+                $storedFingerprint
+            )
+        ) {
+            return false;
+        }
+
+        $keys = [
+            'auth_user_id',
+            'auth_password_fingerprint',
+            'auth_login_at',
+            'auth_mfa_verified',
+            'active_role_assignment_id',
+        ];
+
+        foreach ($keys as $key) {
+            if (
+                array_key_exists(
+                    $key,
+                    $snapshot
+                )
+            ) {
+                Session::put(
+                    $key,
+                    $snapshot[$key]
+                );
+            } else {
+                Session::forget(
+                    $key
+                );
+            }
+        }
+
+        /*
+         * Effective User -> Actor is a privilege
+         * boundary.
+         */
+        Session::regenerate();
+
+        return true;
+    }
+
     public function safeUser(array $user): array
     {
         return [

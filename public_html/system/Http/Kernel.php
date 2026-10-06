@@ -8,6 +8,7 @@ class Kernel
         \IPKF\Http\Middleware\LogMiddleware::class,
         \IPKF\Http\Middleware\ModuleHostMiddleware::class,
         \IPKF\Http\Middleware\CsrfMiddleware::class,
+        \IPKF\Http\Middleware\ImpersonationMutationGuardMiddleware::class,
     ];
 
     public function middleware(): array
