@@ -26,6 +26,97 @@ $canCreate = (bool) ($canCreate ?? false);
 $canUpdate = (bool) ($canUpdate ?? false);
 $status = (string) ($status ?? '');
 
+$renderImpersonationAction =
+    static function (
+        mixed $action,
+        bool $compact = false
+    ): void {
+        if (
+            !is_array($action)
+            || (
+                $action[
+                    'method'
+                ]
+                ?? ''
+            ) !== 'POST'
+            || trim(
+                (string) (
+                    $action[
+                        'url'
+                    ]
+                    ?? ''
+                )
+            ) === ''
+            || trim(
+                (string) (
+                    $action[
+                        'label'
+                    ]
+                    ?? ''
+                )
+            ) === ''
+        ) {
+            return;
+        }
+
+        $fields =
+            is_array(
+                $action[
+                    'fields'
+                ]
+                ?? null
+            )
+                ? $action[
+                    'fields'
+                ]
+                : [];
+        ?>
+        <form
+            class="admin-impersonation-action-form"
+            method="post"
+            action="<?= admin_h(
+                $action[
+                    'url'
+                ]
+            ) ?>"
+            data-confirm-title="<?= admin_h(
+                $action[
+                    'confirm_title'
+                ]
+                ?? ''
+            ) ?>"
+            data-confirm-message="<?= admin_h(
+                $action[
+                    'confirm_message'
+                ]
+                ?? ''
+            ) ?>"
+        >
+            <?php foreach (
+                $fields
+                as $name => $value
+            ): ?>
+                <input
+                    type="hidden"
+                    name="<?= admin_h($name) ?>"
+                    value="<?= admin_h($value) ?>"
+                >
+            <?php endforeach; ?>
+
+            <button
+                type="submit"
+                class="admin-button admin-button--soft<?= $compact ? ' admin-button--compact' : '' ?>"
+            >
+                <?= admin_h(
+                    $action[
+                        'label'
+                    ]
+                ) ?>
+            </button>
+        </form>
+        <?php
+    };
+
 $baseQuery = [
     'q' => $q,
     'sort' => $sort,
@@ -209,6 +300,10 @@ ob_start();
     font-size:.58rem;
 }
 
+.admin-impersonation-action-form {
+    display:inline-flex;
+    margin:0;
+}
 .admin-users-table .admin-form-actions {
     flex-wrap:nowrap;
     gap:.22rem;
@@ -584,6 +679,16 @@ ob_start();
                                             ویرایش
                                         </a>
                                     <?php endif; ?>
+
+                                    <?php
+                                    $renderImpersonationAction(
+                                        $user[
+                                            'impersonation_action'
+                                        ]
+                                        ?? null,
+                                        true
+                                    );
+                                    ?>
                                 </div>
                             </td>
                         </tr>
@@ -688,6 +793,15 @@ ob_start();
                                 ویرایش
                             </a>
                         <?php endif; ?>
+
+                        <?php
+                        $renderImpersonationAction(
+                            $user[
+                                'impersonation_action'
+                            ]
+                            ?? null
+                        );
+                        ?>
                     </div>
                 </article>
             <?php endforeach; ?>

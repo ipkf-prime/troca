@@ -19,25 +19,21 @@ final class ImpersonationMutationGuardMiddleware
         'DELETE',
     ];
 
-    /*
-     * Only explicitly proven mutation control endpoints
-     * may appear here.
-     */
+
     private const MUTATION_ALLOWLIST = [
         'POST /auth/logout',
+        'POST /admin/impersonation/stop',
     ];
 
-    /*
-     * Both logout surfaces ultimately destroy the
-     * current host-scoped authentication session.
-     *
-     * They therefore must close an active impersonation
-     * lifecycle before the logout route itself executes.
-     */
+
     private const FINAL_LOGOUT_ENDPOINTS = [
         'GET /admin/logout',
         'POST /auth/logout',
     ];
+
+
+    private const EXPLICIT_STOP_ENDPOINT =
+        'POST /admin/impersonation/stop';
 
 
     public function handle(
@@ -48,37 +44,17 @@ final class ImpersonationMutationGuardMiddleware
         $lifecycle =
             new ImpersonationSessionLifecycleService();
 
-        /*
-         * Expiry and Effective User credential
-         * validation apply to every HTTP method.
-         */
-        $state =
-            $lifecycle->enforceExpiry();
-
         $method =
             strtoupper(
                 $request->method()
             );
 
         /*
-         * Normalize to path only. This is essential for
-         * federated GET /admin/logout requests carrying
-         * logout_step, return_module or return_path.
+         * Request::uri() already returns the normalized
+         * path without query-string material.
          */
-        $rawUri =
-            (string) $request->uri();
-
-        $parsedPath =
-            parse_url(
-                $rawUri,
-                PHP_URL_PATH
-            );
-
         $path =
-            is_string($parsedPath)
-            && $parsedPath !== ''
-                ? $parsedPath
-                : '/';
+            $request->uri();
 
         $requestKey =
             $method
@@ -92,27 +68,101 @@ final class ImpersonationMutationGuardMiddleware
                 true
             );
 
+        /*
+         * Final logout is terminal. It must be handled
+         * before expiry enforcement, otherwise an expired
+         * impersonation could restore Actor immediately
+         * before logout.
+         */
+        if ($isFinalLogout) {
+            $lifecycle
+                ->terminateForLogout();
+
+            return
+                $next(
+                    $request,
+                    $response
+                );
+        }
+
+        /*
+         * Explicit Stop owns CSRF + nonce + restore
+         * validation inside its route/lifecycle contract.
+         * Do not auto-restore before that nonce is checked.
+         */
+        if (
+            $requestKey
+            === self::EXPLICIT_STOP_ENDPOINT
+        ) {
+            return
+                $next(
+                    $request,
+                    $response
+                );
+        }
+
+        /*
+         * All ordinary requests enforce TTL and Effective
+         * credential validity centrally.
+         */
+        $state =
+            $lifecycle->enforceExpiry();
+
         $action =
             (string) (
-                $state['action']
+                $state[
+                    'action'
+                ]
                 ?? ''
             );
 
         /*
-         * An automatic Effective -> Actor transition
-         * must never allow an arbitrary request to
-         * continue as Actor.
-         *
-         * Final logout is the sole exception because
-         * the destination immediately destroys the
-         * restored Actor session.
+         * Never continue the same business request after
+         * automatic Effective -> Actor restoration.
          */
         if ($action === 'expired_restored') {
-            if ($isFinalLogout) {
+            if (
+                $method === 'GET'
+                || $method === 'HEAD'
+            ) {
+                $returnPath =
+                    trim(
+                        (string) (
+                            $state[
+                                'return_path'
+                            ]
+                            ?? '/admin'
+                        )
+                    );
+
+                if (
+                    $returnPath === ''
+                    || !str_starts_with(
+                        $returnPath,
+                        '/'
+                    )
+                    || str_starts_with(
+                        $returnPath,
+                        '//'
+                    )
+                ) {
+                    $returnPath =
+                        '/admin';
+                }
+
+                $separator =
+                    str_contains(
+                        $returnPath,
+                        '?'
+                    )
+                        ? '&'
+                        : '?';
+
                 return
-                    $next(
-                        $request,
-                        $response
+                    $response->redirect(
+                        $returnPath
+                        . $separator
+                        . 'impersonation_status=expired'
                     );
             }
 
@@ -128,14 +178,6 @@ final class ImpersonationMutationGuardMiddleware
                     ]);
         }
 
-        /*
-         * Invalid impersonation state already caused
-         * fail-closed local session termination.
-         *
-         * A requested final logout may still continue so
-         * the existing federated logout chain can clear
-         * the remaining application-host sessions.
-         */
         if (
             !empty(
                 $state[
@@ -143,14 +185,6 @@ final class ImpersonationMutationGuardMiddleware
                 ]
             )
         ) {
-            if ($isFinalLogout) {
-                return
-                    $next(
-                        $request,
-                        $response
-                    );
-            }
-
             return
                 $response
                     ->status(401)
@@ -177,66 +211,6 @@ final class ImpersonationMutationGuardMiddleware
                 );
         }
 
-        /*
-         * Final logout is a control operation, not a
-         * business mutation.
-         *
-         * Close impersonation first so
-         * impersonation_ended is durably audited before
-         * either logout route destroys the session.
-         */
-        if ($isFinalLogout) {
-            $restored =
-                $lifecycle->restore();
-
-            if (
-                !empty(
-                    $restored['ok']
-                )
-                && (
-                    $restored['action']
-                    ?? ''
-                ) === 'restored'
-            ) {
-                return
-                    $next(
-                        $request,
-                        $response
-                    );
-            }
-
-            /*
-             * restoreDenied()/invalid context paths
-             * already terminate the local session.
-             * Continuing is safe only because the target
-             * is an exact final-logout endpoint.
-             */
-            if (
-                !empty(
-                    $restored[
-                        'session_terminated'
-                    ]
-                )
-            ) {
-                return
-                    $next(
-                        $request,
-                        $response
-                    );
-            }
-
-            return
-                $response
-                    ->status(409)
-                    ->json([
-                        'status' =>
-                            'error',
-
-                        'code' =>
-                            'impersonation_logout_restore_failed',
-                    ]);
-        }
-
         if (
             !in_array(
                 $method,
@@ -251,11 +225,6 @@ final class ImpersonationMutationGuardMiddleware
                 );
         }
 
-        /*
-         * Exact method + path matching prevents another
-         * verb on an allow-listed path from becoming
-         * write-enabled accidentally.
-         */
         if (
             in_array(
                 $requestKey,
@@ -287,8 +256,8 @@ final class ImpersonationMutationGuardMiddleware
             );
 
         /*
-         * Audit failure never converts a blocked
-         * mutation into an allowed mutation.
+         * Audit storage failure never grants write
+         * permission.
          */
         if (
             $actorUserId > 0
@@ -312,17 +281,11 @@ final class ImpersonationMutationGuardMiddleware
                 );
             } catch (Throwable $exception) {
                 /*
-                 * The deny decision is independent from
-                 * audit backend availability.
+                 * Fail closed: mutation remains denied.
                  */
             }
         }
 
-        /*
-         * Machine-readable only. UI text remains
-         * dynamically resolved by the presentation
-         * layer.
-         */
         return
             $response
                 ->status(403)

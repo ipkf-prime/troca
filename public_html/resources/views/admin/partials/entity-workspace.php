@@ -47,6 +47,105 @@ foreach ($tabs as $tab) {
             <?php foreach (($workspace['badges'] ?? []) as $badge): ?>
                 <span class="admin-status-badge admin-status-badge--<?= admin_h($badge['code'] ?? 'unknown') ?>"><?= admin_h($badge['label'] ?? '—') ?></span>
             <?php endforeach; ?>
+            <?php foreach (
+                ($workspace['actions'] ?? [])
+                as $action
+            ): ?>
+                <?php
+                $actionMethod =
+                    strtoupper(
+                        trim(
+                            (string) (
+                                $action[
+                                    'method'
+                                ]
+                                ?? 'GET'
+                            )
+                        )
+                    );
+
+                $actionUrl =
+                    trim(
+                        (string) (
+                            $action[
+                                'url'
+                            ]
+                            ?? ''
+                        )
+                    );
+
+                $actionLabel =
+                    trim(
+                        (string) (
+                            $action[
+                                'label'
+                            ]
+                            ?? ''
+                        )
+                    );
+
+                if (
+                    $actionUrl === ''
+                    || $actionLabel === ''
+                ) {
+                    continue;
+                }
+                ?>
+
+                <?php if ($actionMethod === 'POST'): ?>
+                    <form
+                        method="post"
+                        action="<?= admin_h($actionUrl) ?>"
+                        class="admin-impersonation-action-form"
+                        data-confirm-title="<?= admin_h(
+                            $action[
+                                'confirm_title'
+                            ]
+                            ?? ''
+                        ) ?>"
+                        data-confirm-message="<?= admin_h(
+                            $action[
+                                'confirm_message'
+                            ]
+                            ?? ''
+                        ) ?>"
+                    >
+                        <?php foreach (
+                            is_array(
+                                $action[
+                                    'fields'
+                                ]
+                                ?? null
+                            )
+                                ? $action[
+                                    'fields'
+                                ]
+                                : []
+                            as $name => $value
+                        ): ?>
+                            <input
+                                type="hidden"
+                                name="<?= admin_h($name) ?>"
+                                value="<?= admin_h($value) ?>"
+                            >
+                        <?php endforeach; ?>
+
+                        <button
+                            class="admin-button admin-button--soft"
+                            type="submit"
+                        >
+                            <?= admin_h($actionLabel) ?>
+                        </button>
+                    </form>
+                <?php else: ?>
+                    <a
+                        class="admin-button admin-button--soft"
+                        href="<?= admin_h($actionUrl) ?>"
+                    >
+                        <?= admin_h($actionLabel) ?>
+                    </a>
+                <?php endif; ?>
+            <?php endforeach; ?>
             <?php if (($workspace['back_url'] ?? '') !== ''): ?>
                 <a class="admin-button admin-button--soft" href="<?= admin_h($workspace['back_url']) ?>"><?= admin_h($workspace['back_label'] ?? 'بازگشت') ?></a>
             <?php endif; ?>

@@ -239,6 +239,162 @@ $accountNav = $themeUserId !== null
         'core'
     )
     : [];
+
+
+/*
+ * ADMIN_IMPERSONATION_PRESENTATION_V1
+ *
+ * Session access stays encapsulated in the lifecycle
+ * service. Runtime copy is resolved only from managed
+ * dynamic UI content.
+ */
+$impersonationBanner = null;
+$impersonationNotice = null;
+
+if ($themeUserId !== null) {
+    try {
+        $impersonationUi =
+            new \App\Services\ImpersonationUiService();
+
+        $impersonationContent =
+            $impersonationUi->resolve();
+
+        $impersonationState =
+            (
+                new \App\Services\ImpersonationSessionLifecycleService()
+            )->status();
+
+        if (
+            !empty(
+                $impersonationState[
+                    'valid'
+                ]
+            )
+            && !empty(
+                $impersonationState[
+                    'active'
+                ]
+            )
+            && $impersonationUi->ready(
+                $impersonationContent
+            )
+        ) {
+            $nonce =
+                trim(
+                    (string) (
+                        $impersonationState[
+                            'nonce'
+                        ]
+                        ?? ''
+                    )
+                );
+
+            $targetIdentity =
+                trim(
+                    (string) (
+                        $user[
+                            'name'
+                        ]
+                        ?? ''
+                    )
+                );
+
+            if ($targetIdentity === '') {
+                $targetIdentity =
+                    trim(
+                        (string) (
+                            $user[
+                                'username'
+                            ]
+                            ?? ''
+                        )
+                    );
+            }
+
+            if ($targetIdentity === '') {
+                $targetIdentity =
+                    (string) (
+                        (int) (
+                            $impersonationState[
+                                'effective_user_id'
+                            ]
+                            ?? 0
+                        )
+                    );
+            }
+
+            if (
+                $nonce !== ''
+                && $targetIdentity !== ''
+            ) {
+                $impersonationBanner = [
+                    'target_identity' =>
+                        $targetIdentity,
+
+                    'body' =>
+                        $impersonationUi->text(
+                            $impersonationContent,
+                            'banner'
+                        ),
+
+                    'readonly' =>
+                        $impersonationUi->text(
+                            $impersonationContent,
+                            'readonly'
+                        ),
+
+                    'return_label' =>
+                        $impersonationUi->text(
+                            $impersonationContent,
+                            'return'
+                        ),
+
+                    'nonce' =>
+                        $nonce,
+
+                    'csrf' =>
+                        (
+                            new \IPKF\Security\Csrf()
+                        )->token(),
+                ];
+            }
+        }
+
+        $impersonationStatus =
+            trim(
+                (string) (
+                    $_GET[
+                        'impersonation_status'
+                    ]
+                    ?? ''
+                )
+            );
+
+        if (
+            $impersonationStatus === 'denied'
+            || $impersonationStatus === 'expired'
+        ) {
+            $noticeText =
+                $impersonationUi->text(
+                    $impersonationContent,
+                    $impersonationStatus
+                );
+
+            if ($noticeText !== '') {
+                $impersonationNotice = [
+                    'body' =>
+                        $noticeText,
+
+                    'code' =>
+                        $impersonationStatus,
+                ];
+            }
+        }
+    } catch (\Throwable) {
+        $impersonationBanner = null;
+        $impersonationNotice = null;
+    }
+}
 ?>
 <!doctype html>
 <html lang="fa-IR" dir="rtl">
@@ -543,6 +699,53 @@ $accountNav = $themeUserId !== null
             data-module-asset="js"
         ></script>
     <?php endforeach; ?>
+    <style>
+    .admin-impersonation-banner,
+    .admin-impersonation-notice {
+        align-items:center;
+        display:flex;
+        gap:.75rem;
+        justify-content:space-between;
+        margin:.75rem 1rem 0;
+        padding:.75rem .9rem;
+        border:1px solid currentColor;
+        border-radius:.7rem;
+    }
+
+    .admin-impersonation-banner__copy {
+        display:flex;
+        flex-direction:column;
+        gap:.2rem;
+        min-width:0;
+    }
+
+    .admin-impersonation-banner__copy strong,
+    .admin-impersonation-banner__copy span,
+    .admin-impersonation-banner__target {
+        line-height:1.65;
+    }
+
+    .admin-impersonation-banner__target {
+        font-weight:800;
+    }
+
+    .admin-impersonation-banner form,
+    .admin-impersonation-action-form {
+        margin:0;
+    }
+
+    @media (max-width: 720px) {
+        .admin-impersonation-banner,
+        .admin-impersonation-notice {
+            align-items:stretch;
+            flex-direction:column;
+        }
+
+        .admin-impersonation-banner form .admin-button {
+            width:100%;
+        }
+    }
+    </style>
 </head>
 <body
     dir="rtl"
@@ -1077,6 +1280,106 @@ $accountNav = $themeUserId !== null
                 </div>
             </header>
 
+            <?php if (
+                is_array(
+                    $impersonationBanner
+                )
+            ): ?>
+                <section
+                    class="admin-impersonation-banner"
+                    role="status"
+                >
+                    <div
+                        class="admin-impersonation-banner__copy"
+                    >
+                        <strong>
+                            <?= admin_h(
+                                $impersonationBanner[
+                                    'body'
+                                ]
+                            ) ?>
+                        </strong>
+
+                        <bdi
+                            class="admin-impersonation-banner__target"
+                            dir="auto"
+                        >
+                            <?= admin_h(
+                                $impersonationBanner[
+                                    'target_identity'
+                                ]
+                            ) ?>
+                        </bdi>
+
+                        <span>
+                            <?= admin_h(
+                                $impersonationBanner[
+                                    'readonly'
+                                ]
+                            ) ?>
+                        </span>
+                    </div>
+
+                    <form
+                        method="post"
+                        action="/admin/impersonation/stop"
+                    >
+                        <input
+                            type="hidden"
+                            name="_token"
+                            value="<?= admin_h(
+                                $impersonationBanner[
+                                    'csrf'
+                                ]
+                            ) ?>"
+                        >
+
+                        <input
+                            type="hidden"
+                            name="nonce"
+                            value="<?= admin_h(
+                                $impersonationBanner[
+                                    'nonce'
+                                ]
+                            ) ?>"
+                        >
+
+                        <button
+                            class="admin-button"
+                            type="submit"
+                        >
+                            <?= admin_h(
+                                $impersonationBanner[
+                                    'return_label'
+                                ]
+                            ) ?>
+                        </button>
+                    </form>
+                </section>
+            <?php elseif (
+                is_array(
+                    $impersonationNotice
+                )
+            ): ?>
+                <section
+                    class="admin-impersonation-notice"
+                    role="status"
+                    data-impersonation-notice="<?= admin_h(
+                        $impersonationNotice[
+                            'code'
+                        ]
+                    ) ?>"
+                >
+                    <span>
+                        <?= admin_h(
+                            $impersonationNotice[
+                                'body'
+                            ]
+                        ) ?>
+                    </span>
+                </section>
+            <?php endif; ?>
+
             <main class="admin-content">
                 <?= $content ?? '' ?>
             </main>
@@ -1122,6 +1425,43 @@ $accountNav = $themeUserId !== null
             <?php endif; ?>
         </div>
     </div>
+
+    <script>
+    document.addEventListener(
+        'submit',
+        event => {
+            const form =
+                event.target.closest(
+                    'form[data-confirm-message]'
+                );
+
+            if (!form) {
+                return;
+            }
+
+            const body =
+                form.dataset.confirmMessage
+                || '';
+
+            if (body === '') {
+                return;
+            }
+
+            const title =
+                form.dataset.confirmTitle
+                || '';
+
+            const message =
+                title !== ''
+                    ? `${title}\n\n${body}`
+                    : body;
+
+            if (!window.confirm(message)) {
+                event.preventDefault();
+            }
+        }
+    );
+    </script>
 
     <script>
     (() => {

@@ -46,10 +46,249 @@ $adminUserVerificationRedirect = static function (
         . http_build_query($query);
 };
 
+$adminImpersonationPresentation =
+    static function (): array {
+        $service =
+            new \App\Services\ImpersonationUiService();
+
+        $content =
+            $service->resolve();
+
+        $state =
+            (
+                new \App\Services\ImpersonationSessionLifecycleService()
+            )->status();
+
+        return [
+            'active' =>
+                !empty(
+                    $state[
+                        'valid'
+                    ]
+                )
+                && !empty(
+                    $state[
+                        'active'
+                    ]
+                ),
+
+            'ready' =>
+                $service->ready(
+                    $content
+                ),
+
+            'action_label' =>
+                $service->text(
+                    $content,
+                    'action'
+                ),
+
+            'confirm_title' =>
+                $service->text(
+                    $content,
+                    'confirm_title'
+                ),
+
+            'confirm_body' =>
+                $service->text(
+                    $content,
+                    'confirm_body'
+                ),
+        ];
+    };
+
+
+$adminImpersonationActionFor =
+    static function (
+        int $actorUserId,
+        int $actorAssignmentId,
+        int $targetUserId,
+        array $presentation,
+        string $csrfToken,
+        string $returnPath
+    ): ?array {
+        if (
+            $actorUserId < 1
+            || $actorAssignmentId < 1
+            || $targetUserId < 1
+            || !empty(
+                $presentation[
+                    'active'
+                ]
+            )
+            || empty(
+                $presentation[
+                    'ready'
+                ]
+            )
+        ) {
+            return null;
+        }
+
+        try {
+            $decision =
+                (
+                    new \App\Services\ImpersonationAuthorizationService()
+                )->decide(
+                    $actorUserId,
+                    $targetUserId,
+                    $actorAssignmentId
+                );
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if (
+            !is_array($decision)
+            || (
+                $decision[
+                    'allowed'
+                ]
+                ?? false
+            ) !== true
+        ) {
+            return null;
+        }
+
+        $label =
+            trim(
+                (string) (
+                    $presentation[
+                        'action_label'
+                    ]
+                    ?? ''
+                )
+            );
+
+        $confirmBody =
+            trim(
+                (string) (
+                    $presentation[
+                        'confirm_body'
+                    ]
+                    ?? ''
+                )
+            );
+
+        if (
+            $label === ''
+            || $confirmBody === ''
+        ) {
+            return null;
+        }
+
+        return [
+            'method' =>
+                'POST',
+
+            'url' =>
+                '/admin/users/'
+                . $targetUserId
+                . '/impersonate',
+
+            'label' =>
+                $label,
+
+            'confirm_title' =>
+                (string) (
+                    $presentation[
+                        'confirm_title'
+                    ]
+                    ?? ''
+                ),
+
+            'confirm_message' =>
+                $confirmBody,
+
+            'fields' => [
+                '_token' =>
+                    $csrfToken,
+
+                'return_path' =>
+                    $returnPath,
+            ],
+        ];
+    };
+
+
+$adminImpersonationSafeReturn =
+    static function (
+        mixed $candidate,
+        string $fallback = '/admin/users'
+    ): string {
+        $candidate =
+            trim(
+                (string) $candidate
+            );
+
+        if (
+            $candidate === ''
+            || !str_starts_with(
+                $candidate,
+                '/'
+            )
+            || str_starts_with(
+                $candidate,
+                '//'
+            )
+            || preg_match(
+                '/[\r\n]/',
+                $candidate
+            ) === 1
+        ) {
+            return $fallback;
+        }
+
+        $parts =
+            parse_url(
+                $candidate
+            );
+
+        if (
+            $parts === false
+            || isset($parts['scheme'])
+            || isset($parts['host'])
+            || isset($parts['user'])
+            || isset($parts['pass'])
+        ) {
+            return $fallback;
+        }
+
+        return $candidate;
+    };
+
+
+$adminImpersonationStatusUrl =
+    static function (
+        string $path,
+        string $status
+    ): string {
+        $separator =
+            str_contains(
+                $path,
+                '?'
+            )
+                ? '&'
+                : '?';
+
+        return
+            $path
+            . $separator
+            . http_build_query([
+                'impersonation_status' =>
+                    $status,
+            ]);
+    };
+
 $router->get('/admin/users', function (
     $request,
     $response
-) use ($adminRender, $adminGuard) {
+) use (
+    $adminRender,
+    $adminGuard,
+    $adminImpersonationPresentation,
+    $adminImpersonationActionFor
+) {
     $context = $adminGuard($response, '/admin/users');
 
     if (!is_array($context)) {
@@ -61,6 +300,68 @@ $router->get('/admin/users', function (
         'q' => $request->input('q', ''),
         'page' => $request->input('page', 1),
     ]);
+
+    $presentation =
+        $adminImpersonationPresentation();
+
+    $snapshot =
+        (
+            new \App\Services\AuthService()
+        )->impersonationAuthSnapshot();
+
+    $actorAssignmentId =
+        (int) (
+            $snapshot[
+                'active_role_assignment_id'
+            ]
+            ?? 0
+        );
+
+    $csrfToken =
+        (
+            new \IPKF\Security\Csrf()
+        )->token();
+
+    $returnPath =
+        (string) (
+            $_SERVER[
+                'REQUEST_URI'
+            ]
+            ?? '/admin/users'
+        );
+
+    if (
+        is_array(
+            $list[
+                'items'
+            ]
+            ?? null
+        )
+    ) {
+        foreach (
+            $list['items']
+            as &$listedUser
+        ) {
+            $listedUser[
+                'impersonation_action'
+            ] =
+                $adminImpersonationActionFor(
+                    (int) $context['user_id'],
+                    $actorAssignmentId,
+                    (int) (
+                        $listedUser[
+                            'id'
+                        ]
+                        ?? 0
+                    ),
+                    $presentation,
+                    $csrfToken,
+                    $returnPath
+                );
+        }
+
+        unset($listedUser);
+    }
 
     return $adminRender($response, 'users', [
         'title' => 'کاربران',
@@ -519,6 +820,251 @@ $router->post('/admin/users/{id}', function (
     ], 422);
 });
 
+
+
+$router->post(
+    '/admin/users/{id}/impersonate',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminImpersonationPresentation,
+        $adminImpersonationSafeReturn,
+        $adminImpersonationStatusUrl
+    ) {
+        $returnPath =
+            $adminImpersonationSafeReturn(
+                $request->input(
+                    'return_path',
+                    '/admin/users'
+                )
+            );
+
+        if (
+            !(new \IPKF\Security\Csrf())
+                ->check(
+                    (string) $request->input(
+                        '_token',
+                        ''
+                    )
+                )
+        ) {
+            return
+                $response->redirect(
+                    $adminImpersonationStatusUrl(
+                        $returnPath,
+                        'denied'
+                    )
+                );
+        }
+
+        $targetUserId =
+            filter_var(
+                $request->route(
+                    'id'
+                ),
+                FILTER_VALIDATE_INT,
+                [
+                    'options' => [
+                        'min_range' =>
+                            1,
+                    ],
+                ]
+            );
+
+        if ($targetUserId === false) {
+            return
+                $response->redirect(
+                    $adminImpersonationStatusUrl(
+                        $returnPath,
+                        'denied'
+                    )
+                );
+        }
+
+        $presentation =
+            $adminImpersonationPresentation();
+
+        if (
+            empty(
+                $presentation[
+                    'ready'
+                ]
+            )
+        ) {
+            return
+                $response->redirect(
+                    $adminImpersonationStatusUrl(
+                        $returnPath,
+                        'denied'
+                    )
+                );
+        }
+
+        try {
+            $snapshot =
+                (
+                    new \App\Services\AuthService()
+                )->impersonationAuthSnapshot();
+
+            $actorAssignmentId =
+                (int) (
+                    $snapshot[
+                        'active_role_assignment_id'
+                    ]
+                    ?? 0
+                );
+
+            $result =
+                (
+                    new \App\Services\ImpersonationSessionLifecycleService()
+                )->start(
+                    (int) $targetUserId,
+                    $actorAssignmentId,
+                    $returnPath
+                );
+        } catch (\Throwable) {
+            $result = [
+                'ok' =>
+                    false,
+            ];
+        }
+
+        if (
+            (
+                $result[
+                    'ok'
+                ]
+                ?? false
+            ) === true
+        ) {
+            /*
+             * /admin resolves the Effective User's
+             * canonical home instead of forcing an
+             * administrator-only destination.
+             */
+            return
+                $response->redirect(
+                    '/admin'
+                );
+        }
+
+        return
+            $response->redirect(
+                $adminImpersonationStatusUrl(
+                    $returnPath,
+                    'denied'
+                )
+            );
+    }
+);
+
+
+$router->post(
+    '/admin/impersonation/stop',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminImpersonationStatusUrl
+    ) {
+        if (
+            !(new \IPKF\Security\Csrf())
+                ->check(
+                    (string) $request->input(
+                        '_token',
+                        ''
+                    )
+                )
+        ) {
+            return
+                $response->redirect(
+                    $adminImpersonationStatusUrl(
+                        '/admin',
+                        'denied'
+                    )
+                );
+        }
+
+        try {
+            $result =
+                (
+                    new \App\Services\ImpersonationSessionLifecycleService()
+                )->stop(
+                    (string) $request->input(
+                        'nonce',
+                        ''
+                    )
+                );
+        } catch (\Throwable) {
+            $result = [
+                'ok' =>
+                    false,
+            ];
+        }
+
+        if (
+            (
+                $result[
+                    'ok'
+                ]
+                ?? false
+            ) === true
+        ) {
+            $returnPath =
+                trim(
+                    (string) (
+                        $result[
+                            'return_path'
+                        ]
+                        ?? '/admin/users'
+                    )
+                );
+
+            if (
+                $returnPath === ''
+                || !str_starts_with(
+                    $returnPath,
+                    '/'
+                )
+                || str_starts_with(
+                    $returnPath,
+                    '//'
+                )
+            ) {
+                $returnPath =
+                    '/admin/users';
+            }
+
+            return
+                $response->redirect(
+                    $returnPath
+                );
+        }
+
+        if (
+            !empty(
+                $result[
+                    'session_terminated'
+                ]
+            )
+        ) {
+            return
+                $response->redirect(
+                    '/admin/login'
+                );
+        }
+
+        return
+            $response->redirect(
+                $adminImpersonationStatusUrl(
+                    '/admin',
+                    'denied'
+                )
+            );
+    }
+);
+
 $router->post('/admin/users/{id}/roles', function (
     $request,
     $response
@@ -556,11 +1102,23 @@ $router->post('/admin/users/{id}/roles', function (
 $adminManagedUserDetailRoute = function (
     string $pattern,
     string $tab
-) use ($router, $adminRender, $adminGuard) {
+) use (
+    $router,
+    $adminRender,
+    $adminGuard,
+    $adminImpersonationPresentation,
+    $adminImpersonationActionFor
+) {
     $router->get($pattern, function (
         $request,
         $response
-    ) use ($tab, $adminRender, $adminGuard) {
+    ) use (
+        $tab,
+        $adminRender,
+        $adminGuard,
+        $adminImpersonationPresentation,
+        $adminImpersonationActionFor
+    ) {
         $context = $adminGuard($response, '/admin/users');
         if (!is_array($context)) {
             return $context;
@@ -590,6 +1148,90 @@ $adminManagedUserDetailRoute = function (
                 'title' => 'کاربر پیدا نشد',
                 'context' => $context,
             ], 404);
+        }
+
+        $presentation =
+            $adminImpersonationPresentation();
+
+        $snapshot =
+            (
+                new \App\Services\AuthService()
+            )->impersonationAuthSnapshot();
+
+        $actorAssignmentId =
+            (int) (
+                $snapshot[
+                    'active_role_assignment_id'
+                ]
+                ?? 0
+            );
+
+        $action =
+            $adminImpersonationActionFor(
+                (int) $context['user_id'],
+                $actorAssignmentId,
+                (int) $userId,
+                $presentation,
+                (
+                    new \IPKF\Security\Csrf()
+                )->token(),
+                (string) (
+                    $_SERVER[
+                        'REQUEST_URI'
+                    ]
+                    ?? (
+                        '/admin/users/'
+                        . (int) $userId
+                    )
+                )
+            );
+
+        if ($action !== null) {
+            if (
+                !isset(
+                    $detail[
+                        'workspace'
+                    ]
+                )
+                || !is_array(
+                    $detail[
+                        'workspace'
+                    ]
+                )
+            ) {
+                $detail[
+                    'workspace'
+                ] = [];
+            }
+
+            if (
+                !isset(
+                    $detail[
+                        'workspace'
+                    ][
+                        'actions'
+                    ]
+                )
+                || !is_array(
+                    $detail[
+                        'workspace'
+                    ][
+                        'actions'
+                    ]
+                )
+            ) {
+                $detail[
+                    'workspace'
+                ][
+                    'actions'
+                ] = [];
+            }
+
+            $detail[
+                'workspace'
+            ][
+                'actions'
+            ][] = $action;
         }
 
         return $adminRender($response, 'user-detail', [

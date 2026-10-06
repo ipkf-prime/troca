@@ -465,6 +465,226 @@ final class ImpersonationSessionLifecycleService
 
 
     /**
+     * Explicit user-controlled Stop contract.
+     *
+     * CSRF is checked by the HTTP endpoint. The
+     * impersonation nonce is independently required here
+     * so the restore operation remains bound to the exact
+     * active impersonation context.
+     */
+    public function stop(
+        string $nonce
+    ): array {
+        $raw =
+            Session::get(
+                ImpersonationContextService::SESSION_KEY
+            );
+
+        if ($raw === null) {
+            return
+                $this->denied(
+                    'no_active_impersonation'
+                );
+        }
+
+        $state =
+            $this->context->inspect(
+                $raw
+            );
+
+        if (empty($state['valid'])) {
+            return
+                $this->terminateInvalidContext(
+                    'invalid_impersonation_context'
+                );
+        }
+
+        $providedNonce =
+            trim(
+                $nonce
+            );
+
+        $expectedNonce =
+            trim(
+                (string) (
+                    $state[
+                        'nonce'
+                    ]
+                    ?? ''
+                )
+            );
+
+        if (
+            $providedNonce === ''
+            || $expectedNonce === ''
+            || !hash_equals(
+                $expectedNonce,
+                $providedNonce
+            )
+        ) {
+            $this->auditBestEffort(
+                'impersonation_restore_denied',
+                (int) (
+                    $state[
+                        'actor_user_id'
+                    ]
+                    ?? 0
+                ),
+                (int) (
+                    $state[
+                        'effective_user_id'
+                    ]
+                    ?? 0
+                ),
+                'nonce_mismatch',
+                [
+                    'control' =>
+                        'explicit_stop',
+                ]
+            );
+
+            return
+                $this->denied(
+                    'nonce_mismatch'
+                );
+        }
+
+        if (!empty($state['expired'])) {
+            return
+                $this->restoreState(
+                    $state,
+                    true
+                );
+        }
+
+        if (empty($state['active'])) {
+            return
+                $this->terminateInvalidContext(
+                    'invalid_impersonation_state'
+                );
+        }
+
+        return
+            $this->restoreState(
+                $state,
+                false
+            );
+    }
+
+
+    /**
+     * Final logout is terminal.
+     *
+     * It must never restore the Actor session. The
+     * current impersonation envelope is used only for
+     * terminal audit attribution and is then destroyed
+     * together with authentication state.
+     */
+    public function terminateForLogout(): array
+    {
+        $raw =
+            Session::get(
+                ImpersonationContextService::SESSION_KEY
+            );
+
+        if ($raw === null) {
+            $this->auth->logout();
+
+            return [
+                'ok' =>
+                    true,
+
+                'active' =>
+                    false,
+
+                'action' =>
+                    'terminal_logout',
+
+                'impersonation_present' =>
+                    false,
+            ];
+        }
+
+        $state =
+            $this->context->inspect(
+                $raw
+            );
+
+        $actorUserId =
+            (int) (
+                $state[
+                    'actor_user_id'
+                ]
+                ?? 0
+            );
+
+        $effectiveUserId =
+            (int) (
+                $state[
+                    'effective_user_id'
+                ]
+                ?? 0
+            );
+
+        $expired =
+            !empty(
+                $state[
+                    'expired'
+                ]
+            );
+
+        if (
+            !empty($state['valid'])
+            && $actorUserId > 0
+            && $effectiveUserId > 0
+        ) {
+            $this->auditBestEffort(
+                $expired
+                    ? 'impersonation_expired'
+                    : 'impersonation_ended',
+                $actorUserId,
+                $effectiveUserId,
+                $expired
+                    ? 'ttl_expired_final_logout'
+                    : 'final_logout',
+                [
+                    'terminal_logout' =>
+                        true,
+                ]
+            );
+        }
+
+        Session::forget(
+            ImpersonationContextService::SESSION_KEY
+        );
+
+        $this->auth->logout();
+
+        return [
+            'ok' =>
+                true,
+
+            'active' =>
+                false,
+
+            'action' =>
+                'terminal_logout',
+
+            'impersonation_present' =>
+                true,
+
+            'actor_user_id' =>
+                $actorUserId,
+
+            'effective_user_id' =>
+                $effectiveUserId,
+
+            'expired' =>
+                $expired,
+        ];
+    }
+
+    /**
      * This method is intended for the central HTTP
      * impersonation guard and therefore validates both
      * expiry and the current effective credential.
