@@ -327,6 +327,44 @@ if ($themeUserId !== null) {
                 $nonce !== ''
                 && $targetIdentity !== ''
             ) {
+                $impersonationMode =
+                    strtolower(
+                        trim(
+                            (string) (
+                                $impersonationState[
+                                    'mode'
+                                ]
+                                ?? \App\Services\ImpersonationContextService::MODE_OBSERVE
+                            )
+                        )
+                    );
+
+                if (
+                    !in_array(
+                        $impersonationMode,
+                        [
+                            \App\Services\ImpersonationContextService::MODE_OBSERVE,
+                            \App\Services\ImpersonationContextService::MODE_OPERATE,
+                        ],
+                        true
+                    )
+                ) {
+                    $impersonationMode =
+                        \App\Services\ImpersonationContextService::MODE_OBSERVE;
+                }
+
+                $bannerKey =
+                    $impersonationMode
+                        === \App\Services\ImpersonationContextService::MODE_OPERATE
+                            ? 'banner_operate'
+                            : 'banner';
+
+                $noticeKey =
+                    $impersonationMode
+                        === \App\Services\ImpersonationContextService::MODE_OPERATE
+                            ? 'operate'
+                            : 'readonly';
+
                 $impersonationBanner = [
                     'target_identity' =>
                         $targetIdentity,
@@ -334,14 +372,17 @@ if ($themeUserId !== null) {
                     'body' =>
                         $impersonationUi->text(
                             $impersonationContent,
-                            'banner'
+                            $bannerKey
                         ),
 
                     'readonly' =>
                         $impersonationUi->text(
                             $impersonationContent,
-                            'readonly'
+                            $noticeKey
                         ),
+
+                    'mode' =>
+                        $impersonationMode,
 
                     'return_label' =>
                         $impersonationUi->text(
@@ -370,14 +411,35 @@ if ($themeUserId !== null) {
                 )
             );
 
-        if (
-            $impersonationStatus === 'denied'
-            || $impersonationStatus === 'expired'
-        ) {
+        $statusContentKey =
+            match ($impersonationStatus) {
+                'denied' =>
+                    'denied',
+
+                'expired' =>
+                    'expired',
+
+                'readonly_blocked' =>
+                    'mutation_blocked',
+
+                'sensitive_blocked' =>
+                    'sensitive_blocked',
+
+                'operate_denied' =>
+                    'operate_denied',
+
+                'audit_unavailable' =>
+                    'audit_unavailable',
+
+                default =>
+                    '',
+            };
+
+        if ($statusContentKey !== '') {
             $noticeText =
                 $impersonationUi->text(
                     $impersonationContent,
-                    $impersonationStatus
+                    $statusContentKey
                 );
 
             if ($noticeText !== '') {
@@ -703,13 +765,24 @@ if ($themeUserId !== null) {
     .admin-impersonation-banner,
     .admin-impersonation-notice {
         align-items:center;
+        background:#fff3cd;
+        border:1px solid #d79a2b;
+        border-inline-start-width:4px;
+        border-radius:.7rem;
+        box-shadow:0 4px 16px rgba(138, 90, 0, .10);
+        color:#664d03;
         display:flex;
         gap:.75rem;
         justify-content:space-between;
-        margin:.75rem 1rem 0;
-        padding:.75rem .9rem;
-        border:1px solid currentColor;
-        border-radius:.7rem;
+        margin:.4rem 1rem .9rem;
+        padding:.85rem 1rem;
+    }
+
+    .admin-impersonation-banner[data-impersonation-mode="operate"] {
+        background:#ffe4e6;
+        border-color:#d92d20;
+        box-shadow:0 4px 16px rgba(121,37,36,.12);
+        color:#7a271a;
     }
 
     .admin-impersonation-banner__copy {
@@ -734,6 +807,22 @@ if ($themeUserId !== null) {
         margin:0;
     }
 
+    .admin-impersonation-action-form {
+        align-items:center;
+        gap:.35rem;
+    }
+
+    .admin-impersonation-mode-select {
+        background:var(--admin-surface);
+        border:1px solid var(--admin-border);
+        border-radius:.55rem;
+        color:var(--admin-text);
+        font:inherit;
+        min-height:2rem;
+        max-width:8rem;
+        padding:.3rem .45rem;
+    }
+
     @media (max-width: 720px) {
         .admin-impersonation-banner,
         .admin-impersonation-notice {
@@ -745,6 +834,34 @@ if ($themeUserId !== null) {
             width:100%;
         }
     }
+        /* ADMIN_IMPERSONATION_OPERATE_ACCESS_COMPACT_V1 */
+        .admin-impersonation-operate-access-form {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) max-content;
+            gap: .75rem;
+            align-items: end;
+        }
+
+        .admin-impersonation-operate-access-form .entity-field {
+            min-width: 0;
+            margin: 0;
+        }
+
+        .admin-impersonation-operate-access-form .admin-button {
+            align-self: end;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 640px) {
+            .admin-impersonation-operate-access-form {
+                grid-template-columns: 1fr;
+            }
+
+            .admin-impersonation-operate-access-form .admin-button {
+                width: 100%;
+            }
+        }
+
     </style>
 </head>
 <body
@@ -1288,6 +1405,12 @@ if ($themeUserId !== null) {
                 <section
                     class="admin-impersonation-banner"
                     role="status"
+                    data-impersonation-mode="<?= admin_h(
+                        $impersonationBanner[
+                            'mode'
+                        ]
+                        ?? ''
+                    ) ?>"
                 >
                     <div
                         class="admin-impersonation-banner__copy"
@@ -1356,7 +1479,9 @@ if ($themeUserId !== null) {
                         </button>
                     </form>
                 </section>
-            <?php elseif (
+            <?php endif; ?>
+
+            <?php if (
                 is_array(
                     $impersonationNotice
                 )
@@ -1439,8 +1564,21 @@ if ($themeUserId !== null) {
                 return;
             }
 
+            const modeSelect =
+                form.querySelector(
+                    'select[name="mode"]'
+                );
+
+            const selectedMode =
+                modeSelect
+                    ? modeSelect.options[
+                        modeSelect.selectedIndex
+                    ]
+                    : null;
+
             const body =
-                form.dataset.confirmMessage
+                selectedMode?.dataset.confirmMessage
+                || form.dataset.confirmMessage
                 || '';
 
             if (body === '') {

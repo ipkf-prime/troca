@@ -60,7 +60,9 @@ final class ImpersonationSessionLifecycleService
     public function start(
         int $targetUserId,
         int $actorAssignmentId,
-        ?string $returnPath = null
+        ?string $returnPath = null,
+        string $mode =
+            ImpersonationContextService::MODE_OBSERVE
     ): array {
         $existing =
             Session::get(
@@ -180,6 +182,74 @@ final class ImpersonationSessionLifecycleService
                 );
         }
 
+        $mode =
+            strtolower(
+                trim(
+                    $mode
+                )
+            );
+
+        if (
+            !in_array(
+                $mode,
+                [
+                    ImpersonationContextService::MODE_OBSERVE,
+                    ImpersonationContextService::MODE_OPERATE,
+                ],
+                true
+            )
+        ) {
+            return
+                $this->denyStart(
+                    'invalid_impersonation_mode',
+                    $actorUserId,
+                    $targetUserId,
+                    [
+                        'actor_assignment_id' =>
+                            $actorAssignmentId,
+                    ]
+                );
+        }
+
+        if (
+            $mode
+                === ImpersonationContextService::MODE_OPERATE
+        ) {
+            $actorAssignment =
+                $this->authorizationRepository
+                    ->actorAssignment(
+                        $actorUserId,
+                        $actorAssignmentId
+                    );
+
+            $operatePermission =
+                $this->authorizationRepository
+                    ->permissionForAssignment(
+                        $actorUserId,
+                        $actorAssignmentId,
+                        'users.impersonate.operate'
+                    );
+
+            if (
+                $actorAssignment === null
+                || !$operatePermission
+            ) {
+                return
+                    $this->denyStart(
+                        'operate_permission_missing',
+                        $actorUserId,
+                        $targetUserId,
+                        [
+                            'actor_assignment_id' =>
+                                $actorAssignmentId,
+
+                            'mode' =>
+                                $mode,
+                        ]
+                    );
+            }
+        }
+
         $decision =
             $this->authorization
                 ->decide(
@@ -270,7 +340,10 @@ final class ImpersonationSessionLifecycleService
                 $targetUserId,
                 $snapshot,
                 $this->nonce(),
-                $returnPath
+                $returnPath,
+                null,
+                null,
+                $mode
             );
 
         /*
@@ -348,6 +421,9 @@ final class ImpersonationSessionLifecycleService
                     'effective_assignment_id' =>
                         $targetAssignmentId,
 
+                    'mode' =>
+                        $mode,
+
                     'expires_at' =>
                         (string) (
                             $context[
@@ -380,6 +456,9 @@ final class ImpersonationSessionLifecycleService
 
             'effective_user_id' =>
                 $targetUserId,
+
+            'mode' =>
+                $mode,
 
             'active_role_assignment_id' =>
                 $targetAssignmentId,
@@ -809,6 +888,24 @@ final class ImpersonationSessionLifecycleService
 
                 'effective_user_id' =>
                     $effectiveUserId,
+
+                'mode' =>
+                    (string) (
+                        $state[
+                            'mode'
+                        ]
+                        ?? ImpersonationContextService::MODE_OBSERVE
+                    ),
+
+                'actor_assignment_id' =>
+                    (int) (
+                        $state[
+                            'actor_auth_snapshot'
+                        ][
+                            'active_role_assignment_id'
+                        ]
+                        ?? 0
+                    ),
 
                 'expires_at' =>
                     (string) (

@@ -93,6 +93,20 @@ foreach ($tabs as $tab) {
                 ?>
 
                 <?php if ($actionMethod === 'POST'): ?>
+                    <?php
+                    $modeOptions =
+                        is_array(
+                            $action[
+                                'mode_options'
+                            ]
+                            ?? null
+                        )
+                            ? $action[
+                                'mode_options'
+                            ]
+                            : [];
+                    ?>
+
                     <form
                         method="post"
                         action="<?= admin_h($actionUrl) ?>"
@@ -129,6 +143,58 @@ foreach ($tabs as $tab) {
                                 value="<?= admin_h($value) ?>"
                             >
                         <?php endforeach; ?>
+
+                        <?php if (count($modeOptions) > 1): ?>
+                            <select
+                                class="admin-impersonation-mode-select"
+                                name="mode"
+                                aria-label="<?= admin_h(
+                                    $action[
+                                        'mode_label'
+                                    ]
+                                    ?? ''
+                                ) ?>"
+                            >
+                                <?php foreach (
+                                    $modeOptions
+                                    as $modeOption
+                                ): ?>
+                                    <option
+                                        value="<?= admin_h(
+                                            $modeOption[
+                                                'value'
+                                            ]
+                                            ?? ''
+                                        ) ?>"
+                                        data-confirm-message="<?= admin_h(
+                                            $modeOption[
+                                                'confirm_message'
+                                            ]
+                                            ?? ''
+                                        ) ?>"
+                                    >
+                                        <?= admin_h(
+                                            $modeOption[
+                                                'label'
+                                            ]
+                                            ?? ''
+                                        ) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+
+                        <?php elseif (count($modeOptions) === 1): ?>
+                            <input
+                                type="hidden"
+                                name="mode"
+                                value="<?= admin_h(
+                                    $modeOptions[0][
+                                        'value'
+                                    ]
+                                    ?? ''
+                                ) ?>"
+                            >
+                        <?php endif; ?>
 
                         <button
                             class="admin-button admin-button--soft"

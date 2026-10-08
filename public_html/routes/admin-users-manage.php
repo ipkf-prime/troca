@@ -94,6 +94,30 @@ $adminImpersonationPresentation =
                     $content,
                     'confirm_body'
                 ),
+
+            'mode_label' =>
+                $service->text(
+                    $content,
+                    'mode_label'
+                ),
+
+            'mode_observe' =>
+                $service->text(
+                    $content,
+                    'mode_observe'
+                ),
+
+            'mode_operate' =>
+                $service->text(
+                    $content,
+                    'mode_operate'
+                ),
+
+            'confirm_operate' =>
+                $service->text(
+                    $content,
+                    'confirm_operate'
+                ),
         ];
     };
 
@@ -150,6 +174,76 @@ $adminImpersonationActionFor =
             return null;
         }
 
+        $canOperate =
+            false;
+
+        try {
+            $authorizationRepository =
+                new \App\Repositories\ImpersonationAuthorizationRepository();
+
+            $canOperate =
+                $authorizationRepository->actorAssignment(
+                    $actorUserId,
+                    $actorAssignmentId
+                ) !== null
+                &&
+                $authorizationRepository->permissionForAssignment(
+                    $actorUserId,
+                    $actorAssignmentId,
+                    'users.impersonate.operate'
+                );
+
+        } catch (\Throwable) {
+            $canOperate =
+                false;
+        }
+
+        $modeOptions = [
+            [
+                'value' =>
+                    \App\Services\ImpersonationContextService::MODE_OBSERVE,
+
+                'label' =>
+                    (string) (
+                        $presentation[
+                            'mode_observe'
+                        ]
+                        ?? ''
+                    ),
+
+                'confirm_message' =>
+                    (string) (
+                        $presentation[
+                            'confirm_body'
+                        ]
+                        ?? ''
+                    ),
+            ],
+        ];
+
+        if ($canOperate) {
+            $modeOptions[] = [
+                'value' =>
+                    \App\Services\ImpersonationContextService::MODE_OPERATE,
+
+                'label' =>
+                    (string) (
+                        $presentation[
+                            'mode_operate'
+                        ]
+                        ?? ''
+                    ),
+
+                'confirm_message' =>
+                    (string) (
+                        $presentation[
+                            'confirm_operate'
+                        ]
+                        ?? ''
+                    ),
+            ];
+        }
+
         $label =
             trim(
                 (string) (
@@ -189,6 +283,17 @@ $adminImpersonationActionFor =
             'label' =>
                 $label,
 
+            'mode_label' =>
+                (string) (
+                    $presentation[
+                        'mode_label'
+                    ]
+                    ?? ''
+                ),
+
+            'mode_options' =>
+                $modeOptions,
+
             'confirm_title' =>
                 (string) (
                     $presentation[
@@ -208,6 +313,254 @@ $adminImpersonationActionFor =
                     $returnPath,
             ],
         ];
+    };
+
+
+$adminImpersonationOperateGrantFor =
+    static function (
+        int $actorUserId,
+        int $actorAssignmentId,
+        int $targetUserId,
+        string $csrfToken,
+        string $feedbackStatus
+    ): ?array {
+        try {
+            $service =
+                new \App\Services\ImpersonationOperateGrantService();
+
+            $state =
+                $service->state(
+                    $actorUserId,
+                    $actorAssignmentId,
+                    $targetUserId
+                );
+
+            if (
+                (
+                    $state['visible']
+                    ?? false
+                ) !== true
+            ) {
+                return null;
+            }
+
+            $ui =
+                new \App\Services\ImpersonationOperateGrantUiService();
+
+            $content =
+                $ui->resolve();
+
+            if (!$ui->ready($content)) {
+                return null;
+            }
+
+            $effect =
+                (string) (
+                    $state['effect']
+                    ?? ''
+                );
+
+            $baseCapabilityActive =
+                (
+                    $state[
+                        'base_capability_active'
+                    ]
+                    ?? false
+                ) === true;
+
+            $statusName =
+                $effect === 'allow'
+                    ? (
+                        $baseCapabilityActive
+                            ? 'status_allowed'
+                            : 'status_ineligible'
+                    )
+                    : 'status_denied';
+
+            $action = null;
+
+            if (
+                (
+                    $state['can_revoke']
+                    ?? false
+                ) === true
+            ) {
+                $action = [
+                    'method' =>
+                        'POST',
+
+                    'url' =>
+                        '/admin/users/'
+                        . $targetUserId
+                        . '/impersonation-operate-access',
+
+                    'label' =>
+                        $ui->text(
+                            $content,
+                            'revoke'
+                        ),
+
+                    'confirm_title' =>
+                        $ui->text(
+                            $content,
+                            'confirm_revoke_title'
+                        ),
+
+                    'confirm_message' =>
+                        $ui->text(
+                            $content,
+                            'confirm_revoke'
+                        ),
+
+                    'fields' => [
+                        '_token' =>
+                            $csrfToken,
+
+                        'effect' =>
+                            'deny',
+                    ],
+
+                    'reason_label' =>
+                        $ui->text(
+                            $content,
+                            'reason_label'
+                        ),
+
+                    'reason_placeholder' =>
+                        $ui->text(
+                            $content,
+                            'reason_placeholder'
+                        ),
+                ];
+
+            } elseif (
+                (
+                    $state['can_grant']
+                    ?? false
+                ) === true
+            ) {
+                $action = [
+                    'method' =>
+                        'POST',
+
+                    'url' =>
+                        '/admin/users/'
+                        . $targetUserId
+                        . '/impersonation-operate-access',
+
+                    'label' =>
+                        $ui->text(
+                            $content,
+                            'grant'
+                        ),
+
+                    'confirm_title' =>
+                        $ui->text(
+                            $content,
+                            'confirm_grant_title'
+                        ),
+
+                    'confirm_message' =>
+                        $ui->text(
+                            $content,
+                            'confirm_grant'
+                        ),
+
+                    'fields' => [
+                        '_token' =>
+                            $csrfToken,
+
+                        'effect' =>
+                            'allow',
+                    ],
+
+                    'reason_label' =>
+                        $ui->text(
+                            $content,
+                            'reason_label'
+                        ),
+
+                    'reason_placeholder' =>
+                        $ui->text(
+                            $content,
+                            'reason_placeholder'
+                        ),
+                ];
+            }
+
+            $feedbackName =
+                match (
+                    strtolower(
+                        trim(
+                            $feedbackStatus
+                        )
+                    )
+                ) {
+                    'updated' =>
+                        'feedback_updated',
+
+                    'denied' =>
+                        'feedback_denied',
+
+                    default =>
+                        '',
+                };
+
+            $feedback =
+                $feedbackName !== ''
+                    ? $ui->text(
+                        $content,
+                        $feedbackName
+                    )
+                    : '';
+
+            return [
+                'visible' =>
+                    true,
+
+                'title' =>
+                    $ui->text(
+                        $content,
+                        'title'
+                    ),
+
+                'description' =>
+                    $ui->text(
+                        $content,
+                        'description'
+                    ),
+
+                'status_label' =>
+                    $ui->text(
+                        $content,
+                        $statusName
+                    ),
+
+                'status_code' =>
+                    $effect === 'allow'
+                        ? (
+                            $baseCapabilityActive
+                                ? 'active'
+                                : 'warning'
+                        )
+                        : 'inactive',
+
+                'feedback' =>
+                    $feedback,
+
+                'feedback_code' =>
+                    $feedbackName ===
+                        'feedback_updated'
+                            ? 'active'
+                            : 'warning',
+
+                'action' =>
+                    $action,
+            ];
+
+        } catch (\Throwable) {
+            return null;
+        }
     };
 
 
@@ -921,7 +1274,11 @@ $router->post(
                 )->start(
                     (int) $targetUserId,
                     $actorAssignmentId,
-                    $returnPath
+                    $returnPath,
+                    (string) $request->input(
+                        'mode',
+                        \App\Services\ImpersonationContextService::MODE_OBSERVE
+                    )
                 );
         } catch (\Throwable) {
             $result = [
@@ -1099,6 +1456,121 @@ $router->post('/admin/users/{id}/roles', function (
 });
 
 
+$router->post(
+    '/admin/users/{id}/impersonation-operate-access',
+    function (
+        $request,
+        $response
+    ) use (
+        $adminGuard
+    ) {
+        $context =
+            $adminGuard(
+                $response,
+                '/admin/users'
+            );
+
+        if (!is_array($context)) {
+            return $context;
+        }
+
+        $userId =
+            filter_var(
+                $request->route('id'),
+                FILTER_VALIDATE_INT,
+                [
+                    'options' => [
+                        'min_range' => 1,
+                    ],
+                ]
+            );
+
+        if ($userId === false) {
+            return
+                $response->redirect(
+                    '/admin/users'
+                );
+        }
+
+        $status =
+            'denied';
+
+        if (
+            (new \IPKF\Security\Csrf())
+                ->check(
+                    (string) $request->input(
+                        '_token',
+                        ''
+                    )
+                )
+        ) {
+            try {
+                $snapshot =
+                    (
+                        new \App\Services\AuthService()
+                    )->impersonationAuthSnapshot();
+
+                $actorAssignmentId =
+                    (int) (
+                        $snapshot[
+                            'active_role_assignment_id'
+                        ]
+                        ?? 0
+                    );
+
+                $result =
+                    (
+                        new \App\Services\ImpersonationOperateGrantService()
+                    )->update(
+                        (int) $context['user_id'],
+                        $actorAssignmentId,
+                        (int) $userId,
+                        (string) $request->input(
+                            'effect',
+                            ''
+                        ),
+                        (string) $request->input(
+                            'reason',
+                            ''
+                        ),
+                        (string) (
+                            $_SERVER[
+                                'REMOTE_ADDR'
+                            ]
+                            ?? ''
+                        )
+                    );
+
+                if (
+                    (
+                        $result['ok']
+                        ?? false
+                    ) === true
+                ) {
+                    $status =
+                        'updated';
+                }
+
+            } catch (\Throwable) {
+                $status =
+                    'denied';
+            }
+        }
+
+        return
+            $response->redirect(
+                '/admin/users/'
+                . (int) $userId
+                . '/access?'
+                . http_build_query([
+                    'operate_access_status' =>
+                        $status,
+                ])
+            );
+    }
+);
+
+
 $adminManagedUserDetailRoute = function (
     string $pattern,
     string $tab
@@ -1107,7 +1579,8 @@ $adminManagedUserDetailRoute = function (
     $adminRender,
     $adminGuard,
     $adminImpersonationPresentation,
-    $adminImpersonationActionFor
+    $adminImpersonationActionFor,
+    $adminImpersonationOperateGrantFor
 ) {
     $router->get($pattern, function (
         $request,
@@ -1117,7 +1590,8 @@ $adminManagedUserDetailRoute = function (
         $adminRender,
         $adminGuard,
         $adminImpersonationPresentation,
-        $adminImpersonationActionFor
+        $adminImpersonationActionFor,
+        $adminImpersonationOperateGrantFor
     ) {
         $context = $adminGuard($response, '/admin/users');
         if (!is_array($context)) {
@@ -1232,6 +1706,41 @@ $adminManagedUserDetailRoute = function (
             ][
                 'actions'
             ][] = $action;
+        }
+
+        if ($tab === 'access') {
+            $operateGrantPanel =
+                $adminImpersonationOperateGrantFor(
+                    (int) $context['user_id'],
+                    $actorAssignmentId,
+                    (int) $userId,
+                    (
+                        new \IPKF\Security\Csrf()
+                    )->token(),
+                    (string) $request->input(
+                        'operate_access_status',
+                        ''
+                    )
+                );
+
+            if (
+                is_array(
+                    $operateGrantPanel
+                )
+            ) {
+                /*
+                 * Person-grant administration is page-level
+                 * presentation state, not tab-domain data.
+                 *
+                 * Bind it directly to Detail so completion
+                 * service tab payload normalization cannot
+                 * discard it.
+                 */
+                $detail[
+                    'impersonation_operate_access'
+                ] =
+                    $operateGrantPanel;
+            }
         }
 
         return $adminRender($response, 'user-detail', [

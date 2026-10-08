@@ -19,6 +19,17 @@ final class ImpersonationContextService
     private const MAX_TTL_MINUTES =
         120;
 
+    public const MODE_OBSERVE =
+        'observe';
+
+    public const MODE_OPERATE =
+        'operate';
+
+    private const MODES = [
+        self::MODE_OBSERVE,
+        self::MODE_OPERATE,
+    ];
+
     private const SNAPSHOT_KEYS = [
         'auth_user_id',
         'auth_password_fingerprint',
@@ -35,7 +46,8 @@ final class ImpersonationContextService
         string $nonce,
         ?string $returnPath = null,
         ?DateTimeImmutable $startedAt = null,
-        ?int $ttlMinutes = null
+        ?int $ttlMinutes = null,
+        string $mode = self::MODE_OBSERVE
     ): array {
         if (
             $actorUserId < 1
@@ -60,6 +72,25 @@ final class ImpersonationContextService
         ) {
             throw new InvalidArgumentException(
                 'invalid_impersonation_nonce'
+            );
+        }
+
+        $mode =
+            strtolower(
+                trim(
+                    $mode
+                )
+            );
+
+        if (
+            !in_array(
+                $mode,
+                self::MODES,
+                true
+            )
+        ) {
+            throw new InvalidArgumentException(
+                'invalid_impersonation_mode'
             );
         }
 
@@ -121,6 +152,9 @@ final class ImpersonationContextService
             'effective_user_id' =>
                 $effectiveUserId,
 
+            'mode' =>
+                $mode,
+
             'started_at' =>
                 $startedAt->format(
                     'Y-m-d H:i:s'
@@ -169,6 +203,18 @@ final class ImpersonationContextService
                 ?? 0
             );
 
+        $mode =
+            strtolower(
+                trim(
+                    (string) (
+                        $context[
+                            'mode'
+                        ]
+                        ?? self::MODE_OBSERVE
+                    )
+                )
+            );
+
         $nonce =
             trim(
                 (string) (
@@ -214,6 +260,11 @@ final class ImpersonationContextService
             || $effectiveUserId < 1
             || $actorUserId ===
                 $effectiveUserId
+            || !in_array(
+                $mode,
+                self::MODES,
+                true
+            )
             || preg_match(
                 '/^[A-Za-z0-9_-]{16,128}$/',
                 $nonce
@@ -264,6 +315,9 @@ final class ImpersonationContextService
 
             'effective_user_id' =>
                 $effectiveUserId,
+
+            'mode' =>
+                $mode,
 
             'started_at' =>
                 $startedAt->format(

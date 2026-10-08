@@ -21,6 +21,8 @@ final class ImpersonationAuditRepository
         'impersonation_start_denied',
         'impersonation_restore_denied',
         'impersonation_mutation_blocked',
+        'impersonation_operation_attempted',
+        'impersonation_operation_completed',
     ];
 
     private PDO $db;

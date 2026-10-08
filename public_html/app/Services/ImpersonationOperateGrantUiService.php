@@ -7,64 +7,54 @@ namespace App\Services;
 use App\Services\UiContent\UiContentContext;
 use App\Services\UiContent\UiContentResolver;
 
-final class ImpersonationUiService
+final class ImpersonationOperateGrantUiService
 {
     private const KEYS = [
-        'action' =>
-            'core.users.impersonation.action',
+        'title' =>
+            'core.users.impersonation.operate.access.title',
 
-        'confirm_title' =>
-            'core.users.impersonation.confirm.title',
+        'description' =>
+            'core.users.impersonation.operate.access.description',
 
-        'confirm_body' =>
-            'core.users.impersonation.confirm.body',
+        'status_allowed' =>
+            'core.users.impersonation.operate.access.status.allowed',
 
-        'banner' =>
-            'core.users.impersonation.banner',
+        'status_denied' =>
+            'core.users.impersonation.operate.access.status.denied',
 
-        'return' =>
-            'core.users.impersonation.return',
+        'status_ineligible' =>
+            'core.users.impersonation.operate.access.status.ineligible',
 
-        'readonly' =>
-            'core.users.impersonation.readonly',
+        'grant' =>
+            'core.users.impersonation.operate.access.grant',
 
-        'denied' =>
-            'core.users.impersonation.denied',
+        'revoke' =>
+            'core.users.impersonation.operate.access.revoke',
 
-        'expired' =>
-            'core.users.impersonation.expired',
+        'reason_label' =>
+            'core.users.impersonation.operate.access.reason.label',
 
-        'mode_label' =>
-            'core.users.impersonation.mode.label',
+        'reason_placeholder' =>
+            'core.users.impersonation.operate.access.reason.placeholder',
 
-        'mode_observe' =>
-            'core.users.impersonation.mode.observe',
+        'confirm_grant_title' =>
+            'core.users.impersonation.operate.access.confirm.grant.title',
 
-        'mode_operate' =>
-            'core.users.impersonation.mode.operate',
+        'confirm_revoke_title' =>
+            'core.users.impersonation.operate.access.confirm.revoke.title',
 
-        'confirm_operate' =>
-            'core.users.impersonation.confirm.operate',
+        'confirm_grant' =>
+            'core.users.impersonation.operate.access.confirm.grant',
 
-        'banner_operate' =>
-            'core.users.impersonation.operate.banner',
+        'confirm_revoke' =>
+            'core.users.impersonation.operate.access.confirm.revoke',
 
-        'operate' =>
-            'core.users.impersonation.operate',
+        'feedback_updated' =>
+            'core.users.impersonation.operate.access.feedback.updated',
 
-        'mutation_blocked' =>
-            'core.users.impersonation.mutation.blocked',
-
-        'sensitive_blocked' =>
-            'core.users.impersonation.sensitive.blocked',
-
-        'operate_denied' =>
-            'core.users.impersonation.operate.denied',
-
-        'audit_unavailable' =>
-            'core.users.impersonation.audit.unavailable',
+        'feedback_denied' =>
+            'core.users.impersonation.operate.access.feedback.denied',
     ];
-
 
     private UiContentResolver $resolver;
 
@@ -131,9 +121,7 @@ final class ImpersonationUiService
         return
             trim(
                 (string) (
-                    $item[
-                        'body'
-                    ]
+                    $item['body']
                     ?? ''
                 )
             );
@@ -144,9 +132,7 @@ final class ImpersonationUiService
         array $content
     ): bool {
         foreach (
-            array_keys(
-                self::KEYS
-            )
+            array_keys(self::KEYS)
             as $name
         ) {
             if (

@@ -32,6 +32,12 @@ final class ImpersonationAuditService
 
         'impersonation_mutation_blocked' =>
             'Auth.Impersonation.MutationBlocked',
+
+        'impersonation_operation_attempted' =>
+            'Auth.Impersonation.OperationAttempted',
+
+        'impersonation_operation_completed' =>
+            'Auth.Impersonation.OperationCompleted',
     ];
 
     private PDO $db;
@@ -127,7 +133,8 @@ final class ImpersonationAuditService
 
                     'result' =>
                         $this->resultCode(
-                            $eventCode
+                            $eventCode,
+                            $metadata
                         ),
 
                     'reason' =>
@@ -167,7 +174,8 @@ final class ImpersonationAuditService
 
 
     private function resultCode(
-        string $eventCode
+        string $eventCode,
+        array $metadata = []
     ): string {
         return match ($eventCode) {
             'impersonation_start_denied',
@@ -176,6 +184,28 @@ final class ImpersonationAuditService
 
             'impersonation_mutation_blocked' =>
                 'blocked',
+
+            'impersonation_operation_attempted' =>
+                'attempted',
+
+            'impersonation_operation_completed' =>
+                (
+                    (int) (
+                        $metadata[
+                            'http_status'
+                        ]
+                        ?? 500
+                    ) >= 200
+                    &&
+                    (int) (
+                        $metadata[
+                            'http_status'
+                        ]
+                        ?? 500
+                    ) < 400
+                )
+                    ? 'success'
+                    : 'failed',
 
             'impersonation_expired' =>
                 'expired',

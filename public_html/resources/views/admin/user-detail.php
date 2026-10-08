@@ -210,6 +210,183 @@ ob_start();
         ]); ?>
     </section>
 <?php elseif ($activeTab === 'access'): ?>
+    <?php
+    $operateAccess =
+        is_array(
+            $detail[
+                'impersonation_operate_access'
+            ]
+            ?? null
+        )
+            ? $detail[
+                'impersonation_operate_access'
+            ]
+            : null;
+    ?>
+
+    <?php if (
+        is_array($operateAccess)
+        && (
+            $operateAccess['visible']
+            ?? false
+        ) === true
+    ): ?>
+        <?php
+        $operateAction =
+            is_array(
+                $operateAccess['action']
+                ?? null
+            )
+                ? $operateAccess['action']
+                : null;
+        ?>
+
+        <section class="entity-section">
+            <div class="admin-section__header">
+                <div>
+                    <h2><?= admin_h(
+                        $operateAccess['title']
+                        ?? ''
+                    ) ?></h2>
+
+                    <p class="admin-muted">
+                        <?= admin_h(
+                            $operateAccess[
+                                'description'
+                            ]
+                            ?? ''
+                        ) ?>
+                    </p>
+                </div>
+
+                <span
+                    class="admin-status-badge admin-status-badge--<?= admin_h(
+                        $operateAccess[
+                            'status_code'
+                        ]
+                        ?? 'unknown'
+                    ) ?>"
+                >
+                    <?= admin_h(
+                        $operateAccess[
+                            'status_label'
+                        ]
+                        ?? ''
+                    ) ?>
+                </span>
+            </div>
+
+            <?php if (
+                trim(
+                    (string) (
+                        $operateAccess[
+                            'feedback'
+                        ]
+                        ?? ''
+                    )
+                ) !== ''
+            ): ?>
+                <div
+                    class="admin-empty-state admin-empty-state--compact"
+                >
+                    <?= admin_h(
+                        $operateAccess[
+                            'feedback'
+                        ]
+                    ) ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (
+                is_array(
+                    $operateAction
+                )
+            ): ?>
+                <form
+                    method="post"
+                    action="<?= admin_h(
+                        $operateAction[
+                            'url'
+                        ]
+                        ?? ''
+                    ) ?>"
+                    class="admin-impersonation-action-form admin-impersonation-operate-access-form"
+                    data-confirm-title="<?= admin_h(
+                        $operateAction[
+                            'confirm_title'
+                        ]
+                        ?? ''
+                    ) ?>"
+                    data-confirm-message="<?= admin_h(
+                        $operateAction[
+                            'confirm_message'
+                        ]
+                        ?? ''
+                    ) ?>"
+                >
+                    <?php foreach (
+                        is_array(
+                            $operateAction[
+                                'fields'
+                            ]
+                            ?? null
+                        )
+                            ? $operateAction[
+                                'fields'
+                            ]
+                            : []
+                        as $name => $value
+                    ): ?>
+                        <input
+                            type="hidden"
+                            name="<?= admin_h($name) ?>"
+                            value="<?= admin_h($value) ?>"
+                        >
+                    <?php endforeach; ?>
+
+                    <label class="entity-field">
+                        <span>
+                            <?= admin_h(
+                                $operateAction[
+                                    'reason_label'
+                                ]
+                                ?? ''
+                            ) ?>
+                        </span>
+
+                        <input
+                            class="admin-input"
+                            type="text"
+                            name="reason"
+                            required
+                            minlength="3"
+                            maxlength="500"
+                            autocomplete="off"
+                            placeholder="<?= admin_h(
+                                $operateAction[
+                                    'reason_placeholder'
+                                ]
+                                ?? ''
+                            ) ?>"
+                        >
+                    </label>
+
+                    <button
+                        class="admin-button admin-button--soft"
+                        type="submit"
+                    >
+                        <?= admin_h(
+                            $operateAction[
+                                'label'
+                            ]
+                            ?? ''
+                        ) ?>
+                    </button>
+                </form>
+            <?php endif; ?>
+        </section>
+    <?php endif; ?>
+
     <?php $roles = $content['roles'] ?? []; ?>
     <section class="entity-section">
         <div class="admin-section__header">

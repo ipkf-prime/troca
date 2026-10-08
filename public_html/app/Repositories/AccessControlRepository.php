@@ -68,6 +68,11 @@ class AccessControlRepository extends BaseRepository
                 {$sensitive} AS is_sensitive
             FROM permissions
             WHERE is_active = 1
+              AND code NOT IN
+              (
+                  'users.impersonate.operate',
+                  'users.impersonate.operate.assign'
+              )
             ORDER BY module, sort_order, resource, action, id
         ")->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -559,16 +564,57 @@ class AccessControlRepository extends BaseRepository
             throw new RuntimeException('access_role_protected');
         }
 
-        $allowed = array_map(
-            'strval',
-            $this->connection()->query("
-                SELECT code FROM permissions WHERE is_active = 1
-            ")->fetchAll(PDO::FETCH_COLUMN) ?: []
-        );
-        $codes = array_values(array_unique(
-            array_intersect($allowed, array_map('strval', $codes))
-        ));
-        $old = array_keys($this->roleMap()[$roleId] ?? []);
+        $protectedPermissionCodes = [
+            'users.impersonate.operate',
+            'users.impersonate.operate.assign',
+        ];
+
+        $old =
+            array_keys(
+                $this->roleMap()[
+                    $roleId
+                ]
+                ?? []
+            );
+
+        $protectedExistingCodes =
+            array_values(
+                array_intersect(
+                    $old,
+                    $protectedPermissionCodes
+                )
+            );
+
+        $allowed =
+            array_map(
+                'strval',
+                $this->connection()->query("
+                    SELECT code
+                    FROM permissions
+                    WHERE is_active = 1
+                      AND code NOT IN
+                      (
+                          'users.impersonate.operate',
+                          'users.impersonate.operate.assign'
+                      )
+                ")->fetchAll(PDO::FETCH_COLUMN) ?: []
+            );
+
+        $codes =
+            array_values(
+                array_unique(
+                    array_merge(
+                        array_intersect(
+                            $allowed,
+                            array_map(
+                                'strval',
+                                $codes
+                            )
+                        ),
+                        $protectedExistingCodes
+                    )
+                )
+            );
         $db = $this->connection();
         $db->beginTransaction();
 
@@ -675,8 +721,19 @@ class AccessControlRepository extends BaseRepository
 
         try {
             $delete = $db->prepare("
-                DELETE FROM user_permission_overrides
-                WHERE user_id = ? AND role_assignment_id = ?
+                DELETE overrides
+                FROM user_permission_overrides
+                    AS overrides
+                INNER JOIN permissions
+                    ON permissions.id =
+                        overrides.permission_id
+                WHERE overrides.user_id = ?
+                  AND overrides.role_assignment_id = ?
+                  AND permissions.code NOT IN
+                  (
+                      'users.impersonate.operate',
+                      'users.impersonate.operate.assign'
+                  )
             ");
             $delete->execute([$userId, $assignmentId]);
 
@@ -724,6 +781,293 @@ class AccessControlRepository extends BaseRepository
             throw $exception;
         }
     }
+
+    public function impersonationOperateOverride(
+        int $userId
+    ): ?array {
+        if ($userId < 1) {
+            return null;
+        }
+
+        $statement =
+            $this->connection()->prepare("
+                SELECT
+                    overrides.id,
+                    overrides.effect_code,
+                    overrides.reason,
+                    overrides.created_by_user_id,
+                    overrides.updated_by_user_id,
+                    overrides.created_at,
+                    overrides.updated_at
+
+                FROM user_permission_overrides
+                    AS overrides
+
+                INNER JOIN permissions
+                    ON permissions.id =
+                        overrides.permission_id
+
+                WHERE overrides.user_id = ?
+                  AND overrides.role_assignment_id = 0
+                  AND permissions.code =
+                        'users.impersonate.operate'
+                  AND permissions.is_active = 1
+
+                LIMIT 1
+            ");
+
+        $statement->execute([
+            $userId,
+        ]);
+
+        $row =
+            $statement->fetch(
+                PDO::FETCH_ASSOC
+            );
+
+        return
+            is_array($row)
+                ? $row
+                : null;
+    }
+
+
+    public function saveImpersonationOperateOverride(
+        int $userId,
+        string $effect,
+        int $actorUserId,
+        string $reason,
+        string $ip
+    ): void {
+        $effect =
+            strtolower(
+                trim(
+                    $effect
+                )
+            );
+
+        $reason =
+            trim(
+                $reason
+            );
+
+        if (
+            $userId < 1
+            || $actorUserId < 1
+        ) {
+            throw new RuntimeException(
+                'impersonation_operate_override_invalid_request'
+            );
+        }
+
+        if (
+            !in_array(
+                $effect,
+                ['allow', 'deny'],
+                true
+            )
+        ) {
+            throw new RuntimeException(
+                'impersonation_operate_override_effect_invalid'
+            );
+        }
+
+        if (
+            mb_strlen(
+                $reason,
+                'UTF-8'
+            ) < 3
+        ) {
+            throw new RuntimeException(
+                'impersonation_operate_override_reason_required'
+            );
+        }
+
+        if ($this->user($userId) === null) {
+            throw new RuntimeException(
+                'access_user_not_found'
+            );
+        }
+
+        $db =
+            $this->connection();
+
+        $db->beginTransaction();
+
+        try {
+            $permission =
+                $db->prepare("
+                    SELECT
+                        id,
+                        is_sensitive,
+                        is_active
+
+                    FROM permissions
+
+                    WHERE code =
+                        'users.impersonate.operate'
+
+                    LIMIT 1
+                    FOR UPDATE
+                ");
+
+            $permission->execute();
+
+            $permissionRow =
+                $permission->fetch(
+                    PDO::FETCH_ASSOC
+                );
+
+            if (
+                !is_array(
+                    $permissionRow
+                )
+                || (int) (
+                    $permissionRow['id']
+                    ?? 0
+                ) < 1
+                || (int) (
+                    $permissionRow[
+                        'is_sensitive'
+                    ]
+                    ?? 0
+                ) !== 1
+                || (int) (
+                    $permissionRow[
+                        'is_active'
+                    ]
+                    ?? 0
+                ) !== 1
+            ) {
+                throw new RuntimeException(
+                    'impersonation_operate_permission_invalid'
+                );
+            }
+
+            $permissionId =
+                (int) $permissionRow['id'];
+
+            $lock =
+                $db->prepare("
+                    SELECT
+                        id,
+                        effect_code,
+                        reason
+
+                    FROM user_permission_overrides
+
+                    WHERE user_id = ?
+                      AND permission_id = ?
+                      AND role_assignment_id = 0
+
+                    LIMIT 1
+                    FOR UPDATE
+                ");
+
+            $lock->execute([
+                $userId,
+                $permissionId,
+            ]);
+
+            $existing =
+                $lock->fetch(
+                    PDO::FETCH_ASSOC
+                );
+
+            $old = [
+                'permission_code' =>
+                    'users.impersonate.operate',
+
+                'effect_code' =>
+                    is_array($existing)
+                        ? (
+                            $existing[
+                                'effect_code'
+                            ]
+                            ?? null
+                        )
+                        : null,
+            ];
+
+            $upsert =
+                $db->prepare("
+                    INSERT INTO user_permission_overrides
+                    (
+                        user_id,
+                        permission_id,
+                        role_assignment_id,
+                        effect_code,
+                        reason,
+                        created_by_user_id,
+                        updated_by_user_id,
+                        created_at,
+                        updated_at
+                    )
+                    VALUES
+                    (
+                        ?,
+                        ?,
+                        0,
+                        ?,
+                        ?,
+                        ?,
+                        ?,
+                        CURRENT_TIMESTAMP,
+                        CURRENT_TIMESTAMP
+                    )
+                    ON DUPLICATE KEY UPDATE
+                        effect_code =
+                            VALUES(effect_code),
+                        reason =
+                            VALUES(reason),
+                        updated_by_user_id =
+                            VALUES(updated_by_user_id),
+                        updated_at =
+                            CURRENT_TIMESTAMP
+                ");
+
+            $upsert->execute([
+                $userId,
+                $permissionId,
+                $effect,
+                $reason,
+                $actorUserId,
+                $actorUserId,
+            ]);
+
+            $new = [
+                'permission_code' =>
+                    'users.impersonate.operate',
+
+                'effect_code' =>
+                    $effect,
+            ];
+
+            $this->log(
+                $actorUserId,
+                'user',
+                $userId,
+                0,
+                $effect === 'allow'
+                    ? 'impersonation_operate_access_granted'
+                    : 'impersonation_operate_access_revoked',
+                $old,
+                $new,
+                $reason,
+                $ip
+            );
+
+            $db->commit();
+
+        } catch (Throwable $exception) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+
+            throw $exception;
+        }
+    }
+
 
     public function audit(): array
     {
