@@ -53,6 +53,14 @@ class ModuleSsoService extends BaseService
 
                 'created_at' =>
                     time(),
+
+                'owner_binding_version' =>
+                    1,
+
+                'owner_fingerprint' =>
+                    (
+                        new AdminLoginReturnPathService()
+                    )->currentOwnerFingerprint(),
             ]
         );
     }
@@ -339,7 +347,9 @@ class ModuleSsoService extends BaseService
         int $userId
     ): array {
         $returnPath =
-            $this->pendingReturnPath();
+            $this->pendingReturnPathForUser(
+                $userId
+            );
 
         if ($returnPath === null) {
             return [
@@ -357,6 +367,23 @@ class ModuleSsoService extends BaseService
 
     private function pendingReturnPath(): ?string
     {
+        $userId =
+            (int) Session::get(
+                'auth_user_id',
+                0
+            );
+
+        return $this->pendingReturnPathForUser(
+            $userId > 0
+                ? $userId
+                : null
+        );
+    }
+
+
+    private function pendingReturnPathForUser(
+        ?int $userId = null
+    ): ?string {
         $intent =
             Session::get(
                 self::INTENT_KEY
@@ -369,6 +396,64 @@ class ModuleSsoService extends BaseService
          * it to redirect a later unrelated login.
          */
         if (!is_array($intent)) {
+            $this->forgetPendingIntent();
+
+            return null;
+        }
+
+        $bindingVersion =
+            (int) (
+                $intent[
+                    'owner_binding_version'
+                ]
+                ?? 0
+            );
+
+        if ($bindingVersion !== 1) {
+            $this->forgetPendingIntent();
+
+            return null;
+        }
+
+        $ownerFingerprint =
+            strtolower(
+                trim(
+                    (string) (
+                        $intent[
+                            'owner_fingerprint'
+                        ]
+                        ?? ''
+                    )
+                )
+            );
+
+        if (
+            $ownerFingerprint !== ''
+            &&
+            preg_match(
+                '/^[a-f0-9]{64}$/D',
+                $ownerFingerprint
+            ) !== 1
+        ) {
+            $this->forgetPendingIntent();
+
+            return null;
+        }
+
+        if (
+            $ownerFingerprint !== ''
+            &&
+            $userId !== null
+            &&
+            $userId > 0
+            &&
+            !(
+                new AdminLoginReturnPathService()
+            )->ownerFingerprintMatchesUser(
+                $ownerFingerprint,
+                $userId
+            )
+        ) {
             $this->forgetPendingIntent();
 
             return null;
@@ -485,13 +570,100 @@ class ModuleSsoService extends BaseService
                 $metadata['mfa_verified']
             );
 
-        $record['safe_redirect_path'] =
+        $safeRedirectPath =
             $this->returnPath(
                 (string) (
                     $record['redirect_path']
                     ?? ''
                 )
             );
+
+        /*
+         * DESTINATION_USER_BOUND_RETURN_V1
+         *
+         * Core and module sessions are deliberately
+         * host-scoped.
+         *
+         * Therefore the destination module host is the
+         * authoritative place to compare its surviving
+         * host-local owner hint with the identity carried
+         * by the freshly consumed SSO authorization code.
+         *
+         * This executes before AuthService::finalizeLogin()
+         * on the destination host, so a different user
+         * cannot overwrite the historical owner hint
+         * before the comparison.
+         *
+         * The hint grants no authorization. A mismatch
+         * only removes the historical deep destination.
+         */
+        $recordUserId =
+            max(
+                0,
+                (int) (
+                    $record['user_id']
+                    ?? 0
+                )
+            );
+
+        if ($recordUserId < 1) {
+            return null;
+        }
+
+        $returnOwner =
+            new AdminLoginReturnPathService();
+
+        $ownerFingerprint =
+            $returnOwner
+                ->currentOwnerFingerprint();
+
+        $record['safe_return_owner_state'] =
+            'unbound';
+
+        if ($ownerFingerprint !== '') {
+
+            if (
+                $returnOwner
+                    ->ownerFingerprintMatchesUser(
+                        $ownerFingerprint,
+                        $recordUserId
+                    )
+            ) {
+                $record[
+                    'safe_return_owner_state'
+                ] =
+                    'matched';
+
+            } else {
+
+                $record[
+                    'safe_return_owner_state'
+                ] =
+                    'mismatch';
+
+                /*
+                 * Never reuse the previous user's exact
+                 * module destination. Fall back only to
+                 * this destination host's registered
+                 * module root.
+                 */
+                $moduleRoutePath =
+                    trim(
+                        (string) (
+                            $module['route_path']
+                            ?? ''
+                        )
+                    );
+
+                $safeRedirectPath =
+                    $this->returnPath(
+                        $moduleRoutePath
+                    );
+            }
+        }
+
+        $record['safe_redirect_path'] =
+            $safeRedirectPath;
 
         return $record;
     }

@@ -136,6 +136,17 @@ class AuthService extends BaseService
             $mfaVerified
         );
 
+        /*
+         * USER_BOUND_LOGIN_RETURN_OWNER_V1
+         *
+         * Store only a non-authenticating ownership hint.
+         */
+        (
+            new AdminLoginReturnPathService()
+        )->rememberAuthenticatedOwner(
+            $userId
+        );
+
         // last_login_at means a completed authenticated session, not merely
         // a successfully verified password.
         $this->users->updateLastLogin($userId);
@@ -178,8 +189,19 @@ class AuthService extends BaseService
          * Explicit logout is terminal. Local return
          * destinations must not survive it.
          */
-        (new AdminLoginReturnPathService())
+        $loginReturn =
+            new AdminLoginReturnPathService();
+
+        $loginReturn
             ->forgetPendingIntent();
+
+        /*
+         * Explicit logout is terminal.
+         * Natural timeout does not execute this path.
+         */
+        $loginReturn
+            ->forgetOwnerHint();
+
         Session::forget('messages_unread_on_login');
 
         /*
@@ -241,6 +263,16 @@ class AuthService extends BaseService
             return null;
         }
 
+        /*
+         * Upgrade an authenticated session opened before
+         * this patch on its next validated request.
+         */
+        (
+            new AdminLoginReturnPathService()
+        )->rememberAuthenticatedOwner(
+            $userId
+        );
+
         return $this->safeUser($user);
     }
 
@@ -289,6 +321,12 @@ class AuthService extends BaseService
                     $this->passwordFingerprint(
                         $updatedUser
                     )
+                );
+
+                (
+                    new AdminLoginReturnPathService()
+                )->rememberAuthenticatedOwner(
+                    $userId
                 );
             }
         }

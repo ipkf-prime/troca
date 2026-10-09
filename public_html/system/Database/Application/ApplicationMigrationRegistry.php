@@ -159,6 +159,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\CreateSchedulerFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingRequesterOnboardingFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingDynamicMembershipFormFoundation::class,
+                    \IPKF\Database\Migrations\RetireLegacyTicketingOrganizationMembershipField::class,
                     \IPKF\Database\Migrations\CreateTicketingRequesterMembershipApprovalFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingDynamicScopeDimensionFoundation::class,
                     \IPKF\Database\Migrations\CreateTicketingProjectSourceStagingFoundation::class,
