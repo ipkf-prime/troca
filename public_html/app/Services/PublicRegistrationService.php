@@ -406,6 +406,10 @@ final class PublicRegistrationService extends BaseService
                 }
             }
 
+            $this->ensurePersonPublicReference(
+                (int) $personId
+            );
+
         } catch (Throwable) {
             if ($newIdentity) {
                 $this->compensate(
@@ -502,6 +506,78 @@ final class PublicRegistrationService extends BaseService
                 $attempt['dev_token']
                 ?? null,
         ];
+    }
+
+    /*
+     * PUBLIC_REGISTRATION_PERSON_REFERENCE_BRIDGE_R5
+     *
+     * A Person created or reused by public registration must already
+     * have its stable Core public reference before OTP activation can
+     * make the User authenticatable.
+     *
+     * The update is intentionally idempotent so retrying an existing
+     * pending registration never rotates an established reference.
+     */
+    private function ensurePersonPublicReference(
+        int $personId
+    ): void {
+        if ($personId < 1) {
+            throw new \RuntimeException(
+                'person_reference_person_invalid'
+            );
+        }
+
+        $statement =
+            $this->db->prepare("
+                UPDATE persons
+
+                SET
+                    public_reference =
+                        UUID(),
+                    updated_at =
+                        CURRENT_TIMESTAMP
+
+                WHERE id = ?
+
+                  AND (
+                        public_reference IS NULL
+                        OR TRIM(public_reference) = ''
+                  )
+            ");
+
+        $statement->execute([
+            $personId,
+        ]);
+
+        $statement =
+            $this->db->prepare("
+                SELECT public_reference
+
+                FROM persons
+
+                WHERE id = ?
+
+                LIMIT 1
+            ");
+
+        $statement->execute([
+            $personId,
+        ]);
+
+        $reference =
+            trim(
+                (string) (
+                    $statement
+                        ->fetchColumn()
+                    ?: ''
+                )
+            );
+
+        if ($reference === '') {
+            throw new \RuntimeException(
+                'person_reference_generation_failed'
+            );
+        }
     }
 
     private function normalizeName(

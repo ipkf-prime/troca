@@ -68,6 +68,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\SeedPasswordRecoveryEmailBaleTemplates::class,
                     \IPKF\Database\Migrations\SeedForgotPasswordDynamicUiContent::class,
                     \IPKF\Database\Migrations\CreatePublicRegistrationOtpFoundation::class,
+                    \IPKF\Database\Migrations\RepairPersonPublicReferencesForOnboarding::class,
                     \IPKF\Database\Migrations\CreateCommunicationCenterFoundationTables::class,
                     \IPKF\Database\Migrations\ExposeAutomationSecretariatNavigation::class,
                     \IPKF\Database\Migrations\ExposeTicketingNavigation::class,

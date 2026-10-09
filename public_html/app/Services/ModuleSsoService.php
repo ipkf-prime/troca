@@ -317,6 +317,7 @@ class ModuleSsoService extends BaseService
             in_array(
                 $path,
                 [
+                    '/admin/ticketing',
                     '/admin/ticketing/tickets',
                     '/admin/ticketing/tickets/create',
                 ],
