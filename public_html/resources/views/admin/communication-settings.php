@@ -473,7 +473,7 @@ require BASE_PATH
                                         } elseif (
                                             $providerTypeCode === 'kavenegar_lookup'
                                         ) {
-                                            $providerTestKind = 'sms';
+                                            $providerTestKind = 'lookup';
                                         } elseif (
                                             $providerTypeCode === 'bale_bot'
                                         ) {
