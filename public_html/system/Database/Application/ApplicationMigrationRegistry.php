@@ -86,6 +86,7 @@ class ApplicationMigrationRegistry
                     \IPKF\Database\Migrations\ExtendNotificationProviderManagement::class,
                     \IPKF\Database\Migrations\EnableNotificationProviderManagementCrud::class,
                     \IPKF\Database\Migrations\ExpandNotificationProviderCatalog::class,
+                    \IPKF\Database\Migrations\RegisterKavenegarLookupProvider::class,
                     \IPKF\Database\Migrations\ExtendEmailProviderSenderIdentity::class,
                     \IPKF\Database\Migrations\EnableNotificationProviderTestSend::class,
                     \IPKF\Database\Migrations\EnableNotificationProviderExtendedTestSend::class,

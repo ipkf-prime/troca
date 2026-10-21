@@ -154,6 +154,7 @@ $statusMessages = [
     'provider_test_bale_sent' => ['success', 'پیام آزمایشی با موفقیت در بله ارسال شد.'],
     'provider_test_unsupported' => ['error', 'آزمون ارسال برای این سرویس‌دهنده هنوز پشتیبانی نمی‌شود.'],
     'provider_test_mobile_invalid' => ['error', 'شماره تلفن همراه مقصد معتبر نیست.'],
+    'provider_test_lookup_token_invalid' => ['error', 'برای تست Lookup، یک کد ۶ رقمی وارد کنید.'],
     'provider_test_chat_id_invalid' => ['error', 'شناسه گفت‌وگوی بله معتبر نیست.'],
     'provider_test_api_key_missing' => ['error', 'کلید API پیامک در اطلاعات محرمانه حساب ثبت نشده است.'],
     'provider_test_bot_token_missing' => ['error', 'توکن بات بله در اطلاعات محرمانه حساب ثبت نشده است.'],
@@ -467,6 +468,10 @@ require BASE_PATH
                                             $providerTestKind = 'email';
                                         } elseif (
                                             $providerTypeCode === 'kavenegar'
+                                        ) {
+                                            $providerTestKind = 'sms';
+                                        } elseif (
+                                            $providerTypeCode === 'kavenegar_lookup'
                                         ) {
                                             $providerTestKind = 'sms';
                                         } elseif (
@@ -1295,7 +1300,7 @@ require BASE_PATH
                         </label>
 
                         <label>
-                            <span>متن پیام</span>
+                            <span data-provider-test-body-label>متن پیام</span>
                             <textarea
                                 name="body"
                                 maxlength="10000"
@@ -1357,6 +1362,9 @@ require BASE_PATH
                 const body = dialog.querySelector(
                     '[data-provider-test-body]'
                 );
+                const bodyLabel = dialog.querySelector(
+                    '[data-provider-test-body-label]'
+                );
 
                 const modes = {
                     email: {
@@ -1386,6 +1394,18 @@ require BASE_PATH
                             'پیامک آزمایشی سامانه IPKF؛ '
                             + 'تنظیمات ارسال با موفقیت '
                             + 'در حال بررسی است.',
+                        showSubject: false,
+                        endpoint: 'test-send',
+                    },
+                    lookup: {
+                        heading: 'تست ارسال پیامک خدماتی Lookup',
+                        recipientLabel: 'شماره تلفن همراه مقصد',
+                        recipientType: 'tel',
+                        inputMode: 'tel',
+                        autocomplete: 'tel',
+                        placeholder: '09123456789',
+                        subject: '',
+                        body: '',
                         showSubject: false,
                         endpoint: 'test-send',
                     },
@@ -1472,6 +1492,11 @@ require BASE_PATH
 
                         if (body) {
                             body.value = mode.body;
+                        if (bodyLabel) {
+                            bodyLabel.textContent = kind === 'lookup'
+                                ? 'کد آزمایشی ۶ رقمی (بدون متن پیام)'
+                                : 'متن پیام';
+                        }
                         }
 
                         dialog.hidden = false;
@@ -1779,6 +1804,16 @@ require BASE_PATH
                         );
                     });
                 });
+
+                form.addEventListener('invalid', (event) => {
+                    const panel = event.target.closest(
+                        '[data-provider-editor-panel]'
+                    );
+                    if (panel) {
+                        activateWorkspace('editor');
+                        activateEditor(panel.dataset.providerEditorPanel);
+                    }
+                }, true);
 
                 form.addEventListener('reset', () => {
                     window.setTimeout(() => {

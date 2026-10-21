@@ -26,6 +26,9 @@ class NotificationProviderManagementService extends BaseService
         'business_account_id' => 'شناسه حساب تجاری',
         'api_version' => 'نسخه API',
         'provider_name' => 'نام سرویس‌دهنده',
+        'register_template' => 'الگوی ثبت‌نام',
+        'login_template' => 'الگوی ورود و احراز هویت',
+        'approval_template' => 'الگوی تأیید عملیات',
     ];
 
     private const SECRET_FIELDS = [
@@ -61,6 +64,13 @@ class NotificationProviderManagementService extends BaseService
             [
                 'key' => 'api_key',
                 'label' => 'کلید سرویس کاوه‌نگار',
+                'required' => true,
+            ],
+        ],
+        'kavenegar_lookup' => [
+            [
+                'key' => 'api_key',
+                'label' => 'کلید سرویس کاوه‌نگار Lookup',
                 'required' => true,
             ],
         ],
