@@ -56,6 +56,14 @@ class NotificationProviderTestService extends BaseService
             );
         }
 
+        if ($providerCode === 'kavenegar_lookup') {
+            return $this->sendKavenegarLookupInstance(
+                $userId,
+                $instance,
+                $input
+            );
+        }
+
         if ($providerCode === 'kavenegar') {
             return $this->sendKavenegarInstance(
                 $userId,
@@ -258,6 +266,86 @@ class NotificationProviderTestService extends BaseService
                 0,
                 $exception
             );
+        }
+    }
+
+    private function sendKavenegarLookupInstance(
+        int $userId,
+        array $instance,
+        array $input
+    ): array {
+        $recipient = $this->mobile(
+            (string) ($input['recipient'] ?? '')
+        );
+        $code = trim((string) ($input['body'] ?? ''));
+
+        if (preg_match('/^[0-9]{6}$/D', $code) !== 1) {
+            throw new InvalidArgumentException(
+                'provider_test_lookup_token_invalid'
+            );
+        }
+
+        $audit = [
+            'provider_type_code' => 'kavenegar_lookup',
+            'channel_code' => 'sms',
+            'target_suffix' => substr($recipient, -4),
+            'purpose_code' => 'registration',
+        ];
+
+        try {
+            $adapter = new NotificationKavenegarLookupGatewayAdapter(
+                new NotificationProviderRuntimeService(
+                    $this->repository,
+                    $this->secrets
+                ),
+                $this->http
+            );
+            $result = $adapter->send($instance, [
+                'destination' => $recipient,
+                'lookup_token' => $code,
+                'purpose_code' => 'registration',
+            ]);
+
+            $messageId = (string) (
+                $result['provider_message_reference'] ?? ''
+            );
+            $duration = (int) ($result['duration_ms'] ?? 0);
+
+            $this->record(
+                $instance,
+                $userId,
+                true,
+                'provider_test_sms_sent',
+                $audit + [
+                    'message_id' => $messageId,
+                    'duration_ms' => $duration,
+                    'response_code' => (string) (
+                        $result['response_code'] ?? ''
+                    ),
+                ],
+                'sms'
+            );
+
+            return [
+                'status_code' => 'provider_test_sms_sent',
+                'message_id' => $messageId,
+                'response_code' => 200,
+                'duration_ms' => $duration,
+            ];
+        } catch (Throwable $exception) {
+            $code = $this->errorCode(
+                $exception,
+                'provider_test_api_rejected'
+            );
+            $this->record(
+                $instance,
+                $userId,
+                false,
+                $code,
+                $audit + ['error_code' => $code],
+                'sms'
+            );
+            throw new RuntimeException($code, 0, $exception);
         }
     }
 

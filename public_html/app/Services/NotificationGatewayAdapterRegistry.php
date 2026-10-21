@@ -14,6 +14,7 @@ class NotificationGatewayAdapterRegistry extends BaseService
         $this->adapters = $adapters ?? [
             new NotificationSmtpGatewayAdapter(),
             new NotificationKavenegarGatewayAdapter(),
+            new NotificationKavenegarLookupGatewayAdapter(),
             new NotificationBaleGatewayAdapter(),
         ];
     }
