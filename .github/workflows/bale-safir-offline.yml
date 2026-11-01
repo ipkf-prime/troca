@@ -25,6 +25,8 @@ on:
       - 'scripts/safir_prod_ui_v2_stage.sh'
       - 'scripts/safir_prod_ui_v2_actual_baseline_stage.sh'
       - 'scripts/safir_prod_ui_v2_immutable_candidate.sh'
+      - 'scripts/safir_prod_ui_v2_portal_atomic_cutover.sh'
+      - 'scripts/safir_prod_ui_v2_emergency_rollback.sh'
       - 'scripts/safir_prod_portal_runtime_prepare.sh'
       - 'scripts/safir_prod_portal_immutable_candidate.sh'
       - 'scripts/safir_prod_portal_cutover_readiness.sh'
@@ -73,6 +75,8 @@ jobs:
           bash -n scripts/safir_prod_ui_v2_stage.sh
           bash -n scripts/safir_prod_ui_v2_actual_baseline_stage.sh
           bash -n scripts/safir_prod_ui_v2_immutable_candidate.sh
+          bash -n scripts/safir_prod_ui_v2_portal_atomic_cutover.sh
+          bash -n scripts/safir_prod_ui_v2_emergency_rollback.sh
           # Shell syntax permits escaped dollars, so explicitly reject literal
           # placeholders in the two mandatory deployment-contract checks.
           if grep -Fq '\\${PORTAL_' scripts/safir_prod_ui_v2_immutable_candidate.sh; then
