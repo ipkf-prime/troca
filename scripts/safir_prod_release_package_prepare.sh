@@ -21,6 +21,15 @@ case "$ACTIVE" in "$BASE"/releases/*) : ;; *) fail BAD_ACTIVE_TARGET ;; esac
 # shellcheck disable=SC1091
 source /etc/ipkf-release/contract.env
 
+# Never package while an existing shared runtime setting could permit sending.
+# This scans the server-owned env without printing any value or secret.
+if [ -n "${ENV_FILE:-}" ] && [ -r "$ENV_FILE" ]; then
+  if grep -Eiq '^[[:space:]]*(BALE_SAFIR_SEND_ENABLED|BALE_SAFIR_PRODUCTION_APPROVED)[[:space:]]*=[[:space:]]*["'\'' ]*(true|yes|1)' "$ENV_FILE"; then
+    fail "SAFIR_SEND_FLAGS_NOT_SAFE_DISABLED"
+  fi
+fi
+echo PRODUCTION_SEND_FLAG_GATE=PASS
+
 # The official deploy replaces all four modules. Fail closed on differences:
 # never replace distinct code installed in Automation, Work or Ticketing.
 for label in portal automation work service; do
@@ -172,6 +181,9 @@ RELEASE_ID=$RELEASE_ID
 SOURCE_COMMIT=$SOURCE_COMMIT
 RUN_MIGRATIONS=NO
 RUN_SYSTEM_SEEDS=NO
+RELEASE_BUILD_MODE=LIVE_BASELINE_PLUS_PINNED_SAFIR_OVERLAY
+BASELINE_RELEASE_NAME=$(basename "$ACTIVE")
+OVERLAY_SOURCE_COMMIT=$SOURCE_COMMIT
 EOF
 tar -C "$WORK/app" -czf "$WORK/meta/app.tar.gz" .
 (
