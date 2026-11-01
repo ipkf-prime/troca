@@ -8,6 +8,9 @@ on:
     paths:
       - 'public_html/app/Services/BaleSafirCampaignService.php'
       - 'public_html/app/Services/BaleSafirTemplateCatalogService.php'
+      - 'public_html/app/Services/DynamicAdminNavigationService.php'
+      - 'public_html/resources/views/admin/safir-management.php'
+      - 'public_html/routes/communication-center.php'
       - 'public_html/resources/ui-content/bale-safir-templates.json'
       - 'public_html/routes/bale-safir-campaigns.php'
       - 'public_html/resources/views/admin/partials/bale-safir-campaign.php'
@@ -47,6 +50,9 @@ jobs:
           for file in \
             public_html/app/Services/BaleSafirCampaignService.php \
             public_html/app/Services/BaleSafirTemplateCatalogService.php \
+            public_html/app/Services/DynamicAdminNavigationService.php \
+            public_html/resources/views/admin/safir-management.php \
+            public_html/routes/communication-center.php \
             public_html/app/Services/CommunicationSettingsService.php \
             public_html/app/Services/AdminNavigationRbacService.php \
             public_html/system/Routing/RouteLoader.php \
