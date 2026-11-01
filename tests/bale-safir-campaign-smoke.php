@@ -45,6 +45,10 @@ if (!is_array($invite) || ($invite['template_id'] ?? '') !== 'yHdC0D'
 ) {
     throw new RuntimeException('CATALOG_SEED_INVALID');
 }
+if (BaleSafirTemplateCatalogService::placeholders('کد {{شماره_پیگیری}} / {{serial}}') !== ['شماره_پیگیری', 'serial']) {
+    throw new RuntimeException('UNICODE_VARIABLE_PARSE_FAILED');
+}
+echo "UNICODE_VARIABLE_PARSE=PASS\n";
 echo "CATALOG_SEED=PASS\n";
 
 $tmpDirectory = sys_get_temp_dir() . '/ipkf_safir_' . bin2hex(random_bytes(6));
