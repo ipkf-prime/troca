@@ -114,7 +114,7 @@ $router->get('/admin/communications/settings/safir/export', function ($request, 
             ->header('Content-Disposition', 'attachment; filename="bale-safir-report.csv"')
             ->header('Cache-Control', 'private, no-store')
             ->header('X-Content-Type-Options', 'nosniff')
-            ->body($csv);
+            ->send($csv);
     } catch (\Throwable) {
         return $response->redirect('/admin/communications/settings?section=safir&status=safir_export_failed');
     }
