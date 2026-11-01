@@ -45,7 +45,7 @@ printf 'GITHUB_SOURCE_COMMIT=%s\n' "$SOURCE_COMMIT"
   b1e4235c13a70d1e03f0afc4da8ed9cf5d530c49:public_html/resources/ui-content/bale-safir-templates.json \
   7f6cac60063b7e13cb38d6a361a3368a3fdd4385:public_html/routes/bale-safir-campaigns.php \
   0ead7d17db61752f8d53ed7664db7be9873b86d4:public_html/resources/views/admin/partials/bale-safir-campaign.php \
-  09da35eb8487268d1d439f0fb9870e91588b1be7:tests/bale-safir-campaign-smoke.php
+  8799d7d97f20464d3f5526f40a06e99ef230edb6:tests/bale-safir-campaign-smoke.php
  do
    IFS=: read -r expected relative <<< "$spec"
    actual="$(git hash-object "$relative")"
@@ -75,7 +75,8 @@ done
 # into the isolated preflight tree; do not modify the running release.
 for relative in \
  system/Support/Env.php \
- system/Support/Session.php; do
+ system/Support/Session.php \
+ system/Http/Response.php; do
  [ -f "$ACTIVE/$relative" ] || fail "SMOKE_DEPENDENCY_MISSING:$relative"
  mkdir -p "$(dirname "$PATCHED/public_html/$relative")"
  install -m 0640 "$ACTIVE/$relative" "$PATCHED/public_html/$relative"
@@ -121,6 +122,7 @@ for relative in \
  public_html/resources/views/admin/communication-settings.php \
  public_html/system/Support/Env.php \
  public_html/system/Support/Session.php \
+ public_html/system/Http/Response.php \
  public_html/app/Services/BaleSafirCampaignService.php \
  public_html/app/Services/BaleSafirTemplateCatalogService.php \
  public_html/routes/bale-safir-campaigns.php \
