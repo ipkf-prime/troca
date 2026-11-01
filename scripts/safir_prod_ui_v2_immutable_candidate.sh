@@ -20,8 +20,8 @@ META="$BASE/releases/$RELEASE_NAME.safir-ui-v2-receipt"
 [ -r /etc/ipkf-release/contract.env ] || fail CONTRACT_MISSING
 # shellcheck source=/dev/null
 source /etc/ipkf-release/contract.env
-[ "\${PORTAL_BASE:-}" = "$BASE" ] || fail PORTAL_CONTRACT_MISMATCH
-[ "\${PORTAL_USER:-}" = troca-portal-test ] || fail PORTAL_USER_UNEXPECTED
+[ "${PORTAL_BASE:-}" = "$BASE" ] || fail PORTAL_CONTRACT_MISMATCH
+[ "${PORTAL_USER:-}" = troca-portal-test ] || fail PORTAL_USER_UNEXPECTED
 [ -L "$CURRENT" ] && [ "$(readlink -e "$CURRENT")" = "$ACTIVE" ] ||
   fail ACTIVE_RELEASE_CHANGED
 [ -d "$STAGE" ] && [ ! -L "$STAGE" ] || fail STAGE_DIRECTORY_INVALID
