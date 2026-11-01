@@ -25,6 +25,7 @@ on:
       - 'scripts/safir_prod_portal_only_stage.sh'
       - 'scripts/safir_prod_ui_v2_stage.sh'
       - 'scripts/safir_prod_ui_v2_actual_baseline_stage.sh'
+      - 'scripts/safir_prod_ui_v21_stage.sh'
       - 'scripts/safir_prod_ui_v2_immutable_candidate.sh'
       - 'scripts/safir_prod_ui_v2_portal_atomic_cutover.sh'
       - 'scripts/safir_prod_ui_v2_emergency_rollback.sh'
@@ -76,6 +77,7 @@ jobs:
           bash -n scripts/safir_prod_portal_only_stage.sh
           bash -n scripts/safir_prod_ui_v2_stage.sh
           bash -n scripts/safir_prod_ui_v2_actual_baseline_stage.sh
+          bash -n scripts/safir_prod_ui_v21_stage.sh
           bash -n scripts/safir_prod_ui_v2_immutable_candidate.sh
           bash -n scripts/safir_prod_ui_v2_portal_atomic_cutover.sh
           bash -n scripts/safir_prod_ui_v2_emergency_rollback.sh
