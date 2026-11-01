@@ -33,7 +33,7 @@ $requirements = [
     'DISPATCH_FORM_UNMODIFIED' => str_contains($view, 'id="safir-dispatch-form"'),
     'INLINE_RESPONSIVE_STYLE' => str_contains($view, '@media(max-width:760px)'),
 ];
-preg_match('/<table class="safir-table">[\s\S]*?<thead><tr>(.*?)<\/tr><\/thead>/', $view, $head);
+preg_match('/<table class="safir-table">[\s\S]*?<thead><tr>(.*?)<\/tr><\/thead>/s', $view, $head);
 $requirements['SIX_COLUMN_CATALOG'] = isset($head[1]) && substr_count($head[1], '<th>') === 6;
 foreach ($requirements as $code => $passed) {
     if (!$passed) {
