@@ -24,7 +24,7 @@ app/Services/DynamicAdminNavigationService.php|109dc227636b5744d888848dd6d88cc88
 resources/views/admin/communication-settings.php|93895868520ab14c7972cc026b1ef505607a8100|63f0af2918b180dc0ff79e0653c762dcb05410b0
 resources/views/admin/partials/bale-safir-campaign.php|0ead7d17db61752f8d53ed7664db7be9873b86d4|50ab7200ad5d70787d7b9f704d23fd40dec50594
 resources/views/admin/safir-management.php|NEW|a4f4a41c253ead960c0a024d9c508a7f4c5be104
-routes/bale-safir-campaigns.php|7f6cac60063b7e13cb38d6a361a3368a3fdd4385|0871781d9e69d5158d69d78ec72fe4f5557856a3
+routes/bale-safir-campaigns.php|7f6cac60063b7e13cb38d6e361a3368a3fdd4385|0871781d9e69d5158d69d78ec72fe4f5557856a3
 routes/communication-center.php|b8a03cfc2ca35cb382c52a5f8b2e26e87a896a58|150caeb730ff0fc6c8798f34b3df1f88f4651a98
 PINS
 cut -d'|' -f1 "$WORK/meta/pins.txt" > "$WORK/meta/allowed.txt"
