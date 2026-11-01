@@ -246,7 +246,7 @@ for uri in /admin/communications/safir '/admin/communications/safir?mode=create'
     fail "NEW_GUEST_ROUTE_UNREACHABLE:$uri"
   [ "$status" = 302 ] || fail "NEW_GUEST_ROUTE_HTTP:$uri:$status"
 done
-echo SAFIR_V2_GUEST_ROUTE_AND_RBAC=PASS
+echo SAFIR_V2_GUEST_AUTH_GUARD=PASS
 [ "$(readlink -e "$CURRENT")" = "$CAND" ] || fail CURRENT_CHANGED_AFTER_HTTP
 [ "$(systemctl is-active nginx)" = active ] || fail NGINX_STOPPED
 [ "$(systemctl is-active php8.4-fpm)" = active ] || fail PHP_FPM_STOPPED
