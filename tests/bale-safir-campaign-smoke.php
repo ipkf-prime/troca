@@ -139,6 +139,21 @@ try {
         throw new RuntimeException('XLSX_DYNAMIC_HEADER_PARSE_FAILED: ' . json_encode($rows, JSON_UNESCAPED_UNICODE));
     }
     echo "XLSX_DYNAMIC_HEADER_PARSE=PASS\n";
+    $extra = '';
+    for ($i = 3; $i <= 3001; $i++) {
+        $extra .= '<row r="' . $i . '"><c r="A' . $i . '" t="inlineStr"><is><t>تست</t></is></c></row>';
+    }
+    $largeSheet = str_replace('</sheetData>', $extra . '</sheetData>', $sheet);
+    $zip = new ZipArchive();
+    $zip->open($workbook);
+    $zip->addFromString('xl/worksheets/sheet1.xml', $largeSheet);
+    $zip->close();
+    $many = $parse->invoke($service, $workbook);
+    if (count($many) !== 3000) {
+        throw new RuntimeException('XLSX_3000_ROW_CAPACITY_FAILED');
+    }
+    echo "XLSX_3000_ROW_CAPACITY=PASS\n";
+
 
     $duplicateSheet = str_replace('<v>1</v></c>', '<v>0</v></c>', $sheet);
     $zip = new ZipArchive();
