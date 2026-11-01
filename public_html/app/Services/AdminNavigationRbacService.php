@@ -127,6 +127,7 @@ class AdminNavigationRbacService extends BaseService
             '/admin/communications/settings/bale-menus/register' => 'admin.ui_content.manage',
             '/admin/system/help-texts/definition/save' => 'admin.ui_content.manage',
             '/admin/system/help-texts/override/save' => 'admin.ui_content.manage',
+            '/admin/communications/safir' => 'notifications.send.manage',
             '/admin/communications/settings/safir' => 'notifications.send.manage',
             '/admin/communications/settings/safir/export' => 'notifications.send.manage',
             '/admin/communications/templates' => 'admin.settings.manage',
