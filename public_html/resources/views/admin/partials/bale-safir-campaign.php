@@ -81,6 +81,9 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
                     <input name="template_id" required dir="ltr" value="<?= admin_h($tpl['template_id']) ?>"></label>
                 <label><span>ستون شماره مقصد در اکسل</span>
                     <input name="phone_column" required value="<?= admin_h($tpl['phone_column']) ?>"></label>
+                <label><span>نوع پیام در سفیر</span><input name="message_type" value="<?= admin_h($tpl['message_type'] ?? '') ?>" placeholder="خدماتی"></label>
+                <label><span>تعرفه هر پیام (ریال)</span><input name="unit_price_irr" dir="ltr" inputmode="numeric" value="<?= admin_h($tpl['unit_price_irr'] ?? '') ?>"></label>
+                <label><span>تاریخ ثبت در پنل سفیر</span><input name="provider_created_at" dir="ltr" value="<?= admin_h($tpl['provider_created_at'] ?? '') ?>"></label>
                 <label class="communication-form__wide"><span>متن قالب و متغیرها</span>
                     <textarea rows="7" name="body" required style="width:100%" data-safir-body><?= admin_h($tpl['body']) ?></textarea></label>
                 <div class="communication-form__wide" data-safir-mappings>
@@ -115,6 +118,9 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
             <label><span>شناسه بازو (Bot ID)</span><input name="bot_id" required dir="ltr"></label>
             <label><span>شناسه قالب تأییدشده در سفیر</span><input name="template_id" required dir="ltr"></label>
             <label><span>نام ستون شماره در اکسل</span><input name="phone_column" required value="شماره همراه"></label>
+            <label><span>نوع پیام در سفیر</span><input name="message_type" placeholder="خدماتی"></label>
+            <label><span>تعرفه هر پیام (ریال)</span><input name="unit_price_irr" dir="ltr" inputmode="numeric"></label>
+            <label><span>تاریخ ثبت در پنل سفیر</span><input name="provider_created_at" dir="ltr" placeholder="۱۴۰۵/۰۸/۰۹"></label>
             <label class="communication-form__wide">
                 <span>متن تأییدشده قالب؛ هر متغیر را مانند <code dir="ltr">{{tracking_code}}</code> بنویسید</span>
                 <textarea name="body" data-safir-body required rows="6" style="width:100%"></textarea>
