@@ -123,7 +123,7 @@ final class BaleSafirTemplateCatalogService
     public static function placeholders(string $body): array
     {
         preg_match_all('/\{\{([^{}]*)\}\}/u', $body, $all);
-        preg_match_all('/\{\{([a-zA-Z][a-zA-Z0-9_]*)\}\}/u', $body, $valid);
+        preg_match_all('/\{\{([\p{L}_][\p{L}\p{N}_]*)\}\}/u', $body, $valid);
         if (count($all[0]) !== count($valid[0]) ||
             preg_match('/\{\{|\}\}/u', str_replace($valid[0], '', $body))) {
             throw new RuntimeException('safir_template_variables_invalid');
