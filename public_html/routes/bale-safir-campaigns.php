@@ -1,6 +1,34 @@
 <?php
 declare(strict_types=1);
 
+
+$router->get('/admin/communications/safir', function ($request, $response) use ($adminRender, $adminGuard) {
+    $context = $adminGuard($response, '/admin/communications/safir');
+    if (!is_array($context)) {
+        return $context;
+    }
+    $actor = (int) $context['user_id'];
+    if (!(new \App\Services\AuthorizationService())->hasPermission($actor, 'notifications.send.manage')) {
+        return $response->status(403)->send('Forbidden');
+    }
+    $editing = trim((string) $request->input('edit', ''));
+    if ($editing !== '' && !preg_match('/^[a-z][a-z0-9._-]{1,63}$/D', $editing)) {
+        return $response->status(400)->send('Invalid template reference');
+    }
+    $mode = (string) $request->input('mode', '');
+    $page = [
+        'safir_campaign' => (new \App\Services\BaleSafirCampaignService())->page($actor, $editing),
+        'safir_edit' => $editing,
+        'safir_mode' => $mode === 'create' ? 'create' : ($editing !== '' ? 'edit' : 'list'),
+    ];
+    return $adminRender($response, 'safir-management', [
+        'title' => 'کمپین‌های سفیر بله',
+        'context' => $context,
+        'page' => $page,
+        'status' => (string) $request->input('status', ''),
+    ]);
+});
+
 /*
  * Bale Safir: separate phone-number/template API.
  * Never route these requests through the existing chat_id bot adapter.
@@ -12,12 +40,12 @@ $router->post('/admin/communications/settings/safir', function ($request, $respo
     }
     $actor = (int) $context['user_id'];
     $service = new \App\Services\BaleSafirCampaignService();
-    $redirect = '/admin/communications/settings?section=safir';
+    $redirect = '/admin/communications/safir';
     if (!(new \App\Services\AuthorizationService())->hasPermission($actor, 'notifications.send.manage')) {
         return $response->status(403)->send('Forbidden');
     }
     if (!(new \IPKF\Security\Csrf())->check((string) $request->input('_token', ''))) {
-        return $response->redirect($redirect . '&status=safir_invalid_csrf');
+        return $response->redirect($redirect . '?status=safir_invalid_csrf');
     }
     $action = (string) $request->input('action', '');
     try {
@@ -35,6 +63,7 @@ $router->post('/admin/communications/settings/safir', function ($request, $respo
                     'body' => $request->input('body', ''),
                     'provider_approved' => $request->input('provider_approved', '0'),
                     'mappings' => $request->input('mappings', []),
+                    'variable_items' => $request->input('variable_items', null),
                 ]);
                 $status = 'safir_template_saved';
                 break;
@@ -94,7 +123,7 @@ $router->post('/admin/communications/settings/safir', function ($request, $respo
             return $response->status(422)->json(['ok' => false, 'code' => $status]);
         }
     }
-    return $response->redirect($redirect . '&status=' . rawurlencode($status));
+    return $response->redirect($redirect . '?status=' . rawurlencode($status));
 });
 
 $router->get('/admin/communications/settings/safir/export', function ($request, $response) use ($adminGuard) {
@@ -116,6 +145,6 @@ $router->get('/admin/communications/settings/safir/export', function ($request, 
             ->header('X-Content-Type-Options', 'nosniff')
             ->send($csv);
     } catch (\Throwable) {
-        return $response->redirect('/admin/communications/settings?section=safir&status=safir_export_failed');
+        return $response->redirect('/admin/communications/safir?status=safir_export_failed');
     }
 });
