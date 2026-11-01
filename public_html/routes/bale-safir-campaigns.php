@@ -22,16 +22,33 @@ $router->post('/admin/communications/settings/safir', function ($request, $respo
     $action = (string) $request->input('action', '');
     try {
         switch ($action) {
-            case 'save_settings':
-                $service->saveSettings($actor, [
+            case 'save_template':
+                $service->saveTemplate($actor, [
+                    'code' => $request->input('code', ''),
+                    'title' => $request->input('title', ''),
                     'bot_id' => $request->input('bot_id', ''),
                     'template_id' => $request->input('template_id', ''),
+                    'phone_column' => $request->input('phone_column', ''),
                     'body' => $request->input('body', ''),
+                    'provider_approved' => $request->input('provider_approved', '0'),
+                    'mappings' => $request->input('mappings', []),
                 ]);
-                $status = 'safir_settings_saved';
+                $status = 'safir_template_saved';
+                break;
+            case 'toggle_template':
+                $service->toggleTemplate(
+                    $actor,
+                    (string) $request->input('code', ''),
+                    (string) $request->input('active', '0') === '1'
+                );
+                $status = 'safir_template_status_saved';
                 break;
             case 'import':
-                $service->import($actor, is_array($_FILES['recipients'] ?? null) ? $_FILES['recipients'] : []);
+                $service->import(
+                    $actor,
+                    is_array($_FILES['recipients'] ?? null) ? $_FILES['recipients'] : [],
+                    (string) $request->input('template_code', '')
+                );
                 $status = 'safir_imported';
                 break;
             case 'reset':
