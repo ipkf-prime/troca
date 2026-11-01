@@ -986,7 +986,7 @@ class DynamicAdminNavigationService extends BaseService
             'item_type' => 'link',
             'placement_code' => 'sidebar',
             'hide_when_badge_empty' => 0,
-            'title' => 'کمپین‌های سفیر بله',
+            'title' => 'قالب‌های سفیر بله',
             'description' => 'مدیریت قالب‌های پویا و پیش‌نمایش اکسل',
             'route_path' => '/admin/communications/safir',
             'target_application' => 'core',
