@@ -1,0 +1,46 @@
+name: Bale Safir XLSX Campaign (offline)
+on:
+  push:
+    branches:
+      - feature/bale-safir-excel-campaigns-dev
+  pull_request:
+    paths:
+      - 'public_html/app/Services/BaleSafirCampaignService.php'
+      - 'public_html/routes/bale-safir-campaigns.php'
+      - 'public_html/resources/views/admin/partials/bale-safir-campaign.php'
+      - 'public_html/resources/views/admin/communication-settings.php'
+      - 'public_html/app/Services/CommunicationSettingsService.php'
+      - 'public_html/app/Services/AdminNavigationRbacService.php'
+      - 'public_html/system/Routing/RouteLoader.php'
+      - 'tests/bale-safir-campaign-smoke.php'
+      - '.github/workflows/bale-safir-offline.yml'
+permissions:
+  contents: read
+jobs:
+  php-lint-and-offline-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: PHP environment
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: zip, simplexml, mbstring
+          coverage: none
+      - name: PHP syntax
+        run: |
+          set -euo pipefail
+          for file in \
+            public_html/app/Services/BaleSafirCampaignService.php \
+            public_html/app/Services/CommunicationSettingsService.php \
+            public_html/app/Services/AdminNavigationRbacService.php \
+            public_html/system/Routing/RouteLoader.php \
+            public_html/routes/bale-safir-campaigns.php \
+            public_html/resources/views/admin/partials/bale-safir-campaign.php \
+            public_html/resources/views/admin/communication-settings.php \
+            tests/bale-safir-campaign-smoke.php; do
+              php -l "$file"
+          done
+      - name: Safir offline contract smoke
+        run: php tests/bale-safir-campaign-smoke.php
