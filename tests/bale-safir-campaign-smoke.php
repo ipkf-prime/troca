@@ -100,6 +100,78 @@ try {
     $catalog->setActive('payment_reminder', true);
     echo "DYNAMIC_CATALOG_SAVE_EDIT_STATUS=PASS\n";
 
+    // New row-driven editor contract: editable label, English key, Excel column.
+    $one = $catalog->save([
+        'code' => 'dynamic_one',
+        'title' => 'یک متغیر',
+        'bot_id' => '1903835978',
+        'template_id' => 'newOne',
+        'phone_column' => 'شماره همراه',
+        'body' => 'سلام {{name}}',
+        'variable_items' => [
+            ['key_en' => 'name', 'label_fa' => 'نام و نام خانوادگی', 'excel_column' => 'نام + نام خانوادگی'],
+        ],
+    ]);
+    if (($one['mappings']['name'] ?? null) !== ['نام', 'نام خانوادگی']
+        || ($one['variable_labels']['name'] ?? null) !== 'نام و نام خانوادگی') {
+        throw new RuntimeException('ONE_VARIABLE_EDITOR_CONTRACT_FAILED');
+    }
+    echo "ONE_VARIABLE_EDITOR=PASS\n";
+
+    $hundredRows = [];
+    $hundredTags = [];
+    for ($i = 1; $i <= 100; $i++) {
+        $key = 'v' . $i;
+        $hundredRows[] = ['key_en' => $key, 'label_fa' => 'فیلد ' . $i, 'excel_column' => 'ستون ' . $i];
+        $hundredTags[] = '{{' . $key . '}}';
+    }
+    $hundred = $catalog->save([
+        'code' => 'dynamic_hundred',
+        'title' => 'صد متغیر',
+        'bot_id' => '1903835978',
+        'template_id' => 'newHundred',
+        'phone_column' => 'شماره همراه',
+        'body' => implode(' ', $hundredTags),
+        'variable_items' => $hundredRows,
+    ]);
+    if (count($hundred['mappings'] ?? []) !== 100
+        || count($hundred['variable_labels'] ?? []) !== 100) {
+        throw new RuntimeException('HUNDRED_VARIABLE_EDITOR_FAILED');
+    }
+    echo "HUNDRED_VARIABLE_EDITOR=PASS\n";
+
+    foreach ([
+        'duplicate' => [
+            ['key_en' => 'name', 'label_fa' => 'نام', 'excel_column' => 'نام'],
+            ['key_en' => 'name', 'label_fa' => 'نام دوم', 'excel_column' => 'نام خانوادگی'],
+        ],
+        'mismatch' => [
+            ['key_en' => 'wrong', 'label_fa' => 'کلید اشتباه', 'excel_column' => 'نام'],
+        ],
+    ] as $case => $variableRows) {
+        try {
+            $catalog->save([
+                'code' => 'invalid_' . $case,
+                'title' => 'غیرمجاز',
+                'bot_id' => '1903835978',
+                'template_id' => 'badTemplate',
+                'phone_column' => 'شماره همراه',
+                'body' => 'سلام {{name}}',
+                'variable_items' => $variableRows,
+            ]);
+            throw new RuntimeException('INVALID_VARIABLE_UNEXPECTED_PASS:' . $case);
+        } catch (RuntimeException $e) {
+            $expected = $case === 'duplicate'
+                ? 'safir_template_mapping_invalid'
+                : 'safir_template_variables_mismatch';
+            if ($e->getMessage() !== $expected) {
+                throw $e;
+            }
+        }
+    }
+    echo "VARIABLE_DUPLICATE_AND_MISMATCH_REJECTION=PASS\n";
+
+
     $payloadMethod = $reflect->getMethod('payload');
     $payload = $payloadMethod->invoke($service, $catalog->get('payment_reminder'), [
         'fields' => ['tracking_code' => 'TR-100', 'amount' => '450000'],
