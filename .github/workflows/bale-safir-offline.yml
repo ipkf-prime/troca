@@ -17,6 +17,7 @@ on:
       - 'public_html/system/Routing/RouteLoader.php'
       - 'tests/bale-safir-campaign-smoke.php'
       - 'scripts/safir_prod_overlay_preflight.sh'
+      - 'scripts/safir_prod_release_package_prepare.sh'
       - '.github/workflows/bale-safir-offline.yml'
 permissions:
   contents: read
@@ -48,6 +49,8 @@ jobs:
               php -l "$file"
           done
       - name: Production overlay script syntax (no execution)
-        run: bash -n scripts/safir_prod_overlay_preflight.sh
+        run: |
+          bash -n scripts/safir_prod_overlay_preflight.sh
+          bash -n scripts/safir_prod_release_package_prepare.sh
       - name: Safir offline contract smoke
         run: php tests/bale-safir-campaign-smoke.php
