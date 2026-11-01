@@ -5,7 +5,7 @@ set -Eeuo pipefail
 umask 077
 fail(){ printf 'FAIL=%s\n' "$*" >&2; exit 1; }
 [ "$(id -u)" -eq 0 ] || fail ROOT_REQUIRED
-for bin in git rsync php runuser nginx stat readlink grep sort diff mktemp mv install sha256sum; do
+for bin in git rsync php runuser nginx stat readlink grep sort diff mktemp mv install sha256sum python3 cmp sed cut wc; do
   command -v "$bin" >/dev/null || fail "MISSING_TOOL:$bin"
 done
 BASE=/srv/troca/portal-test
