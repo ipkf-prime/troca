@@ -236,6 +236,10 @@ final class BaleSafirCampaignService
                 break;
             }
             Session::put(self::SESSION_KEY, $campaign);
+            if ($result['status'] === 'sent' && $sent < 3) {
+                $delayMs = max(500, min(10000, (int) Env::get('BALE_SAFIR_INTERVAL_MS', 1500)));
+                usleep($delayMs * 1000);
+            }
             if ($result['status'] !== 'sent') {
                 // Stop on provider errors or uncertain delivery; don't automatically retry.
                 break;
@@ -515,6 +519,13 @@ final class BaleSafirCampaignService
         }
         if (preg_match('/^989[0-9]{9}$/D', $phone)) {
             return $phone;
+        }
+        // Excel may store 0912... as a number and drop the leading zero.
+        if (preg_match('/^9[0-9]{9}$/D', $phone)) {
+            return '98' . $phone;
+        }
+        if (preg_match('/^00989[0-9]{9}$/D', $phone)) {
+            return substr($phone, 2);
         }
         return null;
     }
