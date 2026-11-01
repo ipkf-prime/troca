@@ -22,7 +22,7 @@ $router->get('/admin/communications/safir', function ($request, $response) use (
         'safir_mode' => $mode === 'create' ? 'create' : ($editing !== '' ? 'edit' : 'list'),
     ];
     return $adminRender($response, 'safir-management', [
-        'title' => 'کمپین‌های سفیر بله',
+        'title' => 'مدیریت قالب‌های سفیر بله',
         'context' => $context,
         'page' => $page,
         'status' => (string) $request->input('status', ''),
