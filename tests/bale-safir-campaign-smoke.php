@@ -8,6 +8,7 @@ declare(strict_types=1);
 define('BASE_PATH', dirname(__DIR__) . '/public_html');
 require BASE_PATH . '/system/Support/Env.php';
 require BASE_PATH . '/system/Support/Session.php';
+require BASE_PATH . '/system/Http/Response.php';
 require BASE_PATH . '/app/Services/BaleSafirTemplateCatalogService.php';
 require BASE_PATH . '/app/Services/BaleSafirCampaignService.php';
 
@@ -35,6 +36,19 @@ foreach ($cases as [$input, $expected]) {
         throw new RuntimeException('PHONE_NORMALIZATION_FAILED: ' . $input);
     }
 }
+$exportRoute = (string) file_get_contents(BASE_PATH . '/routes/bale-safir-campaigns.php');
+if (str_contains($exportRoute, '->body(')) {
+    throw new RuntimeException('ROUTE_USES_UNSUPPORTED_RESPONSE_METHOD');
+}
+$response = (new \IPKF\Http\Response())
+    ->status(200)
+    ->header('Content-Type', 'text/csv; charset=UTF-8')
+    ->send('test,csv');
+if ($response->statusCode() !== 200) {
+    throw new RuntimeException('CSV_RESPONSE_COMPATIBILITY_FAILED');
+}
+echo "CSV_RESPONSE_COMPATIBILITY=PASS\n";
+
 echo "PHONE_NORMALIZATION=PASS\n";
 
 $catalog = new BaleSafirTemplateCatalogService();
