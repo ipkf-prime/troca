@@ -35,7 +35,7 @@ When uploading XLSX, select the template first. The file's first row contains **
 
 Accepts Iranian mobile numbers in formats `09...`, `989...`, `+989...`, `9...`, and `00989...`, including Persian/Arabic digits. Invalid/duplicate destinations and missing variable data are marked as skipped. Rejects formulas and duplicate header names.
 
-Import guardrails (technical, not template-type restrictions): 500 input rows, 2 MB compressed XLSX, 256 columns. Campaign previews and results are currently kept in the **authenticated server-side PHP session** and are not yet suitable for durable high-volume production operations.
+Import guardrails (technical, not template-type restrictions): 5,000 input rows by default (configurable with BALE_SAFIR_MAX_IMPORT_ROWS), 2 MB compressed XLSX, 256 columns. Campaign previews and results are currently kept in the **authenticated server-side PHP session** and are not yet suitable for durable high-volume production operations.
 
 For each row, the application sends:
 ```json
@@ -60,6 +60,7 @@ Set in private server configuration, **not in Git**:
 ```dotenv
 BALE_SAFIR_CATALOG_PATH=/absolute/persistent/private/path/bale-safir-templates.json
 BALE_SAFIR_MAX_TEMPLATES=200
+BALE_SAFIR_MAX_IMPORT_ROWS=5000
 BALE_SAFIR_API_ACCESS_KEY=
 BALE_SAFIR_SEND_ENABLED=false
 BALE_SAFIR_PRODUCTION_APPROVED=false
