@@ -17,8 +17,8 @@ CATALOG="$CATALOG_DIR/templates.json"
 [ -r /etc/ipkf-release/contract.env ] || fail RELEASE_CONTRACT_NOT_FOUND
 # shellcheck source=/dev/null
 source /etc/ipkf-release/contract.env
-[ "\${PORTAL_BASE:-}" = "$BASE" ] || fail PORTAL_BASE_MISMATCH
-[ -n "\${PORTAL_USER:-}" ] || fail PORTAL_USER_NOT_SET
+[ "${PORTAL_BASE:-}" = "$BASE" ] || fail PORTAL_BASE_MISMATCH
+[ -n "${PORTAL_USER:-}" ] || fail PORTAL_USER_NOT_SET
 id "$PORTAL_USER" >/dev/null 2>&1 || fail PORTAL_USER_UNKNOWN
 [ -L "$CURRENT" ] || fail CURRENT_NOT_SYMLINK
 ACTIVE="$(readlink -e "$CURRENT")" || fail CURRENT_UNRESOLVED
@@ -85,8 +85,8 @@ php -r '$p=$argv[1];$j=json_decode(file_get_contents($p),true,512,JSON_THROW_ON_
 for entry in \
   'storage|/srv/troca/portal-test/shared/storage' \
   'public/uploads|/srv/troca/portal-test/shared/public/uploads'; do
-  relative="\${entry%%|*}"
-  target="\${entry#*|}"
+  relative="${entry%%|*}"
+  target="${entry#*|}"
   [ -d "$target" ] || fail "RUNTIME_TARGET_MISSING:$relative"
   path="$STAGE/$relative"
   if [ -L "$path" ]; then
@@ -105,7 +105,7 @@ if [ -e "$STAGE/.env" ] || [ -L "$STAGE/.env" ]; then
   fail STAGE_ENV_ALREADY_EXISTS_REVIEW_REQUIRED
 fi
 for var in BALE_SAFIR_CATALOG_PATH BALE_SAFIR_SEND_ENABLED BALE_SAFIR_PRODUCTION_APPROVED BALE_SAFIR_MAX_IMPORT_ROWS; do
-  if grep -Eq "^[[:space:]]*\${var}[[:space:]]*=" "$ACTIVE/.env"; then
+  if grep -Eq "^[[:space:]]*${var}[[:space:]]*=" "$ACTIVE/.env"; then
     fail "ACTIVE_ENV_ALREADY_CONTAINS:$var"
   fi
 done
