@@ -498,6 +498,16 @@ $router->get(
             )
         );
 
+        if ($section === 'safir') {
+            // Preserve existing bookmarks without rendering a duplicate
+            // Safir editor inside general communication settings.
+            $status = trim((string) $request->input('status', ''));
+            return $response->redirect(
+                '/admin/communications/safir'
+                . ($status !== '' ? '?status=' . rawurlencode($status) : '')
+            );
+        }
+
         $approvalReference = trim(
             (string) $request->input(
                 'approval_reference',
