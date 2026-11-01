@@ -14,7 +14,7 @@ use RuntimeException;
  */
 final class BaleSafirTemplateCatalogService
 {
-    private const MAX_TEMPLATES = 200;
+    private const MAX_TEMPLATES_DEFAULT = 200;
 
     public function all(): array
     {
@@ -69,7 +69,8 @@ final class BaleSafirTemplateCatalogService
         $lock = $this->lock();
         try {
             $templates = $this->load();
-            if (!isset($templates[$code]) && count($templates) >= self::MAX_TEMPLATES) {
+            $limit = max(10, min(10000, (int) \IPKF\Support\Env::get('BALE_SAFIR_MAX_TEMPLATES', self::MAX_TEMPLATES_DEFAULT)));
+            if (!isset($templates[$code]) && count($templates) >= $limit) {
                 throw new RuntimeException('safir_catalog_full');
             }
             $existing = $templates[$code] ?? null;
@@ -132,9 +133,21 @@ final class BaleSafirTemplateCatalogService
         return $value;
     }
 
-    private function catalogPath(): string
+    private function catalogPath(): ?string
     {
-        return BASE_PATH . '/storage/private/bale_safir_templates.json';
+        $path = trim((string) \IPKF\Support\Env::get('BALE_SAFIR_CATALOG_PATH', ''));
+        if ($path === '') {
+            return null;
+        }
+        if (!str_starts_with($path, '/')
+            || str_contains($path, "\0")
+            || str_contains($path, '/../')
+            || str_ends_with($path, '/..')
+            || !str_ends_with($path, '.json')
+        ) {
+            throw new RuntimeException('safir_catalog_path_invalid');
+        }
+        return $path;
     }
 
     private function initialPath(): string
@@ -144,7 +157,8 @@ final class BaleSafirTemplateCatalogService
 
     private function load(): array
     {
-        $path = is_readable($this->catalogPath()) ? $this->catalogPath() : $this->initialPath();
+        $configured = $this->catalogPath();
+        $path = is_string($configured) && is_readable($configured) ? $configured : $this->initialPath();
         if (!is_readable($path)) {
             throw new RuntimeException('safir_catalog_missing');
         }
@@ -167,11 +181,15 @@ final class BaleSafirTemplateCatalogService
 
     private function lock()
     {
-        $directory = dirname($this->catalogPath());
+        $path = $this->catalogPath();
+        if ($path === null) {
+            throw new RuntimeException('safir_catalog_path_missing');
+        }
+        $directory = dirname($path);
         if (!is_dir($directory) && !mkdir($directory, 0700, true) && !is_dir($directory)) {
             throw new RuntimeException('safir_storage_unavailable');
         }
-        $lock = fopen($directory . '/bale_safir_templates.lock', 'c');
+        $lock = fopen($directory . '/.bale_safir_templates.lock', 'c');
         if (!$lock || !flock($lock, LOCK_EX)) {
             throw new RuntimeException('safir_storage_unavailable');
         }
@@ -180,7 +198,11 @@ final class BaleSafirTemplateCatalogService
 
     private function persist(array $templates): void
     {
-        $directory = dirname($this->catalogPath());
+        $path = $this->catalogPath();
+        if ($path === null) {
+            throw new RuntimeException('safir_catalog_path_missing');
+        }
+        $directory = dirname($path);
         $tmp = tempnam($directory, 'safir_');
         if (!is_string($tmp)) {
             throw new RuntimeException('safir_storage_unavailable');
@@ -192,7 +214,7 @@ final class BaleSafirTemplateCatalogService
             );
             if (file_put_contents($tmp, $json, LOCK_EX) === false
                 || !chmod($tmp, 0600)
-                || !rename($tmp, $this->catalogPath())
+                || !rename($tmp, $path)
             ) {
                 throw new RuntimeException('safir_storage_unavailable');
             }
