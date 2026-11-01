@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/bale-safir-excel-campaigns-dev
+      - feature/bale-safir-v090-integration-dev
   pull_request:
     paths:
       - 'public_html/app/Services/BaleSafirCampaignService.php'
