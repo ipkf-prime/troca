@@ -218,6 +218,7 @@ require BASE_PATH
 <section class="communication-settings-shell">
     <div class="communication-tabs" aria-label="بخش‌های تنظیمات پیام و اعلان">
         <?php foreach ($sections as $key => $label): ?>
+            <?php if ($key === 'safir') continue; // Dedicated sidebar entry ?>
             <a
                 class="<?= $section === $key
                     ? 'is-active'
