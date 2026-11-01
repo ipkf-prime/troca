@@ -22,6 +22,7 @@ on:
       - 'scripts/safir_prod_overlay_preflight.sh'
       - 'scripts/safir_prod_release_package_prepare.sh'
       - 'scripts/safir_prod_portal_only_stage.sh'
+      - 'scripts/safir_prod_ui_v2_stage.sh'
       - 'scripts/safir_prod_portal_runtime_prepare.sh'
       - 'scripts/safir_prod_portal_immutable_candidate.sh'
       - 'scripts/safir_prod_portal_cutover_readiness.sh'
@@ -67,6 +68,7 @@ jobs:
           bash -n scripts/safir_prod_overlay_preflight.sh
           bash -n scripts/safir_prod_release_package_prepare.sh
           bash -n scripts/safir_prod_portal_only_stage.sh
+          bash -n scripts/safir_prod_ui_v2_stage.sh
           bash -n scripts/safir_prod_portal_runtime_prepare.sh
           bash -n scripts/safir_prod_portal_immutable_candidate.sh
           bash -n scripts/safir_prod_portal_cutover_readiness.sh
