@@ -24,6 +24,7 @@ on:
       - 'scripts/safir_prod_portal_cutover_readiness.sh'
       - 'scripts/safir_prod_portal_atomic_cutover.sh'
       - 'scripts/safir_prod_portal_emergency_rollback.sh'
+      - 'scripts/safir_prod_route_404_readonly_diagnostic.sh'
       - 'tests/safir-rsync-output-smoke.sh'
       - '.github/workflows/bale-safir-offline.yml'
 permissions:
@@ -65,6 +66,7 @@ jobs:
           bash -n scripts/safir_prod_portal_cutover_readiness.sh
           bash -n scripts/safir_prod_portal_atomic_cutover.sh
           bash -n scripts/safir_prod_portal_emergency_rollback.sh
+          bash -n scripts/safir_prod_route_404_readonly_diagnostic.sh
       - name: Portal-only rsync path parser regression
         run: bash tests/safir-rsync-output-smoke.sh
       - name: Safir offline contract smoke
