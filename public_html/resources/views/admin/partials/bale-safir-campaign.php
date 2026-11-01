@@ -244,7 +244,7 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
         const box = form.querySelector('[data-safir-mappings]');
         if (!body || !box) return;
         function synchronize() {
-            const found = [...new Set([...body.value.matchAll(/\{\{([A-Za-z][A-Za-z0-9_]*)\}\}/g)].map(x => x[1]))];
+            const found = [...new Set([...body.value.matchAll(/\{\{([\p{L}_][\p{L}\p{N}_]*)\}\}/gu)].map(x => x[1]))];
             const old = {};
             box.querySelectorAll('input[data-safir-map]').forEach((input) => { old[input.dataset.safirMap] = input.value; });
             box.replaceChildren();
