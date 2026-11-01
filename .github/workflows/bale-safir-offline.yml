@@ -19,6 +19,7 @@ on:
       - 'scripts/safir_prod_overlay_preflight.sh'
       - 'scripts/safir_prod_release_package_prepare.sh'
       - 'scripts/safir_prod_portal_only_stage.sh'
+      - 'scripts/safir_prod_portal_runtime_prepare.sh'
       - 'tests/safir-rsync-output-smoke.sh'
       - '.github/workflows/bale-safir-offline.yml'
 permissions:
@@ -55,6 +56,7 @@ jobs:
           bash -n scripts/safir_prod_overlay_preflight.sh
           bash -n scripts/safir_prod_release_package_prepare.sh
           bash -n scripts/safir_prod_portal_only_stage.sh
+          bash -n scripts/safir_prod_portal_runtime_prepare.sh
       - name: Portal-only rsync path parser regression
         run: bash tests/safir-rsync-output-smoke.sh
       - name: Safir offline contract smoke
