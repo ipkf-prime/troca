@@ -23,6 +23,7 @@ class RouteLoader
             BASE_PATH . '/routes/profile-avatar.php',
             BASE_PATH . '/routes/notifications.php',
             BASE_PATH . '/routes/communication-center.php',
+            BASE_PATH . '/routes/bale-safir-campaigns.php',
             BASE_PATH . '/routes/work-runtime.php',
             BASE_PATH . '/routes/system-scheduler.php',
             BASE_PATH . '/routes/public-landing.php',
