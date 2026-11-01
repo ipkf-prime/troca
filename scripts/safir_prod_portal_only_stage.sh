@@ -8,8 +8,8 @@ for bin in git curl rsync php sha256sum awk; do command -v "$bin" >/dev/null || 
 BASE=/srv/troca/portal-test
 CURRENT="$BASE/current"
 STAGING=/srv/troca/_staging/releases
-PIN=35254c2a921a109eed9f23eaffbf0ed08056b419
-PIN_BLOB=1bce252e976d55a60f87710cad2b837aa6a5d15d
+PIN=3495b67e127dc856cfc7e681814f7005015550d1
+PIN_BLOB=b6352ae76c683ace2faf59b7a259596cb0c52e3a
 [ -L "$CURRENT" ] || fail CURRENT_NOT_SYMLINK
 ACTIVE="$(readlink -e "$CURRENT")" || fail ACTIVE_NOT_READABLE
 case "$ACTIVE" in "$BASE"/releases/*) ;; *) fail ACTIVE_OUTSIDE_RELEASE_TREE;; esac
