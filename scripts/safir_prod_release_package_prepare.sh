@@ -59,7 +59,7 @@ for label in portal automation work service; do
   echo "MODULE_BASELINE_$label=PASS"
 done
 
-SIZE="$(du -sk "$ACTIVE" | awk '{print $1}')"
+SIZE="$(du -sk "$ACTIVE/" | awk '{print $1}')"
 FREE="$(df -Pk "$STAGING" | awk 'END{print $4}')"
 [ "$FREE" -gt "$(( SIZE * 3 + 1048576 ))" ] || fail INSUFFICIENT_DISK_SPACE
 
