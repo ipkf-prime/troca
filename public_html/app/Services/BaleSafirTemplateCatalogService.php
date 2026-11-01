@@ -33,6 +33,9 @@ final class BaleSafirTemplateCatalogService
         $botId = trim((string) ($input['bot_id'] ?? ''));
         $templateId = trim((string) ($input['template_id'] ?? ''));
         $phoneColumn = $this->cleanColumn((string) ($input['phone_column'] ?? ''));
+        $messageType = trim((string) ($input['message_type'] ?? ''));
+        $price = trim((string) ($input['unit_price_irr'] ?? ''));
+        $providerDate = trim((string) ($input['provider_created_at'] ?? ''));
         $body = trim((string) ($input['body'] ?? ''));
         $approved = (string) ($input['provider_approved'] ?? '0') === '1';
 
@@ -40,6 +43,9 @@ final class BaleSafirTemplateCatalogService
             || $title === '' || mb_strlen($title, 'UTF-8') > 160
             || !preg_match('/^[1-9][0-9]{5,19}$/D', $botId)
             || !preg_match('/^[A-Za-z0-9_-]{2,64}$/D', $templateId)
+            || mb_strlen($messageType, 'UTF-8') > 80
+            || !preg_match('/^[0-9]{0,12}$/D', $price)
+            || mb_strlen($providerDate, 'UTF-8') > 40
             || $phoneColumn === ''
             || $body === '' || mb_strlen($body, 'UTF-8') > 4000
         ) {
@@ -80,6 +86,9 @@ final class BaleSafirTemplateCatalogService
                 'bot_id' => $botId,
                 'template_id' => $templateId,
                 'phone_column' => $phoneColumn,
+                'message_type' => $messageType,
+                'unit_price_irr' => $price,
+                'provider_created_at' => $providerDate,
                 'body' => $body,
                 'mappings' => $mappings,
                 'active' => (bool) ($existing['active'] ?? true),
