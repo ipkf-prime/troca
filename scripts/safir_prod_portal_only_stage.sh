@@ -74,10 +74,12 @@ DIFF="$(rsync -rnic --delete \
  --exclude='**/*.pfx' --exclude='**/*.sql' \
  --exclude='**/*.sql.gz' --exclude='**/*.dump' \
  --exclude='**/*.bak' --exclude='**/*.sqlite' \
+ --out-format='%i|%n' \
  "$ACTIVE/" "$WORK/app/")" || fail DIFF_CHECK_FAILED
 while IFS= read -r line; do
  [ -n "$line" ] || continue
- relative="$(printf '%s\n' "$line" | cut -d' ' -f2-)"
+ case "$line" in *'|'*) ;; *) fail "INVALID_RSYNC_RECORD" ;; esac
+ relative="${line#*|}"
  case "$relative" in
   system/Routing/RouteLoader.php|app/Services/CommunicationSettingsService.php|\
   app/Services/AdminNavigationRbacService.php|resources/views/admin/communication-settings.php|\
