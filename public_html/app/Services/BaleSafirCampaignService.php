@@ -321,7 +321,6 @@ final class BaleSafirCampaignService
             throw new RuntimeException('safir_curl_missing');
         }
         $payload = json_encode([
-            'request_id' => $requestId,
             'bot_id' => (int) $settings['bot_id'],
             'phone_number' => $phone,
             'message_data' => ['template_message' => [
