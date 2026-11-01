@@ -153,6 +153,9 @@ final class BaleSafirCampaignService
     {
         $campaign = $this->requireCampaign($userId);
         $this->assertSendEnabled();
+        if (in_array((string) ($campaign['test_status'] ?? ''), ['unknown', 'sent'], true)) {
+            throw new RuntimeException('safir_test_already_attempted');
+        }
         $allow = $this->normalizePhone((string) Env::get('BALE_SAFIR_TEST_PHONE', ''));
         if ($allow === null) {
             throw new RuntimeException('safir_test_allowlist_missing');
@@ -306,6 +309,25 @@ final class BaleSafirCampaignService
         }
     }
 
+    private function payload(array $template, array $row, string $phone): array
+    {
+        // The Safir API contract is template-driven. Field names are exactly
+        // those declared by the approved provider template; none are hardcoded.
+        $expectedFields = array_keys($template['mappings'] ?? []);
+        $fields = $row['fields'] ?? [];
+        if (!is_array($fields) || array_keys($fields) !== $expectedFields) {
+            throw new RuntimeException('safir_template_variables_invalid');
+        }
+        return [
+            'bot_id' => (int) $template['bot_id'],
+            'phone_number' => $phone,
+            'message_data' => ['template_message' => [
+                'template_id' => $template['template_id'],
+                'text_fields' => (object) $fields,
+            ]],
+        ];
+    }
+
     private function sendOne(string $phone, array $row, string $requestId): array
     {
         $campaign = Session::get(self::SESSION_KEY);
@@ -317,14 +339,10 @@ final class BaleSafirCampaignService
         if (!function_exists('curl_init')) {
             throw new RuntimeException('safir_curl_missing');
         }
-        $payload = json_encode([
-            'bot_id' => (int) $template['bot_id'],
-            'phone_number' => $phone,
-            'message_data' => ['template_message' => [
-                'template_id' => $template['template_id'],
-                'text_fields' => $row['fields'],
-            ]],
-        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        $payload = json_encode(
+            $this->payload($template, $row, $phone),
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+        );
         $curl = curl_init('https://safir.bale.ai/api/v3/send_message');
         if (!$curl) {
             throw new RuntimeException('safir_curl_missing');
