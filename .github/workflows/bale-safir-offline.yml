@@ -73,6 +73,12 @@ jobs:
           bash -n scripts/safir_prod_ui_v2_stage.sh
           bash -n scripts/safir_prod_ui_v2_actual_baseline_stage.sh
           bash -n scripts/safir_prod_ui_v2_immutable_candidate.sh
+          # Shell syntax permits escaped dollars, so explicitly reject literal
+          # placeholders in the two mandatory deployment-contract checks.
+          if grep -Fq '\\${PORTAL_' scripts/safir_prod_ui_v2_immutable_candidate.sh; then
+            echo 'FAIL=LITERAL_PORTAL_CONTRACT_PLACEHOLDER'
+            exit 1
+          fi
           bash -n scripts/safir_prod_portal_runtime_prepare.sh
           bash -n scripts/safir_prod_portal_immutable_candidate.sh
           bash -n scripts/safir_prod_portal_cutover_readiness.sh
