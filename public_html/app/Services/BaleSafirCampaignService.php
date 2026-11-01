@@ -192,7 +192,7 @@ final class BaleSafirCampaignService
         $campaign['test_status'] = 'unknown';
         $campaign['test_message_id'] = '';
         Session::put(self::SESSION_KEY, $campaign);
-        $result = $this->sendOne($allow, $first);
+        $result = $this->sendOne($allow, $first, 'test-' . $campaign['reference']);
         $campaign['test_status'] = $result['status'];
         $campaign['test_message_id'] = $result['message_id'];
         $campaign['last_error'] = $result['error'];
@@ -224,7 +224,7 @@ final class BaleSafirCampaignService
             $campaign['rows'][$index]['attempted_at'] = gmdate('c');
             Session::put(self::SESSION_KEY, $campaign);
             try {
-                $result = $this->sendOne($row['phone'], $row);
+                $result = $this->sendOne($row['phone'], $row, 'campaign-' . $campaign['reference'] . '-' . $index);
                 $campaign['rows'][$index]['status'] = $result['status'];
                 $campaign['rows'][$index]['message_id'] = $result['message_id'];
                 $campaign['rows'][$index]['http_code'] = (string) $result['http_code'];
@@ -309,7 +309,7 @@ final class BaleSafirCampaignService
         }
     }
 
-    private function sendOne(string $phone, array $row): array
+    private function sendOne(string $phone, array $row, string $requestId): array
     {
         $settings = $this->settings();
         $key = trim((string) Env::get('BALE_SAFIR_API_ACCESS_KEY', ''));
@@ -317,6 +317,7 @@ final class BaleSafirCampaignService
             throw new RuntimeException('safir_curl_missing');
         }
         $payload = json_encode([
+            'request_id' => $requestId,
             'bot_id' => (int) $settings['bot_id'],
             'phone_number' => $phone,
             'message_data' => ['template_message' => [
