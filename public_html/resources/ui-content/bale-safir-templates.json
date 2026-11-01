@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "templates": [
+    {
+      "code": "invite",
+      "title": "دعوت به عضویت در سامانه تیکتینگ",
+      "bot_id": "1903835978",
+      "template_id": "yHdC0D",
+      "phone_column": "شماره همراه مدیرعامل",
+      "body": "سلام\n{{name}} مدیرعامل محترم {{sherkat}} جهت عضویت در سامانه تیکتینگ اقدام‌ کنید.\nhttps://troca.corc.ir/\nدر صورتی که دیگر مدیرعامل این شرکت نمی باشید بر روی لینک زیر کلیک کنید.\nhttps://web.bale.ai/@trocabot",
+      "mappings": {
+        "name": [
+          "نام",
+          "نام خانوادگی"
+        ],
+        "sherkat": [
+          "نام شرکت"
+        ]
+      },
+      "active": true,
+      "provider_approved": true,
+      "updated_at": "2026-11-01T00:00:00+00:00"
+    }
+  ]
+}
