@@ -53,24 +53,68 @@ final class BaleSafirTemplateCatalogService
         }
 
         $variables = self::placeholders($body);
-        if (count($variables) > 50) {
+        if (count($variables) > 100) {
             throw new RuntimeException('safir_template_variables_invalid');
         }
-        $rawMapping = $input['mappings'] ?? [];
-        if (!is_array($rawMapping)) {
-            throw new RuntimeException('safir_template_mapping_invalid');
-        }
+
+        $variableItems = $input['variable_items'] ?? null;
+        $labels = [];
         $mappings = [];
-        foreach ($variables as $variable) {
-            $raw = trim((string) ($rawMapping[$variable] ?? ''));
-            $columns = array_values(array_filter(array_map(
-                fn (string $part): string => $this->cleanColumn($part),
-                explode('+', $raw)
-            ), static fn (string $column): bool => $column !== ''));
-            if ($columns === [] || count($columns) > 8) {
+
+        if (is_array($variableItems)) {
+            if (count($variableItems) < 1 || count($variableItems) > 100) {
+                throw new RuntimeException('safir_template_variables_invalid');
+            }
+            foreach ($variableItems as $item) {
+                if (!is_array($item)) {
+                    throw new RuntimeException('safir_template_mapping_invalid');
+                }
+                $key = trim((string) ($item['key_en'] ?? ''));
+                $label = trim((string) ($item['label_fa'] ?? ''));
+                $source = trim((string) ($item['excel_column'] ?? ''));
+                if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]{0,63}$/D', $key)
+                    || $label === '' || mb_strlen($label, 'UTF-8') > 120
+                    || $source === '' || isset($mappings[$key])
+                ) {
+                    throw new RuntimeException('safir_template_mapping_invalid');
+                }
+                $columns = array_values(array_filter(array_map(
+                    fn (string $part): string => $this->cleanColumn($part),
+                    explode('+', $source)
+                ), static fn (string $value): bool => $value !== ''));
+                if ($columns === [] || count($columns) > 8) {
+                    throw new RuntimeException('safir_template_mapping_invalid');
+                }
+                $mappings[$key] = $columns;
+                $labels[$key] = $label;
+            }
+            $declared = array_keys($mappings);
+            sort($declared, SORT_STRING);
+            $used = $variables;
+            sort($used, SORT_STRING);
+            if ($used !== $declared) {
+                throw new RuntimeException('safir_template_variables_mismatch');
+            }
+        } else {
+            // Backward-compatible path for existing forms and stored templates.
+            if (count($variables) > 50) {
+                throw new RuntimeException('safir_template_variables_invalid');
+            }
+            $rawMapping = $input['mappings'] ?? [];
+            if (!is_array($rawMapping)) {
                 throw new RuntimeException('safir_template_mapping_invalid');
             }
-            $mappings[$variable] = $columns;
+            foreach ($variables as $variable) {
+                $raw = trim((string) ($rawMapping[$variable] ?? ''));
+                $columns = array_values(array_filter(array_map(
+                    fn (string $part): string => $this->cleanColumn($part),
+                    explode('+', $raw)
+                ), static fn (string $column): bool => $column !== ''));
+                if ($columns === [] || count($columns) > 8) {
+                    throw new RuntimeException('safir_template_mapping_invalid');
+                }
+                $mappings[$variable] = $columns;
+            }
         }
         $lock = $this->lock();
         try {
@@ -86,11 +130,12 @@ final class BaleSafirTemplateCatalogService
                 'bot_id' => $botId,
                 'template_id' => $templateId,
                 'phone_column' => $phoneColumn,
-                'message_type' => $messageType,
-                'unit_price_irr' => $price,
-                'provider_created_at' => $providerDate,
+                'message_type' => array_key_exists('message_type', $input) ? $messageType : (string) ($existing['message_type'] ?? ''),
+                'unit_price_irr' => array_key_exists('unit_price_irr', $input) ? $price : (string) ($existing['unit_price_irr'] ?? ''),
+                'provider_created_at' => array_key_exists('provider_created_at', $input) ? $providerDate : (string) ($existing['provider_created_at'] ?? ''),
                 'body' => $body,
                 'mappings' => $mappings,
+                'variable_labels' => $labels !== [] ? $labels : (array) ($existing['variable_labels'] ?? []),
                 'active' => (bool) ($existing['active'] ?? true),
                 'provider_approved' => $approved,
                 'updated_at' => gmdate('c'),
