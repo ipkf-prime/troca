@@ -71,6 +71,16 @@ for relative in \
  mkdir -p "$(dirname "$PATCHED/public_html/$relative")"
  install -m 0640 "$ACTIVE/$relative" "$PATCHED/public_html/$relative"
 done
+# The offline smoke needs two framework support classes. Copy them ONLY
+# into the isolated preflight tree; do not modify the running release.
+for relative in \
+ system/Support/Env.php \
+ system/Support/Session.php; do
+ [ -f "$ACTIVE/$relative" ] || fail "SMOKE_DEPENDENCY_MISSING:$relative"
+ mkdir -p "$(dirname "$PATCHED/public_html/$relative")"
+ install -m 0640 "$ACTIVE/$relative" "$PATCHED/public_html/$relative"
+done
+echo OFFLINE_FRAMEWORK_DEPENDENCIES_STAGED=PASS
 IPKF_SAFIR_PATCH_ROOT="$PATCHED/public_html" python3 - <<'PY'
 import os
 from pathlib import Path
@@ -109,6 +119,8 @@ for relative in \
  public_html/app/Services/CommunicationSettingsService.php \
  public_html/app/Services/AdminNavigationRbacService.php \
  public_html/resources/views/admin/communication-settings.php \
+ public_html/system/Support/Env.php \
+ public_html/system/Support/Session.php \
  public_html/app/Services/BaleSafirCampaignService.php \
  public_html/app/Services/BaleSafirTemplateCatalogService.php \
  public_html/routes/bale-safir-campaigns.php \
