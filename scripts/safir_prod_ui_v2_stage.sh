@@ -8,7 +8,7 @@ for bin in git curl rsync php; do command -v "$bin" >/dev/null || fail "MISSING:
 BASE=/srv/troca/portal-test
 ACTIVE="$BASE/releases/prod-safir-portal-20261101T130944Z-92749b72"
 CURRENT="$BASE/current"
-SOURCE=75c9045b4ae1366f4810b13ba6c4e12720b6e3d4
+SOURCE=1380717286da24de1988eb454de17b842a55b8c8
 REMOTE="https://raw.githubusercontent.com/ipkf-prime/troca/$SOURCE/public_html"
 STAGING=/srv/troca/_staging/releases
 [ -L "$CURRENT" ] && [ "$(readlink -e "$CURRENT")" = "$ACTIVE" ] || fail PORTAL_BASELINE_CHANGED
@@ -22,7 +22,7 @@ app/Services/BaleSafirTemplateCatalogService.php|ed09578761a4c83e28d8da7807843d0
 app/Services/AdminNavigationRbacService.php|6ed28d4c205904298d3509da1f151c9b9127cbcd|9db72cc23d292e9979fbcf0f7bbca348f3d48ce0
 app/Services/DynamicAdminNavigationService.php|109dc227636b5744d888848dd6d88cc88ce52c41|f5268c653f32df63b8514c829a603b34c538e43e
 resources/views/admin/communication-settings.php|93895868520ab14c7972cc026b1ef505607a8100|63f0af2918b180dc0ff79e0653c762dcb05410b0
-resources/views/admin/partials/bale-safir-campaign.php|0ead7d17db61752f8d53ed7664db7be9873b86d4|50ab7200ad5d70787d7b9f704d23fd40dec50594
+resources/views/admin/partials/bale-safir-campaign.php|0ead7d17db61752f8d53ed7664db7be9873b86d4|17583b885d0450a99f76e323bd24f6536b0ac6be
 resources/views/admin/safir-management.php|NEW|a4f4a41c253ead960c0a024d9c508a7f4c5be104
 routes/bale-safir-campaigns.php|7f6cac60063b7e13cb38d6e361a3368a3fdd4385|0871781d9e69d5158d69d78ec72fe4f5557856a3
 routes/communication-center.php|b8a03cfc2ca35cb382c52a5f8b2e26e87a896a58|150caeb730ff0fc6c8798f34b3df1f88f4651a98
