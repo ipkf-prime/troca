@@ -16,7 +16,7 @@ $variableRows = [];
 foreach ((array) ($tpl['mappings'] ?? []) as $key => $columns) {
     $variableRows[] = [
         'key_en' => (string) $key,
-        'label_fa' => (string) ($tpl['variable_labels'][$key] ?? $key),
+        'label_fa' => (string) ($tpl['variable_labels'][$key] ?? implode(' و ', (array) $columns)),
         'excel_column' => implode(' + ', (array) $columns),
     ];
 }
