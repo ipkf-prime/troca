@@ -43,7 +43,7 @@ printf 'GITHUB_SOURCE_COMMIT=%s\n' "$SOURCE_COMMIT"
   ed09578761a4c83e28d8da7807843d0fd16308f5:public_html/app/Services/BaleSafirTemplateCatalogService.php \
   f2b55479a702fbe09562aa3c182fba737a079e60:public_html/app/Services/BaleSafirCampaignService.php \
   b1e4235c13a70d1e03f0afc4da8ed9cf5d530c49:public_html/resources/ui-content/bale-safir-templates.json \
-  7f6cac60063b7e13cb38d6a361a3368a3fdd4385:public_html/routes/bale-safir-campaigns.php \
+  7f6cac60063b7e13cb38d6e361a3368a3fdd4385:public_html/routes/bale-safir-campaigns.php \
   0ead7d17db61752f8d53ed7664db7be9873b86d4:public_html/resources/views/admin/partials/bale-safir-campaign.php \
   a7ddd5d92c4e8a32307d50fe273c34e853488dec:tests/bale-safir-campaign-smoke.php
  do
