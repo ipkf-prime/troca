@@ -389,8 +389,16 @@ final class BaleSafirCampaignService
             throw new RuntimeException('safir_xlsx_invalid');
         }
         try {
-            if ($zip->numFiles > 100) {
+            if ($zip->numFiles > 150) {
                 throw new RuntimeException('safir_xlsx_too_large');
+            }
+            $total = 0;
+            for ($i = 0; $i < $zip->numFiles; $i++) {
+                $entry = $zip->statIndex($i);
+                $total += (int) ($entry['size'] ?? 0);
+                if ($total > 12 * 1024 * 1024) {
+                    throw new RuntimeException('safir_xlsx_too_large');
+                }
             }
             $read = static function (ZipArchive $zip, string $name): ?string {
                 $stat = $zip->statName($name);
@@ -434,15 +442,15 @@ final class BaleSafirCampaignService
                     if (isset($cell->f)) {
                         throw new RuntimeException('safir_xlsx_formulas_forbidden');
                     }
-                    if (!preg_match('/^([A-Z]+)[0-9]+$/D', (string) $cell['r'], $m)) {
+                    if (!preg_match('/^([A-Z]+)[0-9]+$/D', (string) $cell['r'], $matches)) {
                         continue;
                     }
                     $column = 0;
-                    foreach (str_split($m[1]) as $letter) {
-                        $column = $column * 26 + (ord($letter) - 64);
+                    foreach (str_split($matches[1]) as $letter) {
+                        $column = $column * 26 + ord($letter) - 64;
                     }
-                    if ($column > 20) {
-                        continue;
+                    if ($column > 256) {
+                        throw new RuntimeException('safir_xlsx_too_many_columns');
                     }
                     $value = (string) $cell->v;
                     if ((string) $cell['t'] === 's') {
@@ -458,20 +466,22 @@ final class BaleSafirCampaignService
             if (!isset($table[1])) {
                 throw new RuntimeException('safir_xlsx_header_missing');
             }
-            $aliases = [
-                ['نام', 'first_name'], ['نام خانوادگی', 'last_name'],
-                ['نام شرکت', 'company'], ['شماره همراه مدیرعامل', 'mobile'],
-            ];
-            $mapped = [];
-            foreach ($table[1] as $index => $value) {
-                $header = preg_replace('/\s+/u', ' ', trim($this->normalizeText($value)));
-                foreach ($aliases as $col => $labels) {
-                    if ($header === $labels[0] || $header === $labels[1]) {
-                        $mapped[$col] = $index;
-                    }
+            $headers = [];
+            foreach ($table[1] as $index => $label) {
+                $normalized = trim(preg_replace(
+                    '/\s+/u',
+                    ' ',
+                    $this->normalizeText((string) $label)
+                ) ?? '');
+                if ($normalized === '') {
+                    continue;
                 }
+                if (in_array($normalized, $headers, true)) {
+                    throw new RuntimeException('safir_xlsx_duplicate_header');
+                }
+                $headers[$index] = $normalized;
             }
-            if (count($mapped) !== 4) {
+            if ($headers === []) {
                 throw new RuntimeException('safir_xlsx_header_missing');
             }
             $output = [];
@@ -480,11 +490,11 @@ final class BaleSafirCampaignService
                     continue;
                 }
                 $values = [];
-                foreach (range(0, 3) as $i) {
-                    $values[] = trim((string) ($cells[$mapped[$i]] ?? ''));
+                foreach ($headers as $index => $name) {
+                    $values[$name] = trim((string) ($cells[$index] ?? ''));
                 }
                 if (implode('', $values) !== '') {
-                    $output[] = $values;
+                    $output[] = ['row' => (int) $number, 'columns' => $values];
                 }
             }
             if ($output === []) {
