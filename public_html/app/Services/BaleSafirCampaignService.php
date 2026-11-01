@@ -15,10 +15,12 @@ final class BaleSafirCampaignService
     private const MAX_UNCOMPRESSED_BYTES = 4194304;
     private const MAX_ROWS = 500;
 
-    public function page(int $userId): array
+    public function page(int $userId, string $editingCode = ''): array
     {
+        $catalog = new BaleSafirTemplateCatalogService();
+        $templates = $catalog->all();
         $campaign = $this->campaign($userId);
-        $settings = $this->settings();
+        $editTemplate = $templates[$editingCode] ?? null;
 
         $counts = ['ready' => 0, 'sent' => 0, 'failed' => 0, 'unknown' => 0, 'skipped' => 0];
         foreach (($campaign['rows'] ?? []) as $row) {
@@ -29,76 +31,29 @@ final class BaleSafirCampaignService
         }
 
         return [
-            'settings' => $settings,
+            'templates' => array_values($templates),
+            'edit_template' => $editTemplate,
             'campaign' => $campaign,
             'counts' => $counts,
             'send_enabled' => $this->sendEnabled(),
-            'test_phone_masked' => $this->maskPhone(
-                (string) Env::get('BALE_SAFIR_TEST_PHONE', '')
-            ),
+            'test_phone_masked' => $this->maskPhone((string) Env::get('BALE_SAFIR_TEST_PHONE', '')),
             'credential_ready' => trim((string) Env::get('BALE_SAFIR_API_ACCESS_KEY', '')) !== '',
         ];
     }
 
-    public function settings(): array
+    public function saveTemplate(int $userId, array $input): void
     {
-        $path = BASE_PATH . '/storage/private/bale_safir_settings.json';
-        $initial = BASE_PATH . '/resources/ui-content/bale-safir-invite.json';
-        $source = is_readable($path) ? $path : $initial;
-        $value = is_readable($source) ? json_decode((string) file_get_contents($source), true) : null;
-        if (!is_array($value)) {
-            throw new RuntimeException('safir_settings_missing');
-        }
-
-        return [
-            'bot_id' => (string) ($value['bot_id'] ?? ''),
-            'template_id' => (string) ($value['template_id'] ?? ''),
-            'body' => (string) ($value['body'] ?? ''),
-        ];
+        (new BaleSafirTemplateCatalogService())->save($input);
+        // Catalog changes do not silently change the template snapshot of an existing
+        // campaign. requireCampaign() enforces version equality before any send.
     }
 
-    public function saveSettings(int $userId, array $input): void
+    public function toggleTemplate(int $userId, string $code, bool $active): void
     {
-        $botId = trim((string) ($input['bot_id'] ?? ''));
-        $templateId = trim((string) ($input['template_id'] ?? ''));
-        $body = trim((string) ($input['body'] ?? ''));
-        if (!preg_match('/^[1-9][0-9]{5,19}$/D', $botId)
-            || !preg_match('/^[A-Za-z0-9_-]{2,64}$/D', $templateId)
-            || mb_strlen($body, 'UTF-8') > 4000
-            || $body === ''
-            || substr_count($body, '{{name}}') !== 1
-            || substr_count($body, '{{sherkat}}') !== 1
-        ) {
-            throw new RuntimeException('safir_settings_invalid');
-        }
-        $directory = BASE_PATH . '/storage/private';
-        if (!is_dir($directory) && !mkdir($directory, 0700, true) && !is_dir($directory)) {
-            throw new RuntimeException('safir_storage_unavailable');
-        }
-        $path = $directory . '/bale_safir_settings.json';
-        $temp = tempnam($directory, 'safir_');
-        if (!is_string($temp)) {
-            throw new RuntimeException('safir_storage_unavailable');
-        }
-        try {
-            $written = file_put_contents($temp, json_encode([
-                'bot_id' => $botId,
-                'template_id' => $templateId,
-                'body' => $body,
-            ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), LOCK_EX);
-            if ($written === false || !chmod($temp, 0600) || !rename($temp, $path)) {
-                throw new RuntimeException('safir_storage_unavailable');
-            }
-        } finally {
-            if (is_file($temp)) {
-                unlink($temp);
-            }
-        }
-        // A template change invalidates a prior preview and all pending sends.
-        Session::forget(self::SESSION_KEY);
+        (new BaleSafirTemplateCatalogService())->setActive($code, $active);
     }
 
-    public function import(int $userId, array $file): array
+    public function import(int $userId, array $file, string $templateCode): array
     {
         if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK
             || !is_string($file['tmp_name'] ?? null)
@@ -109,51 +64,75 @@ final class BaleSafirCampaignService
         ) {
             throw new RuntimeException('safir_invalid_upload');
         }
+
+        $template = (new BaleSafirTemplateCatalogService())->get($templateCode);
+        if (!is_array($template) || empty($template['active'])) {
+            throw new RuntimeException('safir_template_unavailable');
+        }
         $rows = $this->parseWorkbook((string) $file['tmp_name']);
-        $settings = $this->settings();
+        $needed = [(string) $template['phone_column']];
+        foreach ($template['mappings'] as $columns) {
+            $needed = array_merge($needed, $columns);
+        }
+        $headers = array_keys($rows[0]['columns']);
+        foreach (array_unique($needed) as $column) {
+            if (!in_array($column, $headers, true)) {
+                throw new RuntimeException('safir_xlsx_mapping_missing');
+            }
+        }
         $items = [];
         $seen = [];
-        foreach ($rows as $index => $row) {
-            $first = trim($this->normalizeText($row[0] ?? ''));
-            $last = trim($this->normalizeText($row[1] ?? ''));
-            $company = trim($this->normalizeText($row[2] ?? ''));
-            $phone = $this->normalizePhone($row[3] ?? '');
+        foreach ($rows as $sourceRow) {
+            $values = $sourceRow['columns'];
+            $phone = $this->normalizePhone((string) ($values[$template['phone_column']] ?? ''));
+            $fields = [];
+            $replacements = [];
+            $invalid = false;
+            foreach ($template['mappings'] as $variable => $mappedColumns) {
+                $parts = array_map(
+                    fn (string $column): string => trim($this->normalizeText((string) ($values[$column] ?? ''))),
+                    $mappedColumns
+                );
+                if (in_array('', $parts, true)) {
+                    $invalid = true;
+                }
+                $value = implode(' ', $parts);
+                if ($value === '' || mb_strlen($value, 'UTF-8') > 500) {
+                    $invalid = true;
+                }
+                $fields[$variable] = $value;
+                $replacements['{{' . $variable . '}}'] = $value;
+            }
             $status = 'ready';
             $error = '';
-            if (!$phone || $first === '' || $last === '' || $company === ''
-                || mb_strlen($first, 'UTF-8') > 100
-                || mb_strlen($last, 'UTF-8') > 100
-                || mb_strlen($company, 'UTF-8') > 250
-            ) {
+            if ($invalid || $phone === null) {
                 $status = 'skipped';
-                $error = 'اطلاعات ناقص یا شماره نامعتبر';
+                $error = 'شماره یا اطلاعات موردنیاز قالب ناقص یا نامعتبر است';
             } elseif (isset($seen[$phone])) {
                 $status = 'skipped';
                 $error = 'شماره تکراری';
             } else {
                 $seen[$phone] = true;
             }
-            $name = trim($first . ' ' . $last);
             $items[] = [
-                'row' => $index + 2,
-                'name' => $name,
-                'company' => $company,
-                'phone' => $phone ?: '',
+                'row' => (int) $sourceRow['row'],
+                'fields' => $fields,
+                'phone' => $phone ?? '',
                 'status' => $status,
                 'error' => $error,
                 'message_id' => '',
                 'http_code' => '',
                 'attempted_at' => '',
-                'preview' => strtr($settings['body'], [
-                    '{{name}}' => $name,
-                    '{{sherkat}}' => $company,
-                ]),
+                'preview' => strtr($template['body'], $replacements),
             ];
         }
         $campaign = [
             'actor_user_id' => $userId,
             'reference' => bin2hex(random_bytes(12)),
-            'template_hash' => hash('sha256', json_encode($settings, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)),
+            'template_code' => $templateCode,
+            'template_title' => $template['title'],
+            'template_variables' => array_keys($template['mappings']),
+            'template_hash' => hash('sha256', json_encode($template, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)),
             'created_at' => gmdate('c'),
             'rows' => $items,
             'test_status' => '',
@@ -250,21 +229,31 @@ final class BaleSafirCampaignService
 
     public function export(int $userId): string
     {
-        $campaign = $this->requireCampaign($userId);
+        $campaign = $this->campaign($userId);
+        if (!is_array($campaign)) {
+            throw new RuntimeException('safir_campaign_missing');
+        }
+        $variables = $campaign['template_variables'] ?? [];
         $stream = fopen('php://temp', 'w+');
         if (!$stream) {
             throw new RuntimeException('safir_export_failed');
         }
         fwrite($stream, "\xEF\xBB\xBF");
-        fputcsv($stream, ['ردیف', 'نام مدیرعامل', 'شرکت', 'شماره همراه', 'وضعیت', 'خطا', 'شناسه پیام', 'کد HTTP', 'زمان']);
+        fputcsv($stream, array_merge(['ردیف', 'شناسه قالب', 'شماره همراه'],
+            $variables, ['وضعیت', 'خطا', 'شناسه پیام', 'کد HTTP', 'زمان']));
         foreach ($campaign['rows'] as $row) {
+            $values = [$row['row'], $campaign['template_code'], $row['phone']];
+            foreach ($variables as $variable) {
+                $values[] = (string) ($row['fields'][$variable] ?? '');
+            }
+            $values = array_merge($values, [$row['status'], $row['error'],
+                $row['message_id'], $row['http_code'], $row['attempted_at']]);
             fputcsv($stream, array_map(
                 static function ($value): string {
                     $value = (string) $value;
                     return preg_match('/^[=\+\-@\t\r]/u', $value) ? "'" . $value : $value;
                 },
-                [$row['row'], $row['name'], $row['company'], $row['phone'], $row['status'],
-                 $row['error'], $row['message_id'], $row['http_code'], $row['attempted_at']]
+                $values
             ));
         }
         rewind($stream);
@@ -288,7 +277,11 @@ final class BaleSafirCampaignService
         if ($campaign === null) {
             throw new RuntimeException('safir_campaign_missing');
         }
-        $hash = hash('sha256', json_encode($this->settings(), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+        $template = (new BaleSafirTemplateCatalogService())->get((string) $campaign['template_code']);
+        if (!is_array($template) || empty($template['active']) || empty($template['provider_approved'])) {
+            throw new RuntimeException('safir_template_unavailable');
+        }
+        $hash = hash('sha256', json_encode($template, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
         if (!hash_equals($hash, (string) $campaign['template_hash'])) {
             throw new RuntimeException('safir_template_changed');
         }
@@ -315,20 +308,21 @@ final class BaleSafirCampaignService
 
     private function sendOne(string $phone, array $row, string $requestId): array
     {
-        $settings = $this->settings();
+        $campaign = Session::get(self::SESSION_KEY);
+        $template = (new BaleSafirTemplateCatalogService())->get((string) ($campaign['template_code'] ?? ''));
+        if (!is_array($template) || empty($template['active']) || empty($template['provider_approved'])) {
+            throw new RuntimeException('safir_template_unavailable');
+        }
         $key = trim((string) Env::get('BALE_SAFIR_API_ACCESS_KEY', ''));
         if (!function_exists('curl_init')) {
             throw new RuntimeException('safir_curl_missing');
         }
         $payload = json_encode([
-            'bot_id' => (int) $settings['bot_id'],
+            'bot_id' => (int) $template['bot_id'],
             'phone_number' => $phone,
             'message_data' => ['template_message' => [
-                'template_id' => $settings['template_id'],
-                'text_fields' => [
-                    'name' => $row['name'],
-                    'sherkat' => $row['company'],
-                ],
+                'template_id' => $template['template_id'],
+                'text_fields' => $row['fields'],
             ]],
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
         $curl = curl_init('https://safir.bale.ai/api/v3/send_message');
