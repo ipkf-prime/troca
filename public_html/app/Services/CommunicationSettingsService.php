@@ -35,6 +35,10 @@ class CommunicationSettingsService extends BaseService
             'title' => 'ارسال اعلان',
             'permission' => 'notifications.send.view',
         ],
+        'safir' => [
+            'title' => 'دعوت‌نامه مدیرعامل‌ها (بله)',
+            'permission' => 'notifications.send.manage',
+        ],
         'reports' => [
             'title' => 'گزارش ارسال و تحویل',
             'permission' => 'notifications.reports.view',
@@ -222,6 +226,9 @@ class CommunicationSettingsService extends BaseService
                 : [],
             'preferences' => $preferencesAllowed
                 ? $this->repository->preferences($userId)
+                : [],
+            'safir_campaign' => ($section === 'safir' && isset($sections['safir']))
+                ? (new BaleSafirCampaignService())->page($userId)
                 : [],
             'notification_send_center' =>
                 $notificationSendCenter,
