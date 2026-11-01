@@ -14,7 +14,7 @@ CURRENT="$BASE/current"
 ACTIVE="$BASE/releases/prod-safir-ui-v2-20261101-a9c8e01"
 OLD_STAGE=/srv/troca/_staging/releases/safir-ui-v2-patched-QriAUWxk/app
 STAGING=/srv/troca/_staging/releases
-SOURCE=7bff84b91593e334bccff54115819f47234c92ae
+SOURCE=4a53e8c034063b9e9d1cc8673a19a458a7bb31e7
 REMOTE="https://raw.githubusercontent.com/ipkf-prime/troca/$SOURCE"
 
 [ -L "$CURRENT" ] && [ "$(readlink -e "$CURRENT")" = "$ACTIVE" ] ||
@@ -127,7 +127,7 @@ echo EXACT_THREE_FILE_UI_ONLY_SCOPE=PASS
 TEST="$WORK/tests/safir-ui-v21-contract-smoke.php"
 curl -fLsS "$REMOTE/tests/safir-ui-v21-contract-smoke.php" \
   -o "$TEST" || fail CONTRACT_TEST_DOWNLOAD_FAILED
-[ "$(git hash-object "$TEST")" = 9cd9c5810d690621127a0cd2d1c2f37e70c32ace ] ||
+[ "$(git hash-object "$TEST")" = acfce6418dbe902ca4327e72d58413da6fd579d6 ] ||
   fail CONTRACT_TEST_HASH_CHANGED
 ln -s "$WORK/app" "$WORK/public_html"
 php "$TEST" > "$WORK/meta/offline-ui-smoke.log" ||
