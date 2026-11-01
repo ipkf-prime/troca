@@ -45,7 +45,7 @@ The API key previously pasted in chat **must be revoked/rotated**. The checked-i
 ### Delivery semantics
 - `sent` means Safir responded with a non-empty `message_id` and empty `error_data`; it does **not** prove a recipient opened the message.
 - Timeouts, invalid response or server error are marked `unknown` and **not automatically retried**.
-- A stable `request_id` per campaign row is sent to Safir.
+- A stable campaign/row identifier is retained locally for internal reconciliation; we do not add undocumented fields to the Safir API request.
 - The provider's message API requires `phone_number`, not Bot API `chat_id`.
 - Existing `NotificationBaleGatewayAdapter` remains unchanged.
 
