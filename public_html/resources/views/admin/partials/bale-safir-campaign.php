@@ -1,166 +1,251 @@
 <?php
-/** @var array $page */
+/** Safir: dedicated catalog list + tabbed create/edit + existing safe preview. */
 $safir = is_array($page['safir_campaign'] ?? null) ? $page['safir_campaign'] : [];
 $templates = is_array($safir['templates'] ?? null) ? $safir['templates'] : [];
 $campaign = $safir['campaign'] ?? null;
 $rows = is_array($campaign['rows'] ?? null) ? $campaign['rows'] : [];
 $counts = $safir['counts'] ?? [];
 $csrf = (new \IPKF\Security\Csrf())->token();
+$status = (string) ($status ?? '');
+$mode = (string) ($page['safir_mode'] ?? 'list');
+$editTemplate = is_array($safir['edit_template'] ?? null) ? $safir['edit_template'] : null;
+if ($mode === 'edit' && !$editTemplate) { $mode = 'list'; }
+if (!in_array($mode, ['create', 'edit'], true)) { $mode = 'list'; }
+$tpl = $mode === 'edit' ? $editTemplate : [];
+$variableRows = [];
+foreach ((array) ($tpl['mappings'] ?? []) as $key => $columns) {
+    $variableRows[] = [
+        'key_en' => (string) $key,
+        'label_fa' => (string) ($tpl['variable_labels'][$key] ?? $key),
+        'excel_column' => implode(' + ', (array) $columns),
+    ];
+}
 $statusMessages = [
-    'safir_template_saved' => 'قالب سفیر ذخیره شد. برای ارسال، قالب باید در پنل سفیر تأیید شده باشد.',
+    'safir_template_saved' => 'قالب با موفقیت ذخیره شد.',
     'safir_template_status_saved' => 'وضعیت قالب تغییر کرد.',
-    'safir_imported' => 'اکسل خوانده شد. پیش‌نمایش و وضعیت مخاطبان را بررسی کنید.',
+    'safir_imported' => 'اکسل خوانده شد؛ پیش‌نمایش و وضعیت مخاطبان را بررسی کنید.',
     'safir_reset' => 'کمپین جاری پاک شد.',
-    'safir_test_sent' => 'API پیام آزمایشی را پذیرفت؛ دریافت پیام را در بله بررسی کنید.',
-    'safir_test_failed' => 'سفیر ارسال آزمایشی را رد کرد.',
-    'safir_test_unknown' => 'وضعیت ارسال آزمایشی نامشخص است؛ از ارسال مجدد خودکار خودداری کنید.',
-    'safir_batch_completed' => 'یک دسته ارسال پردازش شد؛ گزارش را بررسی کنید.',
-    'safir_send_disabled' => 'ارسال واقعی در تنظیمات امن سرور غیرفعال است.',
-    'safir_key_missing' => 'کلید API سفیر در تنظیمات سرور وجود ندارد.',
-    'safir_test_allowlist_missing' => 'شماره مجاز تست تنظیم نشده است.',
-    'safir_confirmation_required' => 'تأیید صریح عملیات الزامی است.',
-    'safir_campaign_missing' => 'ابتدا اکسل مخاطبان را بارگذاری کنید.',
-    'safir_template_changed' => 'قالب تغییر کرده؛ قبل از ارسال، اکسل را دوباره بررسی کنید.',
-    'safir_template_unavailable' => 'قالب غیرفعال است یا تأییدش در سفیر ثبت نشده است.',
-    'safir_template_invalid' => 'عنوان، شناسه قالب، بازو، ستون شماره یا متن معتبر نیست.',
-    'safir_template_mapping_invalid' => 'نگاشت یکی از متغیرها به ستون اکسل معتبر نیست.',
-    'safir_template_variables_invalid' => 'نام متغیرها معتبر نیست. نمونه: {{tracking_code}}',
-    'safir_catalog_missing' => 'فهرست اولیه قالب‌ها موجود نیست.',
-    'safir_catalog_path_missing' => 'مسیر پایدار ذخیره قالب‌ها در سرور تنظیم نشده است.',
-    'safir_storage_unavailable' => 'ذخیره امن قالب‌ها ممکن نشد.',
-    'safir_xlsx_mapping_missing' => 'یک یا چند ستون موردنیاز قالب در اکسل پیدا نشد.',
-    'safir_xlsx_duplicate_header' => 'عنوان ستون تکراری در ردیف اول اکسل وجود دارد.',
-    'safir_xlsx_header_missing' => 'عنوان ستون‌ها در ردیف نخست اکسل پیدا نشد.',
-    'safir_xlsx_empty' => 'فایل اکسل مخاطب ندارد.',
+    'safir_template_invalid' => 'شناسه بازو، عنوان، کد، شماره ستون یا متن قالب معتبر نیست.',
+    'safir_template_mapping_invalid' => 'عنوان، کلید یا نام ستون یکی از متغیرها نامعتبر یا تکراری است.',
+    'safir_template_variables_invalid' => 'تعداد یا قالب نام متغیرها معتبر نیست؛ حداکثر ۱۰۰ متغیر.',
+    'safir_template_variables_mismatch' => 'کلیدهای متغیرها باید دقیقاً با کلیدهای داخل متن پیام یکسان باشند.',
+    'safir_template_unavailable' => 'قالب انتخاب‌شده فعال یا تأییدشده نیست.',
+    'safir_xlsx_mapping_missing' => 'ستون‌های تعریف‌شده در نگاشت قالب در اکسل پیدا نشدند.',
+    'safir_xlsx_duplicate_header' => 'عنوان ستون تکراری در ردیف نخست اکسل وجود دارد.',
+    'safir_xlsx_header_missing' => 'عنوان ستون‌های اکسل در ردیف اول نیست.',
+    'safir_xlsx_empty' => 'فایل اکسل مخاطبی ندارد.',
     'safir_invalid_upload' => 'فایل XLSX معتبر با حجم مجاز انتخاب کنید.',
-    'safir_xlsx_extension_missing' => 'افزونه‌های ZIP و SimpleXML در PHP نیاز است.',
-    'safir_xlsx_formulas_forbidden' => 'فرمول در اکسل مجاز نیست؛ مقادیر را به متن تبدیل کنید.',
-    'safir_xlsx_too_large' => 'فایل اکسل بیش از سقف مجاز این سرور است.',
-    'safir_xlsx_too_many_rows' => 'تعداد ردیف‌های این فایل بیش از سقف ورود است.',
+    'safir_xlsx_formulas_forbidden' => 'فرمول در اکسل مجاز نیست؛ سلول‌ها را به مقدار تبدیل کنید.',
+    'safir_xlsx_too_large' => 'حجم فایل اکسل بیش از سقف مجاز است.',
+    'safir_xlsx_too_many_rows' => 'تعداد ردیف‌های اکسل بیش از سقف مجاز است.',
     'safir_operation_failed' => 'عملیات با خطا مواجه شد.',
     'safir_invalid_csrf' => 'نشست منقضی شده؛ صفحه را تازه‌سازی کنید.',
+    'safir_send_disabled' => 'ارسال واقعی توسط سرور غیرفعال شده است.',
+    'safir_campaign_missing' => 'ابتدا فایل اکسل مخاطبان را وارد کنید.',
+    'safir_template_changed' => 'قالب تغییر کرده است؛ اکسل را دوباره بارگذاری کنید.',
+    'safir_export_failed' => 'گزارش CSV قابل دریافت نیست.',
 ];
-$successes = ['safir_template_saved','safir_template_status_saved','safir_imported','safir_reset','safir_test_sent','safir_batch_completed'];
+$successes = ['safir_template_saved','safir_template_status_saved','safir_imported','safir_reset'];
 ?>
-<section class="provider-management-card" dir="rtl">
-    <h3>مدیریت قالب‌ها و ارسال گروهی سفیر بله</h3>
-    <p class="communication-muted">برای هر نوع پیام، یک قالب مجزا با شناسه تأییدشده سفیر، متن و متغیرهای دلخواه تعریف کنید. نام متغیرهای داخل <code dir="ltr">{{...}}</code> مستقیماً از متن تشخیص داده می‌شوند؛ هیچ کلید متغیری در کد ارسال ثابت نیست.</p>
-    <?php if (isset($statusMessages[$status])): ?>
-        <div class="admin-alert admin-alert--<?= in_array($status, $successes, true) ? 'success' : 'danger' ?>">
-            <?= admin_h($statusMessages[$status]) ?>
+<style>
+.safir-shell{direction:rtl;display:grid;gap:16px}
+.safir-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.safir-head h2{margin:0;font-size:1.22rem;color:var(--admin-text,#20343a)}
+.safir-caption{color:var(--admin-muted,#667f8c);font-size:.9rem;line-height:1.9}
+.safir-card{background:var(--admin-card-bg,#fff);border:1px solid var(--admin-border,#dfe9e3);border-radius:14px;padding:16px}
+.safir-table-scroll{overflow-x:auto}
+.safir-table{width:100%;min-width:780px;border-collapse:collapse;text-align:right}
+.safir-table th,.safir-table td{padding:13px 10px;border-bottom:1px solid var(--admin-border,#e4ece7);vertical-align:middle}
+.safir-table th{color:var(--admin-muted,#607a86);font-size:.84rem;font-weight:700}
+.safir-table tr:last-child td{border-bottom:0}
+.safir-badge{display:inline-block;padding:3px 12px;border-radius:18px;background:#e7f4ec;color:#267947;font-size:.78rem}
+.safir-badge--off{background:#edf0f1;color:#64737d}
+.safir-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.safir-soft{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:9px;border:1px solid var(--admin-border,#d8e7df);color:var(--admin-text,#234);background:#f5faf7;text-decoration:none;font:inherit;cursor:pointer}
+.safir-primary{background:#238b5a;color:#fff;border:0;border-radius:9px;padding:9px 16px;font:inherit;cursor:pointer;text-decoration:none;display:inline-flex;justify-content:center}
+.safir-soft:hover{background:#e9f4ed}
+.safir-form-tabs{display:flex;gap:8px;border-bottom:1px solid var(--admin-border,#dfe9e3);padding-bottom:10px;flex-wrap:wrap;margin:14px 0}
+.safir-form-tabs button{font:inherit;border:0;border-radius:9px;background:transparent;padding:10px 15px;cursor:pointer;color:var(--admin-text,#243a40)}
+.safir-form-tabs button.is-active{background:#e8f6ed;color:#16814a;font-weight:700}
+.safir-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.safir-fields label,.safir-wide-label{display:grid;gap:6px;font-size:.9rem}
+.safir-fields input,.safir-wide-label textarea,.safir-variable-row input{box-sizing:border-box;width:100%;min-width:0;border:1px solid var(--admin-border,#d5e3db);border-radius:8px;padding:9px 10px;background:var(--admin-card-bg,#fff);color:var(--admin-text,#263b42);font:inherit}
+.safir-fields .safir-full{grid-column:1/-1}
+.safir-variable-table{width:100%;min-width:680px;border-collapse:separate;border-spacing:0 8px}
+.safir-variable-table td{padding:3px;vertical-align:middle}
+.safir-variable-table th{text-align:right;padding:7px;font-size:.82rem}
+.safir-variable-table td:last-child{width:120px}
+.safir-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.safir-form-panel[hidden]{display:none!important}
+.safir-form-footer{border-top:1px solid var(--admin-border,#dce8df);padding-top:16px;display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+.safir-status{display:flex;gap:14px;flex-wrap:wrap;padding:10px 0}
+.safir-status strong{font-weight:700}
+@media(max-width:740px){.safir-card{padding:12px}.safir-fields{grid-template-columns:1fr}.safir-head{align-items:flex-start}}
+</style>
+
+<div class="safir-shell">
+    <section class="safir-card">
+        <div class="safir-head">
+            <div>
+                <h2>مدیریت قالب‌ها و کمپین‌های سفیر بله</h2>
+                <p class="safir-caption">قالب‌ها مستقل از سرویس‌دهنده‌های پیام‌رسان مدیریت می‌شوند؛ متغیرها و ستون‌های اکسل قابل تعریف هستند.</p>
+            </div>
+            <div class="safir-actions">
+                <a class="safir-soft" href="/admin/communications/settings?section=providers">سرویس‌دهنده‌ها</a>
+                <?php if ($mode === 'list'): ?>
+                    <a class="safir-primary" href="/admin/communications/safir?mode=create">+ قالب جدید</a>
+                <?php else: ?>
+                    <a class="safir-soft" href="/admin/communications/safir">بازگشت به جدول قالب‌ها</a>
+                <?php endif; ?>
+            </div>
         </div>
-    <?php endif; ?>
-    <div class="communication-actions" style="display:flex;flex-wrap:wrap;gap:1rem">
-        <span>ارسال واقعی: <strong><?= !empty($safir['send_enabled']) ? 'فعال با مجوز سرور' : 'غیرفعال (حالت امن)' ?></strong></span>
-        <span>کلید سفیر: <strong><?= !empty($safir['credential_ready']) ? 'در سرور تنظیم شده' : 'تنظیم نشده' ?></strong></span>
-        <span>شماره تست: <strong><?= admin_h((string) ($safir['test_phone_masked'] ?? '')) ?></strong></span>
-    </div>
-</section>
+        <div class="safir-status">
+            <span>ارسال واقعی: <strong><?= empty($safir['send_enabled']) ? 'غیرفعال (امن)' : 'فعال با مجوز سرور' ?></strong></span>
+            <span>کلید API: <strong><?= empty($safir['credential_ready']) ? 'تنظیم نشده' : 'تنظیم شده' ?></strong></span>
+            <span>شماره تست: <strong><?= admin_h((string) ($safir['test_phone_masked'] ?? '')) ?></strong></span>
+        </div>
+        <?php if (isset($statusMessages[$status])): ?>
+            <div class="admin-alert admin-alert--<?= in_array($status, $successes, true) ? 'success' : 'danger' ?>">
+                <?= admin_h($statusMessages[$status]) ?>
+            </div>
+        <?php elseif ($status !== '' && str_starts_with($status, 'safir_')): ?>
+            <div class="admin-alert admin-alert--danger">عملیات انجام نشد: <?= admin_h($status) ?></div>
+        <?php endif; ?>
+    </section>
 
-<section class="provider-management-card" dir="rtl">
-    <h3>۱. مدیریت قالب‌های خدماتی</h3>
-    <p class="communication-muted">ابتدا متن و متغیرها را در پنل سفیر بله ثبت و تأیید کنید؛ سپس شناسه قالب و نگاشت متغیرها به اکسل را اینجا تعریف کنید. تغییر متن در IPKF به‌تنهایی قالب مورد تأیید سفیر را عوض نمی‌کند.</p>
-
-    <?php foreach ($templates as $tpl): ?>
-        <details style="border:1px solid var(--admin-border,#e1e5ea);border-radius:12px;padding:1rem;margin:0.7rem 0">
-            <summary style="cursor:pointer;font-weight:600">
-                <?= admin_h($tpl['title'] ?? '') ?>
-                <small dir="ltr">[<?= admin_h($tpl['code'] ?? '') ?> — <?= admin_h($tpl['template_id'] ?? '') ?>]</small>
-                <small><?= !empty($tpl['active']) ? 'فعال' : 'غیرفعال' ?> / <?= !empty($tpl['provider_approved']) ? 'تأییدشده در سفیر (اعلام مدیر)' : 'تأییدنشده' ?></small>
-            </summary>
-            <form method="post" action="/admin/communications/settings/safir" class="communication-form" data-safir-template-form>
+    <?php if ($mode === 'list'): ?>
+        <section class="safir-card">
+            <div class="safir-head">
+                <h3>فهرست قالب‌های پیام</h3>
+                <span class="safir-caption"><?= count($templates) ?> قالب</span>
+            </div>
+            <div class="safir-table-scroll">
+                <table class="safir-table">
+                    <thead><tr>
+                        <th>عنوان قالب</th><th>کد انگلیسی</th><th>شناسه بازو</th>
+                        <th>شناسه قالب سفیر</th><th>متغیرها</th><th>وضعیت</th><th>عملیات</th>
+                    </tr></thead>
+                    <tbody>
+                    <?php foreach ($templates as $item): ?>
+                        <tr>
+                            <td><strong><?= admin_h($item['title'] ?? '') ?></strong></td>
+                            <td dir="ltr"><?= admin_h($item['code'] ?? '') ?></td>
+                            <td dir="ltr"><?= admin_h($item['bot_id'] ?? '') ?></td>
+                            <td dir="ltr"><?= admin_h($item['template_id'] ?? '') ?></td>
+                            <td><?= count((array) ($item['mappings'] ?? [])) ?></td>
+                            <td>
+                                <span class="safir-badge <?= empty($item['active']) ? 'safir-badge--off' : '' ?>">
+                                    <?= empty($item['active']) ? 'غیرفعال' : 'فعال' ?>
+                                </span>
+                            </td>
+                            <td>
+                                <div class="safir-actions">
+                                    <a class="safir-soft" href="/admin/communications/safir?edit=<?= rawurlencode((string) $item['code']) ?>">ویرایش</a>
+                                    <form method="post" action="/admin/communications/settings/safir">
+                                        <input type="hidden" name="_token" value="<?= admin_h($csrf) ?>">
+                                        <input type="hidden" name="action" value="toggle_template">
+                                        <input type="hidden" name="code" value="<?= admin_h($item['code']) ?>">
+                                        <input type="hidden" name="active" value="<?= empty($item['active']) ? '1' : '0' ?>">
+                                        <button type="submit" class="safir-soft"><?= empty($item['active']) ? 'فعال‌سازی' : 'غیرفعال‌سازی' ?></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <?php if (!$templates): ?>
+                        <tr><td colspan="7">قالبی ثبت نشده است. از «قالب جدید» استفاده کنید.</td></tr>
+                    <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        <section class="safir-card">
+            <h3>انتخاب قالب و ورود فایل اکسل</h3>
+            <p class="safir-caption">ستون‌های فایل باید دقیقاً با نام ستون‌هایی که برای متغیرها تنظیم کرده‌اید مطابقت داشته باشند. هیچ پیامی در مرحله پیش‌نمایش ارسال نمی‌شود.</p>
+            <form method="post" enctype="multipart/form-data" action="/admin/communications/settings/safir" class="communication-form">
+                <input type="hidden" name="_token" value="<?= admin_h($csrf) ?>">
+                <input type="hidden" name="action" value="import">
+                <label><span>انتخاب قالب</span><select name="template_code" required>
+                    <option value="">قالب را انتخاب کنید</option>
+                    <?php foreach ($templates as $item): if (!empty($item['active'])): ?>
+                        <option value="<?= admin_h($item['code']) ?>"><?= admin_h($item['title']) ?></option>
+                    <?php endif; endforeach; ?>
+                </select></label>
+                <label><span>فایل مخاطبان XLSX</span><input type="file" name="recipients" accept=".xlsx" required></label>
+                <div class="communication-actions communication-form__wide">
+                    <button class="safir-primary" type="submit">بارگذاری و پیش‌نمایش، بدون ارسال</button>
+                </div>
+            </form>
+        </section>
+    <?php else: ?>
+        <section class="safir-card">
+            <h3><?= $mode === 'edit' ? 'ویرایش قالب' : 'تعریف قالب جدید' ?></h3>
+            <p class="safir-caption">فقط مشخصات اصلی و متغیرهای موردنیاز را وارد کنید. نوع پیام، تعرفه و تاریخ ثبت در این فرم لازم نیست.</p>
+            <form method="post" action="/admin/communications/settings/safir" data-safir-editor>
                 <input type="hidden" name="_token" value="<?= admin_h($csrf) ?>">
                 <input type="hidden" name="action" value="save_template">
-                <label><span>کد داخلی قالب (غیرقابل تغییر)</span>
-                    <input name="code" readonly dir="ltr" value="<?= admin_h($tpl['code']) ?>"></label>
-                <label><span>عنوان نمایشی</span>
-                    <input name="title" required value="<?= admin_h($tpl['title']) ?>"></label>
-                <label><span>شناسه بازو (Bot ID)</span>
-                    <input name="bot_id" required dir="ltr" value="<?= admin_h($tpl['bot_id']) ?>"></label>
-                <label><span>شناسه قالب تأییدشده (Template ID)</span>
-                    <input name="template_id" required dir="ltr" value="<?= admin_h($tpl['template_id']) ?>"></label>
-                <label><span>ستون شماره مقصد در اکسل</span>
-                    <input name="phone_column" required value="<?= admin_h($tpl['phone_column']) ?>"></label>
-                <label><span>نوع پیام در سفیر</span><input name="message_type" value="<?= admin_h($tpl['message_type'] ?? '') ?>" placeholder="خدماتی"></label>
-                <label><span>تعرفه هر پیام (ریال)</span><input name="unit_price_irr" dir="ltr" inputmode="numeric" value="<?= admin_h($tpl['unit_price_irr'] ?? '') ?>"></label>
-                <label><span>تاریخ ثبت در پنل سفیر</span><input name="provider_created_at" dir="ltr" value="<?= admin_h($tpl['provider_created_at'] ?? '') ?>"></label>
-                <label class="communication-form__wide"><span>متن قالب و متغیرها</span>
-                    <textarea rows="7" name="body" required style="width:100%" data-safir-body><?= admin_h($tpl['body']) ?></textarea></label>
-                <div class="communication-form__wide" data-safir-mappings>
-                    <?php foreach (($tpl['mappings'] ?? []) as $variable => $columnNames): ?>
-                        <label><span><code dir="ltr">{{<?= admin_h($variable) ?>}}</code> ← ستون(های) اکسل؛ برای ترکیب با + جدا کنید</span>
-                            <input dir="auto" name="mappings[<?= admin_h($variable) ?>]" data-safir-map="<?= admin_h($variable) ?>" value="<?= admin_h(implode(' + ', $columnNames)) ?>"></label>
-                    <?php endforeach; ?>
+                <div class="safir-form-tabs" role="tablist" aria-label="ویرایش قالب">
+                    <button type="button" role="tab" class="is-active" data-safir-tab="identity" aria-selected="true">مشخصات قالب</button>
+                    <button type="button" role="tab" data-safir-tab="variables" aria-selected="false">متغیرها و ستون‌های اکسل</button>
+                    <button type="button" role="tab" data-safir-tab="message" aria-selected="false">متن و پیش‌نمایش</button>
                 </div>
-                <label class="communication-form__wide">
-                    <input type="checkbox" name="provider_approved" value="1" <?= !empty($tpl['provider_approved']) ? 'checked' : '' ?>>
-                    تأیید می‌کنم شناسه و متن این قالب در پنل سفیر ثبت و تأیید شده است.
-                </label>
-                <div class="communication-actions communication-form__wide"><button class="admin-button" type="submit">ذخیره تغییرات قالب</button></div>
+                <div class="safir-form-panel" data-safir-panel="identity" role="tabpanel">
+                    <div class="safir-fields">
+                        <label><span>کد انگلیسی یکتا</span>
+                            <input name="code" required maxlength="63" dir="ltr" pattern="[a-z][a-z0-9._-]{1,63}" value="<?= admin_h($tpl['code'] ?? '') ?>" <?= $mode === 'edit' ? 'readonly' : '' ?> placeholder="invite"></label>
+                        <label><span>عنوان فارسی قالب</span>
+                            <input name="title" required maxlength="160" value="<?= admin_h($tpl['title'] ?? '') ?>" placeholder="دعوت به عضویت"></label>
+                        <label><span>شناسه بازو (Bot ID)</span>
+                            <input name="bot_id" required dir="ltr" inputmode="numeric" value="<?= admin_h($tpl['bot_id'] ?? '') ?>"></label>
+                        <label><span>شناسه قالب تأییدشده سفیر</span>
+                            <input name="template_id" required dir="ltr" value="<?= admin_h($tpl['template_id'] ?? '') ?>"></label>
+                        <label><span>نام ستون شماره همراه در اکسل</span>
+                            <input name="phone_column" required value="<?= admin_h($tpl['phone_column'] ?? 'شماره همراه') ?>"></label>
+                        <label class="safir-full">
+                            <span><input type="checkbox" name="provider_approved" value="1" <?= !empty($tpl['provider_approved']) ? 'checked' : '' ?>> شناسه و متن این قالب قبلاً در پنل سفیر تأیید شده است.</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="safir-form-panel" data-safir-panel="variables" role="tabpanel" hidden>
+                    <p class="safir-caption">هر سطر یک متغیر است. «عنوان فارسی» برای مدیر، «کلید انگلیسی» برای متن پیام و «ستون اکسل» برای داده ورودی استفاده می‌شود. برای ترکیب چند ستون، نام‌ها را با + جدا کنید.</p>
+                    <div class="safir-table-scroll">
+                        <table class="safir-variable-table">
+                            <thead><tr><th>عنوان فارسی</th><th>کلید انگلیسی</th><th>ستون متناظر اکسل</th><th>عملیات</th></tr></thead>
+                            <tbody data-safir-variables>
+                                <?php foreach ($variableRows as $i => $variable): ?>
+                                    <tr class="safir-variable-row" data-safir-variable>
+                                        <td><input required maxlength="120" name="variable_items[<?= $i ?>][label_fa]" value="<?= admin_h($variable['label_fa']) ?>" placeholder="نام کامل"></td>
+                                        <td><input required maxlength="64" dir="ltr" pattern="[a-zA-Z_][a-zA-Z0-9_]*" data-safir-key name="variable_items[<?= $i ?>][key_en]" value="<?= admin_h($variable['key_en']) ?>" placeholder="name"></td>
+                                        <td><input required maxlength="120" name="variable_items[<?= $i ?>][excel_column]" value="<?= admin_h($variable['excel_column']) ?>" placeholder="نام + نام خانوادگی"></td>
+                                        <td><div class="safir-actions">
+                                            <button class="safir-soft" type="button" data-safir-insert>درج در متن</button>
+                                            <button class="safir-soft" type="button" data-safir-remove>حذف</button>
+                                        </div></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="safir-toolbar">
+                        <button class="safir-primary" type="button" data-safir-add>+ افزودن متغیر</button>
+                        <span class="safir-caption"><span data-safir-count><?= count($variableRows) ?></span> از حداکثر ۱۰۰ متغیر</span>
+                    </div>
+                </div>
+                <div class="safir-form-panel" data-safir-panel="message" role="tabpanel" hidden>
+                    <label class="safir-wide-label">
+                        <span>متن مورد تأیید سفیر</span>
+                        <textarea name="body" data-safir-body required rows="8" maxlength="4000" placeholder="سلام {{name}} ..."><?= admin_h($tpl['body'] ?? '') ?></textarea>
+                    </label>
+                    <p class="safir-caption">کلیدهای متغیر باید دقیقاً مطابق ردیف‌های تب متغیرها باشند. تغییر متن در IPKF به‌معنی تأیید خودکار آن در سفیر نیست.</p>
+                    <div data-safir-sample class="safir-card" style="white-space:pre-wrap;margin-top:10px">پیش‌نمایش متن در این بخش نمایش داده می‌شود.</div>
+                </div>
+                <div class="safir-form-footer">
+                    <a class="safir-soft" href="/admin/communications/safir">انصراف</a>
+                    <button class="safir-primary" type="submit">ذخیره قالب</button>
+                </div>
             </form>
-            <form method="post" action="/admin/communications/settings/safir">
-                <input type="hidden" name="_token" value="<?= admin_h($csrf) ?>">
-                <input type="hidden" name="action" value="toggle_template">
-                <input type="hidden" name="code" value="<?= admin_h($tpl['code']) ?>">
-                <input type="hidden" name="active" value="<?= !empty($tpl['active']) ? '0' : '1' ?>">
-                <button type="submit" class="admin-button"><?= !empty($tpl['active']) ? 'غیرفعال‌کردن قالب' : 'فعال‌کردن قالب' ?></button>
-            </form>
-        </details>
-    <?php endforeach; ?>
-
-    <details style="border:1px solid var(--admin-border,#e1e5ea);border-radius:12px;padding:1rem;margin:0.7rem 0">
-        <summary style="cursor:pointer;font-weight:600">+ تعریف قالب جدید</summary>
-        <form method="post" action="/admin/communications/settings/safir" class="communication-form" data-safir-template-form>
-            <input type="hidden" name="_token" value="<?= admin_h($csrf) ?>">
-            <input type="hidden" name="action" value="save_template">
-            <label><span>کد داخلی یکتا (انگلیسی)</span><input name="code" required dir="ltr" placeholder="payment_reminder"></label>
-            <label><span>عنوان قالب</span><input name="title" required placeholder="یادآوری پرداخت"></label>
-            <label><span>شناسه بازو (Bot ID)</span><input name="bot_id" required dir="ltr"></label>
-            <label><span>شناسه قالب تأییدشده در سفیر</span><input name="template_id" required dir="ltr"></label>
-            <label><span>نام ستون شماره در اکسل</span><input name="phone_column" required value="شماره همراه"></label>
-            <label><span>نوع پیام در سفیر</span><input name="message_type" placeholder="خدماتی"></label>
-            <label><span>تعرفه هر پیام (ریال)</span><input name="unit_price_irr" dir="ltr" inputmode="numeric"></label>
-            <label><span>تاریخ ثبت در پنل سفیر</span><input name="provider_created_at" dir="ltr" placeholder="۱۴۰۵/۰۸/۰۹"></label>
-            <label class="communication-form__wide">
-                <span>متن تأییدشده قالب؛ هر متغیر را مانند <code dir="ltr">{{tracking_code}}</code> بنویسید</span>
-                <textarea name="body" data-safir-body required rows="6" style="width:100%"></textarea>
-            </label>
-            <div class="communication-form__wide" data-safir-mappings></div>
-            <label class="communication-form__wide">
-                <input type="checkbox" name="provider_approved" value="1">
-                شناسه و متن این قالب قبلاً توسط سفیر بله تأیید شده است.
-            </label>
-            <div class="communication-actions communication-form__wide"><button type="submit" class="admin-button">ثبت قالب جدید</button></div>
-        </form>
-    </details>
-</section>
-
-<section class="provider-management-card" dir="rtl">
-    <h3>۲. انتخاب قالب و ورود اکسل</h3>
-    <form method="post" enctype="multipart/form-data" action="/admin/communications/settings/safir" class="communication-form">
-        <input type="hidden" name="_token" value="<?= admin_h($csrf) ?>">
-        <input type="hidden" name="action" value="import">
-        <label><span>قالب پیام</span>
-            <select name="template_code" required>
-                <option value="">یک قالب انتخاب کنید</option>
-                <?php foreach ($templates as $tpl): ?>
-                    <?php if (empty($tpl['active'])) continue; ?>
-                    <option value="<?= admin_h($tpl['code']) ?>"><?= admin_h($tpl['title']) ?>
-                        (<?= admin_h($tpl['template_id']) ?>)
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label><span>فایل مخاطبان</span>
-            <input type="file" name="recipients" accept=".xlsx" required>
-        </label>
-        <p class="communication-muted communication-form__wide">ستون‌های اکسل مطابق نگاشت هر قالب خوانده می‌شوند. نام ستون‌ها باید در ردیف اول باشد؛ داده ناقص، شماره تکراری و فرمول کنترل می‌شود.</p>
-        <div class="communication-actions communication-form__wide">
-            <button class="admin-button" type="submit">بارگذاری و پیش‌نمایش، بدون ارسال</button>
-        </div>
-    </form>
-</section>
-
+        </section>
+    <?php endif; ?>
 <?php if (is_array($campaign)): ?>
     <section class="provider-management-card" dir="rtl">
         <h3>۳. پیش‌نمایش: <?= admin_h($campaign['template_title'] ?? $campaign['template_code']) ?></h3>
@@ -237,33 +322,144 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
         <?php endif; ?>
     </section>
 <?php endif; ?>
+
+</div>
 <script>
 (() => {
-    document.querySelectorAll('[data-safir-template-form]').forEach((form) => {
+    const form = document.querySelector('[data-safir-editor]');
+    if (form) {
+        const tabButtons = Array.from(form.querySelectorAll('[data-safir-tab]'));
+        const panels = Array.from(form.querySelectorAll('[data-safir-panel]'));
+        const items = form.querySelector('[data-safir-variables]');
         const body = form.querySelector('[data-safir-body]');
-        const box = form.querySelector('[data-safir-mappings]');
-        if (!body || !box) return;
-        function synchronize() {
-            const found = [...new Set([...body.value.matchAll(/\{\{([\p{L}_][\p{L}\p{N}_]*)\}\}/gu)].map(x => x[1]))];
-            const old = {};
-            box.querySelectorAll('input[data-safir-map]').forEach((input) => { old[input.dataset.safirMap] = input.value; });
-            box.replaceChildren();
-            found.forEach((key) => {
-                const label = document.createElement('label');
-                const span = document.createElement('span');
-                span.textContent = '{{' + key + '}} — نام ستون یا چند ستون با +';
-                const input = document.createElement('input');
-                input.name = 'mappings[' + key + ']';
-                input.dataset.safirMap = key;
-                input.required = true;
-                input.value = old[key] || '';
-                label.append(span, input);
-                box.append(label);
+        const count = form.querySelector('[data-safir-count]');
+        const add = form.querySelector('[data-safir-add]');
+        const preview = form.querySelector('[data-safir-sample]');
+        let nextIndex = items.querySelectorAll('[data-safir-variable]').length;
+        function selectTab(name) {
+            tabButtons.forEach(button => {
+                const active = button.dataset.safirTab === name;
+                button.classList.toggle('is-active', active);
+                button.setAttribute('aria-selected', active ? 'true' : 'false');
             });
+            panels.forEach(panel => { panel.hidden = panel.dataset.safirPanel !== name; });
         }
-        body.addEventListener('input', synchronize);
-        synchronize();
-    });
+        tabButtons.forEach(button => button.addEventListener('click', () => selectTab(button.dataset.safirTab)));
+        function updateCount() {
+            const n = items.querySelectorAll('[data-safir-variable]').length;
+            count.textContent = String(n);
+            add.disabled = n >= 100;
+        }
+        function addVariable() {
+            if (items.querySelectorAll('[data-safir-variable]').length >= 100) return;
+            const index = nextIndex++;
+            const tr = document.createElement('tr');
+            tr.className = 'safir-variable-row';
+            tr.dataset.safirVariable = '';
+            const fields = [
+                ['label_fa', 'عنوان فارسی', false],
+                ['key_en', 'key_en', true],
+                ['excel_column', 'نام ستون اکسل', false]
+            ];
+            fields.forEach(field => {
+                const td = document.createElement('td');
+                const input = document.createElement('input');
+                input.name = 'variable_items[' + index + '][' + field[0] + ']';
+                input.placeholder = field[1];
+                input.required = true;
+                input.maxLength = field[0] === 'key_en' ? 64 : 120;
+                if (field[2]) {
+                    input.dir = 'ltr';
+                    input.pattern = '[a-zA-Z_][a-zA-Z0-9_]*';
+                    input.dataset.safirKey = '';
+                }
+                td.append(input);
+                tr.append(td);
+            });
+            const buttons = document.createElement('td');
+            const wrap = document.createElement('div');
+            wrap.className = 'safir-actions';
+            for (const entry of [['درج در متن', 'safirInsert'], ['حذف', 'safirRemove']]) {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'safir-soft';
+                button.textContent = entry[0];
+                if (entry[1] === 'safirInsert') button.dataset.safirInsert = '';
+                else button.dataset.safirRemove = '';
+                wrap.append(button);
+            }
+            buttons.append(wrap);
+            tr.append(buttons);
+            items.append(tr);
+            updateCount();
+            tr.querySelector('input').focus();
+        }
+        add.addEventListener('click', addVariable);
+        items.addEventListener('click', event => {
+            const button = event.target.closest('button');
+            const tr = event.target.closest('[data-safir-variable]');
+            if (!button || !tr) return;
+            if (button.hasAttribute('data-safir-remove')) {
+                tr.remove();
+                updateCount();
+                return;
+            }
+            if (button.hasAttribute('data-safir-insert')) {
+                const key = (tr.querySelector('[data-safir-key]')?.value || '').trim();
+                if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key)) {
+                    selectTab('variables');
+                    tr.querySelector('[data-safir-key]')?.focus();
+                    return;
+                }
+                body.value += (body.value && !body.value.endsWith(' ') ? ' ' : '') + '{{' + key + '}}';
+                refreshPreview();
+                selectTab('message');
+                body.focus();
+            }
+        });
+        function refreshPreview() {
+            const mapping = new Map();
+            items.querySelectorAll('[data-safir-variable]').forEach(row => {
+                const key = (row.querySelector('[data-safir-key]')?.value || '').trim();
+                const label = row.querySelector('input[name$="[label_fa]"]')?.value || '';
+                if (key) mapping.set(key, '[' + label + ']');
+            });
+            preview.textContent = body.value.replace(/\{\{([A-Za-z_][A-Za-z0-9_]*)\}\}/g, (_, key) => mapping.get(key) || '{{' + key + '}}') || 'متن پیام را وارد کنید.';
+        }
+        body.addEventListener('input', refreshPreview);
+        items.addEventListener('input', refreshPreview);
+        refreshPreview();
+        updateCount();
+        form.addEventListener('invalid', event => {
+            const panel = event.target.closest('[data-safir-panel]');
+            if (panel) selectTab(panel.dataset.safirPanel);
+        }, true);
+        form.addEventListener('submit', event => {
+            const rows = Array.from(items.querySelectorAll('[data-safir-variable]'));
+            if (rows.length < 1 || rows.length > 100) {
+                event.preventDefault();
+                selectTab('variables');
+                alert('برای قالب باید بین ۱ تا ۱۰۰ متغیر تعریف شود.');
+                return;
+            }
+            const keys = rows.map(row => (row.querySelector('[data-safir-key]')?.value || '').trim());
+            const unique = new Set(keys);
+            const textKeys = new Set(Array.from(body.value.matchAll(/\{\{([a-zA-Z_][a-zA-Z0-9_]*)\}\}/g), match => match[1]));
+            if (unique.size !== keys.length || textKeys.size !== unique.size || keys.some(key => !textKeys.has(key))) {
+                event.preventDefault();
+                selectTab('variables');
+                alert('کلیدهای هر ردیف باید یکتا و عیناً در متن قالب استفاده شده باشند.');
+                return;
+            }
+            const invalid = Array.from(form.querySelectorAll('[required]')).find(input => !input.checkValidity());
+            if (invalid) {
+                event.preventDefault();
+                const panel = invalid.closest('[data-safir-panel]');
+                if (panel) selectTab(panel.dataset.safirPanel);
+                invalid.reportValidity();
+            }
+        });
+    }
     const form = document.getElementById('safir-dispatch-form');
     if (!form || !window.fetch) return;
     form.addEventListener('submit', async (event) => {
