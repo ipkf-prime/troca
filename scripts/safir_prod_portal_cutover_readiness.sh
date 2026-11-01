@@ -69,7 +69,7 @@ for proto in http https; do
   url="$proto://$HOST"
   if [ -n "$PORT" ]; then url="$url:$PORT"; fi
   if status="$(curl --silent --show-error --connect-timeout 3 --max-time 8 \
-    --resolve "$HOST:$p:127.0.0.1" -o "$TMP/health-$proto" \
+    --noproxy '*' --resolve "$HOST:$p:127.0.0.1" -o "$TMP/health-$proto" \
     -w '%{http_code}' "$url/health" 2>"$TMP/curl.err")"; then
     printf 'LOCAL_HEALTH_%s_HTTP=%s\n' "$proto" "$status"
     if [ "$status" = 200 ]; then
