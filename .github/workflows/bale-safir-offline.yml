@@ -19,6 +19,7 @@ on:
       - 'public_html/app/Services/AdminNavigationRbacService.php'
       - 'public_html/system/Routing/RouteLoader.php'
       - 'tests/bale-safir-campaign-smoke.php'
+      - 'tests/safir-ui-v21-contract-smoke.php'
       - 'scripts/safir_prod_overlay_preflight.sh'
       - 'scripts/safir_prod_release_package_prepare.sh'
       - 'scripts/safir_prod_portal_only_stage.sh'
@@ -64,7 +65,8 @@ jobs:
             public_html/routes/bale-safir-campaigns.php \
             public_html/resources/views/admin/partials/bale-safir-campaign.php \
             public_html/resources/views/admin/communication-settings.php \
-            tests/bale-safir-campaign-smoke.php; do
+            tests/bale-safir-campaign-smoke.php \
+            tests/safir-ui-v21-contract-smoke.php; do
               php -l "$file"
           done
       - name: Production overlay script syntax (no execution)
@@ -93,3 +95,5 @@ jobs:
         run: bash tests/safir-rsync-output-smoke.sh
       - name: Safir offline contract smoke
         run: php tests/bale-safir-campaign-smoke.php
+      - name: Safir UI v2.1 static contract
+        run: php tests/safir-ui-v21-contract-smoke.php
