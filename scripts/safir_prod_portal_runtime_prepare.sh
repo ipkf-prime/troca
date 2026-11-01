@@ -25,8 +25,22 @@ ACTIVE="$(readlink -e "$CURRENT")" || fail CURRENT_UNRESOLVED
 case "$ACTIVE" in "$BASE"/releases/*) : ;; *) fail CURRENT_TARGET_INVALID ;; esac
 [ -f "$RECEIPT" ] || fail STAGING_RECEIPT_NOT_FOUND
 [ -d "$STAGE" ] || fail STAGE_NOT_FOUND
-[ "$(stat -c %u "$STAGE" )" -eq 0 ] || fail STAGE_NOT_ROOT_OWNED
 [ ! -L "$STAGE" ] || fail STAGE_IS_SYMLINK
+# The Portal staging builder uses rsync -a as root, which intentionally
+# preserves the live Portal runtime ownership on the staged app directory.
+# The security boundary is the private root-owned, mode-0700 stage parent.
+STAGE_PARENT="$(dirname "$STAGE")"
+[ -d "$STAGE_PARENT" ] && [ ! -L "$STAGE_PARENT" ] || fail STAGE_PARENT_INVALID
+[ "$(stat -c %u "$STAGE_PARENT")" -eq 0 ] || fail STAGE_PARENT_NOT_ROOT_OWNED
+[ "$(stat -c %a "$STAGE_PARENT")" = 700 ] || fail STAGE_PARENT_NOT_PRIVATE
+STAGE_OWNER="$(stat -c %U "$STAGE")"
+case "$STAGE_OWNER" in
+  root|"$PORTAL_USER") : ;;
+  *) fail "UNEXPECTED_STAGE_APP_OWNER:$STAGE_OWNER" ;;
+esac
+# The future cutover must relocate staged code to an immutable release with
+# normal runtime traverse permissions. Do not open the private staging parent.
+echo STAGE_OWNER_AND_PARENT_GATE=PASS
 [ -f "$STAGE/app/Services/BaleSafirTemplateCatalogService.php" ] || fail SAFIR_SERVICE_MISSING
 [ -f "$STAGE/resources/ui-content/bale-safir-templates.json" ] || fail INITIAL_CATALOG_MISSING
 [ -f "$ACTIVE/.env" ] || fail ACTIVE_DESCRIPTOR_MISSING
