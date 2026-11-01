@@ -13,7 +13,7 @@ final class BaleSafirCampaignService
     private const SESSION_KEY = 'ipkf_bale_safir_campaign_v1';
     private const MAX_UPLOAD_BYTES = 2097152;
     private const MAX_UNCOMPRESSED_BYTES = 4194304;
-    private const MAX_ROWS = 500;
+    private const MAX_ROWS_DEFAULT = 5000;
 
     public function page(int $userId, string $editingCode = ''): array
     {
@@ -407,6 +407,7 @@ final class BaleSafirCampaignService
             throw new RuntimeException('safir_xlsx_invalid');
         }
         try {
+            $maxRows = max(500, min(50000, (int) Env::get('BALE_SAFIR_MAX_IMPORT_ROWS', self::MAX_ROWS_DEFAULT)));
             if ($zip->numFiles > 150) {
                 throw new RuntimeException('safir_xlsx_too_large');
             }
@@ -452,7 +453,7 @@ final class BaleSafirCampaignService
             $table = [];
             foreach ($xml->sheetData->row as $row) {
                 $number = (int) $row['r'];
-                if ($number <= 0 || $number > self::MAX_ROWS + 1) {
+                if ($number <= 0 || $number > $maxRows + 1) {
                     throw new RuntimeException('safir_xlsx_too_many_rows');
                 }
                 $cells = [];
