@@ -273,7 +273,9 @@ require BASE_PATH
             </div>
         </header>
 
-        <?php if ($section === 'internal'): ?>
+        <?php if ($section === 'safir'): ?>
+            <?php require BASE_PATH . '/resources/views/admin/partials/bale-safir-campaign.php'; ?>
+        <?php elseif ($section === 'internal'): ?>
             <form class="communication-form" method="post" action="/admin/communications/settings/internal-messages">
                 <input type="hidden" name="_token" value="<?= admin_h((new \IPKF\Security\Csrf())->token()) ?>">
                 <label><span>وضعیت پیام داخلی</span><input type="checkbox" name="enabled" value="1" <?= ($messageSettings['enabled'] ?? '1') === '1' ? 'checked' : '' ?>> فعال</label>
