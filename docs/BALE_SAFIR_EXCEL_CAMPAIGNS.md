@@ -1,64 +1,91 @@
-# IPKF — Bale Safir invitation campaigns (development)
+# IPKF — Bale Safir dynamic template management / Excel campaigns
 
-## Entry point
-After a controlled deployment to Core **development**, open:
+## Purpose
+This is **one provider adapter and an extensible template catalog**, not a single hardcoded invitation message. Each Safir template belongs to a user-configured definition in the Persian IPKF communication-center panel.
+
+Entry point after a controlled deployment:
 `/admin/communications/settings?section=safir`
 
-Requires existing `notifications.send.manage` permission. It appears as a tab next to other communication-center sections.
+Requires the existing `notifications.send.manage` permission for all mutating operations and reports. Every POST is CSRF-guarded.
 
-## Input
-XLSX with headers in row 1:
+## Dynamic template catalog
+Use **+ تعریف قالب جدید** to create additional templates, or expand a saved template to edit it.
 
-| نام | نام خانوادگی | نام شرکت | شماره همراه مدیرعامل |
-|---|---|---|---|
-| علی | محمدی | شرکت تعاونی نمونه | 09123333170 |
+Per template:
+- Unique internal code and title
+- Safir bot ID and **provider-approved template ID**
+- Provider message type and rate in IRR (optional informational metadata)
+- Provider registration date (optional informational metadata)
+- Exact provider-approved body, including any `{{variable_name}}` placeholders
+- Configurable Excel column for destination phone number
+- A variable-to-Excel mapping for **every** placeholder; multiple Excel columns can be concatenated with ` + `
+- Active/inactive switch and separate administrator confirmation that the body and ID are approved at Safir
 
-Accepted: 09xxxxxxxxx, 989xxxxxxxxx, +989xxxxxxxxx, 9xxxxxxxxx (Excel numeric cells), 00989xxxxxxxxx; Persian/Arabic digits accepted. Maximum 500 rows and 2 MB compressed XLSX. Formulas are rejected. Uploaded files are parsed, **not saved**. The generated campaign is kept in the **authenticated server-side PHP session** (not browser storage).
+Example: one template can use `{{name}}`, `{{sherkat}}`; another can use `{{tracking_code}}`, `{{amount}}` or completely different placeholders. No transport-code changes are required.
 
-## Template
-Default data definition:
-`public_html/resources/ui-content/bale-safir-invite.json`
+**Provider approval is external**: editing a message in IPKF does not create, modify, submit or approve a Safir service template. An administrator must first create/approve it in the Safir panel, then enter the exact `template_id` and message text in IPKF. The UI's provider-approved checkbox is an administrator declaration, not an API verification.
 
-Template ID, bot ID and preview body can be edited by an authorized administrator in the IPKF panel; overrides are stored under `public_html/storage/private/bale_safir_settings.json`, outside the web document root and with restricted file permissions. The panel does **not** edit the previously approved message in the Safir provider panel. Only `text_fields.name` and `text_fields.sherkat` are sent; the Safir server renders the fixed template.
+Default catalog data only:
+`public_html/resources/ui-content/bale-safir-templates.json`
 
-## Environment configuration
-Add to the **server's private shared env**, never to source control:
+The initial `invite` is **seed data, not hardcoded business logic**. Catalog edits are stored in an absolute persistent JSON file, selected by `BALE_SAFIR_CATALOG_PATH`. This must be outside immutable release folders and outside any web document root. Updates use an exclusive file lock and atomic file replacement. Templates are not lost during a later release cutover provided this persistent path remains configured.
 
+## Excel import
+When uploading XLSX, select the template first. The file's first row contains **the actual column headings**, which are matched against that template's phone column and variable mappings. There are no fixed `نام`/`نام خانوادگی`/`نام شرکت` requirements for other templates. The sample invite maps `name = نام + نام خانوادگی` and `sherkat = نام شرکت`.
+
+Accepts Iranian mobile numbers in formats `09...`, `989...`, `+989...`, `9...`, and `00989...`, including Persian/Arabic digits. Invalid/duplicate destinations and missing variable data are marked as skipped. Rejects formulas and duplicate header names.
+
+Import guardrails (technical, not template-type restrictions): 500 input rows, 2 MB compressed XLSX, 256 columns. Campaign previews and results are currently kept in the **authenticated server-side PHP session** and are not yet suitable for durable high-volume production operations.
+
+For each row, the application sends:
+```json
+{
+  "bot_id": "<from selected catalog item>",
+  "phone_number": "<normalized mobile>",
+  "message_data": {
+    "template_message": {
+      "template_id": "<from selected catalog item>",
+      "text_fields": {
+        "<variable1>": "<mapped Excel value>",
+        "<variable2>": "<mapped Excel value>"
+      }
+    }
+  }
+}
+```
+This is **illustrative JSON**, not a literal payload. Variables are taken from the selected template, not from PHP hardcoded keys; no undocumented request IDs are sent to Safir. Requests use the configured HTTPS `https://safir.bale.ai/api/v3/send_message` endpoint and the rotated access key from the private server environment. The existing Bale Bot `chat_id` adapter is unaffected.
+
+## Required shared/private environment
+Set in private server configuration, **not in Git**:
 ```dotenv
-BALE_SAFIR_API_ACCESS_KEY=REPLACE_WITH_NEW_ROTATED_SECRET
+BALE_SAFIR_CATALOG_PATH=/absolute/persistent/private/path/bale-safir-templates.json
+BALE_SAFIR_MAX_TEMPLATES=200
+BALE_SAFIR_API_ACCESS_KEY=
 BALE_SAFIR_SEND_ENABLED=false
 BALE_SAFIR_PRODUCTION_APPROVED=false
-BALE_SAFIR_TEST_PHONE=989XXXXXXXXX
+BALE_SAFIR_TEST_PHONE=
 BALE_SAFIR_INTERVAL_MS=1500
 ```
+Replace the example catalog path with the actual approved persistent path. A nonempty, **rotated** key is required for any real sending. The key shared in chat previously must be revoked. Leaving the toggles as shown ensures **NO live API dispatch**. Production requires two distinct enable flags, plus explicit in-panel confirmation and a successful test before a bulk send.
 
-The API key previously pasted in chat **must be revoked/rotated**. The checked-in example is empty and safe-disabled. Production requires two separate environment toggles before dispatch, after a later explicit deployment approval. No message can be sent through this module by importing a file alone.
+## Acceptance and rollout
+1. Validate catalog CRUD, arbitrary placeholder detection, duplicate-variable handling and mapping configuration.
+2. Import separate Excel samples for at least two templates; verify preview and variable mapping.
+3. Check RBAC and CSRF, safe-disabled sending, malformed XLSX rejection, and formula/duplicate-header rejection.
+4. After the final release package is reviewed, deploy only through IPKF's official **verified immutable release** mechanism; preserve active Production code and a rollback link.
+5. Test actual Safir service acceptance with a **single allowlisted phone** only after new-key rotation.
+6. Require durable persistence, retry/audit reconciliation and opt-out management before permitting routine high-volume Production sends.
 
-## Workflow
-1. Upload Excel — preview and error checking; zero API calls.
-2. Review recipient count, duplicates, preview and company spelling.
-3. Enable test sending in **dev only** after key rotation and an allowlisted test number; click test and tick confirmation.
-4. Check the returned message ID and delivered message in Bale.
-5. Tick approval, click start. Browser dispatches batches of 3 with a 2-second pause between requests, plus server-side message interval. Close page to stop; reopen to continue while the PHP session exists. A failed or unknown result halts the browser loop.
-6. Download CSV report (UTF-8 BOM, Excel compatible).
+## Delivery semantics
+- `sent` is currently provider API acceptance with a message reference, **not proof of delivery/opening**.
+- Timeout or ambiguous response is `unknown` and must not be automatically retried.
+- All sending is disabled by default and CI smoke tests make **zero** provider calls.
+- Current campaign state is session-scoped. A production-grade DB-backed queue, audit history, concurrent admin handling and delivery reconciliation is a separate required hardening step.
 
-### Delivery semantics
-- `sent` means Safir responded with a non-empty `message_id` and empty `error_data`; it does **not** prove a recipient opened the message.
-- Timeouts, invalid response or server error are marked `unknown` and **not automatically retried**.
-- A stable campaign/row identifier is retained locally for internal reconciliation; we do not add undocumented fields to the Safir API request.
-- The provider's message API requires `phone_number`, not Bot API `chat_id`.
-- Existing `NotificationBaleGatewayAdapter` remains unchanged.
-
-## Limitations before production approval
-- Campaign state and reports live in the current user's PHP session and expire with it. Long-term audit, durable queues, cancellation, retries, multiple admins, opt-out management, delivery reconciliation and archival reporting need a database-backed second phase **before enabling production**.
-- Default parser accepts the first worksheet's standard `xl/worksheets/sheet1.xml` path; export a regular one-sheet XLSX if a workbook has unusual worksheet numbering.
-- This PR does **not** deploy to any host or send actual messages.
-
-## Offline checks
+## Offline contract checks
 ```bash
 php -l public_html/app/Services/BaleSafirCampaignService.php
+php -l public_html/app/Services/BaleSafirTemplateCatalogService.php
 php -l public_html/routes/bale-safir-campaigns.php
 php tests/bale-safir-campaign-smoke.php
 ```
-
-See GitHub Actions workflow `.github/workflows/bale-safir-offline.yml`.
