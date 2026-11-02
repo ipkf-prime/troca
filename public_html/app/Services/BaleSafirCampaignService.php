@@ -36,6 +36,7 @@ final class BaleSafirCampaignService
             'campaign' => $campaign,
             'counts' => $counts,
             'send_enabled' => $this->sendEnabled(),
+            'pilot_mode' => $this->pilotEnabled(),
             'test_phone_masked' => $this->maskPhone((string) Env::get('BALE_SAFIR_TEST_PHONE', '')),
             'credential_ready' => trim((string) Env::get('BALE_SAFIR_API_ACCESS_KEY', '')) !== '',
             'manual_test_history' => (new BaleSafirTestReportService())->recent(10),
@@ -323,6 +324,11 @@ final class BaleSafirCampaignService
     {
         $this->assertSendEnabled();
         $campaign = $this->requireCampaign($userId);
+        // Pilot mode takes precedence even if bulk flags were toggled by mistake.
+        // Verify the WHOLE imported campaign before any provider call.
+        if ($this->pilotEnabled()) {
+            $this->assertPilotCampaign($campaign);
+        }
         if (!hash_equals((string) $campaign['reference'], $reference)
             || !hash_equals('SEND ' . $reference, $confirmation)
             || ($campaign['test_status'] ?? '') !== 'sent'
@@ -428,12 +434,61 @@ final class BaleSafirCampaignService
         return $campaign;
     }
 
+    /**
+     * A production pilot never enables the existing unrestricted bulk flags.
+     * Configuration must contain exactly 2 or 3 DISTINCT canonical recipients.
+     */
+    private function pilotPhones(): array
+    {
+        $raw = trim((string) Env::get('BALE_SAFIR_PILOT_PHONES', ''));
+        $phones = $raw === '' ? [] : explode(',', $raw);
+        if (count($phones) < 2 || count($phones) > 3) {
+            return [];
+        }
+        foreach ($phones as $phone) {
+            if (!preg_match('/^989[0-9]{9}$/D', $phone)) {
+                return [];
+            }
+        }
+        return count(array_unique($phones)) === count($phones) ? $phones : [];
+    }
+
+    private function pilotEnabled(): bool
+    {
+        return filter_var(Env::get('BALE_SAFIR_PILOT_ENABLED', false), FILTER_VALIDATE_BOOLEAN)
+            && filter_var(Env::get('BALE_SAFIR_PILOT_PRODUCTION_APPROVED', false), FILTER_VALIDATE_BOOLEAN)
+            && count($this->pilotPhones()) >= 2;
+    }
+
+    private function assertPilotCampaign(array $campaign): void
+    {
+        $rows = $campaign['rows'] ?? null;
+        $phones = $this->pilotPhones();
+        if (!is_array($rows) || count($rows) < 2 || count($rows) > 3
+            || count($phones) < 2 || count($phones) > 3) {
+            throw new RuntimeException('safir_pilot_list_not_allowed');
+        }
+        $seen = [];
+        foreach ($rows as $row) {
+            if (!is_array($row) || !is_string($row['phone'] ?? null)
+                || !in_array((string) ($row['status'] ?? ''),
+                    ['ready', 'sent', 'failed', 'unknown'], true)
+                || !in_array($row['phone'], $phones, true)
+                || isset($seen[$row['phone']])
+                || $this->normalizePhone($row['phone']) !== $row['phone']) {
+                throw new RuntimeException('safir_pilot_list_not_allowed');
+            }
+            $seen[$row['phone']] = true;
+        }
+    }
+
     private function sendEnabled(): bool
     {
         $enabled = filter_var(Env::get('BALE_SAFIR_SEND_ENABLED', false), FILTER_VALIDATE_BOOLEAN);
         $production = strtolower((string) Env::get('APP_ENV', 'production')) === 'production';
-        return $enabled && (!$production ||
-            filter_var(Env::get('BALE_SAFIR_PRODUCTION_APPROVED', false), FILTER_VALIDATE_BOOLEAN));
+        return ($enabled && (!$production ||
+            filter_var(Env::get('BALE_SAFIR_PRODUCTION_APPROVED', false), FILTER_VALIDATE_BOOLEAN)))
+            || $this->pilotEnabled();
     }
 
     private function assertSendEnabled(): void
