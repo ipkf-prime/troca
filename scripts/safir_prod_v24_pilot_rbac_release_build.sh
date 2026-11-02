@@ -7,9 +7,9 @@ fail(){ printf 'FAIL=%s\n' "$*" >&2; exit 1; }
 for x in curl git rsync php runuser stat readlink cmp nginx flock; do command -v "$x" >/dev/null || fail "MISSING:$x"; done
 BASE=/srv/troca/portal-test
 OLD="$BASE/releases/prod-safir-v23-testreport-20261102-af9b225e"
-NEW="$BASE/releases/prod-safir-v24-pilot-rbac-20261102-6ae83579"
+NEW="$BASE/releases/prod-safir-v24-rbac-preserved-20261102-13d45156"
 CURRENT="$BASE/current"
-SOURCE=6ae83579e7e7458a8ba46dffbde71eaa4180b8f9
+SOURCE=13d451560a3ebacbb506bbda8c2ebb4373354924
 CATALOG="$BASE/shared/storage/private/bale-safir/templates.json"
 RECEIPT="$NEW.safir-v24-receipt"
 exec 9>/run/lock/ipkf-safir-portal-cutover.lock
@@ -28,7 +28,7 @@ READY=NO
 cleanup(){ rc=$?; trap - EXIT; if [ "$READY" = NO ] && [ -d "$WORK" ]; then rm -rf -- "$WORK"; fi; exit "$rc"; }
 trap cleanup EXIT
 cat > "$WORK/pins" <<'PINS'
-app/Services/AdminNavigationRbacService.php|9db72cc23d292e9979fbcf0f7bbca348f3d48ce0|aafc313b2d6b21ffb73dfe655f85e3e7e2cb824b
+app/Services/AdminNavigationRbacService.php|220b2d249869c42f3d403ff30cd3a8c127b46290|263422ea1ea46fe1a805421790b66f2e928bf2f7
 app/Services/BaleSafirCampaignService.php|25d7810d5a4219f77f2d6939ae3667cc838c5e4c|96b6d8e4d4d0d9c393ae85a813354d1789c23d16
 resources/views/admin/partials/bale-safir-campaign.php|6a713200176b9215ad72bdf5fc199ed0f0d2a1ce|bf15d0b990bc232dfa14f14ed9282d764ba4fc2c
 PINS
@@ -82,7 +82,16 @@ grep -Fxq SAFIR_CSV_RBAC_MATCHES_MAIN_PAGE=PASS "$WORK/test-output" || fail CSV_
 grep -Fxq PILOT_CAMPAIGN_ALLOWLIST_AND_ALL_ROWS_GATE=PASS "$WORK/test-output" || fail PILOT_GUARD_TEST_FAILED
 grep -Fxq NO_HTTP_NO_DB_NO_SEND=PASS "$WORK/test-output" || fail ZERO_SEND_TEST_FAILED
 echo OFFLINE_PILOT_AND_CSV_RBAC=PASS
-rm -rf -- "$WORK/tests" "$WORK/public_html" "$WORK/test-output" "$WORK/actual-diff" "$WORK/expected-diff" "$WORK/pins"
+# Verify preserved admission rules and negative permissions in a fresh PHP runtime.
+curl -fLsS "https://raw.githubusercontent.com/ipkf-prime/troca/$SOURCE/tests/safir-v24-rbac-preservation-offline.php" \
+ -o "$WORK/tests/safir-v24-rbac-preservation-offline.php" || fail RBAC_TEST_DOWNLOAD_FAILED
+[ "$(git hash-object "$WORK/tests/safir-v24-rbac-preservation-offline.php")" = d928fb0fcb6250653319ec3184fe2256041a2c87 ] || fail RBAC_TEST_PIN_FAILED
+php -n "$WORK/tests/safir-v24-rbac-preservation-offline.php" > "$WORK/rbac-output" || fail RBAC_REGRESSION_FAILED
+grep -Fxq RBAC_ISOLATED_DECISION_CASES=25 "$WORK/rbac-output" || fail RBAC_CASE_COUNT
+grep -Fxq RBAC_ISOLATED_BEHAVIORAL_REGRESSION=PASS "$WORK/rbac-output" || fail RBAC_BEHAVIORAL_GATE
+grep -Fxq NO_HTTP_NO_DB_NO_SEND=PASS "$WORK/rbac-output" || fail RBAC_OFFLINE_GATE
+echo OFFLINE_25_CASE_RBAC_REGRESSION=PASS
+rm -rf -- "$WORK/tests" "$WORK/public_html" "$WORK/test-output" "$WORK/rbac-output" "$WORK/actual-diff" "$WORK/expected-diff" "$WORK/pins"
 [ ! -e "$WORK/app/.env" ] && [ ! -e "$WORK/app/storage" ] || fail PRIVATE_DATA_IN_STAGE
 for path in storage public/uploads; do
  [ -L "$OLD/$path" ] && [ "$(readlink "$OLD/$path")" = "$BASE/shared/$path" ] || fail "OLD_LINK_INVALID:$path"
@@ -141,6 +150,7 @@ rmdir "$WORK"
  echo "PREVIOUS_RELEASE=$OLD"
  echo "CANDIDATE_RELEASE=$NEW"
  echo CHANGED_FILES=3
+ echo RBAC_CASES=25
  echo CUTOVER=NO
  echo DB_MUTATION=NO
  echo BULK_SEND=NO
