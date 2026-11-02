@@ -53,6 +53,12 @@ $router->post('/admin/communications/settings/safir', function ($request, $respo
         return $response->redirect($redirect . '?status=safir_invalid_csrf');
     }
     $action = (string) $request->input('action', '');
+    if ($action === 'manual_test') {
+        $testCode = trim((string) $request->input('template_code', ''));
+        if (preg_match('/^[a-z][a-z0-9._-]{1,63}$/D', $testCode)) {
+            $redirect = '/admin/communications/safir?test=' . rawurlencode($testCode);
+        }
+    }
     try {
         switch ($action) {
             case 'save_template':
