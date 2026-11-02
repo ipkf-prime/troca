@@ -514,19 +514,19 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
             }
         });
     }
-    const form = document.getElementById('safir-dispatch-form');
-    if (!form || !window.fetch) return;
-    form.addEventListener('submit', async (event) => {
+    const dispatchForm = document.getElementById('safir-dispatch-form');
+    if (!dispatchForm || !window.fetch) return;
+    dispatchForm.addEventListener('submit', async (event) => {
         event.preventDefault();
-        if (!form.reportValidity() || !confirm('ارسال واقعی به مخاطبان آماده انجام شود؟')) return;
-        const button = form.querySelector('button[type=submit]');
+        if (!dispatchForm.reportValidity() || !confirm('ارسال واقعی به مخاطبان آماده انجام شود؟')) return;
+        const button = dispatchForm.querySelector('button[type=submit]');
         const progress = document.getElementById('safir-progress');
         button.disabled = true;
         try {
             while (true) {
-                const data = new FormData(form);
+                const data = new FormData(dispatchForm);
                 data.set('ajax', '1');
-                const response = await fetch(form.action, {
+                const response = await fetch(dispatchForm.action, {
                     method: 'POST',
                     body: data,
                     credentials: 'same-origin',
