@@ -6,7 +6,7 @@ fail(){ echo "FAIL=$*" >&2; exit 1; }
 [ "$(id -u)" = 0 ] || fail ROOT_REQUIRED
 BASE=/srv/troca/portal-test
 OLD="$BASE/releases/prod-safir-v23-testreport-20261102-af9b225e"
-NEW="$BASE/releases/prod-safir-v24-pilot-rbac-20261102-6ae83579"
+NEW="$BASE/releases/prod-safir-v24-rbac-preserved-20261102-13d45156"
 CURRENT="$BASE/current"
 exec 9>/run/lock/ipkf-safir-portal-cutover.lock
 flock -n 9 || fail LOCK_BUSY
