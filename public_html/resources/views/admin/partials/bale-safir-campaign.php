@@ -9,9 +9,9 @@ $csrf = (new \IPKF\Security\Csrf())->token();
 $status = (string) ($status ?? '');
 $mode = (string) ($page['safir_mode'] ?? 'list');
 $editTemplate = is_array($safir['edit_template'] ?? null) ? $safir['edit_template'] : null;
-if ($mode === 'edit' && !$editTemplate) { $mode = 'list'; }
-if (!in_array($mode, ['create', 'edit'], true)) { $mode = 'list'; }
-$tpl = $mode === 'edit' ? $editTemplate : [];
+if (in_array($mode, ['edit', 'test'], true) && !$editTemplate) { $mode = 'list'; }
+if (!in_array($mode, ['create', 'edit', 'test'], true)) { $mode = 'list'; }
+$tpl = in_array($mode, ['edit', 'test'], true) ? $editTemplate : [];
 $variableRows = [];
 foreach ((array) ($tpl['mappings'] ?? []) as $key => $columns) {
     $variableRows[] = [
@@ -25,6 +25,16 @@ $statusMessages = [
     'safir_template_status_saved' => 'وضعیت قالب تغییر کرد.',
     'safir_imported' => 'اکسل خوانده شد؛ پیش‌نمایش و وضعیت مخاطبان را بررسی کنید.',
     'safir_reset' => 'فهرست پیش‌نمایش پاک شد.',
+    'safir_manual_test_disabled' => 'ارسال آزمایشی واقعی هنوز در سرور مجاز نشده است. پیش‌نمایش دستی در دسترس است.',
+    'safir_test_phone_not_allowed' => 'شماره آزمون باید دقیقاً با شماره مجاز ثبت‌شده در سرور برابر باشد.',
+    'safir_test_fields_invalid' => 'تمام متغیرهای قالب را با مقدار معتبر وارد کنید.',
+    'safir_test_audit_unavailable' => 'دفتر ثبت امن تلاش‌های تست آماده نیست.',
+    'safir_test_nonce_invalid' => 'شناسه درخواست تست معتبر نیست؛ صفحه را تازه‌سازی کنید.',
+    'safir_test_already_attempted' => 'این درخواست آزمون قبلاً ثبت شده است و برای جلوگیری از ارسال تکراری دوباره ارسال نمی‌شود.',
+    'safir_manual_test_sent' => 'ارسال آزمایشی به شماره مجاز توسط سرویس تأیید شد.',
+    'safir_manual_test_failed' => 'سرویس ارسال آزمایشی را ناموفق اعلام کرد.',
+    'safir_manual_test_unknown' => 'وضعیت ارسال مشخص نیست؛ درخواست را بدون بررسی دوباره تکرار نکنید.',
+
     'safir_template_invalid' => 'شناسه بازو، عنوان، کد، شماره ستون یا متن قالب معتبر نیست.',
     'safir_template_mapping_invalid' => 'عنوان، کلید یا نام ستون یکی از متغیرها نامعتبر یا تکراری است.',
     'safir_template_variables_invalid' => 'تعداد یا قالب نام متغیرها معتبر نیست؛ حداکثر ۱۰۰ متغیر.',
@@ -45,7 +55,7 @@ $statusMessages = [
     'safir_template_changed' => 'قالب تغییر کرده است؛ اکسل را دوباره بارگذاری کنید.',
     'safir_export_failed' => 'گزارش CSV قابل دریافت نیست.',
 ];
-$successes = ['safir_template_saved','safir_template_status_saved','safir_imported','safir_reset'];
+$successes = ['safir_template_saved','safir_template_status_saved','safir_imported','safir_reset','safir_manual_test_sent'];
 ?>
 <style>
 /* Safir UI 2.1 — local, scoped, RTL and responsive; no external assets. */
@@ -188,6 +198,7 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
                             <td>
                                 <div class="safir-actions">
                                     <a class="safir-soft safir-soft--small" href="/admin/communications/safir?edit=<?= rawurlencode((string) $item['code']) ?>">ویرایش</a>
+                                    <a class="safir-soft safir-soft--small" href="/admin/communications/safir?test=<?= rawurlencode((string) $item['code']) ?>">تست پیام</a>
                                     <form method="post" action="/admin/communications/settings/safir">
                                         <input type="hidden" name="_token" value="<?= admin_h($csrf) ?>">
                                         <input type="hidden" name="action" value="toggle_template">
@@ -223,6 +234,59 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
                     <button class="safir-primary" type="submit">بارگذاری و پیش‌نمایش</button>
                 </div>
             </form>
+        </section>
+
+    <?php elseif ($mode === 'test'): ?>
+        <section class="safir-card">
+            <div class="safir-head">
+                <div>
+                    <h3>تست قالب: <?= admin_h((string) ($tpl['title'] ?? '')) ?></h3>
+                    <p class="safir-caption">مقادیر متغیرها را دستی وارد کنید؛ ابتدا متن را پیش‌نمایش بگیرید. شماره مقصد واقعی باید همان شماره آزمون مجاز سرور باشد.</p>
+                </div>
+                <span class="safir-badge <?= empty($safir['manual_test_enabled']) ? 'safir-badge--off' : '' ?>">
+                    <?= empty($safir['manual_test_enabled']) ? 'ارسال آزمایشی غیرفعال' : 'ارسال آزمایشی مجاز' ?>
+                </span>
+            </div>
+            <form method="post" action="/admin/communications/settings/safir" data-safir-manual-test>
+                <input type="hidden" name="_token" value="<?= admin_h($csrf) ?>">
+                <input type="hidden" name="action" value="manual_test">
+                <input type="hidden" name="template_code" value="<?= admin_h((string) ($tpl['code'] ?? '')) ?>">
+                <input type="hidden" name="test_nonce" value="<?= bin2hex(random_bytes(16)) ?>">
+                <textarea data-safir-test-body hidden readonly><?= admin_h((string) ($tpl['body'] ?? '')) ?></textarea>
+                <div class="safir-fields" style="margin-top:16px">
+                    <?php foreach ((array) ($tpl['mappings'] ?? []) as $variable => $mappedColumns): ?>
+                        <label>
+                            <span><?= admin_h((string) ($tpl['variable_labels'][$variable] ?? implode(' و ', (array) $mappedColumns))) ?>
+                                <small dir="ltr">(<?= admin_h((string) $variable) ?>)</small>
+                            </span>
+                            <input type="text" maxlength="500" required
+                                name="test_fields[<?= admin_h((string) $variable) ?>]"
+                                data-safir-test-value data-safir-test-key="<?= admin_h((string) $variable) ?>"
+                                placeholder="مقدار آزمایشی <?= admin_h((string) $variable) ?>">
+                        </label>
+                    <?php endforeach; ?>
+                    <label>
+                        <span>شماره مقصد تست <small>(ثبت‌شده در سرور: <?= admin_h((string) ($safir['test_phone_masked'] ?? '')) ?>)</small></span>
+                        <input type="tel" name="test_phone" required dir="ltr" inputmode="tel" autocomplete="off"
+                            placeholder="09xxxxxxxxx">
+                    </label>
+                </div>
+                <div class="safir-card safir-test-preview" style="margin-top:16px;white-space:pre-wrap;line-height:2" data-safir-test-preview aria-live="polite">برای مشاهده متن نهایی، «پیش‌نمایش پیام» را انتخاب کنید.</div>
+                <div class="safir-form-footer">
+                    <a class="safir-soft" href="/admin/communications/safir">بازگشت</a>
+                    <button class="safir-soft" type="button" data-safir-test-preview-button>پیش‌نمایش پیام</button>
+                    <label class="safir-checkbox">
+                        <input type="checkbox" name="confirm_manual_test" value="yes" required
+                            <?= empty($safir['manual_test_enabled']) ? 'disabled' : '' ?>>
+                        ارسال واقعی یک پیام به شماره مجاز را تأیید می‌کنم.
+                    </label>
+                    <button class="safir-primary" type="submit"
+                        <?= empty($safir['manual_test_enabled']) ? 'disabled' : '' ?>>ارسال آزمایشی</button>
+                </div>
+            </form>
+            <?php if (empty($safir['manual_test_enabled'])): ?>
+                <p class="safir-caption">ارسال آزمایشی واقعی در Production قفل است؛ فعال‌سازی آن فقط با مجوز مستقل و ثبت تلاش‌ها در فضای خصوصی سرور انجام می‌شود. دکمه پیش‌نمایش بدون ارسال کار می‌کند.</p>
+            <?php endif; ?>
         </section>
     <?php else: ?>
         <section class="safir-card">
@@ -380,6 +444,23 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
             name.textContent = input.files?.[0]?.name || 'فایلی انتخاب نشده است';
         });
     });
+    const manual = document.querySelector('[data-safir-manual-test]');
+    if (manual) {
+        const source = manual.querySelector('[data-safir-test-body]');
+        const box = manual.querySelector('[data-safir-test-preview]');
+        const preview = () => {
+            const fields = new Map();
+            manual.querySelectorAll('[data-safir-test-value]').forEach(input => {
+                fields.set(input.dataset.safirTestKey, input.value.trim());
+            });
+            box.textContent = source.value.replace(/\{\{([A-Za-z_][A-Za-z0-9_]*)\}\}/g,
+                (_, key) => fields.get(key) || '[مقدار ' + key + ' وارد نشده]');
+        };
+        manual.querySelector('[data-safir-test-preview-button]').addEventListener('click', preview);
+        manual.querySelectorAll('[data-safir-test-value]').forEach(input =>
+            input.addEventListener('input', preview));
+        preview();
+    }
     const form = document.querySelector('[data-safir-editor]');
     if (form) {
         const tabButtons = Array.from(form.querySelectorAll('[data-safir-tab]'));
