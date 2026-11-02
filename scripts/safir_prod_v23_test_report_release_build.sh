@@ -98,7 +98,17 @@ chmod "$(stat -c %a "$OLD")" "$WORK/app"
 # route graph check; no listing/read access to the temporary parent.
 chgrp "$(id -gn "$PORTAL_USER")" "$WORK"
 chmod 0710 "$WORK"
-[ "$(stat -c %a "$WORK")" = 710 ] || fail TEMP_ROOT_PERMISSION_CHANGED
+# When the releases directory has setgid, mktemp inherits it. GNU chmod
+# preserves that bit on directories: 0710 may legitimately read as 2710.
+# Both modes forbid access by "other"; actual Portal-user traversal is
+# checked immediately below.
+TEMP_MODE="$(stat -c %a "$WORK")"
+case "$TEMP_MODE" in
+  710|2710) : ;;
+  *) fail "TEMP_ROOT_PERMISSION_CHANGED:$TEMP_MODE" ;;
+esac
+[ "$(stat -c %G "$WORK")" = "$(id -gn "$PORTAL_USER")" ] ||
+ fail TEMP_ROOT_GROUP_CHANGED
 [ "$(stat -c %U "$WORK")" = root ] || fail TEMP_ROOT_OWNER_CHANGED
 runuser -u "$PORTAL_USER" -- test -r "$WORK/app/bootstrap/app.php" ||
  fail PORTAL_CANNOT_READ_STAGED_BOOTSTRAP
