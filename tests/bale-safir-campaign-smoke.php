@@ -51,6 +51,53 @@ echo "CSV_RESPONSE_COMPATIBILITY=PASS\n";
 
 echo "PHONE_NORMALIZATION=PASS\n";
 
+// The new manual-test path MUST fail closed in Production by default.
+// This test does not initialize API clients and never sends an HTTP request.
+$_ENV['APP_ENV'] = 'production';
+$_ENV['BALE_SAFIR_TEST_SEND_ENABLED'] = 'false';
+$_ENV['BALE_SAFIR_TEST_PRODUCTION_APPROVED'] = 'false';
+$manualBlocked = false;
+try {
+    $service->manualTest(
+        101, 'invite', '09123333170',
+        ['name' => 'تست', 'sherkat' => 'شرکت نمونه'],
+        str_repeat('a', 32)
+    );
+} catch (RuntimeException $exception) {
+    $manualBlocked = $exception->getMessage() === 'safir_manual_test_disabled';
+}
+if (!$manualBlocked) {
+    throw new RuntimeException('MANUAL_TEST_SEND_NOT_FAIL_CLOSED');
+}
+echo "MANUAL_TEST_PRODUCTION_FAIL_CLOSED=PASS\n";
+
+$validator = $reflect->getMethod('validateManualFields');
+$normalized = $validator->invoke(
+    $service,
+    ['mappings' => ['name' => ['نام'], 'sherkat' => ['نام شرکت']]],
+    ['sherkat' => ' شركت آزمایشی ', 'name' => ' علي ']
+);
+if (array_keys($normalized) !== ['name', 'sherkat']
+    || $normalized['name'] !== 'علی'
+    || $normalized['sherkat'] !== 'شرکت آزمایشی') {
+    throw new RuntimeException('MANUAL_TEST_FIELD_NORMALIZATION_FAILED');
+}
+foreach ([
+    ['name' => 'فقط نام'],
+    ['name' => 'نام', 'sherkat' => 'شرکت', 'extra' => 'اضافی'],
+] as $invalidFields) {
+    try {
+        $validator->invoke($service, ['mappings' => ['name' => ['نام'], 'sherkat' => ['شرکت']]], $invalidFields);
+        throw new RuntimeException('MANUAL_TEST_EXTRA_OR_MISSING_FIELD_ACCEPTED');
+    } catch (RuntimeException $exception) {
+        if ($exception->getMessage() !== 'safir_template_variables_invalid') {
+            throw $exception;
+        }
+    }
+}
+echo "MANUAL_TEST_VARIABLE_VALIDATION=PASS\n";
+
+
 $catalog = new BaleSafirTemplateCatalogService();
 $invite = $catalog->get('invite');
 if (!is_array($invite) || ($invite['template_id'] ?? '') !== 'yHdC0D'
