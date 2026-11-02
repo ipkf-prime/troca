@@ -52,6 +52,7 @@ $statusMessages = [
     'safir_operation_failed' => 'عملیات با خطا مواجه شد.',
     'safir_invalid_csrf' => 'نشست منقضی شده؛ صفحه را تازه‌سازی کنید.',
     'safir_send_disabled' => 'ارسال واقعی توسط سرور غیرفعال شده است.',
+    'safir_pilot_list_not_allowed' => 'آزمایش گروهی فقط با ۲ یا ۳ شماره منحصربه‌فرد که دقیقاً در فهرست امن سرور مجاز شده‌اند اجرا می‌شود؛ اکسل را اصلاح و دوباره بارگذاری کنید.',
     'safir_campaign_missing' => 'ابتدا فایل اکسل مخاطبان را وارد کنید.',
     'safir_template_changed' => 'قالب تغییر کرده است؛ اکسل را دوباره بارگذاری کنید.',
     'safir_export_failed' => 'گزارش CSV قابل دریافت نیست.',
@@ -438,6 +439,9 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
         <?php if (empty($safir['send_enabled'])): ?>
             <p class="communication-muted">ارسال در محیط فعلی قفل است. می‌توانید قالب و اکسل را بررسی کنید ولی درخواست API ارسال نمی‌شود.</p>
         <?php else: ?>
+            <?php if (!empty($safir['pilot_mode'])): ?>
+                <p class="communication-muted" style="font-weight:700;color:#8a561c">حالت آزمایش گروهی محدود فعال است: حداکثر ۳ شماره منحصربه‌فرد، فقط شماره‌های از پیش تأییدشده در سرور. ارسال گروهی عمومی همچنان غیرفعال است. فهرست اکسل کامل قبل از هر ارسال مجدداً بررسی می‌شود.</p>
+            <?php endif; ?>
             <p>شماره تست مجاز سرور: <?= admin_h($safir['test_phone_masked']) ?>.</p>
             <form method="post" action="/admin/communications/settings/safir" class="communication-form">
                 <input type="hidden" name="_token" value="<?= admin_h($csrf) ?>">
@@ -458,7 +462,7 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
                         <input type="checkbox" name="dispatch_approved" value="yes" required>
                         قالب تأییدشده، فهرست گیرندگان و متن‌ها را کنترل کرده‌ام و ارسال واقعی را تأیید می‌کنم.
                     </label>
-                    <button type="submit" class="admin-button">شروع / ادامه ارسال گروهی</button>
+                    <button type="submit" class="admin-button"><?= !empty($safir['pilot_mode']) ? 'شروع تست گروهی محدود (۲ تا ۳ مخاطب)' : 'شروع / ادامه ارسال گروهی' ?></button>
                     <p id="safir-progress" class="communication-muted" aria-live="polite">ارسال در دسته‌های محدود انجام می‌شود؛ خطا یا پاسخ نامشخص ادامه خودکار را متوقف می‌کند.</p>
                 </form>
             <?php endif; ?>
