@@ -15,11 +15,16 @@ $router->get('/admin/communications/safir', function ($request, $response) use (
     if ($editing !== '' && !preg_match('/^[a-z][a-z0-9._-]{1,63}$/D', $editing)) {
         return $response->status(400)->send('Invalid template reference');
     }
+    $testing = trim((string) $request->input('test', ''));
+    if ($testing !== '' && !preg_match('/^[a-z][a-z0-9._-]{1,63}$/D', $testing)) {
+        return $response->status(400)->send('Invalid test template reference');
+    }
     $mode = (string) $request->input('mode', '');
     $page = [
-        'safir_campaign' => (new \App\Services\BaleSafirCampaignService())->page($actor, $editing),
+        'safir_campaign' => (new \App\Services\BaleSafirCampaignService())->page($actor, $testing !== '' ? $testing : $editing),
         'safir_edit' => $editing,
-        'safir_mode' => $mode === 'create' ? 'create' : ($editing !== '' ? 'edit' : 'list'),
+        'safir_mode' => $testing !== '' ? 'test' : ($mode === 'create' ? 'create' : ($editing !== '' ? 'edit' : 'list')),
+        'safir_test_code' => $testing,
     ];
     return $adminRender($response, 'safir-management', [
         'title' => 'مدیریت قالب‌های سفیر بله',
@@ -90,6 +95,28 @@ $router->post('/admin/communications/settings/safir', function ($request, $respo
                 }
                 $status = 'safir_test_' . $service->test($actor);
                 break;
+            case 'manual_test':
+                if ((string) $request->input('confirm_manual_test', '') !== 'yes') {
+                    throw new \RuntimeException('safir_confirmation_required');
+                }
+                $code = (string) $request->input('template_code', '');
+                if (!preg_match('/^[a-z][a-z0-9._-]{1,63}$/D', $code)) {
+                    throw new \RuntimeException('safir_template_invalid');
+                }
+                $fields = $request->input('test_fields', []);
+                if (!is_array($fields)) {
+                    throw new \RuntimeException('safir_test_fields_invalid');
+                }
+                $result = $service->manualTest(
+                    $actor,
+                    $code,
+                    (string) $request->input('test_phone', ''),
+                    $fields,
+                    (string) $request->input('test_nonce', '')
+                );
+                $status = 'safir_manual_test_' . (string) $result['status'];
+                $redirect = '/admin/communications/safir?test=' . rawurlencode($code);
+                break;
             case 'dispatch':
                 if ((string) $request->input('dispatch_approved', '') !== 'yes') {
                     throw new \RuntimeException('safir_confirmation_required');
@@ -120,7 +147,8 @@ $router->post('/admin/communications/settings/safir', function ($request, $respo
             return $response->status(422)->json(['ok' => false, 'code' => $status]);
         }
     }
-    return $response->redirect($redirect . '?status=' . rawurlencode($status));
+    $separator = str_contains($redirect, '?') ? '&' : '?';
+    return $response->redirect($redirect . $separator . 'status=' . rawurlencode($status));
 });
 
 $router->get('/admin/communications/settings/safir/export', function ($request, $response) use ($adminGuard) {
