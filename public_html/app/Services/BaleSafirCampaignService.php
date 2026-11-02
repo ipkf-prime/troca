@@ -326,7 +326,7 @@ final class BaleSafirCampaignService
         $campaign = $this->requireCampaign($userId);
         // Pilot mode takes precedence even if bulk flags were toggled by mistake.
         // Verify the WHOLE imported campaign before any provider call.
-        if ($this->pilotEnabled()) {
+        if (filter_var(Env::get('BALE_SAFIR_PILOT_ENABLED', false), FILTER_VALIDATE_BOOLEAN)) {
             $this->assertPilotCampaign($campaign);
         }
         if (!hash_equals((string) $campaign['reference'], $reference)
@@ -486,9 +486,13 @@ final class BaleSafirCampaignService
     {
         $enabled = filter_var(Env::get('BALE_SAFIR_SEND_ENABLED', false), FILTER_VALIDATE_BOOLEAN);
         $production = strtolower((string) Env::get('APP_ENV', 'production')) === 'production';
-        return ($enabled && (!$production ||
-            filter_var(Env::get('BALE_SAFIR_PRODUCTION_APPROVED', false), FILTER_VALIDATE_BOOLEAN)))
-            || $this->pilotEnabled();
+        // A requested pilot overrides any bulk configuration, including
+        // accidental activation of unrestricted production flags.
+        if (filter_var(Env::get('BALE_SAFIR_PILOT_ENABLED', false), FILTER_VALIDATE_BOOLEAN)) {
+            return $this->pilotEnabled();
+        }
+        return $enabled && (!$production ||
+            filter_var(Env::get('BALE_SAFIR_PRODUCTION_APPROVED', false), FILTER_VALIDATE_BOOLEAN));
     }
 
     private function assertSendEnabled(): void
