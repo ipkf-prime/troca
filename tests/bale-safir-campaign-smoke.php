@@ -222,9 +222,11 @@ try {
     $payloadMethod = $reflect->getMethod('payload');
     $payload = $payloadMethod->invoke($service, $catalog->get('payment_reminder'), [
         'fields' => ['tracking_code' => 'TR-100', 'amount' => '450000'],
-    ], '989123333170');
+    ], '989123333170', 'test-idempotency-123456');
     $fields = $payload['message_data']['template_message']['text_fields'];
-    if ($payload['message_data']['template_message']['template_id'] !== 'abcXYZ'
+    if ($payload['request_id'] !== 'test-idempotency-123456'
+        || $payload['phone_number'] !== '989123333170'
+        || $payload['message_data']['template_message']['template_id'] !== 'abcXYZ'
         || (array) $fields !== ['tracking_code' => 'TR-100', 'amount' => '450000']
         || array_key_exists('name', (array) $fields)
     ) {
@@ -303,6 +305,41 @@ try {
         }
     }
     echo "FORMULA_REJECTION=PASS\n";
+
+    // Private persistent manual test audit report, never containing cleartext
+    // recipients or credentials; Excel formula injection is neutralized.
+    $attemptDir = $tmpDirectory . '/test-attempts';
+    if (!mkdir($attemptDir, 0700)) {
+        throw new RuntimeException('REPORT_FIXTURE_DIRECTORY_FAILED');
+    }
+    $_ENV['BALE_SAFIR_TEST_ATTEMPT_DIR'] = $attemptDir;
+    $fixture = [
+        'actor' => 100,
+        'template_code' => 'invite',
+        'recipient_masked' => '98*****3170',
+        'request_id' => 'manual-test-0123456789abcdef0123456789abcdef',
+        'attempted_at' => gmdate('c'),
+        'status' => 'failed',
+        'http_code' => 429,
+        'message_id' => '',
+        'error_code' => 3,
+        'error_description' => '=cmd|/C calc',
+    ];
+    file_put_contents($attemptDir . '/' . str_repeat('a', 64) . '.json',
+        json_encode($fixture, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+    $reports = new \App\Services\BaleSafirTestReportService();
+    $recent = $reports->recent(10);
+    $csv = $reports->csv();
+    if (count($recent) !== 1 || $recent[0]['error_code'] !== 3
+        || !str_contains($csv, "'=cmd|/C calc")
+        || str_contains($csv, 'api-access-key')
+        || !str_contains($csv, '98*****3170')) {
+        throw new RuntimeException('SAFIR_PERSISTENT_REPORT_CONTRACT_FAILED');
+    }
+    echo "SAFIR_PERSISTENT_REPORT_CSV=PASS\n";
+    unlink($attemptDir . '/' . str_repeat('a', 64) . '.json');
+    rmdir($attemptDir);
+
 } finally {
     @unlink($workbook);
     @unlink($tmpDirectory . '/catalog.json');
