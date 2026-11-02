@@ -81,7 +81,7 @@ final class BaleSafirTestReportService
         try {
             fwrite($stream, "\xEF\xBB\xBF");
             fputcsv($stream, ['زمان UTC', 'شناسه مدیر', 'کد قالب', 'شماره ماسک‌شده',
-                'شناسه درخواست', 'وضعیت', 'HTTP', 'شناسه پیام', 'کد خطا', 'شرح خطا']);
+                'شناسه درخواست', 'وضعیت', 'HTTP', 'شناسه پیام', 'کد خطا', 'شرح خطا'], ',', '"', '');
             foreach ($this->recent(2000) as $row) {
                 $values = [
                     $row['time'], (string) $row['actor'], $row['template'], $row['phone_masked'],
@@ -92,7 +92,7 @@ final class BaleSafirTestReportService
                     // Excel must never interpret untrusted provider fields as a formula.
                     $value = str_replace(["\r", "\n", "\t"], ' ', $value);
                     return preg_match('/^[\s]*[=+\-@]/u', $value) ? "'" . $value : $value;
-                }, $values));
+                }, $values), ',', '"', '');
             }
             rewind($stream);
             $result = stream_get_contents($stream);
