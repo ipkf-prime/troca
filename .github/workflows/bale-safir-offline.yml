@@ -30,6 +30,10 @@ on:
       - 'scripts/safir_prod_ui_v2_actual_baseline_stage.sh'
       - 'scripts/safir_prod_ui_v21_stage.sh'
       - 'scripts/safir_prod_ui_v22_manual_test_stage.sh'
+      - 'scripts/safir_prod_v23_test_report_release_build.sh'
+      - 'scripts/safir_prod_v23_test_report_atomic_cutover.sh'
+      - 'scripts/safir_prod_v23_enable_one_recipient_test.sh'
+      - 'scripts/safir_prod_v23_test_report_emergency_rollback.sh'
       - 'scripts/safir_prod_ui_v22_immutable_release.sh'
       - 'scripts/safir_prod_ui_v22_portal_atomic_cutover.sh'
       - 'scripts/safir_prod_ui_v22_emergency_rollback.sh'
@@ -90,6 +94,10 @@ jobs:
           bash -n scripts/safir_prod_ui_v2_actual_baseline_stage.sh
           bash -n scripts/safir_prod_ui_v21_stage.sh
           bash -n scripts/safir_prod_ui_v22_manual_test_stage.sh
+          bash -n scripts/safir_prod_v23_test_report_release_build.sh
+          bash -n scripts/safir_prod_v23_test_report_atomic_cutover.sh
+          bash -n scripts/safir_prod_v23_enable_one_recipient_test.sh
+          bash -n scripts/safir_prod_v23_test_report_emergency_rollback.sh
           bash -n scripts/safir_prod_ui_v22_immutable_release.sh
           bash -n scripts/safir_prod_ui_v22_portal_atomic_cutover.sh
           bash -n scripts/safir_prod_ui_v22_emergency_rollback.sh
