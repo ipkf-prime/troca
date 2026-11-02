@@ -6,7 +6,7 @@ fail(){ echo "FAIL=$*" >&2; exit 1; }
 [ "$(id -u)" = 0 ] || fail ROOT_REQUIRED
 BASE=/srv/troca/portal-test
 OLD="$BASE/releases/prod-safir-v23-testreport-20261102-af9b225e"
-NEW="$BASE/releases/prod-safir-v24-pilot-rbac-20261102-6ae83579"
+NEW="$BASE/releases/prod-safir-v24-rbac-preserved-20261102-13d45156"
 CURRENT="$BASE/current"
 RECEIPT="$NEW.safir-v24-receipt"
 SUCCESS="$NEW.safir-v24-cutover"
@@ -19,9 +19,9 @@ source /etc/ipkf-release/contract.env
 [ -L "$CURRENT" ] && [ "$(readlink -e "$CURRENT")" = "$OLD" ] || fail CURRENT_CHANGED
 [ -f "$OLD.safir-v23-cutover" ] || fail OLD_RECEIPT_MISSING
 [ -d "$NEW" ] && [ ! -L "$NEW" ] && [ -f "$RECEIPT" ] && [ ! -e "$SUCCESS" ] || fail CANDIDATE_INVALID
-for entry in SAFIR_V24_CANDIDATE=PASS SOURCE_COMMIT=6ae83579e7e7458a8ba46dffbde71eaa4180b8f9 \
+for entry in SAFIR_V24_CANDIDATE=PASS SOURCE_COMMIT=13d451560a3ebacbb506bbda8c2ebb4373354924 \
  "PREVIOUS_RELEASE=$OLD" "CANDIDATE_RELEASE=$NEW" CHANGED_FILES=3 \
- CUTOVER=NO DB_MUTATION=NO BULK_SEND=NO TEST_SEND=NO; do
+ CUTOVER=NO DB_MUTATION=NO BULK_SEND=NO TEST_SEND=NO RBAC_CASES=25; do
  grep -Fxq "$entry" "$RECEIPT" || fail CANDIDATE_RECEIPT_INVALID
 done
 # Precise baseline + new blobs, checked before any current symlink mutation.
@@ -33,7 +33,7 @@ while IFS='|' read -r path old new; do
   [ -f "$OLD/$path" ] && [ "$(git hash-object "$OLD/$path")" = "$old" ] || fail "BASELINE_CHANGED:$path"
  fi
 done <<'PINS'
-app/Services/AdminNavigationRbacService.php|9db72cc23d292e9979fbcf0f7bbca348f3d48ce0|aafc313b2d6b21ffb73dfe655f85e3e7e2cb824b
+app/Services/AdminNavigationRbacService.php|220b2d249869c42f3d403ff30cd3a8c127b46290|263422ea1ea46fe1a805421790b66f2e928bf2f7
 app/Services/BaleSafirCampaignService.php|25d7810d5a4219f77f2d6939ae3667cc838c5e4c|96b6d8e4d4d0d9c393ae85a813354d1789c23d16
 resources/views/admin/partials/bale-safir-campaign.php|6a713200176b9215ad72bdf5fc199ed0f0d2a1ce|bf15d0b990bc232dfa14f14ed9282d764ba4fc2c
 PINS
