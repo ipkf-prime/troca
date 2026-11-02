@@ -107,6 +107,7 @@ class AdminNavigationRbacService extends BaseService
             '/admin/users/{id}/appointments' => 'users.view',
             '/admin/org-units' => 'org_units.view',
             '/admin/positions' => 'positions.view',
+            '/admin/organizations' => 'organizations.manage',
             '/admin/organization-setup' => 'organizations.manage',
             '/admin/organization-chart' => 'org_units.manage',
             '/admin/appointments' => 'appointments.manage',
@@ -852,6 +853,7 @@ class AdminNavigationRbacService extends BaseService
             ['key' => 'positions', 'title' => $this->fa('&#x0633;&#x0645;&#x062A;&#x200C;&#x0647;&#x0627;'), 'url' => '/admin/positions', 'permission' => 'positions.view'],
             // A15: affiliation-review permission is distinct from global organization management.
             ['key' => 'organization-affiliations-review', 'title' => 'بررسی وابستگی‌های سازمانی', 'url' => '/admin/organization-affiliations?filter=pending', 'permission' => 'organizations.affiliations.manage'],
+            ['key' => 'organizations-directory', 'title' => 'فهرست سازمان‌ها', 'url' => '/admin/organizations', 'permission' => 'organizations.manage'],
             ['key' => 'organization-setup', 'title' => 'راه‌اندازی ساختار', 'url' => '/admin/organization-setup', 'permission' => 'organizations.manage'],
             ['key' => 'organization-chart', 'title' => 'چارت سازمانی', 'url' => '/admin/organization-chart', 'permission' => 'org_units.manage'],
             ['key' => 'appointments', 'title' => 'پست و انتصاب', 'url' => '/admin/appointments', 'permission' => 'appointments.manage'],
