@@ -20,6 +20,7 @@ on:
       - 'public_html/system/Routing/RouteLoader.php'
       - 'tests/bale-safir-campaign-smoke.php'
       - 'tests/safir-ui-v21-contract-smoke.php'
+      - 'tests/safir-inline-js-syntax.sh'
       - 'scripts/safir_prod_overlay_preflight.sh'
       - 'scripts/safir_prod_release_package_prepare.sh'
       - 'scripts/safir_prod_portal_only_stage.sh'
@@ -105,3 +106,5 @@ jobs:
         run: php tests/bale-safir-campaign-smoke.php
       - name: Safir UI v2.1 static contract
         run: php tests/safir-ui-v21-contract-smoke.php
+      - name: Safir inline JavaScript parser regression
+        run: bash tests/safir-inline-js-syntax.sh
