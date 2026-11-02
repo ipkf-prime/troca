@@ -21,6 +21,7 @@ on:
       - 'tests/bale-safir-campaign-smoke.php'
       - 'tests/safir-ui-v21-contract-smoke.php'
       - 'tests/safir-inline-js-syntax.sh'
+      - 'tests/safir-tabs-dom-smoke.js'
       - 'scripts/safir_prod_overlay_preflight.sh'
       - 'scripts/safir_prod_release_package_prepare.sh'
       - 'scripts/safir_prod_portal_only_stage.sh'
@@ -110,3 +111,5 @@ jobs:
         run: php tests/safir-ui-v21-contract-smoke.php
       - name: Safir inline JavaScript parser regression
         run: bash tests/safir-inline-js-syntax.sh
+      - name: Safir tab click synthetic-DOM runtime
+        run: node tests/safir-tabs-dom-smoke.js
