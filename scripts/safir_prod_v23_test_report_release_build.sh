@@ -93,6 +93,18 @@ ln -s "$BASE/shared/public/uploads" "$WORK/app/public/uploads"
 cmp -s "$OLD/.env" "$WORK/app/.env" || fail ENV_CHANGED
 chown "$(stat -c %U:%G "$OLD")" "$WORK/app"
 chmod "$(stat -c %a "$OLD")" "$WORK/app"
+# The work parent is root-owned and created mode 0700. Only the
+# Portal runtime account's primary group may traverse it for the CLI
+# route graph check; no listing/read access to the temporary parent.
+chgrp "$(id -gn "$PORTAL_USER")" "$WORK"
+chmod 0710 "$WORK"
+[ "$(stat -c %a "$WORK")" = 710 ] || fail TEMP_ROOT_PERMISSION_CHANGED
+[ "$(stat -c %U "$WORK")" = root ] || fail TEMP_ROOT_OWNER_CHANGED
+runuser -u "$PORTAL_USER" -- test -r "$WORK/app/bootstrap/app.php" ||
+ fail PORTAL_CANNOT_READ_STAGED_BOOTSTRAP
+runuser -u "$PORTAL_USER" -- test -r "$WORK/app/.env" ||
+ fail PORTAL_CANNOT_READ_STAGED_ENV
+echo PORTAL_STAGED_RUNTIME_TRAVERSAL=PASS
 runuser -u troca-portal-test -- php -r '
  define("BASE_PATH",$argv[1]);$app=require BASE_PATH."/bootstrap/app.php";
  $r=(new ReflectionProperty($app->router(),"routes"))->getValue($app->router());
