@@ -182,6 +182,129 @@ final class BaleSafirCampaignService
         return $result['status'];
     }
 
+    /**
+     * Manual one-recipient test for an already saved, externally approved template.
+     * This is separate from the bulk-send enablement and always restricted to
+     * BALE_SAFIR_TEST_PHONE. The default configuration never sends.
+     */
+    public function manualTest(
+        int $userId,
+        string $templateCode,
+        string $testPhone,
+        array $inputFields,
+        string $nonce
+    ): array {
+        $testAllowed = filter_var(
+            Env::get('BALE_SAFIR_TEST_SEND_ENABLED', false),
+            FILTER_VALIDATE_BOOLEAN
+        );
+        $production = strtolower((string) Env::get('APP_ENV', 'production')) === 'production';
+        $approved = filter_var(
+            Env::get('BALE_SAFIR_TEST_PRODUCTION_APPROVED', false),
+            FILTER_VALIDATE_BOOLEAN
+        );
+        if (!$testAllowed || ($production && !$approved)) {
+            throw new RuntimeException('safir_manual_test_disabled');
+        }
+        if (trim((string) Env::get('BALE_SAFIR_API_ACCESS_KEY', '')) === '') {
+            throw new RuntimeException('safir_key_missing');
+        }
+        if (!preg_match('/^[a-f0-9]{32}$/D', $nonce)) {
+            throw new RuntimeException('safir_test_nonce_invalid');
+        }
+        $allowedPhone = $this->normalizePhone((string) Env::get('BALE_SAFIR_TEST_PHONE', ''));
+        $requestedPhone = $this->normalizePhone($testPhone);
+        if ($allowedPhone === null || $requestedPhone === null
+            || !hash_equals($allowedPhone, $requestedPhone)) {
+            throw new RuntimeException('safir_test_phone_not_allowed');
+        }
+        $template = (new BaleSafirTemplateCatalogService())->get($templateCode);
+        if (!is_array($template) || empty($template['active']) || empty($template['provider_approved'])) {
+            throw new RuntimeException('safir_template_unavailable');
+        }
+        $fields = $this->validateManualFields($template, $inputFields);
+
+        // Fail closed unless a persistent, private audit directory exists.
+        // No directory creation or configuration changes are performed here.
+        $root = trim((string) Env::get('BALE_SAFIR_TEST_ATTEMPT_DIR', ''));
+        $catalogPath = trim((string) Env::get('BALE_SAFIR_CATALOG_PATH', ''));
+        $parent = $catalogPath !== '' ? realpath(dirname($catalogPath)) : false;
+        $realRoot = $root !== '' && !is_link($root) ? realpath($root) : false;
+        if ($parent === false || $realRoot === false
+            || !str_starts_with($realRoot . '/', $parent . '/')
+            || !is_dir($realRoot) || !is_writable($realRoot)) {
+            throw new RuntimeException('safir_test_audit_unavailable');
+        }
+        $attemptFile = $realRoot . '/' . hash('sha256', $nonce) . '.json';
+        $handle = @fopen($attemptFile, 'x');
+        if ($handle === false) {
+            throw new RuntimeException('safir_test_already_attempted');
+        }
+        chmod($attemptFile, 0600);
+        $record = [
+            'actor' => $userId,
+            'template_code' => $templateCode,
+            'template_hash' => hash('sha256', json_encode($template, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)),
+            'fields_hash' => hash('sha256', json_encode($fields, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)),
+            'recipient_masked' => $this->maskPhone($allowedPhone),
+            'attempted_at' => gmdate('c'),
+            'status' => 'unknown',
+            'http_code' => 0,
+            'message_id' => '',
+        ];
+        try {
+            $this->writeTestAudit($handle, $record);
+            // Once the unknown record is durable, an HTTP retry never
+            // automatically repeats the send, even after a worker crash.
+            $row = ['fields' => $fields];
+            $result = $this->sendOne($allowedPhone, $row, 'manual-test-' . $nonce, $template);
+            $record['status'] = $result['status'];
+            $record['http_code'] = $result['http_code'];
+            $record['message_id'] = $result['message_id'];
+            $this->writeTestAudit($handle, $record);
+            return $result;
+        } finally {
+            fclose($handle);
+        }
+    }
+
+    /**
+     * Normalize exactly the saved template's declared keys; no extra values.
+     */
+    private function validateManualFields(array $template, array $inputFields): array
+    {
+        $expected = array_keys((array) ($template['mappings'] ?? []));
+        if ($expected === [] || count($expected) > 100 || count($inputFields) !== count($expected)) {
+            throw new RuntimeException('safir_template_variables_invalid');
+        }
+        $fields = [];
+        foreach ($expected as $key) {
+            if (!array_key_exists($key, $inputFields) || !is_string($inputFields[$key])) {
+                throw new RuntimeException('safir_test_fields_invalid');
+            }
+            $value = trim($this->normalizeText($inputFields[$key]));
+            if ($value === '' || mb_strlen($value, 'UTF-8') > 500) {
+                throw new RuntimeException('safir_test_fields_invalid');
+            }
+            $fields[$key] = $value;
+        }
+        return $fields;
+    }
+
+    private function writeTestAudit($handle, array $record): void
+    {
+        $serialized = json_encode(
+            $record,
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+        );
+        rewind($handle);
+        if (!ftruncate($handle, 0)
+            || fwrite($handle, $serialized . "\n") !== strlen($serialized . "\n")
+            || !fflush($handle)) {
+            throw new RuntimeException('safir_test_audit_unavailable');
+        }
+    }
+
     public function dispatch(int $userId, string $confirmation, string $reference): array
     {
         $this->assertSendEnabled();
@@ -328,10 +451,10 @@ final class BaleSafirCampaignService
         ];
     }
 
-    private function sendOne(string $phone, array $row, string $requestId): array
+    private function sendOne(string $phone, array $row, string $requestId, ?array $manualTemplate = null): array
     {
-        $campaign = Session::get(self::SESSION_KEY);
-        $template = (new BaleSafirTemplateCatalogService())->get((string) ($campaign['template_code'] ?? ''));
+        $campaign = $manualTemplate === null ? Session::get(self::SESSION_KEY) : null;
+        $template = $manualTemplate ?? (new BaleSafirTemplateCatalogService())->get((string) ($campaign['template_code'] ?? ''));
         if (!is_array($template) || empty($template['active']) || empty($template['provider_approved'])) {
             throw new RuntimeException('safir_template_unavailable');
         }
