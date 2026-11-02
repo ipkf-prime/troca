@@ -30,6 +30,8 @@ on:
       - 'scripts/safir_prod_ui_v21_stage.sh'
       - 'scripts/safir_prod_ui_v22_manual_test_stage.sh'
       - 'scripts/safir_prod_ui_v22_immutable_release.sh'
+      - 'scripts/safir_prod_ui_v22_portal_atomic_cutover.sh'
+      - 'scripts/safir_prod_ui_v22_emergency_rollback.sh'
       - 'scripts/safir_prod_ui_v21_immutable_release.sh'
       - 'scripts/safir_prod_ui_v21_portal_atomic_cutover.sh'
       - 'scripts/safir_prod_ui_v21_emergency_rollback.sh'
@@ -87,6 +89,8 @@ jobs:
           bash -n scripts/safir_prod_ui_v21_stage.sh
           bash -n scripts/safir_prod_ui_v22_manual_test_stage.sh
           bash -n scripts/safir_prod_ui_v22_immutable_release.sh
+          bash -n scripts/safir_prod_ui_v22_portal_atomic_cutover.sh
+          bash -n scripts/safir_prod_ui_v22_emergency_rollback.sh
           bash -n scripts/safir_prod_ui_v21_immutable_release.sh
           bash -n scripts/safir_prod_ui_v21_portal_atomic_cutover.sh
           bash -n scripts/safir_prod_ui_v21_emergency_rollback.sh
