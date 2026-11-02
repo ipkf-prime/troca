@@ -34,6 +34,7 @@ $statusMessages = [
     'safir_manual_test_sent' => 'ارسال آزمایشی به شماره مجاز توسط سرویس تأیید شد.',
     'safir_manual_test_failed' => 'سرویس ارسال آزمایشی را ناموفق اعلام کرد.',
     'safir_manual_test_unknown' => 'وضعیت ارسال مشخص نیست؛ درخواست را بدون بررسی دوباره تکرار نکنید.',
+    'safir_report_too_many_records' => 'تعداد گزارش‌ها از ظرفیت مجاز بیشتر شده است؛ وضعیت ذخیره‌سازی را بررسی کنید.',
 
     'safir_template_invalid' => 'شناسه بازو، عنوان، کد، شماره ستون یا متن قالب معتبر نیست.',
     'safir_template_mapping_invalid' => 'عنوان، کلید یا نام ستون یکی از متغیرها نامعتبر یا تکراری است.',
@@ -236,6 +237,36 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
             </form>
         </section>
 
+        <section class="safir-card">
+            <div class="safir-head">
+                <div>
+                    <h3>گزارش تست‌های ارسال سفیر</h3>
+                    <p class="safir-caption">ثبت پایدار تلاش‌های ارسال آزمایشی؛ بدون نمایش کلید API، متن پیام یا شماره کامل</p>
+                </div>
+                <a class="safir-soft" href="/admin/communications/safir/test-report.csv">دریافت گزارش Excel (CSV)</a>
+            </div>
+            <div class="safir-table-scroll">
+                <table class="safir-table">
+                    <thead><tr><th>زمان UTC</th><th>قالب</th><th>شماره تست</th><th>وضعیت</th><th>کد HTTP</th><th>کد خطا</th></tr></thead>
+                    <tbody>
+                    <?php foreach ((array) ($safir['manual_test_history'] ?? []) as $report): ?>
+                        <tr>
+                            <td dir="ltr"><?= admin_h((string) $report['time']) ?></td>
+                            <td dir="ltr"><?= admin_h((string) $report['template']) ?></td>
+                            <td dir="ltr"><?= admin_h((string) $report['phone_masked']) ?></td>
+                            <td><?= admin_h((string) $report['status']) ?></td>
+                            <td><?= admin_h((string) $report['http_code']) ?></td>
+                            <td><?= admin_h((string) $report['error_code']) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <?php if (empty($safir['manual_test_history'])): ?>
+                        <tr><td colspan="6">هنوز ارسال آزمایشی ثبت نشده است.</td></tr>
+                    <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
     <?php elseif ($mode === 'test'): ?>
         <section class="safir-card">
             <div class="safir-head">
@@ -282,6 +313,7 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
                     </label>
                     <button class="safir-primary" type="submit"
                         <?= empty($safir['manual_test_enabled']) ? 'disabled' : '' ?>>ارسال آزمایشی</button>
+                    <a class="safir-soft" href="/admin/communications/safir/test-report.csv">گزارش ارسال‌های تست (CSV)</a>
                 </div>
             </form>
             <?php if (empty($safir['manual_test_enabled'])): ?>
