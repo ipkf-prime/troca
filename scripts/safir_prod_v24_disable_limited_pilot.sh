@@ -6,7 +6,7 @@ umask 077
 fail(){ echo "FAIL=$*" >&2; exit 1; }
 [ "$(id -u)" = 0 ] || fail ROOT_REQUIRED
 BASE=/srv/troca/portal-test
-REL="$BASE/releases/prod-safir-v24-pilot-rbac-20261102-6ae83579"
+REL="$BASE/releases/prod-safir-v24-rbac-preserved-20261102-13d45156"
 ENVFILE="$REL/.env"
 exec 9>/run/lock/ipkf-safir-portal-cutover.lock
 flock -n 9 || fail LOCK_BUSY
