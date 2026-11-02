@@ -120,7 +120,7 @@ runuser -u troca-portal-test -- php -r '
  $r=(new ReflectionProperty($app->router(),"routes"))->getValue($app->router());
  foreach([["GET","/admin/communications/safir"],["GET","/admin/communications/safir/test-report.csv"],
  ["POST","/admin/communications/settings/safir"]] as [$v,$p])if(!isset($r[$v][$p]))exit(11);
- $rbac=new \\App\\Services\\AdminNavigationRbacService();
+ $rbac=new \App\Services\AdminNavigationRbacService();
  if(($rbac->permissionForPath("/admin/communications/safir/test-report.csv")??"")!=="notifications.send.manage")exit(15);
  \IPKF\Support\Env::loadLayered(BASE_PATH."/.env");
  foreach(["BALE_SAFIR_SEND_ENABLED","BALE_SAFIR_PRODUCTION_APPROVED",
