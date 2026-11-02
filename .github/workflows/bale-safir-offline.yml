@@ -21,6 +21,7 @@ on:
       - 'public_html/system/Routing/RouteLoader.php'
       - 'tests/bale-safir-campaign-smoke.php'
       - 'tests/safir-ui-v21-contract-smoke.php'
+      - 'tests/safir-v24-pilot-rbac-smoke.php'
       - 'tests/safir-inline-js-syntax.sh'
       - 'tests/safir-tabs-dom-smoke.js'
       - 'scripts/safir_prod_overlay_preflight.sh'
@@ -83,7 +84,8 @@ jobs:
             public_html/resources/views/admin/partials/bale-safir-campaign.php \
             public_html/resources/views/admin/communication-settings.php \
             tests/bale-safir-campaign-smoke.php \
-            tests/safir-ui-v21-contract-smoke.php; do
+            tests/safir-ui-v21-contract-smoke.php \
+            tests/safir-v24-pilot-rbac-smoke.php; do
               php -l "$file"
           done
       - name: Production overlay script syntax (no execution)
@@ -127,6 +129,8 @@ jobs:
         run: php tests/bale-safir-campaign-smoke.php
       - name: Safir UI v2.1 static contract
         run: php tests/safir-ui-v21-contract-smoke.php
+      - name: Safir v2.4 CSV RBAC + pilot allowlist offline contract
+        run: php tests/safir-v24-pilot-rbac-smoke.php
       - name: Safir inline JavaScript parser regression
         run: bash tests/safir-inline-js-syntax.sh
       - name: Safir tab click synthetic-DOM runtime
