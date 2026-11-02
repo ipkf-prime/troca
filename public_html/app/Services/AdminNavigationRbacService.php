@@ -275,6 +275,39 @@ class AdminNavigationRbacService extends BaseService
                 'GET';
         }
 
+        /* IPKF_R8Z3_V3_DELEGATED_CORE_ROUTE_GATE
+         * Admission only. OrganizationalAffiliationService still checks
+         * reviewer independence, live Core hierarchy, locked claim,
+         * and exact active assignment scope at both read and decision.
+         * No global organization permission is granted here.
+         */
+        if ($userId !== null && $resolvedRequestPath === $path) {
+            // Every authenticated user must be able to switch their own
+            // active role. POST role-switch authorization is in AccessService.
+            if ($path === '/admin/profile/access'
+                && in_array($resolvedMethod, ['GET', 'HEAD'], true)) {
+                return true;
+            }
+            // A scoped reviewer may open the ordinary dashboard. Its tiles
+            // remain permission filtered by the existing dashboard service.
+            if ($path === '/admin/dashboard'
+                && in_array($resolvedMethod, ['GET', 'HEAD'], true)
+                && $this->can($userId, 'organizations.affiliations.manage')) {
+                return true;
+            }
+            if (
+                ($path === '/admin/organization-affiliations'
+                    && in_array($resolvedMethod, ['GET', 'HEAD'], true))
+                || ($path === '/admin/organization-affiliations/decision'
+                    && $resolvedMethod === 'POST')
+            ) {
+                return $this->canAny($userId, [
+                    'organizations.affiliations.manage',
+                    'organizations.manage',
+                ]);
+            }
+        }
+
         if ($userId !== null) {
             try {
                 $projectScoped =
@@ -423,6 +456,27 @@ class AdminNavigationRbacService extends BaseService
                     $userId,
                     $accessControlPermissions
                 );
+        }
+
+        /* A41R10_S9_SCOPED_ORGANIZATIONAL_AFFILIATION_REVIEW_ROUTE */
+        /* Route admission is separate from per-organization Scope evaluation. */
+        if (
+            in_array(
+                $path,
+                [
+                    '/admin/organization-affiliations',
+                    '/admin/organization-affiliations/decision',
+                ],
+                true
+            )
+        ) {
+            return $this->canAny(
+                $userId,
+                [
+                    'organizations.affiliations.manage',
+                    'organizations.manage',
+                ]
+            );
         }
 
         $permission =
@@ -762,6 +816,7 @@ class AdminNavigationRbacService extends BaseService
             in_array(
                 $path,
                 [
+                    '/admin/ticketing',
                     '/admin/ticketing/tickets',
                     '/admin/ticketing/tickets/create',
                 ],
@@ -795,6 +850,8 @@ class AdminNavigationRbacService extends BaseService
             ['key' => 'users', 'title' => $this->fa('&#x06A9;&#x0627;&#x0631;&#x0628;&#x0631;&#x0627;&#x0646;'), 'url' => '/admin/users', 'permission' => 'users.view', 'badge' => $this->fa('&#x0628;&#x0647;&#x200C;&#x0632;&#x0648;&#x062F;&#x06CC;')],
             ['key' => 'org-units', 'title' => $this->fa('&#x0648;&#x0627;&#x062D;&#x062F;&#x0647;&#x0627;&#x06CC; &#x0633;&#x0627;&#x0632;&#x0645;&#x0627;&#x0646;&#x06CC;'), 'url' => '/admin/org-units', 'permission' => 'org_units.view', 'badge' => $this->fa('&#x0628;&#x0647;&#x200C;&#x0632;&#x0648;&#x062F;&#x06CC;')],
             ['key' => 'positions', 'title' => $this->fa('&#x0633;&#x0645;&#x062A;&#x200C;&#x0647;&#x0627;'), 'url' => '/admin/positions', 'permission' => 'positions.view'],
+            // A15: affiliation-review permission is distinct from global organization management.
+            ['key' => 'organization-affiliations-review', 'title' => 'بررسی وابستگی‌های سازمانی', 'url' => '/admin/organization-affiliations?filter=pending', 'permission' => 'organizations.affiliations.manage'],
             ['key' => 'organization-setup', 'title' => 'راه‌اندازی ساختار', 'url' => '/admin/organization-setup', 'permission' => 'organizations.manage'],
             ['key' => 'organization-chart', 'title' => 'چارت سازمانی', 'url' => '/admin/organization-chart', 'permission' => 'org_units.manage'],
             ['key' => 'appointments', 'title' => 'پست و انتصاب', 'url' => '/admin/appointments', 'permission' => 'appointments.manage'],
