@@ -11,6 +11,7 @@ require BASE_PATH . '/system/Support/Session.php';
 require BASE_PATH . '/system/Http/Response.php';
 require BASE_PATH . '/app/Services/BaleSafirTemplateCatalogService.php';
 require BASE_PATH . '/app/Services/BaleSafirCampaignService.php';
+require BASE_PATH . '/app/Services/BaleSafirTestReportService.php';
 
 use App\Services\BaleSafirCampaignService;
 use App\Services\BaleSafirTemplateCatalogService;
