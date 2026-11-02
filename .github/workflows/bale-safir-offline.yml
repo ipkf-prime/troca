@@ -1,0 +1,147 @@
+name: Bale Safir XLSX Campaign (offline)
+on:
+  push:
+    branches:
+      - feature/bale-safir-excel-campaigns-dev
+      - feature/bale-safir-v090-integration-dev
+  pull_request:
+    paths:
+      - 'public_html/app/Services/BaleSafirCampaignService.php'
+      - 'public_html/app/Services/BaleSafirTestReportService.php'
+      - 'public_html/app/Services/BaleSafirTemplateCatalogService.php'
+      - 'public_html/app/Services/DynamicAdminNavigationService.php'
+      - 'public_html/resources/views/admin/safir-management.php'
+      - 'public_html/routes/communication-center.php'
+      - 'public_html/resources/ui-content/bale-safir-templates.json'
+      - 'public_html/routes/bale-safir-campaigns.php'
+      - 'public_html/resources/views/admin/partials/bale-safir-campaign.php'
+      - 'public_html/resources/views/admin/communication-settings.php'
+      - 'public_html/app/Services/CommunicationSettingsService.php'
+      - 'public_html/app/Services/AdminNavigationRbacService.php'
+      - 'public_html/system/Routing/RouteLoader.php'
+      - 'tests/bale-safir-campaign-smoke.php'
+      - 'tests/safir-ui-v21-contract-smoke.php'
+      - 'tests/safir-v24-pilot-rbac-smoke.php'
+      - 'tests/safir-inline-js-syntax.sh'
+      - 'tests/safir-tabs-dom-smoke.js'
+      - 'scripts/safir_prod_overlay_preflight.sh'
+      - 'scripts/safir_prod_release_package_prepare.sh'
+      - 'scripts/safir_prod_portal_only_stage.sh'
+      - 'scripts/safir_prod_ui_v2_stage.sh'
+      - 'scripts/safir_prod_ui_v2_actual_baseline_stage.sh'
+      - 'scripts/safir_prod_ui_v21_stage.sh'
+      - 'scripts/safir_prod_ui_v22_manual_test_stage.sh'
+      - 'scripts/safir_prod_v23_test_report_release_build.sh'
+      - 'scripts/safir_prod_v24_pilot_rbac_release_build.sh'
+      - 'scripts/safir_prod_v24_pilot_rbac_atomic_cutover.sh'
+      - 'scripts/safir_prod_v24_enable_limited_pilot.sh'
+      - 'scripts/safir_prod_v24_disable_limited_pilot.sh'
+      - 'scripts/safir_prod_v24_pilot_rbac_emergency_rollback.sh'
+      - 'tests/safir-private-temp-permissions-smoke.sh'
+      - 'scripts/safir_prod_v23_test_report_atomic_cutover.sh'
+      - 'scripts/safir_prod_v23_enable_one_recipient_test.sh'
+      - 'scripts/safir_prod_v23_test_report_emergency_rollback.sh'
+      - 'scripts/safir_prod_ui_v22_immutable_release.sh'
+      - 'scripts/safir_prod_ui_v22_portal_atomic_cutover.sh'
+      - 'scripts/safir_prod_ui_v22_emergency_rollback.sh'
+      - 'scripts/safir_prod_ui_v21_immutable_release.sh'
+      - 'scripts/safir_prod_ui_v21_portal_atomic_cutover.sh'
+      - 'scripts/safir_prod_ui_v21_emergency_rollback.sh'
+      - 'scripts/safir_prod_ui_v2_immutable_candidate.sh'
+      - 'scripts/safir_prod_ui_v2_portal_atomic_cutover.sh'
+      - 'scripts/safir_prod_ui_v2_emergency_rollback.sh'
+      - 'scripts/safir_prod_portal_runtime_prepare.sh'
+      - 'scripts/safir_prod_portal_immutable_candidate.sh'
+      - 'scripts/safir_prod_portal_cutover_readiness.sh'
+      - 'scripts/safir_prod_portal_atomic_cutover.sh'
+      - 'scripts/safir_prod_portal_emergency_rollback.sh'
+      - 'scripts/safir_prod_route_404_readonly_diagnostic.sh'
+      - 'tests/safir-rsync-output-smoke.sh'
+      - '.github/workflows/bale-safir-offline.yml'
+permissions:
+  contents: read
+jobs:
+  php-lint-and-offline-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: PHP environment
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: zip, simplexml, mbstring
+          coverage: none
+      - name: PHP syntax
+        run: |
+          set -euo pipefail
+          for file in \
+            public_html/app/Services/BaleSafirCampaignService.php \
+            public_html/app/Services/BaleSafirTestReportService.php \
+            public_html/app/Services/BaleSafirTemplateCatalogService.php \
+            public_html/app/Services/DynamicAdminNavigationService.php \
+            public_html/resources/views/admin/safir-management.php \
+            public_html/routes/communication-center.php \
+            public_html/app/Services/CommunicationSettingsService.php \
+            public_html/app/Services/AdminNavigationRbacService.php \
+            public_html/system/Routing/RouteLoader.php \
+            public_html/routes/bale-safir-campaigns.php \
+            public_html/resources/views/admin/partials/bale-safir-campaign.php \
+            public_html/resources/views/admin/communication-settings.php \
+            tests/bale-safir-campaign-smoke.php \
+            tests/safir-ui-v21-contract-smoke.php \
+            tests/safir-v24-pilot-rbac-smoke.php; do
+              php -l "$file"
+          done
+      - name: Production overlay script syntax (no execution)
+        run: |
+          bash -n scripts/safir_prod_overlay_preflight.sh
+          bash -n scripts/safir_prod_release_package_prepare.sh
+          bash -n scripts/safir_prod_portal_only_stage.sh
+          bash -n scripts/safir_prod_ui_v2_stage.sh
+          bash -n scripts/safir_prod_ui_v2_actual_baseline_stage.sh
+          bash -n scripts/safir_prod_ui_v21_stage.sh
+          bash -n scripts/safir_prod_ui_v22_manual_test_stage.sh
+          bash -n scripts/safir_prod_v23_test_report_release_build.sh
+          bash -n scripts/safir_prod_v24_pilot_rbac_release_build.sh
+          bash -n scripts/safir_prod_v24_pilot_rbac_atomic_cutover.sh
+          bash -n scripts/safir_prod_v24_enable_limited_pilot.sh
+          bash -n scripts/safir_prod_v24_disable_limited_pilot.sh
+          bash -n scripts/safir_prod_v24_pilot_rbac_emergency_rollback.sh
+          bash tests/safir-private-temp-permissions-smoke.sh
+          bash -n scripts/safir_prod_v23_test_report_atomic_cutover.sh
+          bash -n scripts/safir_prod_v23_enable_one_recipient_test.sh
+          bash -n scripts/safir_prod_v23_test_report_emergency_rollback.sh
+          bash -n scripts/safir_prod_ui_v22_immutable_release.sh
+          bash -n scripts/safir_prod_ui_v22_portal_atomic_cutover.sh
+          bash -n scripts/safir_prod_ui_v22_emergency_rollback.sh
+          bash -n scripts/safir_prod_ui_v21_immutable_release.sh
+          bash -n scripts/safir_prod_ui_v21_portal_atomic_cutover.sh
+          bash -n scripts/safir_prod_ui_v21_emergency_rollback.sh
+          bash -n scripts/safir_prod_ui_v2_immutable_candidate.sh
+          bash -n scripts/safir_prod_ui_v2_portal_atomic_cutover.sh
+          bash -n scripts/safir_prod_ui_v2_emergency_rollback.sh
+          # Shell syntax permits escaped dollars, so explicitly reject literal
+          # placeholders in the two mandatory deployment-contract checks.
+          if grep -Fq '\\${PORTAL_' scripts/safir_prod_ui_v2_immutable_candidate.sh; then
+            echo 'FAIL=LITERAL_PORTAL_CONTRACT_PLACEHOLDER'
+            exit 1
+          fi
+          bash -n scripts/safir_prod_portal_runtime_prepare.sh
+          bash -n scripts/safir_prod_portal_immutable_candidate.sh
+          bash -n scripts/safir_prod_portal_cutover_readiness.sh
+          bash -n scripts/safir_prod_portal_atomic_cutover.sh
+          bash -n scripts/safir_prod_portal_emergency_rollback.sh
+          bash -n scripts/safir_prod_route_404_readonly_diagnostic.sh
+      - name: Portal-only rsync path parser regression
+        run: bash tests/safir-rsync-output-smoke.sh
+      - name: Safir offline contract smoke
+        run: php tests/bale-safir-campaign-smoke.php
+      - name: Safir UI v2.1 static contract
+        run: php tests/safir-ui-v21-contract-smoke.php
+      - name: Safir v2.4 CSV RBAC + pilot allowlist offline contract
+        run: php tests/safir-v24-pilot-rbac-smoke.php
+      - name: Safir inline JavaScript parser regression
+        run: bash tests/safir-inline-js-syntax.sh
+      - name: Safir tab click synthetic-DOM runtime
+        run: node tests/safir-tabs-dom-smoke.js

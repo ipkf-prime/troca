@@ -853,6 +853,9 @@ class DynamicAdminNavigationService extends BaseService
                     $shellKey
                 );
 
+            // Virtual Core navigation, no shared DB writes.
+            $items = $this->withSafirCampaignManagement($items, $shellKey);
+
             $items =
                 $this->withSystemHelpTexts(
                     $this->withPublicLandingManagement(
@@ -935,6 +938,75 @@ class DynamicAdminNavigationService extends BaseService
         return $items;
     }
 
+
+
+    /**
+     * Portal-only Safir navigation. Match the current messaging-settings
+     * item's parent so the link appears under «پیام‌ها و اعلان‌ها».
+     * Never write admin_navigation_items in shared Production DB.
+     */
+    private function withSafirCampaignManagement(array $items, string $shellKey): array
+    {
+        if ($shellKey !== 'core') {
+            return $items;
+        }
+        $parentId = null;
+        $sortOrder = 90;
+        foreach ($items as $item) {
+            if (($item['item_key'] ?? '') === 'bale-safir-campaigns') {
+                return $items;
+            }
+            if (($item['route_path'] ?? '') === '/admin/communications/settings') {
+                $candidate = (int) ($item['parent_id'] ?? 0);
+                if ($candidate > 0) {
+                    $parentId = $candidate;
+                    $sortOrder = (int) ($item['sort_order'] ?? 80) + 1;
+                }
+            }
+        }
+        if ($parentId === null) {
+            foreach ($items as $item) {
+                if (($item['title'] ?? '') === 'پیام‌ها و اعلان‌ها') {
+                    $candidate = (int) ($item['id'] ?? 0);
+                    if ($candidate > 0) {
+                        $parentId = $candidate;
+                        break;
+                    }
+                }
+            }
+        }
+        if ($parentId === null) {
+            return $items;
+        }
+        $items[] = [
+            'id' => -900011,
+            'parent_id' => $parentId,
+            'shell_key' => 'core',
+            'item_key' => 'bale-safir-campaigns',
+            'item_type' => 'link',
+            'placement_code' => 'sidebar',
+            'hide_when_badge_empty' => 0,
+            'title' => 'قالب‌های سفیر بله',
+            'description' => 'مدیریت قالب‌های پویا و پیش‌نمایش اکسل',
+            'route_path' => '/admin/communications/safir',
+            'target_application' => 'core',
+            'icon_code' => 'messages-square',
+            'color_code' => null,
+            'permission_mode' => 'any',
+            'permission_codes_json' => json_encode(
+                ['notifications.send.manage'],
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            ),
+            'badge_source' => null,
+            'active_paths_json' => json_encode(
+                ['/admin/communications/safir'],
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            ),
+            'sort_order' => $sortOrder,
+            'is_active' => 1,
+        ];
+        return $items;
+    }
 
     private function withTicketingPortalManagement(
         array $items,
