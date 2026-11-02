@@ -254,9 +254,12 @@ final class BaleSafirCampaignService
             'fields_hash' => hash('sha256', json_encode($fields, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR)),
             'recipient_masked' => $this->maskPhone($allowedPhone),
             'attempted_at' => gmdate('c'),
+            'request_id' => 'manual-test-' . $nonce,
             'status' => 'unknown',
             'http_code' => 0,
             'message_id' => '',
+            'error_code' => 0,
+            'error_description' => '',
         ];
         try {
             $this->writeTestAudit($handle, $record);
@@ -267,6 +270,9 @@ final class BaleSafirCampaignService
             $record['status'] = $result['status'];
             $record['http_code'] = $result['http_code'];
             $record['message_id'] = $result['message_id'];
+            $record['error_code'] = (int) ($result['error_code'] ?? 0);
+            $record['error_description'] = (string) ($result['error_description'] ?? '');
+            $record['finished_at'] = gmdate('c');
             $this->writeTestAudit($handle, $record);
             return $result;
         } finally {
@@ -306,7 +312,8 @@ final class BaleSafirCampaignService
         rewind($handle);
         if (!ftruncate($handle, 0)
             || fwrite($handle, $serialized . "\n") !== strlen($serialized . "\n")
-            || !fflush($handle)) {
+            || !fflush($handle)
+            || (function_exists('fsync') && !fsync($handle))) {
             throw new RuntimeException('safir_test_audit_unavailable');
         }
     }
@@ -438,7 +445,7 @@ final class BaleSafirCampaignService
         }
     }
 
-    private function payload(array $template, array $row, string $phone): array
+    private function payload(array $template, array $row, string $phone, string $requestId): array
     {
         // The Safir API contract is template-driven. Field names are exactly
         // those declared by the approved provider template; none are hardcoded.
@@ -447,7 +454,11 @@ final class BaleSafirCampaignService
         if (!is_array($fields) || array_keys($fields) !== $expectedFields) {
             throw new RuntimeException('safir_template_variables_invalid');
         }
+        if (!preg_match('/^[a-zA-Z0-9_-]{8,128}$/D', $requestId)) {
+            throw new RuntimeException('safir_request_id_invalid');
+        }
         return [
+            'request_id' => $requestId,
             'bot_id' => (int) $template['bot_id'],
             'phone_number' => $phone,
             'message_data' => ['template_message' => [
@@ -469,7 +480,7 @@ final class BaleSafirCampaignService
             throw new RuntimeException('safir_curl_missing');
         }
         $payload = json_encode(
-            $this->payload($template, $row, $phone),
+            $this->payload($template, $row, $phone, $requestId),
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
         );
         $curl = curl_init('https://safir.bale.ai/api/v3/send_message');
@@ -510,6 +521,10 @@ final class BaleSafirCampaignService
                 'error' => 'پاسخ نامعتبر؛ وضعیت ارسال نامشخص'];
         }
         $errorData = $json['error_data'] ?? null;
+        $firstError = is_array($errorData) ? ($errorData[0] ?? $errorData) : [];
+        $errorCode = is_array($firstError) ? (int) ($firstError['code'] ?? 0) : 0;
+        $errorDescription = is_array($firstError)
+            ? mb_substr((string) ($firstError['description'] ?? ''), 0, 180, 'UTF-8') : '';
         $messageId = trim((string) ($json['message_id'] ?? ($json['data']['message_id'] ?? '')));
         $ok = $httpCode >= 200 && $httpCode < 300 && $messageId !== ''
             && ($errorData === null || $errorData === [] || $errorData === '');
@@ -523,6 +538,8 @@ final class BaleSafirCampaignService
             'http_code' => $httpCode,
             'message_id' => $messageId,
             'error' => $error,
+            'error_code' => $errorCode,
+            'error_description' => $errorDescription,
         ];
     }
 
