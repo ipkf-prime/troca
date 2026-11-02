@@ -157,6 +157,28 @@ $router->post('/admin/communications/settings/safir', function ($request, $respo
     return $response->redirect($redirect . $separator . 'status=' . rawurlencode($status));
 });
 
+$router->get('/admin/communications/safir/test-report.csv', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/communications/safir/test-report.csv');
+    if (!is_array($context)) {
+        return $context;
+    }
+    $actor = (int) $context['user_id'];
+    if (!(new \App\Services\AuthorizationService())->hasPermission($actor, 'notifications.send.manage')) {
+        return $response->status(403)->send('Forbidden');
+    }
+    try {
+        $csv = (new \App\Services\BaleSafirTestReportService())->csv();
+        return $response->status(200)
+            ->header('Content-Type', 'text/csv; charset=UTF-8')
+            ->header('Content-Disposition', 'attachment; filename="safir-manual-test-report.csv"')
+            ->header('Cache-Control', 'private, no-store')
+            ->header('X-Content-Type-Options', 'nosniff')
+            ->send($csv);
+    } catch (\Throwable) {
+        return $response->redirect('/admin/communications/safir?status=safir_export_failed');
+    }
+});
+
 $router->get('/admin/communications/settings/safir/export', function ($request, $response) use ($adminGuard) {
     $context = $adminGuard($response, '/admin/communications/settings/safir/export');
     if (!is_array($context)) {
