@@ -31,6 +31,7 @@ on:
       - 'scripts/safir_prod_ui_v21_stage.sh'
       - 'scripts/safir_prod_ui_v22_manual_test_stage.sh'
       - 'scripts/safir_prod_v23_test_report_release_build.sh'
+      - 'tests/safir-private-temp-permissions-smoke.sh'
       - 'scripts/safir_prod_v23_test_report_atomic_cutover.sh'
       - 'scripts/safir_prod_v23_enable_one_recipient_test.sh'
       - 'scripts/safir_prod_v23_test_report_emergency_rollback.sh'
@@ -95,6 +96,7 @@ jobs:
           bash -n scripts/safir_prod_ui_v21_stage.sh
           bash -n scripts/safir_prod_ui_v22_manual_test_stage.sh
           bash -n scripts/safir_prod_v23_test_report_release_build.sh
+          bash tests/safir-private-temp-permissions-smoke.sh
           bash -n scripts/safir_prod_v23_test_report_atomic_cutover.sh
           bash -n scripts/safir_prod_v23_enable_one_recipient_test.sh
           bash -n scripts/safir_prod_v23_test_report_emergency_rollback.sh
