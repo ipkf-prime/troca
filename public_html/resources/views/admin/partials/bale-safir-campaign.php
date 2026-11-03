@@ -129,7 +129,7 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
 .safir-variable-table .safir-actions{flex-wrap:nowrap}
 .safir-variable-row input{min-height:40px}
 .safir-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
-.safir-form-panel[hidden]{display:none!important}
+.safir-form-panel[hidden],.safir-form-footer [hidden]{display:none!important}
 .safir-wide-label textarea{min-height:190px;resize:vertical;line-height:2}
 .safir-form-footer{border-top:1px solid var(--admin-border,#e0e9e3);padding-top:16px;display:flex;align-items:center;gap:9px;justify-content:flex-end;margin-top:20px}
 .safir-shell .admin-alert{margin-top:12px}
@@ -242,36 +242,6 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
             </form>
         </section>
 
-        <section class="safir-card">
-            <div class="safir-head">
-                <div>
-                    <h3>گزارش تست‌های ارسال سفیر</h3>
-                    <p class="safir-caption">ثبت پایدار تلاش‌های ارسال آزمایشی؛ بدون نمایش کلید API، متن پیام یا شماره کامل</p>
-                </div>
-                <a class="safir-soft" href="/admin/communications/safir/test-report.csv">دریافت گزارش Excel (CSV)</a>
-            </div>
-            <div class="safir-table-scroll">
-                <table class="safir-table">
-                    <thead><tr><th>زمان UTC</th><th>قالب</th><th>شماره تست</th><th>وضعیت</th><th>کد HTTP</th><th>کد خطا</th></tr></thead>
-                    <tbody>
-                    <?php foreach ((array) ($safir['manual_test_history'] ?? []) as $report): ?>
-                        <tr>
-                            <td dir="ltr"><?= admin_h((string) $report['time']) ?></td>
-                            <td dir="ltr"><?= admin_h((string) $report['template']) ?></td>
-                            <td dir="ltr"><?= admin_h((string) $report['phone_masked']) ?></td>
-                            <td><?= admin_h((string) $report['status']) ?></td>
-                            <td><?= admin_h((string) $report['http_code']) ?></td>
-                            <td><?= admin_h((string) $report['error_code']) ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                    <?php if (empty($safir['manual_test_history'])): ?>
-                        <tr><td colspan="6">هنوز ارسال آزمایشی ثبت نشده است.</td></tr>
-                    <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
     <?php elseif ($mode === 'test'): ?>
         <section class="safir-card">
             <div class="safir-head">
@@ -320,7 +290,7 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
                     </label>
                     <button class="safir-primary" type="submit"
                         <?= empty($safir['manual_test_enabled']) ? 'disabled' : '' ?>>ارسال آزمایشی</button>
-                    <a class="safir-soft" href="/admin/communications/safir/test-report.csv">گزارش ارسال‌های تست (CSV)</a>
+                    <a class="safir-soft" href="/admin/communications/safir?edit=<?= rawurlencode((string) ($tpl['code'] ?? '')) ?>&amp;tab=report">گزارش تست‌های این قالب</a>
                 </div>
             </form>
             <?php if (empty($safir['manual_test_enabled'])): ?>
@@ -338,6 +308,9 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
                     <button type="button" role="tab" class="is-active" data-safir-tab="identity" aria-selected="true">مشخصات قالب</button>
                     <button type="button" role="tab" data-safir-tab="variables" aria-selected="false">متغیرها</button>
                     <button type="button" role="tab" data-safir-tab="message" aria-selected="false">متن پیام</button>
+                    <?php if ($mode === 'edit'): ?>
+                        <button type="button" role="tab" data-safir-tab="report" aria-selected="false">گزارش تست‌ها</button>
+                    <?php endif; ?>
                 </div>
                 <div class="safir-form-panel" data-safir-panel="identity" role="tabpanel">
                     <div class="safir-fields">
@@ -389,9 +362,41 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
                     <p class="safir-caption">کلیدهای متغیر باید دقیقاً مطابق ردیف‌های تب متغیرها باشند. تغییر متن در IPKF به‌معنی تأیید خودکار آن در سفیر نیست.</p>
                     <div data-safir-sample class="safir-card" style="white-space:pre-wrap;margin-top:10px">پیش‌نمایش متن در این بخش نمایش داده می‌شود.</div>
                 </div>
+                <?php if ($mode === 'edit'): ?>
+                    <div class="safir-form-panel" data-safir-panel="report" role="tabpanel" hidden>
+                        <div class="safir-head">
+                            <div>
+                                <h4>گزارش ارسال‌های آزمایشی همین قالب</h4>
+                                <p class="safir-caption">آخرین تلاش‌های ثبت‌شده برای این قالب؛ بدون نمایش کلید API، متن پیام یا شماره کامل</p>
+                            </div>
+                            <a class="safir-soft" href="/admin/communications/safir/test-report.csv?template_code=<?= rawurlencode((string) ($tpl['code'] ?? '')) ?>">دانلود گزارش CSV همین قالب</a>
+                        </div>
+                        <div class="safir-table-scroll">
+                            <table class="safir-table">
+                                <thead><tr>
+                                    <th>زمان UTC</th><th>شماره تست</th><th>وضعیت</th><th>کد HTTP</th><th>کد خطا</th>
+                                </tr></thead>
+                                <tbody>
+                                <?php foreach ((array) ($safir['manual_test_history'] ?? []) as $report): ?>
+                                    <tr>
+                                        <td dir="ltr"><?= admin_h((string) $report['time']) ?></td>
+                                        <td dir="ltr"><?= admin_h((string) $report['phone_masked']) ?></td>
+                                        <td><?= admin_h((string) $report['status']) ?></td>
+                                        <td><?= (int) $report['http_code'] ?></td>
+                                        <td><?= (int) $report['error_code'] ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                <?php if (empty($safir['manual_test_history'])): ?>
+                                    <tr><td colspan="5">هنوز تستی برای این قالب ثبت نشده است.</td></tr>
+                                <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                <?php endif; ?>
                 <div class="safir-form-footer">
                     <a class="safir-soft" href="/admin/communications/safir">انصراف</a>
-                    <button class="safir-primary" type="submit">ذخیره قالب</button>
+                    <button class="safir-primary" type="submit" data-safir-save-button>ذخیره قالب</button>
                 </div>
             </form>
         </section>
@@ -536,6 +541,7 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
         const count = form.querySelector('[data-safir-count]');
         const add = form.querySelector('[data-safir-add]');
         const preview = form.querySelector('[data-safir-sample]');
+        const saveButton = form.querySelector('[data-safir-save-button]');
         let nextIndex = items.querySelectorAll('[data-safir-variable]').length;
         function selectTab(name) {
             tabButtons.forEach(button => {
@@ -544,8 +550,11 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
                 button.setAttribute('aria-selected', active ? 'true' : 'false');
             });
             panels.forEach(panel => { panel.hidden = panel.dataset.safirPanel !== name; });
+            if (saveButton) saveButton.hidden = name === 'report';
         }
         tabButtons.forEach(button => button.addEventListener('click', () => selectTab(button.dataset.safirTab)));
+        const requestedTab = new URLSearchParams(window.location.search).get('tab');
+        selectTab(tabButtons.some(button => button.dataset.safirTab === requestedTab) ? requestedTab : 'identity');
         function updateCount() {
             const n = items.querySelectorAll('[data-safir-variable]').length;
             count.textContent = String(n);
