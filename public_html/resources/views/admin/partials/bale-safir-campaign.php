@@ -200,6 +200,9 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
                             <td>
                                 <div class="safir-actions">
                                     <a class="safir-soft safir-soft--small" href="/admin/communications/safir?edit=<?= rawurlencode((string) $item['code']) ?>">ویرایش</a>
+                                    <?php if (!empty($item['active'])): ?>
+                                        <a class="safir-soft safir-soft--small" href="/admin/communications/safir/template.xlsx?template_code=<?= rawurlencode((string) $item['code']) ?>">دانلود اکسل خام</a>
+                                    <?php endif; ?>
                                     <a class="safir-soft safir-soft--small" href="/admin/communications/safir?test=<?= rawurlencode((string) $item['code']) ?>">تست پیام</a>
                                     <form method="post" action="/admin/communications/settings/safir">
                                         <input type="hidden" name="_token" value="<?= admin_h($csrf) ?>">
@@ -225,7 +228,7 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
             <form method="post" enctype="multipart/form-data" action="/admin/communications/settings/safir" class="safir-upload-form">
                 <input type="hidden" name="_token" value="<?= admin_h($csrf) ?>">
                 <input type="hidden" name="action" value="import">
-                <label class="safir-field"><span class="safir-field-title">قالب پیام</span><select name="template_code" required>
+                <label class="safir-field"><span class="safir-field-title">قالب پیام</span><select name="template_code" data-safir-template-select required>
                     <option value="">قالب را انتخاب کنید</option>
                     <?php foreach ($templates as $item): if (!empty($item['active'])): ?>
                         <option value="<?= admin_h($item['code']) ?>"><?= admin_h($item['title']) ?></option>
@@ -234,6 +237,7 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
                 <label class="safir-field safir-file-field"><span class="safir-field-title">فایل اکسل مخاطبان</span><span class="safir-file-shell"><span class="safir-file-button">انتخاب فایل</span><span class="safir-file-name" data-safir-file-name>فایلی انتخاب نشده است</span></span><input class="safir-file-input" data-safir-file-input type="file" name="recipients" accept=".xlsx" required aria-label="انتخاب فایل اکسل مخاطبان"></label>
                 <div class="safir-upload-footer">
                     <button class="safir-primary" type="submit">بارگذاری و پیش‌نمایش</button>
+                    <a class="safir-soft" data-safir-skeleton-link hidden aria-label="دانلود اکسل خام بر اساس ستون‌های قالب انتخاب‌شده">دریافت فایل خام همین قالب (.xlsx)</a>
                 </div>
             </form>
         </section>
@@ -473,6 +477,22 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
 </div>
 <script>
 (() => {
+    // The only source for the workbook columns is the selected saved template.
+    const templateSelect = document.querySelector('[data-safir-template-select]');
+    const skeletonLink = document.querySelector('[data-safir-skeleton-link]');
+    if (templateSelect && skeletonLink) {
+        const updateSkeletonLink = () => {
+            const code = templateSelect.value.trim();
+            skeletonLink.hidden = code === '';
+            if (code) {
+                skeletonLink.href = '/admin/communications/safir/template.xlsx?template_code=' + encodeURIComponent(code);
+            } else {
+                skeletonLink.removeAttribute('href');
+            }
+        };
+        templateSelect.addEventListener('change', updateSkeletonLink);
+        updateSkeletonLink();
+    }
     document.querySelectorAll('[data-safir-file-input]').forEach(input => {
         const name = input.closest('.safir-file-field')?.querySelector('[data-safir-file-name]');
         if (!name) return;
