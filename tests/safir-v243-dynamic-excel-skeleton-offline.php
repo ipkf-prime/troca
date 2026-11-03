@@ -5,9 +5,13 @@ declare(strict_types=1);
  * SAFIR v2.4.3: offline per-template XLSX scaffold regression.
  * No DB, HTTP, environment mutation, provider transmission or real recipients.
  */
-require_once dirname(__DIR__) . '/public_html/app/Services/BaleSafirExcelSkeletonService.php';
-
 use App\Services\BaleSafirExcelSkeletonService;
+
+$parent = dirname(__DIR__);
+$root = is_file($parent . '/public_html/app/Services/BaleSafirExcelSkeletonService.php')
+    ? $parent . '/public_html/'
+    : $parent . '/app/';
+require_once $root . 'app/Services/BaleSafirExcelSkeletonService.php';
 
 function assertSafir(bool $condition, string $code): void
 {
@@ -17,7 +21,6 @@ function assertSafir(bool $condition, string $code): void
     echo $code . "=PASS\n";
 }
 
-$root = dirname(__DIR__) . '/public_html/';
 $service = new BaleSafirExcelSkeletonService();
 $sampleA = [
     'phone_column' => 'شماره همراه',
