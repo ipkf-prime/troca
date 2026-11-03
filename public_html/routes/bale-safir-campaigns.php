@@ -134,7 +134,6 @@ $router->post('/admin/communications/settings/safir', function ($request, $respo
                 $result = $service->manualTest(
                     $actor,
                     $code,
-                    (string) $request->input('test_phone', ''),
                     $fields,
                     (string) $request->input('test_nonce', '')
                 );
