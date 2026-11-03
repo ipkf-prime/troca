@@ -994,7 +994,7 @@ class DynamicAdminNavigationService extends BaseService
             'color_code' => null,
             'permission_mode' => 'any',
             'permission_codes_json' => json_encode(
-                ['notifications.send.manage'],
+                ['notifications.send.manage', 'notifications.safir.manage'],
                 JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
             ),
             'badge_source' => null,
