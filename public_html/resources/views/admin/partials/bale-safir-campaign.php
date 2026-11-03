@@ -705,7 +705,9 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
                 const data = new FormData(dispatchForm);
                 data.set('ajax', '1');
                 // Prevent implicit follow of a 302 to an HTML login page.
-                const response = await fetch(dispatchForm.action, {
+                // The hidden input named "action" shadows HTMLFormElement.action.
+                // Read the configured URL attribute instead of the named form control.
+                const response = await fetch(dispatchForm.getAttribute('action'), {
                     method: 'POST',
                     body: data,
                     credentials: 'same-origin',
