@@ -175,6 +175,44 @@ $router->post('/admin/communications/settings/safir', function ($request, $respo
     return $response->redirect($redirect . $separator . 'status=' . rawurlencode($status));
 });
 
+
+/*
+ * Per-template, header-only XLSX scaffold. This GET route only reads the
+ * existing canonical template catalog; it never imports or sends messages.
+ */
+$router->get('/admin/communications/safir/template.xlsx', function ($request, $response) use ($adminGuard) {
+    $context = $adminGuard($response, '/admin/communications/safir/template.xlsx');
+    if (!is_array($context)) {
+        return $context;
+    }
+    $actor = (int) $context['user_id'];
+    $authorization = new \App\Services\AuthorizationService();
+    if (!$authorization->hasPermission($actor, 'notifications.send.manage')
+        && !$authorization->hasPermission($actor, 'notifications.safir.manage')) {
+        return $response->status(403)->send('Forbidden');
+    }
+    $code = trim((string) $request->input('template_code', ''));
+    if (!preg_match('/^[a-z][a-z0-9._-]{1,63}$/D', $code)) {
+        return $response->status(400)->send('Invalid template reference');
+    }
+    try {
+        $template = (new \App\Services\BaleSafirTemplateCatalogService())->get($code);
+        if (!is_array($template) || empty($template['active'])) {
+            return $response->status(404)->send('Template unavailable');
+        }
+        $xlsx = (new \App\Services\BaleSafirExcelSkeletonService())->build($template);
+        return $response->status(200)
+            ->header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            ->header('Content-Disposition', 'attachment; filename="safir-' . $code . '-recipients.xlsx"')
+            ->header('Content-Length', (string) strlen($xlsx))
+            ->header('Cache-Control', 'private, no-store')
+            ->header('X-Content-Type-Options', 'nosniff')
+            ->send($xlsx);
+    } catch (\Throwable) {
+        return $response->status(422)->send('Excel template unavailable');
+    }
+});
+
 $router->get('/admin/communications/safir/test-report.csv', function ($request, $response) use ($adminGuard) {
     $context = $adminGuard($response, '/admin/communications/safir/test-report.csv');
     if (!is_array($context)) {
