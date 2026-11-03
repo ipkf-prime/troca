@@ -276,6 +276,27 @@ class AdminNavigationRbacService extends BaseService
                 'GET';
         }
 
+        /*
+         * SAFIR_V242_SCOPED_MANAGEMENT_ROUTE_ADMISSION
+         * Safir managers may manage templates, preview Excel, and download
+         * reports. Provider transmission stays guarded separately by the
+         * notifications.send.manage permission and server send switches.
+         * This does not grant any other communications/send route.
+         */
+        $safirMethods = [
+            '/admin/communications/safir' => ['GET', 'HEAD'],
+            '/admin/communications/safir/test-report.csv' => ['GET', 'HEAD'],
+            '/admin/communications/settings/safir' => ['POST'],
+            '/admin/communications/settings/safir/export' => ['GET', 'HEAD'],
+        ];
+        if ($userId !== null
+            && $resolvedRequestPath === $path
+            && isset($safirMethods[$path])
+            && in_array($resolvedMethod, $safirMethods[$path], true)
+            && $this->can($userId, 'notifications.safir.manage')) {
+            return true;
+        }
+
         /* IPKF_R8Z3_V3_DELEGATED_CORE_ROUTE_GATE
          * Admission only. OrganizationalAffiliationService still checks
          * reviewer independence, live Core hierarchy, locked claim,
