@@ -25,8 +25,12 @@ $contracts = [
     'SAFIR_SCOPED_NAV_PERMISSION_PRESENT' =>
         str_contains($code, "['notifications.send.manage', 'notifications.safir.manage']"),
     'SAFIR_DB_NAV_ENTRY_ADAPTED' =>
-        str_contains($code, "if (($item['item_key'] ?? '') === 'bale-safir-campaigns')")
-        && str_contains($code, "$" . "codes[] = 'notifications.safir.manage'"),
+        str_contains($code, <<<'PHP'
+if (($item['item_key'] ?? '') === 'bale-safir-campaigns')
+PHP)
+        && str_contains($code, <<<'PHP'
+$codes[] = 'notifications.safir.manage'
+PHP),
 ];
 foreach ($contracts as $gate => $pass) {
     if (!$pass) {
