@@ -8,7 +8,10 @@ $router->get('/admin/communications/safir', function ($request, $response) use (
         return $context;
     }
     $actor = (int) $context['user_id'];
-    if (!(new \App\Services\AuthorizationService())->hasPermission($actor, 'notifications.send.manage')) {
+    $authorization = new \App\Services\AuthorizationService();
+    $maySend = $authorization->hasPermission($actor, 'notifications.send.manage');
+    $mayManageSafir = $authorization->hasPermission($actor, 'notifications.safir.manage');
+    if (!$maySend && !$mayManageSafir) {
         return $response->status(403)->send('Forbidden');
     }
     $editing = trim((string) $request->input('edit', ''));
@@ -20,8 +23,17 @@ $router->get('/admin/communications/safir', function ($request, $response) use (
         return $response->status(400)->send('Invalid test template reference');
     }
     $mode = (string) $request->input('mode', '');
+    $safirCampaign = (new \App\Services\BaleSafirCampaignService())->page(
+        $actor, $testing !== '' ? $testing : $editing
+    );
+    if (!$maySend) {
+        // Scoped Safir managers may view and edit, but never initiate
+        // provider transmission even if send flags are later enabled.
+        $safirCampaign['send_enabled'] = false;
+        $safirCampaign['manual_test_enabled'] = false;
+    }
     $page = [
-        'safir_campaign' => (new \App\Services\BaleSafirCampaignService())->page($actor, $testing !== '' ? $testing : $editing),
+        'safir_campaign' => $safirCampaign,
         'safir_edit' => $editing,
         'safir_mode' => $testing !== '' ? 'test' : ($mode === 'create' ? 'create' : ($editing !== '' ? 'edit' : 'list')),
         'safir_test_code' => $testing,
@@ -46,13 +58,19 @@ $router->post('/admin/communications/settings/safir', function ($request, $respo
     $actor = (int) $context['user_id'];
     $service = new \App\Services\BaleSafirCampaignService();
     $redirect = '/admin/communications/safir';
-    if (!(new \App\Services\AuthorizationService())->hasPermission($actor, 'notifications.send.manage')) {
+    $authorization = new \App\Services\AuthorizationService();
+    $maySend = $authorization->hasPermission($actor, 'notifications.send.manage');
+    if (!$maySend && !$authorization->hasPermission($actor, 'notifications.safir.manage')) {
         return $response->status(403)->send('Forbidden');
     }
     if (!(new \IPKF\Security\Csrf())->check((string) $request->input('_token', ''))) {
         return $response->redirect($redirect . '?status=safir_invalid_csrf');
     }
     $action = (string) $request->input('action', '');
+    // Template administration never implies permission to send real messages.
+    if (in_array($action, ['test', 'manual_test', 'dispatch'], true) && !$maySend) {
+        return $response->status(403)->send('Forbidden');
+    }
     if ($action === 'manual_test') {
         $testCode = trim((string) $request->input('template_code', ''));
         if (preg_match('/^[a-z][a-z0-9._-]{1,63}$/D', $testCode)) {
@@ -163,7 +181,9 @@ $router->get('/admin/communications/safir/test-report.csv', function ($request, 
         return $context;
     }
     $actor = (int) $context['user_id'];
-    if (!(new \App\Services\AuthorizationService())->hasPermission($actor, 'notifications.send.manage')) {
+    $authorization = new \App\Services\AuthorizationService();
+    if (!$authorization->hasPermission($actor, 'notifications.send.manage')
+        && !$authorization->hasPermission($actor, 'notifications.safir.manage')) {
         return $response->status(403)->send('Forbidden');
     }
     try {
@@ -184,9 +204,10 @@ $router->get('/admin/communications/settings/safir/export', function ($request, 
     if (!is_array($context)) {
         return $context;
     }
-    if (!(new \App\Services\AuthorizationService())->hasPermission(
-        (int) $context['user_id'], 'notifications.send.manage'
-    )) {
+    $authorization = new \App\Services\AuthorizationService();
+    $actor = (int) $context['user_id'];
+    if (!$authorization->hasPermission($actor, 'notifications.send.manage')
+        && !$authorization->hasPermission($actor, 'notifications.safir.manage')) {
         return $response->status(403)->send('Forbidden');
     }
     try {
