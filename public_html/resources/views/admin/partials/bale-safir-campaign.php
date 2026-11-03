@@ -698,32 +698,55 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
         const button = dispatchForm.querySelector('button[type=submit]');
         const progress = document.getElementById('safir-progress');
         button.disabled = true;
+        progress.setAttribute('role', 'status');
+        progress.textContent = 'درخواست ارسال ثبت شد؛ در حال انتظار برای پاسخ سرور. تا تعیین وضعیت دوباره ارسال نکنید.';
         try {
             while (true) {
                 const data = new FormData(dispatchForm);
                 data.set('ajax', '1');
+                // Prevent implicit follow of a 302 to an HTML login page.
                 const response = await fetch(dispatchForm.action, {
                     method: 'POST',
                     body: data,
                     credentials: 'same-origin',
+                    redirect: 'manual',
                     headers: { Accept: 'application/json' }
                 });
+                if (response.type === 'opaqueredirect' || (response.status >= 300 && response.status < 400)) {
+                    progress.textContent = 'ارسال متوقف شد: سرور پاسخ تغییر مسیر داد (احتمال پایان نشست یا اعتبارسنجی). وضعیت پیام‌ها را پیش از هر اقدام بررسی کنید.';
+                    break;
+                }
+                const contentType = response.headers.get('content-type') || '';
+                if (!contentType.toLowerCase().includes('application/json')) {
+                    progress.textContent = 'پاسخ غیرمنتظره از سرور (HTTP ' + response.status + '، بدون JSON). هیچ ارسال مجددی انجام ندهید.';
+                    break;
+                }
                 const result = await response.json();
-                if (!response.ok || !result.ok) {
-                    progress.textContent = 'متوقف شد: ' + (result.code || 'network_error');
+                if (!response.ok || !result || !result.ok) {
+                    progress.textContent = 'متوقف شد: HTTP ' + response.status + ' | ' + ((result && result.code) || 'server_error');
+                    break;
+                }
+                if (!result.counts || !Number.isFinite(Number(result.counts.ready)) || !Number.isFinite(Number(result.counts.sent))) {
+                    progress.textContent = 'پاسخ شمارنده‌های ارسال نامعتبر است؛ پیش از هر تلاش دیگر وضعیت سرور را بررسی کنید.';
                     break;
                 }
                 progress.textContent = 'پذیرفته‌شده: ' + result.counts.sent + ' | باقیمانده: ' + result.counts.ready;
                 if (result.halted || !Number(result.counts.ready)) {
-                    if (result.halted) progress.textContent += ' | خطا یا پاسخ نامشخص؛ ارسال متوقف شد.';
+                    if (result.halted) {
+                        progress.textContent += ' | خطا یا وضعیت نامشخص؛ ارسال متوقف شد. گزارش را بررسی کنید.';
+                    } else {
+                        progress.textContent += ' | مرحله گروهی به پایان رسید. برای دیدن جدول نتایج، صفحه را دستی بازخوانی کنید.';
+                    }
                     break;
                 }
+                progress.textContent += ' | در حال آماده‌سازی دسته بعدی؛ دوباره روی ارسال نزنید.';
                 await new Promise(resolve => setTimeout(resolve, 2000));
             }
         } catch (_) {
-            progress.textContent = 'ارتباط قطع شده؛ قبل از ادامه، وضعیت ارسال‌ها را بررسی کنید.';
+            progress.textContent = 'خطای ارتباط/خواندن پاسخ؛ وضعیت ارسال نامشخص است. صفحه خودکار بازخوانی نشد و نباید دوباره ارسال کنید.';
         }
-        window.location.reload();
+        // Deliberately never auto-reload on an unknown outcome: the visible
+        // error and disabled submit button protect against duplicate sends.
     });
 })();
 </script>
