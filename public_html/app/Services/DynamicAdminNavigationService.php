@@ -952,8 +952,20 @@ class DynamicAdminNavigationService extends BaseService
         }
         $parentId = null;
         $sortOrder = 90;
-        foreach ($items as $item) {
+        foreach ($items as $index => $item) {
             if (($item['item_key'] ?? '') === 'bale-safir-campaigns') {
+                // Preserve DB-managed navigation metadata, but make its
+                // permission condition compatible with Safir-only managers.
+                $codes = json_decode((string) ($item['permission_codes_json'] ?? '[]'), true);
+                if (is_array($codes)
+                    && in_array('notifications.send.manage', $codes, true)
+                    && !in_array('notifications.safir.manage', $codes, true)) {
+                    $codes[] = 'notifications.safir.manage';
+                    $items[$index]['permission_codes_json'] = json_encode(
+                        $codes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                    );
+                    $items[$index]['permission_mode'] = 'any';
+                }
                 return $items;
             }
             if (($item['route_path'] ?? '') === '/admin/communications/settings') {
