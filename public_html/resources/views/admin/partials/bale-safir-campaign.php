@@ -143,6 +143,26 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
  .safir-form-tabs button{padding:8px 10px}
 }
 @media(prefers-reduced-motion:reduce){.safir-soft,.safir-primary{transition:none}}
+/* SAFIR R60: isolated full-width, RTL confirmation rows for pilot send forms. */
+.safir-shell form[data-safir-pilot-form]{
+ display:flex;flex-direction:column;align-items:stretch;gap:12px;margin-top:14px
+}
+.safir-shell form[data-safir-pilot-form] > label.communication-form__wide{
+ display:flex;flex-direction:row;align-items:flex-start;gap:10px;
+ flex-wrap:nowrap;width:100%;min-width:0;max-width:100%;grid-column:auto;
+ white-space:normal;line-height:1.9;text-align:right
+}
+.safir-shell form[data-safir-pilot-form] > label.communication-form__wide > input[type="checkbox"]{
+ flex:0 0 18px;width:18px;height:18px;margin:7px 0 0;accent-color:#218654
+}
+.safir-shell form[data-safir-pilot-form] .safir-pilot-confirmation-text{
+ display:block;flex:1 1 auto;min-width:0;white-space:normal;
+ overflow-wrap:normal;word-break:normal
+}
+.safir-shell form[data-safir-pilot-form] > .admin-button{
+ align-self:flex-start;min-width:180px;min-height:40px
+}
+.safir-shell form[data-safir-pilot-form] > .communication-muted{margin:0}
 </style>
 
 <div class="safir-shell">
@@ -454,24 +474,24 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
                 <p class="communication-muted" style="font-weight:700;color:#8a561c">حالت آزمایش گروهی محدود فعال است: حداکثر ۳ شماره منحصربه‌فرد، فقط شماره‌های از پیش تأییدشده در سرور. ارسال گروهی عمومی همچنان غیرفعال است. فهرست اکسل کامل قبل از هر ارسال مجدداً بررسی می‌شود.</p>
             <?php endif; ?>
             <p>شماره تست مجاز سرور: <?= admin_h($safir['test_phone_masked']) ?>.</p>
-            <form method="post" action="/admin/communications/settings/safir" class="communication-form">
+            <form method="post" action="/admin/communications/settings/safir" class="communication-form" data-safir-pilot-form="test">
                 <input type="hidden" name="_token" value="<?= admin_h($csrf) ?>">
                 <input type="hidden" name="action" value="test">
                 <label class="communication-form__wide"><input type="checkbox" name="confirm_test" value="yes" required>
-                    ارسال یک پیام واقعی آزمایشی با قالب انتخاب‌شده به شماره تست را تأیید می‌کنم.
+                    <span class="safir-pilot-confirmation-text">ارسال یک پیام واقعی آزمایشی با قالب انتخاب‌شده به شماره تست را تأیید می‌کنم.</span>
                 </label>
                 <button class="admin-button" type="submit">تست سفیر بله</button>
                 <p class="communication-muted">نتیجه تست: <?= admin_h($campaign['test_status'] ?: 'هنوز انجام نشده') ?></p>
             </form>
             <?php if (($campaign['test_status'] ?? '') === 'sent' && (int) ($counts['ready'] ?? 0) > 0): ?>
-                <form id="safir-dispatch-form" method="post" action="/admin/communications/settings/safir" class="communication-form">
+                <form id="safir-dispatch-form" method="post" action="/admin/communications/settings/safir" class="communication-form" data-safir-pilot-form="dispatch">
                     <input type="hidden" name="_token" value="<?= admin_h($csrf) ?>">
                     <input type="hidden" name="action" value="dispatch">
                     <input type="hidden" name="reference" value="<?= admin_h($campaign['reference']) ?>">
                     <input type="hidden" name="confirmation" value="<?= admin_h('SEND ' . $campaign['reference']) ?>">
                     <label class="communication-form__wide">
                         <input type="checkbox" name="dispatch_approved" value="yes" required>
-                        قالب تأییدشده، فهرست گیرندگان و متن‌ها را کنترل کرده‌ام و ارسال واقعی را تأیید می‌کنم.
+                        <span class="safir-pilot-confirmation-text">قالب تأییدشده، فهرست گیرندگان و متن‌ها را کنترل کرده‌ام و ارسال واقعی را تأیید می‌کنم.</span>
                     </label>
                     <button type="submit" class="admin-button"><?= !empty($safir['pilot_mode']) ? 'شروع تست گروهی محدود (۲ تا ۳ مخاطب)' : 'شروع / ادامه ارسال گروهی' ?></button>
                     <p id="safir-progress" class="communication-muted" aria-live="polite">ارسال در دسته‌های محدود انجام می‌شود؛ خطا یا پاسخ نامشخص ادامه خودکار را متوقف می‌کند.</p>
