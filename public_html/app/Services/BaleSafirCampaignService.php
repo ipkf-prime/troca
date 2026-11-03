@@ -198,7 +198,6 @@ final class BaleSafirCampaignService
     public function manualTest(
         int $userId,
         string $templateCode,
-        string $testPhone,
         array $inputFields,
         string $nonce
     ): array {
@@ -220,11 +219,11 @@ final class BaleSafirCampaignService
         if (!preg_match('/^[a-f0-9]{32}$/D', $nonce)) {
             throw new RuntimeException('safir_test_nonce_invalid');
         }
+        // Server-owned recipient: the browser cannot select or override the
+        // destination of a real manual test, including through crafted POSTs.
         $allowedPhone = $this->normalizePhone((string) Env::get('BALE_SAFIR_TEST_PHONE', ''));
-        $requestedPhone = $this->normalizePhone($testPhone);
-        if ($allowedPhone === null || $requestedPhone === null
-            || !hash_equals($allowedPhone, $requestedPhone)) {
-            throw new RuntimeException('safir_test_phone_not_allowed');
+        if ($allowedPhone === null) {
+            throw new RuntimeException('safir_test_phone_not_configured');
         }
         $template = (new BaleSafirTemplateCatalogService())->get($templateCode);
         if (!is_array($template) || empty($template['active']) || empty($template['provider_approved'])) {
