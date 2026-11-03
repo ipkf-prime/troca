@@ -1048,6 +1048,7 @@ class DynamicAdminNavigationService extends BaseService
         return $items;
     }
 
+
     /**
      * Portal-only Safir navigation. Match the current messaging-settings
      * item's parent so the link appears under «پیام‌ها و اعلان‌ها».
