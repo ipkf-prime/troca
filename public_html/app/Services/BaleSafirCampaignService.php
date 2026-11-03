@@ -39,7 +39,8 @@ final class BaleSafirCampaignService
             'pilot_mode' => $this->pilotEnabled(),
             'test_phone_masked' => $this->maskPhone((string) Env::get('BALE_SAFIR_TEST_PHONE', '')),
             'credential_ready' => trim((string) Env::get('BALE_SAFIR_API_ACCESS_KEY', '')) !== '',
-            'manual_test_history' => (new BaleSafirTestReportService())->recent(10),
+            'manual_test_history' => ($editingCode !== '' && is_array($editTemplate))
+                ? (new BaleSafirTestReportService())->recent(10, $editingCode) : [],
             'manual_test_enabled' => filter_var(Env::get('BALE_SAFIR_TEST_SEND_ENABLED', false), FILTER_VALIDATE_BOOLEAN)
                 && (strtolower((string) Env::get('APP_ENV', 'production')) !== 'production'
                     || filter_var(Env::get('BALE_SAFIR_TEST_PRODUCTION_APPROVED', false), FILTER_VALIDATE_BOOLEAN))
