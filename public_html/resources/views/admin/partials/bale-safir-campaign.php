@@ -26,7 +26,7 @@ $statusMessages = [
     'safir_imported' => 'اکسل خوانده شد؛ پیش‌نمایش و وضعیت مخاطبان را بررسی کنید.',
     'safir_reset' => 'فهرست پیش‌نمایش پاک شد.',
     'safir_manual_test_disabled' => 'ارسال آزمایشی واقعی هنوز در سرور مجاز نشده است. پیش‌نمایش دستی در دسترس است.',
-    'safir_test_phone_not_allowed' => 'شماره آزمون باید دقیقاً با شماره مجاز ثبت‌شده در سرور برابر باشد.',
+    'safir_test_phone_not_configured' => 'شماره مقصد آزمایشی در تنظیمات امن سرور ثبت نشده یا معتبر نیست.',
     'safir_test_fields_invalid' => 'تمام متغیرهای قالب را با مقدار معتبر وارد کنید.',
     'safir_test_audit_unavailable' => 'دفتر ثبت امن تلاش‌های تست آماده نیست.',
     'safir_test_nonce_invalid' => 'شناسه درخواست تست معتبر نیست؛ صفحه را تازه‌سازی کنید.',
@@ -277,7 +277,7 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
             <div class="safir-head">
                 <div>
                     <h3>تست قالب: <?= admin_h((string) ($tpl['title'] ?? '')) ?></h3>
-                    <p class="safir-caption">مقادیر متغیرها را دستی وارد کنید؛ ابتدا متن را پیش‌نمایش بگیرید. شماره مقصد واقعی باید همان شماره آزمون مجاز سرور باشد.</p>
+                    <p class="safir-caption">مقادیر متغیرها را وارد کنید و متن نهایی را پیش‌نمایش بگیرید. مقصد ارسال آزمایشی به‌طور خودکار از تنظیمات امن سرور خوانده می‌شود و قابل تغییر در این فرم نیست.</p>
                 </div>
                 <span class="safir-badge <?= empty($safir['manual_test_enabled']) ? 'safir-badge--off' : '' ?>">
                     <?= empty($safir['manual_test_enabled']) ? 'ارسال آزمایشی غیرفعال' : 'ارسال آزمایشی مجاز' ?>
@@ -301,11 +301,13 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
                                 placeholder="مقدار آزمایشی <?= admin_h((string) $variable) ?>">
                         </label>
                     <?php endforeach; ?>
-                    <label>
-                        <span>شماره مقصد تست <small>(ثبت‌شده در سرور: <?= admin_h((string) ($safir['test_phone_masked'] ?? '')) ?>)</small></span>
-                        <input type="tel" name="test_phone" required dir="ltr" inputmode="tel" autocomplete="off"
-                            placeholder="09xxxxxxxxx">
-                    </label>
+                    <div class="safir-field">
+                        <span class="safir-field-title">مقصد ثابت ارسال آزمایشی</span>
+                        <div class="safir-card" style="min-height:42px;padding:10px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+                            <strong dir="ltr"><?= admin_h((string) ($safir['test_phone_masked'] ?? 'تنظیم‌نشده')) ?></strong>
+                            <small class="safir-caption">فقط خواندنی؛ از تنظیمات سرور</small>
+                        </div>
+                    </div>
                 </div>
                 <div class="safir-card safir-test-preview" style="margin-top:16px;white-space:pre-wrap;line-height:2" data-safir-test-preview aria-live="polite">برای مشاهده متن نهایی، «پیش‌نمایش پیام» را انتخاب کنید.</div>
                 <div class="safir-form-footer">
@@ -314,7 +316,7 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
                     <label class="safir-checkbox">
                         <input type="checkbox" name="confirm_manual_test" value="yes" required
                             <?= empty($safir['manual_test_enabled']) ? 'disabled' : '' ?>>
-                        ارسال واقعی یک پیام به شماره مجاز را تأیید می‌کنم.
+                        ارسال واقعی یک پیام به شماره آزمایشی ثابت سرور را تأیید می‌کنم.
                     </label>
                     <button class="safir-primary" type="submit"
                         <?= empty($safir['manual_test_enabled']) ? 'disabled' : '' ?>>ارسال آزمایشی</button>
