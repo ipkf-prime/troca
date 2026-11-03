@@ -519,7 +519,7 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
                 box.textContent = 'برای نمایش متن نهایی، ابتدا تمام متغیرهای قالب را تکمیل کنید.';
                 return;
             }
-            box.textContent = source.value.replace(/\{\{([\\p{L}_][\\p{L}\\p{N}_]*)\}\}/gu,
+            box.textContent = source.value.replace(/\{\{([A-Za-z_][A-Za-z0-9_]*)\}\}/g,
                 (match, key) => fields.has(key) ? fields.get(key) : match);
         };
         manual.querySelector('[data-safir-test-preview-button]').addEventListener('click', preview);
