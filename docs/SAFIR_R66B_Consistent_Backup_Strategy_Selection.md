@@ -1,0 +1,11 @@
+# SAFIR R66B — Read-only selection of consistent backup strategy
+
+Latest R66A data (2026-11-03): 185 BASE TABLES; 141 InnoDB and **44 MyISAM**, all MyISAM confirmed nontransactional; MyISAM estimated size **212.43 MiB**. Important tables include auth_login_tokens, mfa_delivery_challenges, migrations, permissions, recovery_codes, app_settings, geographic_import_rows (118.322 MiB) and geographic_crosswalk_candidates/issues (43.375/37.070 MiB). The R66 backup and isolated-schema rehearsal correctly stopped on mixed-engine data. No backup, no schema modification and no provider send occurred.
+
+Official MariaDB documentation: `mariadb-dump --single-transaction` guarantees only transactional tables such as InnoDB; MyISAM can change during the dump. `mariadb-dump --lock-all-tables` acquires a global read lock for the dump duration, and it cannot be combined with `--single-transaction`. `mariadb-backup` supports physical online backups of both InnoDB and MyISAM, using locking for consistent nontransactional table contents. Do not run it with `--no-lock` on this database while MyISAM writes are possible.
+
+Read-only tool: `SAFIR_S36_R66B_MyISAM_Consistent_Backup_Options_ReadOnly.sh`
+SHA256: `2424800c9ceacab9e9ba88508eb3f6804674a892138138737779d8cd03c930fe`.
+Contract: checks current active immutable runtime, verifies all four SAFIR master flags OFF, inventories actual engine counts (fails if R66A baseline drifts), checks available backup/SQL binaries and emits only masked grant keyword hints. No credentials, user data, SQL dumps or backup files printed or stored. Command is root-run but app DB reads execute as the service account, using existing layered env. Syntax validated (bash -n; php -l). Not yet run on the user's production server.
+
+Decision after the user's R66B execution: preferred compatible `mariadb-backup` with reviewed locks/DBA privileges and isolated physical prepare/restore. Fallback controlled maintenance window + `mariadb-dump --lock-all-tables` with careful impact/timeout/rollback and restore validation. Both require explicit operator approval of interruption risk and restorable backup verification before any production DDL. Do not bypass R66 guard or enable bulk sends. R65 five-table schema design remains only a design.
