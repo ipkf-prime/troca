@@ -14,6 +14,7 @@ class CommunicationCenterSeeder extends Seeder
         ['notifications.routing.manage', 'routing', 'manage', 'مدیریت قواعد ارسال اعلان'],
         ['notifications.preferences.self', 'preference', 'self', 'مدیریت ترجیحات اعلان شخصی'],
         ['notifications.reports.view', 'report', 'view', 'مشاهده گزارش ارسال و تحویل'],
+        ['notifications.safir.manage', 'safir', 'manage', 'مدیریت قالب‌های سفیر و مشاهده گزارش‌های آن'],
     ];
 
     public function run(): void
@@ -69,6 +70,9 @@ class CommunicationCenterSeeder extends Seeder
         foreach (self::PERMISSIONS as [$code]) {
             $assign->execute([$code, 'super_admin']);
         }
+        // Safir template/report administration is scoped and never grants
+        // the broader notifications.send.manage transmission authority.
+        $assign->execute(['notifications.safir.manage', 'system_admin']);
     }
 
     private function seedChannels(): void
