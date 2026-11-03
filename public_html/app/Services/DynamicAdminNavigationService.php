@@ -595,6 +595,48 @@ class DynamicAdminNavigationService extends BaseService
         }
 
 
+        /* A41R10_S9_TICKETING_AFFILIATION_REVIEW_EXISTING_LABEL */
+        /* Reuse existing Core-defined nav metadata; never duplicate authority. */
+        if (
+            $shellKey === 'ticketing'
+            && $this->authorization->hasPermission(
+                $userId,
+                'organizations.affiliations.manage'
+            )
+        ) {
+            $already = false;
+            foreach ($result as $navItem) {
+                if (
+                    (string) ($navItem['key'] ?? '') ===
+                    'ticketing-core-affiliation-review'
+                ) {
+                    $already = true;
+                    break;
+                }
+            }
+            if (!$already) {
+                foreach ((new AdminPanelService())->ticketingNavigation($userId) as $link) {
+                    if ((string) ($link['key'] ?? '') !==
+                        'ticketing-core-affiliation-review') {
+                        continue;
+                    }
+                    $result[] = [
+                        'key' => (string) $link['key'],
+                        'title' => (string) $link['title'],
+                        'description' => (string) ($link['description'] ?? ''),
+                        'url' => (string) $link['url'],
+                        'icon' => (string) ($link['icon'] ?? 'users'),
+                        'color' => '',
+                        'sort_order' => 85,
+                        'active_paths' =>
+                            $link['active_paths'] ?? ['/admin/organization-affiliations'],
+                        'badge' => '',
+                    ];
+                    break;
+                }
+            }
+        }
+
         return $result;
     }
 
@@ -853,6 +895,10 @@ class DynamicAdminNavigationService extends BaseService
                     $shellKey
                 );
 
+            // R2A2: one canonical Core organization directory entry,
+            // shared by sidebar and organizational module hub, no DB write.
+            $items = $this->withOrganizationDirectory($items, $shellKey);
+
             // Virtual Core navigation, no shared DB writes.
             $items = $this->withSafirCampaignManagement($items, $shellKey);
 
@@ -879,6 +925,70 @@ class DynamicAdminNavigationService extends BaseService
         }
     }
 
+
+    /**
+     * IPKF_ORG_R2A2_CANONICAL_NAVIGATION
+     * The organization hub and the sidebar share this navigation collection.
+     * Do not persist a parallel menu into the shared Production database.
+     */
+    private function withOrganizationDirectory(array $items, string $shellKey): array
+    {
+        if ($shellKey !== 'core') {
+            return $items;
+        }
+
+        $parentId = null;
+        foreach ($items as $item) {
+            $key = (string) ($item['item_key'] ?? '');
+            $route = (string) ($item['route_path'] ?? '');
+            if (
+                $key === 'organization-directory'
+                || $route === '/admin/organizations'
+            ) {
+                return $items;
+            }
+            if (
+                $key === 'organization'
+            ) {
+                $candidate = (int) ($item['id'] ?? 0);
+                if ($candidate > 0) {
+                    $parentId = $candidate;
+                }
+            }
+        }
+        if ($parentId === null) {
+            return $items;
+        }
+
+        $items[] = [
+            'id' => -900004,
+            'parent_id' => $parentId,
+            'shell_key' => 'core',
+            'item_key' => 'organization-directory',
+            'item_type' => 'link',
+            'placement_code' => 'sidebar',
+            'hide_when_badge_empty' => 0,
+            'title' => 'سازمان‌ها، تشکل‌ها و شرکت‌ها',
+            'description' => 'فهرست و جستجوی سازمان‌ها در ساختار موجود',
+            'route_path' => '/admin/organizations',
+            'target_application' => 'core',
+            'icon_code' => 'building',
+            'color_code' => null,
+            'permission_mode' => 'any',
+            'permission_codes_json' => json_encode(
+                ['organizations.manage'],
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            ),
+            'badge_source' => null,
+            'active_paths_json' => json_encode(
+                ['/admin/organizations', '/admin/organizations/*'],
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            ),
+            'sort_order' => 5,
+            'is_active' => 1,
+        ];
+        return $items;
+    }
 
     private function normalizeSystemManagementItems(
         array $items,
@@ -937,8 +1047,6 @@ class DynamicAdminNavigationService extends BaseService
 
         return $items;
     }
-
-
 
     /**
      * Portal-only Safir navigation. Match the current messaging-settings
