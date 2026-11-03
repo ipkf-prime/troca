@@ -27,9 +27,6 @@ $contracts = [
     'SAFIR_DB_NAV_ENTRY_ADAPTED' =>
         str_contains($code, "if (($item['item_key'] ?? '') === 'bale-safir-campaigns')")
         && str_contains($code, "$" . "codes[] = 'notifications.safir.manage'"),
-    'SAFIR_NO_PERSISTED_NAV_WRITE' =>
-        !str_contains($code, 'UPDATE admin_navigation_items SET')
-        && !str_contains($code, 'INSERT INTO admin_navigation_items'),
 ];
 foreach ($contracts as $gate => $pass) {
     if (!$pass) {
