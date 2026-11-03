@@ -508,11 +508,19 @@ $successes = ['safir_template_saved','safir_template_status_saved','safir_import
         const box = manual.querySelector('[data-safir-test-preview]');
         const preview = () => {
             const fields = new Map();
+            let complete = true;
             manual.querySelectorAll('[data-safir-test-value]').forEach(input => {
-                fields.set(input.dataset.safirTestKey, input.value.trim());
+                const value = input.value.trim();
+                if (!value) complete = false;
+                fields.set(input.dataset.safirTestKey, value);
             });
-            box.textContent = source.value.replace(/\{\{([A-Za-z_][A-Za-z0-9_]*)\}\}/g,
-                (_, key) => fields.get(key) || '[مقدار ' + key + ' وارد نشده]');
+            if (!complete) {
+                // No fabricated text is ever inserted into the message preview.
+                box.textContent = 'برای نمایش متن نهایی، ابتدا تمام متغیرهای قالب را تکمیل کنید.';
+                return;
+            }
+            box.textContent = source.value.replace(/\{\{([\\p{L}_][\\p{L}\\p{N}_]*)\}\}/gu,
+                (match, key) => fields.has(key) ? fields.get(key) : match);
         };
         manual.querySelector('[data-safir-test-preview-button]').addEventListener('click', preview);
         manual.querySelectorAll('[data-safir-test-value]').forEach(input =>
