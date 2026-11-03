@@ -130,6 +130,7 @@ class AdminNavigationRbacService extends BaseService
             '/admin/system/help-texts/override/save' => 'admin.ui_content.manage',
             '/admin/communications/safir' => 'notifications.send.manage',
             '/admin/communications/safir/test-report.csv' => 'notifications.send.manage',
+            '/admin/communications/safir/template.xlsx' => 'notifications.send.manage',
             '/admin/communications/settings/safir' => 'notifications.send.manage',
             '/admin/communications/settings/safir/export' => 'notifications.send.manage',
             '/admin/communications/templates' => 'admin.settings.manage',
@@ -286,6 +287,7 @@ class AdminNavigationRbacService extends BaseService
         $safirMethods = [
             '/admin/communications/safir' => ['GET', 'HEAD'],
             '/admin/communications/safir/test-report.csv' => ['GET', 'HEAD'],
+            '/admin/communications/safir/template.xlsx' => ['GET', 'HEAD'],
             '/admin/communications/settings/safir' => ['POST'],
             '/admin/communications/settings/safir/export' => ['GET', 'HEAD'],
         ];
