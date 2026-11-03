@@ -17,7 +17,7 @@ namespace {
     use App\Services\BaleSafirCampaignService;
     use IPKF\Support\Env;
 
-    $repoRoot = dirname(__DIR__);
+    $repoRoot = isset($argv[1]) && is_dir($argv[1]) ? rtrim($argv[1], '/') : dirname(__DIR__);
     $root = is_file($repoRoot . '/public_html/app/Services/BaleSafirCampaignService.php')
         ? $repoRoot . '/public_html/'
         : $repoRoot . '/';
