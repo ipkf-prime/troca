@@ -25,7 +25,7 @@ final class BaleSafirTestReportService
         return $path;
     }
 
-    public function recent(int $limit = 20): array
+    public function recent(int $limit = 20, ?string $templateCode = null): array
     {
         $directory = $this->directory();
         if ($directory === null) {
@@ -45,6 +45,12 @@ final class BaleSafirTestReportService
             }
             $record = json_decode($value, true);
             if (!is_array($record)) {
+                continue;
+            }
+            // Match the saved template code before sorting/limiting. This
+            // prevents other templates' newer attempts from hiding this one.
+            $recordTemplate = (string) ($record['template_code'] ?? '');
+            if ($templateCode !== null && $recordTemplate !== $templateCode) {
                 continue;
             }
             $status = (string) ($record['status'] ?? 'unknown');
@@ -72,7 +78,7 @@ final class BaleSafirTestReportService
         return array_slice($records, 0, $limit);
     }
 
-    public function csv(): string
+    public function csv(?string $templateCode = null): string
     {
         $stream = fopen('php://temp', 'w+');
         if ($stream === false) {
@@ -82,7 +88,7 @@ final class BaleSafirTestReportService
             fwrite($stream, "\xEF\xBB\xBF");
             fputcsv($stream, ['زمان UTC', 'شناسه مدیر', 'کد قالب', 'شماره ماسک‌شده',
                 'شناسه درخواست', 'وضعیت', 'HTTP', 'شناسه پیام', 'کد خطا', 'شرح خطا'], ',', '"', '');
-            foreach ($this->recent(2000) as $row) {
+            foreach ($this->recent(2000, $templateCode) as $row) {
                 $values = [
                     $row['time'], (string) $row['actor'], $row['template'], $row['phone_masked'],
                     $row['request_id'], $row['status'], (string) $row['http_code'],
