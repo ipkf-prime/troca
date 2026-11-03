@@ -223,11 +223,20 @@ $router->get('/admin/communications/safir/test-report.csv', function ($request, 
         && !$authorization->hasPermission($actor, 'notifications.safir.manage')) {
         return $response->status(403)->send('Forbidden');
     }
+    // A report belongs to one saved Safir template. Never fall back to
+    // exporting records from all other templates.
+    $templateCode = trim((string) $request->input('template_code', ''));
+    if (!preg_match('/^[a-z][a-z0-9._-]{1,63}$/D', $templateCode)) {
+        return $response->status(400)->send('Invalid template reference');
+    }
     try {
-        $csv = (new \App\Services\BaleSafirTestReportService())->csv();
+        if ((new \App\Services\BaleSafirTemplateCatalogService())->get($templateCode) === null) {
+            return $response->status(404)->send('Template not found');
+        }
+        $csv = (new \App\Services\BaleSafirTestReportService())->csv($templateCode);
         return $response->status(200)
             ->header('Content-Type', 'text/csv; charset=UTF-8')
-            ->header('Content-Disposition', 'attachment; filename="safir-manual-test-report.csv"')
+            ->header('Content-Disposition', 'attachment; filename="safir-' . $templateCode . '-manual-tests.csv"')
             ->header('Cache-Control', 'private, no-store')
             ->header('X-Content-Type-Options', 'nosniff')
             ->send($csv);
