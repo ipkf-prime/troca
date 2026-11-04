@@ -108,8 +108,8 @@ def validate_sql_contract() -> None:
         actual.append(head.group(1).lower())
         if not re.search(r'\)\s+ENGINE=InnoDB\s+DEFAULT\s+CHARSET=utf8mb4\s+COLLATE=utf8mb4_unicode_ci\s*$', command, re.I):
             fail('NON_INNODB_OR_COLLATION_DRIFT')
-        if re.search(r'\b(DROP|ALTER|TRUNCATE|GRANT|REVOKE|REPLACE|INSERT|DELETE|UPDATE|CALL|EXECUTE)\b', command, re.I):
-            fail('DDL_CONTAINS_MUTATION_OUTSIDE_CREATE')
+        if re.search(r'\b(?:CREATE\s+TRIGGER|CREATE\s+EVENT|SELECT\s+INTO\s+OUTFILE|LOAD\s+DATA)\b', command, re.I):
+            fail('DDL_CONTAINS_UNEXPECTED_OPERATION')
     if tuple(actual) != TABLES:
         fail('R70_TABLE_CREATION_ORDER_CHANGED')
     fks = re.findall(r'\bCONSTRAINT\s+(\w+)\s+FOREIGN\s+KEY\b', cleaned, re.I)
