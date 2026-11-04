@@ -102,7 +102,7 @@ final class MemoryPdo extends PDO
                     return ['rows'=>[['1'=>1]],'rowCount'=>1];
                 }
             }
-            return ['rows'=>[], 'rowCount'=>0];
+            return ['rows'=>[],'rowCount'=>0];
         }
         if (str_contains($query,'INSERT INTO safir_campaign_recipients')) {
             $id=$this->nextRecipient++;
