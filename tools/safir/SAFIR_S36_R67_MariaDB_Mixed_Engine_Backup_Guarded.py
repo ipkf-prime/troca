@@ -4,6 +4,7 @@
 --check         strict read-only; no filesystem changes.
 --backup        operator-confirmed physical backup with MariaDB's native backup locks.
 --verify-latest verify latest locally completed R67 backup against SHA256 manifest.
+--adopt-existing finalize receipts for the one successfully copied R67 backup (no new backup).
 
 Never mutates application tables, changes privileges, or sends provider requests.
 It does NOT perform a restore. Production migration is NOT approved by R67 alone.
@@ -273,12 +274,361 @@ def enumerate_files(directory: Path) -> list[Path]:
 
 
 def checkpoints_ok(folder: Path) -> None:
-    chk = folder / 'xtrabackup_checkpoints'
-    if not chk.is_file() or not (folder / 'backup-my.cnf').is_file() or not (folder / 'mysql').is_dir():
+    # MariaDB 11.8 writes mariadb_backup_checkpoints; older releases may
+    # write xtrabackup_checkpoints. Both names are documented by MariaDB.
+    files = (folder / 'mariadb_backup_checkpoints', folder / 'xtrabackup_checkpoints')
+    matches = [p for p in files if p.is_file() and not p.is_symlink()]
+    if len(matches) != 1 or not (folder / 'backup-my.cnf').is_file() or not (folder / 'mysql').is_dir():
         fail('MARIADB_BACKUP_MARKER_MISSING')
-    content = chk.read_text(errors='replace')
-    if not re.search(r'^backup_type\s*=\s*full-backuped\s*$', content, re.M):
+    content = matches[0].read_text(errors='replace')
+    if not re.search(r'^backup_type\s*=\s*full-backuped\s*
+
+def create_manifest(folder: Path, data: dict, created: str) -> None:
+    checkpoints_ok(folder)
+    files = enumerate_files(folder)
+    records = []
+    for p in files:
+        rel = p.relative_to(folder).as_posix()
+        records.append({'path': rel, 'bytes': p.stat().st_size, 'sha256': file_sha(p)})
+    receipt = {'kind': 'SAFIR_R67_MARIADB_FULL_BACKUP', 'created_utc': created,
+               'db_fingerprint_sha256': data['fingerprint'],
+               'db_version': str(data['server']['version']),
+               'innodb_tables_precheck': 141, 'myisam_tables_precheck': 44,
+               'files': records, 'prepared': False, 'restore_verified': False}
+    manifest = folder / 'R67_MANIFEST.json'
+    with manifest.open('x', encoding='utf-8') as handle:
+        os.chmod(manifest, 0o600)
+        json.dump(receipt, handle, ensure_ascii=False, indent=2)
+        handle.flush(); os.fsync(handle.fileno())
+    checksum = file_sha(manifest)
+    note = {'manifest_sha256': checksum, 'file_count': len(records),
+            'created_utc': created, 'backup_complete': True,
+            'prepared': False, 'restore_verified': False}
+    receipt_file = folder / 'R67_RECEIPT.json'
+    with receipt_file.open('x', encoding='utf-8') as handle:
+        os.chmod(receipt_file, 0o600)
+        json.dump(note, handle, indent=2)
+        handle.flush(); os.fsync(handle.fileno())
+    print('BACKUP_FILE_COUNT=' + str(len(records)))
+    print('BACKUP_MANIFEST_SHA256=' + checksum)
+
+
+def verified_folder(folder: Path) -> None:
+    if not folder.is_dir() or folder.parent != BACKUP_ROOT or not folder.name.startswith(PREFIX):
+        fail('BACKUP_NOT_IN_R67_PRIVATE_PATH')
+    if folder.is_symlink() or folder.stat().st_uid != 0 or folder.stat().st_mode & 0o077:
+        fail('BACKUP_PERMISSIONS_INSECURE')
+    receipt = folder / 'R67_RECEIPT.json'
+    manifest = folder / 'R67_MANIFEST.json'
+    if not receipt.is_file() or not manifest.is_file():
+        fail('BACKUP_RECEIPT_MISSING')
+    try:
+        meta = json.loads(receipt.read_text())
+        details = json.loads(manifest.read_text())
+        if file_sha(manifest) != meta['manifest_sha256'] or not meta['backup_complete']:
+            fail('BACKUP_RECEIPT_HASH_INVALID')
+        records = details['files']
+        expected = set()
+        for item in records:
+            rel = item['path']
+            p = folder / rel
+            if p.resolve(strict=False).parent == folder.parent:
+                fail('INVALID_BACKUP_FILE_RELATIVE_PATH')
+            if not p.is_file() or p.is_symlink() or folder not in p.resolve(strict=True).parents:
+                fail('BACKUP_MANIFEST_FILE_PATH_UNSAFE')
+            expected.add(rel)
+            if p.stat().st_size != item['bytes'] or file_sha(p) != item['sha256']:
+                fail('BACKUP_FILE_CHECKSUM_CHANGED')
+        present = {p.relative_to(folder).as_posix() for p in enumerate_files(folder)}
+        if expected != present:
+            fail('BACKUP_FILE_LIST_CHANGED')
+        checkpoints_ok(folder)
+    except (OSError, ValueError, KeyError, TypeError):
+        fail('BACKUP_MANIFEST_INVALID')
+    print('R67_BACKUP_VERIFICATION=PASS')
+    print('BACKUP_FOLDER=' + str(folder))
+    print('BACKUP_MANIFEST_SHA256=' + str(meta['manifest_sha256']))
+    print('BACKUP_PREPARED=NO')
+    print('ISOLATED_RESTORE_VERIFIED=NO')
+    print('PRODUCTION_SCHEMA_MUTATION=NO')
+    print('PROVIDER_SEND=NO')
+
+
+def choose_latest() -> Path:
+    checked_backup_root(create=False)
+    if not BACKUP_ROOT.is_dir():
+        fail('BACKUP_DIRECTORY_MISSING')
+    folders = sorted([p for p in BACKUP_ROOT.iterdir() if p.name.startswith(PREFIX)
+                      and p.is_dir() and (p / 'R67_RECEIPT.json').is_file()],
+                     key=lambda x: x.name, reverse=True)
+    if not folders:
+        fail('NO_COMPLETED_R67_BACKUP')
+    return folders[0]
+
+
+def do_backup(data: dict, backup_bin: str, active: Path) -> None:
+    if not sys.stdin.isatty():
+        fail('INTERACTIVE_TTY_CONFIRMATION_REQUIRED')
+    print('WARNING=BACKUP_MAY_TEMPORARILY_BLOCK_MYISAM_WRITES_AND_DDL')
+    print('REQUIRED_OPERATOR_CHECK=MAINTENANCE_WINDOW_OR_APPROVED_LOCK_IMPACT')
+    print('SCOPE=PHYSICAL_BACKUP_ALL_DATABASES_NOT_ONLY_IPKF')
+    answer = input('Type exactly BACKUP R67 to authorize a physical backup: ').strip()
+    if answer != 'BACKUP R67':
+        fail('OPERATOR_DID_NOT_APPROVE')
+    # Re-check active release and engine counts immediately after confirmation.
+    data2 = runtime_metadata(active_release())
+    if data2['fingerprint'] != data['fingerprint']:
+        fail('DB_FINGERPRINT_CHANGED_BEFORE_BACKUP')
+    if active_release() != active:
+        fail('ACTIVE_RELEASE_CHANGED_BEFORE_BACKUP')
+    checked_backup_root(create=True)
+    name = PREFIX + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '-' + secrets.token_hex(4)
+    target = BACKUP_ROOT / name
+    try:
+        target.mkdir(mode=0o700)
+        os.chmod(target, 0o700)
+    except OSError:
+        fail('BACKUP_TARGET_CREATE_FAILED')
+    print('BACKUP_TARGET=' + str(target))
+    print('BACKUP_STATE=RUNNING')
+    print('MYSQL_BACKUP_LOCKING=ENABLED')
+    print('NO_LOCK_OPTION_USED=NO')
+    print('MARIADB_BACKUP_TIMEOUT_WAIT_FOR_LOCK_SECONDS=30')
+    cmd = [backup_bin, '--backup', '--target-dir=' + str(target),
+           '--user=root', '--host=localhost', '--socket=' + data['socket'],
+           '--datadir=' + data['datadir'],
+           '--ftwrl-wait-timeout=30', '--ftwrl-wait-threshold=5']
+    # mariadb-backup requires an empty target-dir at startup. Keep logs beside it.
+    logfile = BACKUP_ROOT / (name + '.log')
+    print('PRIVATE_BACKUP_LOG=' + str(logfile))
+    try:
+        with logfile.open('xb') as handle:
+            os.chmod(logfile, 0o600)
+            process = subprocess.Popen(cmd, stdout=handle, stderr=subprocess.STDOUT,
+                                       stdin=subprocess.DEVNULL, start_new_session=True)
+            try:
+                rc = process.wait(timeout=1800)
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGTERM)
+                try:
+                    process.wait(timeout=20)
+                except subprocess.TimeoutExpired:
+                    os.killpg(process.pid, signal.SIGKILL)
+                    process.wait(timeout=10)
+                fail('BACKUP_TIMED_OUT_PRIVATE_PARTIAL_RETAINED')
+    except OSError:
+        fail('BACKUP_PROCESS_START_FAILED_PRIVATE_PARTIAL_RETAINED')
+    if rc:
+        print('PARTIAL_BACKUP_RETAINED_PRIVATE=' + str(target))
+        fail('MARIADB_BACKUP_FAILED_RC_' + str(rc))
+    print('MARIADB_BACKUP_RETURN_CODE=0')
+    create_manifest(target, data, datetime.now(timezone.utc).isoformat())
+    verified_folder(target)
+    print('R67_BACKUP=PASS')
+    print('NEXT=PREPARE_COPY_AND_RESTORE_ON_ISOLATED_INSTANCE_R68')
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description='SAFIR R67 guarded MariaDB mixed-engine physical backup')
+    modes = parser.add_mutually_exclusive_group(required=True)
+    modes.add_argument('--check', action='store_true')
+    modes.add_argument('--backup', action='store_true')
+    modes.add_argument('--verify-latest', action='store_true')
+    modes.add_argument('--adopt-existing', action='store_true')
+    args = parser.parse_args()
+    os.umask(0o077)
+    if os.geteuid() != 0:
+        fail('RUN_AS_ROOT_REQUIRED')
+    if args.verify_latest:
+        verified_folder(choose_latest())
+        return
+    data, tool, active, size = preflight()
+    if args.adopt_existing:
+        adopt_existing(data, active)
+        return
+    if args.check:
+        print('R67=PASS')
+        print('NEXT=BACKUP_IN_APPROVED_LOW_TRAFFIC_WINDOW')
+        return
+    do_backup(data, tool, active)
+
+
+if __name__ == '__main__':
+    main()
+, content, re.M):
         fail('FULL_BACKUP_STATUS_NOT_RECORDED')
+    if not re.search(r'^from_lsn\s*=\s*0\s*
+
+def create_manifest(folder: Path, data: dict, created: str) -> None:
+    checkpoints_ok(folder)
+    files = enumerate_files(folder)
+    records = []
+    for p in files:
+        rel = p.relative_to(folder).as_posix()
+        records.append({'path': rel, 'bytes': p.stat().st_size, 'sha256': file_sha(p)})
+    receipt = {'kind': 'SAFIR_R67_MARIADB_FULL_BACKUP', 'created_utc': created,
+               'db_fingerprint_sha256': data['fingerprint'],
+               'db_version': str(data['server']['version']),
+               'innodb_tables_precheck': 141, 'myisam_tables_precheck': 44,
+               'files': records, 'prepared': False, 'restore_verified': False}
+    manifest = folder / 'R67_MANIFEST.json'
+    with manifest.open('x', encoding='utf-8') as handle:
+        os.chmod(manifest, 0o600)
+        json.dump(receipt, handle, ensure_ascii=False, indent=2)
+        handle.flush(); os.fsync(handle.fileno())
+    checksum = file_sha(manifest)
+    note = {'manifest_sha256': checksum, 'file_count': len(records),
+            'created_utc': created, 'backup_complete': True,
+            'prepared': False, 'restore_verified': False}
+    receipt_file = folder / 'R67_RECEIPT.json'
+    with receipt_file.open('x', encoding='utf-8') as handle:
+        os.chmod(receipt_file, 0o600)
+        json.dump(note, handle, indent=2)
+        handle.flush(); os.fsync(handle.fileno())
+    print('BACKUP_FILE_COUNT=' + str(len(records)))
+    print('BACKUP_MANIFEST_SHA256=' + checksum)
+
+
+def verified_folder(folder: Path) -> None:
+    if not folder.is_dir() or folder.parent != BACKUP_ROOT or not folder.name.startswith(PREFIX):
+        fail('BACKUP_NOT_IN_R67_PRIVATE_PATH')
+    if folder.is_symlink() or folder.stat().st_uid != 0 or folder.stat().st_mode & 0o077:
+        fail('BACKUP_PERMISSIONS_INSECURE')
+    receipt = folder / 'R67_RECEIPT.json'
+    manifest = folder / 'R67_MANIFEST.json'
+    if not receipt.is_file() or not manifest.is_file():
+        fail('BACKUP_RECEIPT_MISSING')
+    try:
+        meta = json.loads(receipt.read_text())
+        details = json.loads(manifest.read_text())
+        if file_sha(manifest) != meta['manifest_sha256'] or not meta['backup_complete']:
+            fail('BACKUP_RECEIPT_HASH_INVALID')
+        records = details['files']
+        expected = set()
+        for item in records:
+            rel = item['path']
+            p = folder / rel
+            if p.resolve(strict=False).parent == folder.parent:
+                fail('INVALID_BACKUP_FILE_RELATIVE_PATH')
+            if not p.is_file() or p.is_symlink() or folder not in p.resolve(strict=True).parents:
+                fail('BACKUP_MANIFEST_FILE_PATH_UNSAFE')
+            expected.add(rel)
+            if p.stat().st_size != item['bytes'] or file_sha(p) != item['sha256']:
+                fail('BACKUP_FILE_CHECKSUM_CHANGED')
+        present = {p.relative_to(folder).as_posix() for p in enumerate_files(folder)}
+        if expected != present:
+            fail('BACKUP_FILE_LIST_CHANGED')
+        checkpoints_ok(folder)
+    except (OSError, ValueError, KeyError, TypeError):
+        fail('BACKUP_MANIFEST_INVALID')
+    print('R67_BACKUP_VERIFICATION=PASS')
+    print('BACKUP_FOLDER=' + str(folder))
+    print('BACKUP_MANIFEST_SHA256=' + str(meta['manifest_sha256']))
+    print('BACKUP_PREPARED=NO')
+    print('ISOLATED_RESTORE_VERIFIED=NO')
+    print('PRODUCTION_SCHEMA_MUTATION=NO')
+    print('PROVIDER_SEND=NO')
+
+
+def choose_latest() -> Path:
+    checked_backup_root(create=False)
+    if not BACKUP_ROOT.is_dir():
+        fail('BACKUP_DIRECTORY_MISSING')
+    folders = sorted([p for p in BACKUP_ROOT.iterdir() if p.name.startswith(PREFIX)
+                      and p.is_dir() and (p / 'R67_RECEIPT.json').is_file()],
+                     key=lambda x: x.name, reverse=True)
+    if not folders:
+        fail('NO_COMPLETED_R67_BACKUP')
+    return folders[0]
+
+
+def do_backup(data: dict, backup_bin: str, active: Path) -> None:
+    if not sys.stdin.isatty():
+        fail('INTERACTIVE_TTY_CONFIRMATION_REQUIRED')
+    print('WARNING=BACKUP_MAY_TEMPORARILY_BLOCK_MYISAM_WRITES_AND_DDL')
+    print('REQUIRED_OPERATOR_CHECK=MAINTENANCE_WINDOW_OR_APPROVED_LOCK_IMPACT')
+    print('SCOPE=PHYSICAL_BACKUP_ALL_DATABASES_NOT_ONLY_IPKF')
+    answer = input('Type exactly BACKUP R67 to authorize a physical backup: ').strip()
+    if answer != 'BACKUP R67':
+        fail('OPERATOR_DID_NOT_APPROVE')
+    # Re-check active release and engine counts immediately after confirmation.
+    data2 = runtime_metadata(active_release())
+    if data2['fingerprint'] != data['fingerprint']:
+        fail('DB_FINGERPRINT_CHANGED_BEFORE_BACKUP')
+    if active_release() != active:
+        fail('ACTIVE_RELEASE_CHANGED_BEFORE_BACKUP')
+    checked_backup_root(create=True)
+    name = PREFIX + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ') + '-' + secrets.token_hex(4)
+    target = BACKUP_ROOT / name
+    try:
+        target.mkdir(mode=0o700)
+        os.chmod(target, 0o700)
+    except OSError:
+        fail('BACKUP_TARGET_CREATE_FAILED')
+    print('BACKUP_TARGET=' + str(target))
+    print('BACKUP_STATE=RUNNING')
+    print('MYSQL_BACKUP_LOCKING=ENABLED')
+    print('NO_LOCK_OPTION_USED=NO')
+    print('MARIADB_BACKUP_TIMEOUT_WAIT_FOR_LOCK_SECONDS=30')
+    cmd = [backup_bin, '--backup', '--target-dir=' + str(target),
+           '--user=root', '--host=localhost', '--socket=' + data['socket'],
+           '--datadir=' + data['datadir'],
+           '--ftwrl-wait-timeout=30', '--ftwrl-wait-threshold=5']
+    # mariadb-backup requires an empty target-dir at startup. Keep logs beside it.
+    logfile = BACKUP_ROOT / (name + '.log')
+    print('PRIVATE_BACKUP_LOG=' + str(logfile))
+    try:
+        with logfile.open('xb') as handle:
+            os.chmod(logfile, 0o600)
+            process = subprocess.Popen(cmd, stdout=handle, stderr=subprocess.STDOUT,
+                                       stdin=subprocess.DEVNULL, start_new_session=True)
+            try:
+                rc = process.wait(timeout=1800)
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGTERM)
+                try:
+                    process.wait(timeout=20)
+                except subprocess.TimeoutExpired:
+                    os.killpg(process.pid, signal.SIGKILL)
+                    process.wait(timeout=10)
+                fail('BACKUP_TIMED_OUT_PRIVATE_PARTIAL_RETAINED')
+    except OSError:
+        fail('BACKUP_PROCESS_START_FAILED_PRIVATE_PARTIAL_RETAINED')
+    if rc:
+        print('PARTIAL_BACKUP_RETAINED_PRIVATE=' + str(target))
+        fail('MARIADB_BACKUP_FAILED_RC_' + str(rc))
+    print('MARIADB_BACKUP_RETURN_CODE=0')
+    create_manifest(target, data, datetime.now(timezone.utc).isoformat())
+    verified_folder(target)
+    print('R67_BACKUP=PASS')
+    print('NEXT=PREPARE_COPY_AND_RESTORE_ON_ISOLATED_INSTANCE_R68')
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description='SAFIR R67 guarded MariaDB mixed-engine physical backup')
+    modes = parser.add_mutually_exclusive_group(required=True)
+    modes.add_argument('--check', action='store_true')
+    modes.add_argument('--backup', action='store_true')
+    modes.add_argument('--verify-latest', action='store_true')
+    args = parser.parse_args()
+    os.umask(0o077)
+    if os.geteuid() != 0:
+        fail('RUN_AS_ROOT_REQUIRED')
+    if args.verify_latest:
+        verified_folder(choose_latest())
+        return
+    data, tool, active, size = preflight()
+    if args.check:
+        print('R67=PASS')
+        print('NEXT=BACKUP_IN_APPROVED_LOW_TRAFFIC_WINDOW')
+        return
+    do_backup(data, tool, active)
+
+
+if __name__ == '__main__':
+    main()
+, content, re.M):
+        fail('FULL_BACKUP_START_LSN_NOT_ZERO')
 
 
 def create_manifest(folder: Path, data: dict, created: str) -> None:
