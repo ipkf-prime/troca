@@ -60,7 +60,7 @@ def command(argv, timeout=30, input_sql=None):
     return subprocess.run(argv, input=input_sql, text=True,
                           stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                           timeout=timeout, check=False,
-                          env={'HOME':'/root', 'PATH':'/usr/bin:/bin',
+                          env={'HOME':'/root', 'PATH':'/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin',
                                'LANG':'C', 'MYSQL_HISTFILE':'/dev/null'})
 
 
