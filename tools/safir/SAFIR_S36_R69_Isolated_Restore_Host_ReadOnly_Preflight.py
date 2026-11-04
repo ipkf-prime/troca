@@ -56,7 +56,7 @@ def version(binary: str) -> bool:
                            check=False)
     except (OSError, subprocess.TimeoutExpired):
         return False
-    return p.returncode == 0 and bool(re.search(r'11\\.8\\.[0-9]+', p.stdout + p.stderr))
+    return p.returncode == 0 and bool(re.search(r'11\.8\.[0-9]+', p.stdout + p.stderr))
 
 
 def apparmor_status() -> str:
