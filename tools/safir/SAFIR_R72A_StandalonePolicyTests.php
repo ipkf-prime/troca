@@ -7,7 +7,12 @@ if (!function_exists('mb_strlen')) {
         return preg_match_all('/./us', $text) ?: 0;
     }
 }
-require_once __DIR__ . '/BaleSafirDurableCampaignPolicy.php';
+// Run either inside the Git repository or beside a downloaded class file.
+$classPath = dirname(__DIR__, 2) . '/public_html/app/Services/BaleSafirDurableCampaignPolicy.php';
+if (!is_file($classPath)) {
+    $classPath = __DIR__ . '/BaleSafirDurableCampaignPolicy.php';
+}
+require_once $classPath;
 
 use App\Services\BaleSafirDurableCampaignPolicy as P;
 
