@@ -82,6 +82,15 @@ def inherited_restore_and_ddl_gates() -> None:
                 'R70_CONTRACT=PASS', 'PRODUCTION_SCHEMA_MUTATION=NO',
                 'PROVIDER_SEND=NO')
     if proc.returncode != 0 or not all(value in proc.stdout for value in required):
+        # Show ONLY whitelisted failure/status markers. Never echo arbitrary
+        # child output, paths, credentials or stderr to the terminal.
+        print('R72C_CHILD_EXIT_CODE=' + str(proc.returncode))
+        for line in proc.stdout.splitlines():
+            if re.fullmatch(r'(?:R[0-9]+[A-Z0-9_]*=FAIL|REASON=[A-Z0-9_]+)', line):
+                print('R72C_CHILD_' + line)
+        for marker in required:
+            if marker not in proc.stdout:
+                print('R72C_CHILD_MISSING_MARKER=' + marker)
         fail('PREVIOUS_PREFLIGHT_RECHECK_FAILED')
     print('R72C_INHERITED_ISOLATION_PREFLIGHT=PASS')
 
