@@ -104,7 +104,9 @@ rejectCsv(fn()=>parseCsv("موبایل,نام,واحد\n09123456789,\"علی\"x,
 rejectCsv(fn()=>parseCsv("موبایل,نام,واحد\n09123456789,علی,\x00مالی\n",$template), 'CONTROL_CHAR');
 rejectCsv(fn()=>parseCsv("موبایل,نام,واحد\n09123456789,\xFF,مالی\n",$template), 'INVALID_UTF8');
 rejectCsv(fn()=>parseCsv("موبایل,نام,واحد\n09123456789," . str_repeat('X', 8193) . ",مالی\n",$template), 'FIELD_CAP');
-rejectCsv(fn()=>parseCsv("موبایل,نام,واحد\n09123456789," . str_repeat('X', 8192) . "," . str_repeat('Y', 8192) . "\n",$template), 'SECOND_FIELD_CAP');
+$wideHeader = 'موبایل,نام,واحد,' . implode(',', array_map(static fn(int $i): string => 'c' . $i, range(1, 9))) . "\n";
+$wideRow = '09123456789,علی,ستاد,' . implode(',', array_fill(0, 9, str_repeat('X', 8192))) . "\n";
+rejectCsv(fn()=>parseCsv($wideHeader . $wideRow,$template), 'RECORD_BYTE_CAP');
 rejectCsv(fn()=>parseCsv("موبایل,نام,واحد\n09123456789,علی,مالی\n",$template, 501), 'CHUNK_CAP');
 rejectCsv(fn()=>parseCsv("موبایل,نام,واحد\n09123456789,علی,مالی\n",$template, 0), 'ZERO_CHUNK');
 rejectCsv(fn()=>parseCsv("موبایل,نام,واحد\n09123456789,علی,مالی\n",$template, 2, '|'), 'INVALID_DELIMITER');
