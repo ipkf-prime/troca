@@ -131,9 +131,13 @@ try {
     rejected(fn()=>Stage::stage($source,$root,$template,str_repeat('0',64),2),
         'BAD_EXTERNAL_DIGEST_REJECTED');
     assertion(stageCount($root)===$before,'FAILED_HASH_NO_PUBLISHED_STAGE');
-    rejected(fn()=>Stage::stage($source,$root,$template,$digest,2,',',1024),
+    $oversize=$root.'/oversize.csv';
+    $extra="موبایل,نام,واحد\n" . str_repeat("09123456789,کاربر,ستاد\n", 100);
+    file_put_contents($oversize,$extra);
+    rejected(fn()=>Stage::stage($oversize,$root,$template,hash('sha256',$extra),2,',',1024),
         'FILE_LIMIT_ENFORCED');
     assertion(stageCount($root)===$before,'TOO_LARGE_SOURCE_CLEANED');
+    unlink($oversize);
 
     $broken=$root.'/broken.csv';
     $late="موبایل,نام,واحد\n09123456789,علی,ستاد\n".
