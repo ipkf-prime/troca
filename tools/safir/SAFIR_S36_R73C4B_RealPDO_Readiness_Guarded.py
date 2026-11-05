@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""SAFIR R73C2: new disposable R68 185-table MariaDB restore DDL+FK rehearsal.
+"""SAFIR R73C4B: isolated whole-campaign PDO readiness and CSV source attestation.
 --check is strictly read-only. --run-isolated requires TTY consent.
 NO production DB writes, R67/R68 changes, HTTP sends, workers or deployment.
 Historical R66A live-freeze remains unchanged and the new live table is NOT
@@ -65,7 +65,7 @@ TABLES=('safir_campaigns','safir_campaign_import_batches','safir_campaign_recipi
         'safir_campaign_import_files')
 
 def fail(reason):
-    print('R73C2_ISOLATED_REHEARSAL=FAIL')
+    print('R73C4B_ISOLATED_REHEARSAL=FAIL')
     print('REASON='+reason)
     print('PRODUCTION_DATABASE_MUTATION=NO')
     print('R67_R68_SOURCE_MUTATION=NO')
@@ -456,7 +456,7 @@ def run():
         stage.mkdir(mode=0o700)
         stage.chmod(0o700)
         data=stage/'data';sock=stage/'db.sock';pid=stage/'db.pid';tmp=stage/'tmp'
-        print('ISOLATED_R73C2_STAGE='+str(stage))
+        print('ISOLATED_R73C4B_STAGE='+str(stage))
         shutil.copytree(SOURCE,data,symlinks=False)
         copied=core.source_files(data)
         if set(copied)!=set(files):
@@ -525,7 +525,7 @@ def run():
         if not stopped:
             fail('ISOLATED_MARIADB_DAEMON_NOT_STOPPED')
     if not ok:
-        fail('R73C2_ISOLATED_DDL_REHEARSAL_NOT_PASSED')
+        fail('R73C4B_ISOLATED_READINESS_REHEARSAL_NOT_PASSED')
     print('R73C2_ISOLATED_REHEARSAL=PASS')
     print('R73C3B_ISOLATED_REHEARSAL=PASS')
     print('R73C4B_ISOLATED_REHEARSAL=PASS')
