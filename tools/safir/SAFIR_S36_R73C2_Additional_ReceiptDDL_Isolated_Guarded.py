@@ -34,7 +34,11 @@ DDL_SHA='c644ce02b2356e810c4cd099a25f1fec85ed96a6a0897782ad9ed785984e8676'
 SOURCE=Path('/var/backups/ipkf/safir/r68-prepare-20261104T035103Z-c7366a1c/work')
 OUT=Path('/var/tmp')
 LOCK=Path('/run/lock/safir-r71-isolated-ddl.lock')
-PREFIX='safir-r73c2-file-ddl-'
+# R72C's SHA-pinned real-PDO test requires the fixed safir-r72c-pdo-
+# stage prefix, in addition to datadir/socket identity and no-network guards.
+# Reuse its recognized path pattern for this fresh R73C2 disposable copy;
+# distinguish R73C2 by its own script/log markers, not by weakening PHP.
+PREFIX='safir-r72c-pdo-'
 TABLES=('safir_campaigns','safir_campaign_import_batches','safir_campaign_recipients',
         'safir_campaign_send_attempts','safir_suppressed_phones',
         'safir_campaign_import_files')
