@@ -142,7 +142,10 @@ $f=$second; $f['source_sha256']=$file['source_sha256'];
 no(fn()=>$run($campaign,[$file,$f],[...$batches,$third],
     ($stats + [203=>['total'=>0,'ready'=>0,'request_ids_assigned'=>0,'delivery_metadata_assigned'=>0]])),
     'DUPLICATE_FILE_SOURCE_HASH');
-no(fn()=>$run($campaign,[$file,$file],$batches,$stats),'DUPLICATE_STAGE_ID');
+$f=$second; $f['stage_id']=$file['stage_id'];
+no(fn()=>$run($campaign,[$file,$f],[...$batches,$third],
+    ($stats + [203=>['total'=>0,'ready'=>0,'request_ids_assigned'=>0,'delivery_metadata_assigned'=>0]])),
+    'DUPLICATE_STAGE_ID');
 
 $b=$batches; $b[0]['import_file_id']=null;
 no(fn()=>$run($campaign,[$file],$b,$stats),'LEGACY_UNLINKED_BATCH');
