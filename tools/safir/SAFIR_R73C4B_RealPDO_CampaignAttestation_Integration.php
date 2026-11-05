@@ -333,7 +333,7 @@ try {
     $pdo->prepare('UPDATE safir_campaign_recipients SET attempt_count=0 WHERE id=?')
         ->execute([$recipientId]);
     $pdo->prepare('UPDATE safir_campaign_recipients SET request_id=? WHERE id=?')
-        ->execute([str_repeat('e',64),$recipientId]);
+        ->execute([bin2hex(random_bytes(32)),$recipientId]);
     rejected(fn()=> $auditor->attestForOwner($owner,$reference,$privateRoot),
         'R73C4B_REQUEST_ID_ASSIGNED');
     $pdo->prepare('UPDATE safir_campaign_recipients SET request_id=NULL WHERE id=?')
