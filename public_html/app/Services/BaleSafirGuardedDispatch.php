@@ -53,8 +53,7 @@ final class BaleSafirGuardedDispatch
                 return ['state'=>'unknown_hold','provider_message_id'=>null];
             }
             $messageId=$answer['message_id'] ?? null;
-            if ($messageId !== null && (!is_string($messageId)
-                || $messageId==='' || strlen($messageId)>180)) {
+            if (!is_string($messageId) || $messageId==='' || strlen($messageId)>180) {
                 throw new RuntimeException('safir_provider_receipt_invalid');
             }
             $this->idempotency->recordOutcome($requestId,'accepted',$messageId);
