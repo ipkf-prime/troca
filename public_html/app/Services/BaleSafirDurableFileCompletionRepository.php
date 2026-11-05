@@ -112,7 +112,8 @@ final class BaleSafirDurableFileCompletionRepository
                 throw new RuntimeException('safir_r73c3_batches_unavailable');
             }
             $q = $this->db->prepare(
-                'SELECT r.import_batch_id,COUNT(*) AS recipient_count '
+                'SELECT r.import_batch_id,COUNT(*) AS recipient_count, '
+                ."SUM(CASE WHEN r.state_code <> 'ready' THEN 1 ELSE 0 END) AS nonready_count "
                 .'FROM safir_campaign_recipients r '
                 .'INNER JOIN safir_campaign_import_batches b '
                 .'ON b.id=r.import_batch_id AND b.campaign_id=r.campaign_id '
@@ -123,6 +124,9 @@ final class BaleSafirDurableFileCompletionRepository
             $counts = [];
             foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $row) {
                 $batchId = (int)$row['import_batch_id'];
+                if ((int)$row['nonready_count'] !== 0) {
+                    throw new RuntimeException('safir_r73c3_recipient_not_ready');
+                }
                 if ($batchId < 1 || isset($counts[$batchId])) {
                     throw new RuntimeException('safir_r73c3_recipient_aggregation_invalid');
                 }
@@ -133,6 +137,20 @@ final class BaleSafirDurableFileCompletionRepository
                 if (!array_key_exists($batchId,$counts)) {
                     $counts[$batchId]=0;
                 }
+            }
+            // A CSV source row must not occur twice across different chunks.
+            $q = $this->db->prepare(
+                'SELECT COUNT(*),COUNT(DISTINCT r.source_row_number) '
+                .'FROM safir_campaign_recipients r '
+                .'INNER JOIN safir_campaign_import_batches b '
+                .'ON b.id=r.import_batch_id AND b.campaign_id=r.campaign_id '
+                .'WHERE b.campaign_id=? AND b.import_file_id=?'
+            );
+            $q->execute([$id,$fileId]);
+            $crossChunk = $q->fetch(PDO::FETCH_NUM);
+            if (!is_array($crossChunk) || count($crossChunk) !== 2 ||
+                (int)$crossChunk[0] !== (int)$crossChunk[1]) {
+                throw new RuntimeException('safir_r73c3_cross_chunk_source_row_duplicate');
             }
             $sum = BaleSafirDurableFileCompletionPolicy::requireExactCompletion(
                 $file, $batches, $counts
