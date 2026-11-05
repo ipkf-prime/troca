@@ -6,6 +6,7 @@ Base: 1de470ebde6a26241aed0da010d9c732e86ef310
 - BaleSafirFinalMessageIdentity::prepare() renders final Unicode text, checks configurable character cap, and returns SHA256 of message plus a provider/phone/message identity.
 - BaleSafirMessageIdempotencyRepository::reserve() performs one atomic INSERT against a shared InnoDB primary key; duplicate identity is blocked, other database errors fail closed.
 - recordOutcome() records accepted or unknown; reserved/unknown states remain holds rather than silently retrying.
+- BaleSafirGuardedDispatch::dispatch() provides the guarded provider callback boundary and never calls provider for a duplicate; it is NOT yet wired to a live worker.
 - safir_message_idempotency schema is DESIGN ONLY and has not been deployed.
 
 ## Required guarded operational integration
