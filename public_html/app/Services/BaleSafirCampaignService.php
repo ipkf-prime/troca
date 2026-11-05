@@ -322,6 +322,11 @@ final class BaleSafirCampaignService
 
     public function dispatch(int $userId, string $confirmation, string $reference): array
     {
+        // Session-based dispatch is for the existing two-phone pilot ONLY.
+        // Durable bulk must go through a migrated DB worker and idempotency ledger.
+        if (!filter_var(Env::get('BALE_SAFIR_PILOT_ENABLED', false), FILTER_VALIDATE_BOOLEAN)) {
+            throw new RuntimeException('safir_bulk_requires_durable_worker');
+        }
         $this->assertSendEnabled();
         $campaign = $this->requireCampaign($userId);
         // Pilot mode takes precedence even if bulk flags were toggled by mistake.

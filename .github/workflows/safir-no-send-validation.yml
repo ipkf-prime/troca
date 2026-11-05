@@ -1,0 +1,21 @@
+name: SAFIR isolated source validation
+on:
+  push:
+    branches:
+      - safir/final-message-dedup-gate-dev
+  workflow_dispatch:
+jobs:
+  no-send-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP 8.4 and mbstring
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring
+          coverage: none
+      - name: No-send SAFIR checks
+        run: bash tools/safir/SAFIR_Final_NoSend_Source_Validation.sh
