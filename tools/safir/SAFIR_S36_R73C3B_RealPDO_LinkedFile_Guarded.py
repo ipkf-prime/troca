@@ -106,7 +106,7 @@ def preflight():
         pin(path,digest,label)
     try:
         p=subprocess.run(
-            [sys.executable,str(PREF),'--check',stdin=subprocess.DEVNULL,
+            [sys.executable,str(PREF),'--check'],stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,check=False,
             timeout=360,env={'HOME':'/root','LANG':'C','MYSQL_HISTFILE':'/dev/null',
                              'PATH':'/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'})
