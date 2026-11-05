@@ -91,7 +91,7 @@ $third=['id'=>203,'campaign_id'=>77,'import_file_id'=>102,
         'accepted_rows'=>0,'rejected_rows'=>1,
         'finished_at'=>'2026-11-05 12:02:00'];
 yes($run($campaign,[$file,$second],[...$batches,$third],
-    [...$stats,203=>['total'=>0,'ready'=>0,'request_ids_assigned'=>0,'delivery_metadata_assigned'=>0]]) ===
+    ($stats + [203=>['total'=>0,'ready'=>0,'request_ids_assigned'=>0,'delivery_metadata_assigned'=>0]])) ===
     ['file_count'=>2,'chunk_count'=>3,'source_rows'=>4,
      'ready_rows'=>2,'rejected_rows'=>2],
     'MULTI_FILE_INCLUDING_ALL_REJECTED_SECOND_FILE');
@@ -140,7 +140,7 @@ no(fn()=>$run($campaign,[$f],$batches,$stats),'BAD_CHUNK_MANIFEST_HASH');
 no(fn()=>$run($campaign,[$file,$file],$batches,$stats),'DUPLICATE_FILE_ID');
 $f=$second; $f['source_sha256']=$file['source_sha256'];
 no(fn()=>$run($campaign,[$file,$f],[...$batches,$third],
-    [...$stats,203=>['total'=>0,'ready'=>0,'request_ids_assigned'=>0,'delivery_metadata_assigned'=>0]]),
+    ($stats + [203=>['total'=>0,'ready'=>0,'request_ids_assigned'=>0,'delivery_metadata_assigned'=>0]])),
     'DUPLICATE_FILE_SOURCE_HASH');
 no(fn()=>$run($campaign,[$file,$file],$batches,$stats),'DUPLICATE_STAGE_ID');
 
