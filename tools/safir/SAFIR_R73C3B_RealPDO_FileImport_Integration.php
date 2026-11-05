@@ -172,6 +172,23 @@ try {
                     'rejected_rows'=>3,'ready_rows'=>2],
         'DURABLE_BATCH_SUMMARY_MATCHES');
 
+    // Isolated-only fault injection: DB batch counters may be internally
+    // consistent but disagree with actual accepted recipient rows. The
+    // terminal transaction must reject, then preserve importing state.
+    $tamper=$pdo->prepare(
+        'UPDATE safir_campaign_import_batches '
+        .'SET accepted_rows=?,rejected_rows=? '
+        .'WHERE import_file_id=? AND chunk_index=1'
+    );
+    $tamper->execute([1,2,$registered['file_id']]);
+    rejected(fn()=> $finish->completeForOwner($owner,$reference,$privateRoot,$stageId),
+        'REAL_RECIPIENT_COUNT_DRIFT_REJECTED');
+    $q=$pdo->prepare('SELECT state_code FROM safir_campaign_import_files WHERE id=?');
+    $q->execute([$registered['file_id']]);
+    gate($q->fetchColumn()==='importing','FAILED_COMPLETION_DID_NOT_ADVANCE_STATE');
+    $tamper->execute([2,1,$registered['file_id']]);
+    gate($tamper->rowCount()===1,'ISOLATED_BATCH_COUNTER_RESTORED');
+
     $complete=$finish->completeForOwner($owner,$reference,$privateRoot,$stageId);
     gate($complete===['imported_chunk_count'=>2,'source_rows'=>5,
                        'accepted_rows'=>2,'rejected_rows'=>3],
