@@ -63,8 +63,8 @@ $batches=[
      'finished_at'=>'2026-11-05 12:02:00'],
 ];
 $stats=[
-    201=>['total'=>1,'ready'=>1,'request_ids_assigned'=>0],
-    202=>['total'=>1,'ready'=>1,'request_ids_assigned'=>0],
+    201=>['total'=>1,'ready'=>1,'request_ids_assigned'=>0,'delivery_metadata_assigned'=>0],
+    202=>['total'=>1,'ready'=>1,'request_ids_assigned'=>0,'delivery_metadata_assigned'=>0],
 ];
 $run=static fn($c,$f,$b,$s,$a=0,$supp=0)=>
     Ready::requireCompleteImport($c,$f,$b,$s,$a,$supp);
@@ -91,7 +91,7 @@ $third=['id'=>203,'campaign_id'=>77,'import_file_id'=>102,
         'accepted_rows'=>0,'rejected_rows'=>1,
         'finished_at'=>'2026-11-05 12:02:00'];
 yes($run($campaign,[$file,$second],[...$batches,$third],
-    [...$stats,203=>['total'=>0,'ready'=>0,'request_ids_assigned'=>0]]) ===
+    [...$stats,203=>['total'=>0,'ready'=>0,'request_ids_assigned'=>0,'delivery_metadata_assigned'=>0]]) ===
     ['file_count'=>2,'chunk_count'=>3,'source_rows'=>4,
      'ready_rows'=>2,'rejected_rows'=>2],
     'MULTI_FILE_INCLUDING_ALL_REJECTED_SECOND_FILE');
@@ -140,7 +140,7 @@ no(fn()=>$run($campaign,[$f],$batches,$stats),'BAD_CHUNK_MANIFEST_HASH');
 no(fn()=>$run($campaign,[$file,$file],$batches,$stats),'DUPLICATE_FILE_ID');
 $f=$second; $f['source_sha256']=$file['source_sha256'];
 no(fn()=>$run($campaign,[$file,$f],[...$batches,$third],
-    [...$stats,203=>['total'=>0,'ready'=>0,'request_ids_assigned'=>0]]),
+    [...$stats,203=>['total'=>0,'ready'=>0,'request_ids_assigned'=>0,'delivery_metadata_assigned'=>0]]),
     'DUPLICATE_FILE_SOURCE_HASH');
 no(fn()=>$run($campaign,[$file,$file],$batches,$stats),'DUPLICATE_STAGE_ID');
 
@@ -175,9 +175,11 @@ $s=$stats; $s[201]['ready']=0;
 no(fn()=>$run($campaign,[$file],$batches,$s),'UNREADY_RECIPIENT_BLOCKS');
 $s=$stats; $s[201]['request_ids_assigned']=1;
 no(fn()=>$run($campaign,[$file],$batches,$s),'REQUEST_ALREADY_ASSIGNED');
+$s=$stats; $s[201]['delivery_metadata_assigned']=1;
+no(fn()=>$run($campaign,[$file],$batches,$s),'RECIPIENT_DELIVERY_METADATA_PRESENT');
 $s=$stats; unset($s[202]);
 no(fn()=>$run($campaign,[$file],$batches,$s),'MISSING_RECIPIENT_AGGREGATE');
-$s=$stats; $s[203]=['total'=>0,'ready'=>0,'request_ids_assigned'=>0];
+$s=$stats; $s[203]=['total'=>0,'ready'=>0,'request_ids_assigned'=>0,'delivery_metadata_assigned'=>0];
 no(fn()=>$run($campaign,[$file],$batches,$s),'UNLINKED_RECIPIENT_AGGREGATE');
 $s=$stats; $s[201]['total']='bad';
 no(fn()=>$run($campaign,[$file],$batches,$s),'NONNUMERIC_RECIPIENT_COUNT');
