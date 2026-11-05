@@ -271,9 +271,9 @@ try {
 
     // A fully completed file is not enough if a separate *legacy* (unlinked)
     // batch exists for that same campaign, even if it has zero recipients.
-    $campaignId=(int)$pdo->query(
-        "SELECT id FROM safir_campaigns WHERE public_reference=".$pdo->quote($reference)
-    )->fetchColumn();
+    $q=$pdo->prepare('SELECT id FROM safir_campaigns WHERE public_reference=?');
+    $q->execute([$reference]);
+    $campaignId=(int)$q->fetchColumn();
     $legacy=$pdo->prepare(
         'INSERT INTO safir_campaign_import_batches '
         .'(campaign_id,source_sha256,state_code,source_rows,'
