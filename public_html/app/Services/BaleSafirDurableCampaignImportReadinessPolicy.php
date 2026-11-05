@@ -177,7 +177,11 @@ final class BaleSafirDurableCampaignImportReadinessPolicy
             $total=self::nonnegative($statistics['total'] ?? null,'recipients_total');
             $ready=self::nonnegative($statistics['ready'] ?? null,'recipients_ready');
             $assigned=self::nonnegative($statistics['request_ids_assigned'] ?? null,'request_ids_assigned');
-            if ($total!==$accept || $ready!==$total || $assigned!==0) {
+            $deliveryMetadata=self::nonnegative(
+                $statistics['delivery_metadata_assigned'] ?? null,'delivery_metadata_assigned'
+            );
+            if ($total!==$accept || $ready!==$total
+                || $assigned!==0 || $deliveryMetadata!==0) {
                 throw new RuntimeException('safir_r73c4_recipient_count_or_state_invalid');
             }
             $actualTotal=self::sum($actualTotal,$total);
