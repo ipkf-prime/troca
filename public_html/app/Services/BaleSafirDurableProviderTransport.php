@@ -29,8 +29,8 @@ final class BaleSafirDurableProviderTransport
             || ($payload['phone_number'] ?? null)!==$phone
             || !is_array($payload['message_data']['template_message'] ?? null)
             || !is_string($payload['message_data']['template_message']['template_id'] ?? null)
-            || !is_array($payload['message_data']['template_message']['text_fields'] ?? null)
-                && !is_object($payload['message_data']['template_message']['text_fields'] ?? null)) {
+            || (!is_array($payload['message_data']['template_message']['text_fields'] ?? null)
+                && !is_object($payload['message_data']['template_message']['text_fields'] ?? null))) {
             throw new RuntimeException('safir_provider_payload_invalid');
         }
         $body=json_encode($payload,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR);
