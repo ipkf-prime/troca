@@ -136,7 +136,7 @@ def preflight():
         fail('REV2_HISTORICAL_PREFLIGHT_RECHECK_FAILED')
     if LOCK.is_symlink() or not LOCK.parent.is_dir():
         fail('ISOLATION_LOCK_LOCATION_UNSAFE')
-    print('=== SAFIR R73C2 ADDITIONAL RECEIPT DDL GUARDED ===')
+    print('=== SAFIR R73C3B FILE-BOUND IMPORT + R73C2 DDL GUARDED ===')
     print('MODE=STRICT_READ_ONLY_PREFLIGHT')
     print('R66B_HISTORICAL_879_880_FILE_SHA256=PASS')
     print('R70_FIVE_TABLE_DDL_AND_R72C_CORE_PINNED=PASS')
@@ -152,6 +152,7 @@ def preflight():
     print('PROVIDER_SEND=NO')
     print('R73C2_ISOLATED_PREFLIGHT=PASS')
     print('R73C3B_SOURCE_AND_REALPDO_TEST_PINS=PASS')
+    print('R73C3B_ISOLATED_PREFLIGHT=PASS')
     print('R73C3B_PRODUCTION_DB_MUTATION=NO')
 
 def require(core,client,sock,stmt,schema=None):
@@ -393,7 +394,7 @@ def run():
         fail('INTERACTIVE_OPERATOR_CONFIRMATION_REQUIRED')
     print('WARNING=WRITES_TO_NEW_PRIVATE_DISPOSABLE_R68_COPY_ONLY')
     print('WARNING=SENSITIVE_COPIED_DATABASE_RETAINED_PRIVATELY')
-    if input('Type exactly DDL R73C2 ISOLATED to continue: ').strip()!='DDL R73C2 ISOLATED':
+    if input('Type exactly DDL R73C3B ISOLATED to continue: ').strip()!='DDL R73C3B ISOLATED':
         fail('OPERATOR_CONFIRMATION_NOT_GIVEN')
     fd=None;proc=None;stage=None;client=None;sock=None;core=None;ok=False
     try:
