@@ -70,7 +70,17 @@ final class BaleSafirMessageIdempotencyRepository
             // errors (missing table, connectivity, permissions) fail closed.
             $driverCode=(int)($e->errorInfo[1] ?? 0);
             if ($e->getCode()==='23000' && $driverCode===1062) {
-                return false;
+                // Another unique constraint (request_id) may have collided.
+                // Never treat a mismatched identity as a benign duplicate.
+                $check=$this->db->prepare(
+                    'SELECT request_id FROM safir_message_idempotency WHERE dedup_sha256=?'
+                );
+                $check->execute([$dedupHash]);
+                $existing=$check->fetchColumn();
+                if (is_string($existing) && $existing !== '') {
+                    return false;
+                }
+                throw new RuntimeException('safir_idempotency_request_identity_collision',0,$e);
             }
             throw $e;
         }
