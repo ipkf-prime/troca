@@ -42,7 +42,7 @@ final class BaleSafirDurableCampaignWorker
         $this->db->beginTransaction();
         try {
             $q=$this->db->prepare(
-                'SELECT id,template_snapshot_json,approved_by_user_id,approved_at,state_code '
+                'SELECT id,template_snapshot_json,template_sha256,approved_by_user_id,approved_at,state_code '
                 .'FROM safir_campaigns WHERE id=? FOR UPDATE'
             );
             $q->execute([$campaignId]);
@@ -54,7 +54,9 @@ final class BaleSafirDurableCampaignWorker
                 throw new RuntimeException('safir_worker_campaign_not_approved');
             }
             $template=json_decode((string)$campaign['template_snapshot_json'],true,512,JSON_THROW_ON_ERROR);
-            if (!is_array($template) || ($template['active'] ?? null)!==true
+            if (!is_array($template)
+                || !hash_equals((string)$campaign['template_sha256'], hash('sha256', (string)$campaign['template_snapshot_json']))
+                || ($template['active'] ?? null)!==true
                 || ($template['provider_approved'] ?? null)!==true) {
                 throw new RuntimeException('safir_worker_template_invalid');
             }
@@ -73,8 +75,9 @@ final class BaleSafirDurableCampaignWorker
             if (!is_array($fields)) {
                 throw new RuntimeException('safir_worker_fields_invalid');
             }
-            // Note: all direct sends are blocked until historical send reconciliation
-            // is documented for this campaign. Never assume a new ledger is complete.
+            // Durable audit trail and historical reconciliation must be
+            // independently guaranteed by the caller's canonical policy gate.
+            // The caller MUST NOT return true based solely on new-ledger absence.
             if (!$checkSendingAllowed($campaignId,$recipientId)) {
                 throw new RuntimeException('safir_worker_policy_denied');
             }
@@ -84,6 +87,10 @@ final class BaleSafirDurableCampaignWorker
             );
             if (array_keys($fields)!==array_keys($template['mappings'] ?? [])) {
                 throw new RuntimeException('safir_worker_mapping_mismatch');
+            }
+            if (!preg_match('/^[1-9][0-9]{5,19}$/D', (string)($template['bot_id'] ?? ''))
+                || !preg_match('/^[A-Za-z0-9_-]{2,64}$/D', (string)($template['template_id'] ?? ''))) {
+                throw new RuntimeException('safir_worker_provider_template_invalid');
             }
             $requestId=bin2hex(random_bytes(32));
             // Mark the row unknown and persist BEFORE any network call.
