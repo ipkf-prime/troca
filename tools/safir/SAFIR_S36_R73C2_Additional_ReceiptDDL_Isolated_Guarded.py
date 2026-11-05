@@ -242,7 +242,7 @@ def test_files(core,client,sock,schema):
         fail('CROSS_TABLE_SCHEMA_GAP_PROBE_UNEXPECTED')
     print('SCHEMA_ONLY_CROSS_TABLE_TERMINAL_ATTESTATION=INSUFFICIENT')
     print('R73C2_APPROVAL_TRANSACTION_GATE=NOT_IMPLEMENTED')
-    print('R73C2_NEGATIVE_CONSTRAINT_TESTS=13_PASS')
+    print('R73C2_NEGATIVE_CONSTRAINT_TESTS=14_PASS')
 
 def apply(core,client,sock,data):
     core.verify_identity(client,sock,data,'1')
