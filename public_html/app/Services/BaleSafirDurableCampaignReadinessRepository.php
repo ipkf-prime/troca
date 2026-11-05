@@ -201,10 +201,10 @@ final class BaleSafirDurableCampaignReadinessRepository
                 } finally {
                     fclose($fh);
                 }
+                $finalHash=hash_file('sha256',$path);
                 if ($seen!==(int)$file['expected_chunk_count']
-                    || !is_string(hash_file('sha256',$path))
-                    || !hash_equals((string)$receipt['source_sha256'],
-                                     (string)hash_file('sha256',$path))) {
+                    || !is_string($finalHash)
+                    || !hash_equals((string)$receipt['source_sha256'],$finalHash)) {
                     throw new RuntimeException('safir_r73c4b_source_changed_or_incomplete');
                 }
             }
