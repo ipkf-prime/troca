@@ -27,4 +27,13 @@ $c=Identity::prepare('bale', '09123456789', 'سلام {{name}}', ['name'=>'رض�
 ensure($a['dedup_sha256']!==$c['dedup_sha256'], 'DIFFERENT_MESSAGE_NOT_DUPLICATE');
 reject(fn()=>Identity::prepare('bale','09123456789','سلام {{name}}',['name'=>'علی'],7),'FINAL_TEXT_TOO_LONG');
 reject(fn()=>Identity::prepare('bale','09123456789','سلام {{missing}}',[],20),'UNRESOLVED_PLACEHOLDER');
+$other=Identity::prepare('bale','09123456788','سلام {{name}}',['name'=>'علی'],20);
+ensure($a['dedup_sha256']!==$other['dedup_sha256'],'DIFFERENT_PHONE_NOT_DUPLICATE');
+$provider=Identity::prepare('alternate','09123456789','سلام {{name}}',['name'=>'علی'],20);
+ensure($a['dedup_sha256']!==$provider['dedup_sha256'],'DIFFERENT_PROVIDER_NOT_DUPLICATE');
+$unicode=Identity::prepare('bale','09123456789','🙂{{name}}',['name'=>'ایران'],20);
+ensure($unicode['character_count']===6,'EMOJI_UNICODE_COUNT');
+reject(fn()=>Identity::prepare('bale','not-a-phone','سلام',[],20),'INVALID_PHONE_REJECTED');
+reject(fn()=>Identity::prepare('bale','09123456789','{{x}}',['x'=>''],20),'EMPTY_VARIABLE_REJECTED');
+reject(fn()=>Identity::prepare('bale','09123456789','{{bad',[],20),'MALFORMED_PLACEHOLDER_REJECTED');
 echo "SAFIR_FINAL_MESSAGE_IDENTITY_TEST=PASS".PHP_EOL;
