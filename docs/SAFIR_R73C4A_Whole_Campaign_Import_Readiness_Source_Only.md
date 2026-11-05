@@ -15,7 +15,7 @@ Status: **NOT DEPLOYED; NOT AN APPROVAL; NOT A SEND AUTHORIZATION; NO DB MIGRATI
 - Rejects already approved/not-draft campaigns, missing owner, snapshot/template mismatch.
 - Every registered file must be `complete` with full terminal counters, file-level template SHA match, full source identity, unique stage/source and no failure markers. Nonempty file, source and chunks.
 - Every persisted campaign batch, including legacy/unlinked batches, must belong to exactly one completed file, be complete and numbered 1..N without duplicate/gaps, with count-limited source/accepted/rejected totals.
-- Per-batch real recipient counts must exactly match each accepted count, and every recipient must be `ready` with no `request_id`. Zero-accepted batches must be represented explicitly by zero counts.
+- Per-batch real recipient counts must exactly match each accepted count, and every recipient must be `ready` with no `request_id` or existing send/attempt/provider metadata. Zero-accepted batches must be represented explicitly by zero counts.
 - Rejects any existing send attempt and any ready recipient now on suppression list. **Same checks must be repeated immediately before later actual send**, under appropriate concurrency control.
 - Rejects zero eligible recipients; returns aggregate numbers only. It never changes campaign state, signs approval, creates queues or invokes provider.
 - Canonical RBAC, the identity of an independent approver and duties segregation are NOT represented as caller-controlled booleans and are NOT implemented. **A policy PASS is NOT an approval token.**
@@ -24,7 +24,7 @@ Status: **NOT DEPLOYED; NOT AN APPROVAL; NOT A SEND AUTHORIZATION; NO DB MIGRATI
 ## Source-only test
 `tools/safir/SAFIR_R73C4A_CampaignImportReadiness_StandaloneTests.php`:
 - Deterministic synthetic cases including one/two files, zero-accepted second file, empty/missing batches, duplicate file/source/chunk, legacy unlinked batch, wrong campaign, incomplete file, wrong template, invalid chunk manifest, premature approval/sending, current suppression, count drift, non-ready recipients and assigned request IDs.
-- **46 asserted cases are authored but not yet executed by the operator**. PHP lint + run should precede further implementation.
+- **47 asserted cases are authored but not yet executed by the operator**. PHP lint + run should precede further implementation.
 - Does not connect to a database or send provider messages.
 
 ## Pending external / integration work
